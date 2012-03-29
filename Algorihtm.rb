@@ -638,3 +638,4 @@ ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
 ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
 
+
