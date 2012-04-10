@@ -113,7 +113,7 @@ module ConvolutionGenerator
       ss = ""
       @source.dimension[0..-2].each{ |d|
         if d.val2 then
-          ss += "*(#{d.val2}-#{d.val1}+1})"
+          ss += "*(#{d.val2}-#{d.val1}+1)"
         else
           ss += "*#{d.val1}"
         end
@@ -206,10 +206,13 @@ module ConvolutionGenerator
       s += self.indent if final
       s += "const " if @constant
       s += @type.decl
-      if(@dimension) then
+      if(@dimension and not @constant) then
         s += " *"
       end
       s += " #{@name}"
+      if(@dimension and @constant) then
+        s += "[]"
+      end
       s += " = #{@constant}" if @constant
       s += self.finalize if final
       $output.print s if final
@@ -364,7 +367,7 @@ module ConvolutionGenerator
     end
     def decl
       return "integer(kind=#{@size})" if $lang == FORTRAN
-      return "int#{8*@size}" if $lang == C
+      return "int#{8*@size}_t" if $lang == C
     end
   end
 
@@ -379,7 +382,7 @@ module ConvolutionGenerator
     def to_str_fortran
       s = ""
       return s if not self.first
-      s += "/( &\n"
+      s += "(/ &\n"
       s += self.first 
       self[1..-1].each { |v|
         s += ", &\n"+v
@@ -389,12 +392,12 @@ module ConvolutionGenerator
     def to_str_c
       s = ""
       return s if not self.first
-      s += "[\n"
+      s += "{\n"
       s += self.first 
       self[1..-1].each { |v|
         s += ",\n"+v
       }
-      s += "]"
+      s += "}"
     end
   end
  
@@ -499,6 +502,9 @@ module ConvolutionGenerator
     end
     if invert then
       function_name += "_inv"
+    end
+    if unroll>0 then
+      function_name += "_u#{unroll}"
     end
     dim_in_min = "0"
     dim_in_max = "n-1"
@@ -628,14 +634,17 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
        "2.72734492911979659657715313017228e-6" ]
 
 
-ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
-ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
-ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
-ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
+#ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
+#ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
+#ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
+#ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
 ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+#ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
+#ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
+#ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
+#ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
+
+
 ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
-ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
-ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
-ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
-
-
+ConvolutionGenerator::MagicFilter(FILTER,8,5,false)
+ConvolutionGenerator::MagicFilter(FILTER,8,8,false)
