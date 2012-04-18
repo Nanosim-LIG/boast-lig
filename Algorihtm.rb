@@ -147,9 +147,9 @@ module ConvolutionGenerator
     attr_reader :dimension
     def initialize(name,type,hash={})
       @name = name
-      @direction = hash["direction"]
-      @constant = hash["constant"]
-      @dimension = hash["dimension"]
+      @direction = hash[:direction]
+      @constant = hash[:constant]
+      @dimension = hash[:dimension]
       @type = type::new(hash)
     end
   
@@ -347,12 +347,15 @@ module ConvolutionGenerator
     def to_str
       s = ""
       if val2 then
-        s += val1.to_str
+        s += val1.to_s
         s += ":"
-        s += val2.to_str
+        s += val2.to_s
       else
-        s += val1.to_str
+        s += val1.to_s
       end
+    end
+    def to_s
+      self.to_str
     end
   end
  
@@ -506,31 +509,33 @@ module ConvolutionGenerator
     if unroll>0 then
       function_name += "_u#{unroll}"
     end
-    dim_in_min = "0"
-    dim_in_max = "n-1"
-    dim_out_min = "0"
-    dim_out_max = "n-1"
+
+    n = Variable::new("n",Int,{:direction => :in})
+    ndat = Variable::new("ndat",Int,{:direction => :in})
+    if invert then
+      lowfil = Variable::new("lowfil",Int,{:constant => "-#{center-1}"})
+      upfil = Variable::new("upfil",Int,{:constant => "#{filt.length-center}"})
+    else
+      lowfil = Variable::new("lowfil",Int,{:constant => "-#{filt.length-center}"})
+      upfil = Variable::new("upfil",Int,{:constant => "#{center-1}"})
+    end
+
+    dim_in_min = 0
+    dim_in_max = n-1
+    dim_out_min = 0
+    dim_out_max = n-1
     if free then
       if invert then
-        dim_in_min = "lowfil"
-        dim_in_max = "n-1+upfil"
+        dim_in_min = lowfil
+        dim_in_max = n-1+upfil
       else
-        dim_out_min = "-upfil"
-        dim_out_max = "n-1-lowfil"
+        dim_out_min = -upfil
+        dim_out_max = n-1-lowfil
       end
     end
 
-    n = Variable::new("n",Int,{"direction" => "in"})
-    ndat = Variable::new("ndat",Int,{"direction" => "in"})
-    if invert then
-      lowfil = Variable::new("lowfil",Int,{"constant" => "-#{center-1}"})
-      upfil = Variable::new("upfil",Int,{"constant" => "#{filt.length-center}"})
-    else
-      lowfil = Variable::new("lowfil",Int,{"constant" => "-#{filt.length-center}"})
-      upfil = Variable::new("upfil",Int,{"constant" => "#{center-1}"})
-    end
-    x = Variable::new("x",Real,{"direction"=>"in", "dimension" => [ Dimension::new(dim_in_min, dim_in_max), Dimension::new(ndat) ] })
-    y = Variable::new("y",Real,{"direction"=>"out", "dimension" => [ Dimension::new(ndat), Dimension::new(dim_out_min, dim_out_max) ] })
+    x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(dim_in_min, dim_in_max), Dimension::new(ndat) ] })
+    y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(ndat), Dimension::new(dim_out_min, dim_out_max) ] })
     i = Variable::new("i",Int)
     j = Variable::new("j",Int)
     k = Variable::new("k",Int)
@@ -541,7 +546,7 @@ module ConvolutionGenerator
     }
     if invert then filt = filt.reverse end 
     arr = ConstArray::new(filt)
-    fil = Variable::new("fil",Real,{"constant" => arr,"dimension" => [ Dimension::new(lowfil,upfil) ]})
+    fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new(lowfil,upfil) ]})
   
     p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil])
 
@@ -638,7 +643,7 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
-ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+#ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 #ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
