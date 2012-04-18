@@ -513,11 +513,11 @@ module ConvolutionGenerator
     n = Variable::new("n",Int,{:direction => :in})
     ndat = Variable::new("ndat",Int,{:direction => :in})
     if invert then
-      lowfil = Variable::new("lowfil",Int,{:constant => "-#{center-1}"})
-      upfil = Variable::new("upfil",Int,{:constant => "#{filt.length-center}"})
+      lowfil = Variable::new("lowfil",Int,{:constant => 1-center})
+      upfil = Variable::new("upfil",Int,{:constant => filt.length-center})
     else
-      lowfil = Variable::new("lowfil",Int,{:constant => "-#{filt.length-center}"})
-      upfil = Variable::new("upfil",Int,{:constant => "#{center-1}"})
+      lowfil = Variable::new("lowfil",Int,{:constant => center-filt.length})
+      upfil = Variable::new("upfil",Int,{:constant => center-1})
     end
 
     dim_in_min = 0
@@ -643,7 +643,7 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
-#ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 #ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
