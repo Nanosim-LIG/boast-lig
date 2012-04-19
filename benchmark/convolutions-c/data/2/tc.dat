@@ -1,0 +1,36 @@
+ 1 Conv
+ PAPI_TOT_CYC:            104137812
+Finished. Time(ms), GFlops 104.0930 8.05876E-02
+ 2 Conv
+ PAPI_TOT_CYC:             62676779
+Finished. Time(ms), GFlops  62.6510 1.33894E-01
+ 3 Conv
+ PAPI_TOT_CYC:             50014888
+Finished. Time(ms), GFlops  50.0530 1.67595E-01
+ 4 Conv
+ PAPI_TOT_CYC:             41982569
+Finished. Time(ms), GFlops  41.9610 1.99914E-01
+ 5 Conv
+ PAPI_TOT_CYC:             41214761
+Finished. Time(ms), GFlops  41.1850 2.03681E-01
+ 6 Conv
+ PAPI_TOT_CYC:             37699827
+Finished. Time(ms), GFlops  37.6710 2.22681E-01
+ 7 Conv
+ PAPI_TOT_CYC:             35696480
+Finished. Time(ms), GFlops  35.6700 2.35173E-01
+ 8 Conv
+ PAPI_TOT_CYC:             35578843
+Finished. Time(ms), GFlops  35.5520 2.35953E-01
+ 9 Conv
+ PAPI_TOT_CYC:             38425998
+Finished. Time(ms), GFlops  38.3990 2.18459E-01
+ 10 Conv
+ PAPI_TOT_CYC:             38924745
+Finished. Time(ms), GFlops  38.9000 2.15645E-01
+ 11 Conv
+ PAPI_TOT_CYC:             40148890
+Finished. Time(ms), GFlops  40.1270 2.09051E-01
+ 12 Conv
+ PAPI_TOT_CYC:             59028348
+Finished. Time(ms), GFlops  59.0000 1.42180E-01

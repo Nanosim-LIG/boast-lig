@@ -1,0 +1,36 @@
+ 1 Conv
+ PAPI_TLB_IM :                 2901
+Finished. Time(ms), GFlops 113.4020 7.39723E-02
+ 2 Conv
+ PAPI_TLB_IM :                 1782
+Finished. Time(ms), GFlops  68.2030 1.22995E-01
+ 3 Conv
+ PAPI_TLB_IM :                 1404
+Finished. Time(ms), GFlops  55.0690 1.52329E-01
+ 4 Conv
+ PAPI_TLB_IM :                 1220
+Finished. Time(ms), GFlops  46.4240 1.80695E-01
+ 5 Conv
+ PAPI_TLB_IM :                 1138
+Finished. Time(ms), GFlops  44.4000 1.88933E-01
+ 6 Conv
+ PAPI_TLB_IM :                   87
+Finished. Time(ms), GFlops  36.4120 2.30380E-01
+ 7 Conv
+ PAPI_TLB_IM :                  755
+Finished. Time(ms), GFlops  38.1360 2.19966E-01
+ 8 Conv
+ PAPI_TLB_IM :                  352
+Finished. Time(ms), GFlops  37.0120 2.26646E-01
+ 9 Conv
+ PAPI_TLB_IM :                  157
+Finished. Time(ms), GFlops  38.5260 2.17739E-01
+ 10 Conv
+ PAPI_TLB_IM :                  100
+Finished. Time(ms), GFlops  38.1960 2.19620E-01
+ 11 Conv
+ PAPI_TLB_IM :                   84
+Finished. Time(ms), GFlops  40.0280 2.09569E-01
+ 12 Conv
+ PAPI_TLB_IM :                  100
+Finished. Time(ms), GFlops  57.8630 1.44974E-01
