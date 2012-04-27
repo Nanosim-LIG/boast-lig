@@ -662,43 +662,102 @@ module ConvolutionGenerator
     }.print
   end
  
-  def ConvolutionGenerator::CombinedGrowSimple(filt, center, unroll, invert, free=false )
-  
-    function_name = "combined_grow_simple"
-  
-    if unroll>0 then
-      function_name += "_u#{unroll}"
-    end
-  
-    n1 = Variable::new( "n1", Int, {:direction => :in} )
-    n2 = Variable::new( "n2", Int, {:direction => :in} )
-    n3 = Variable::new( "n3", Int, {:direction => :in} )
-  
-    nfl1 = Variable::new( "nfl1", Int, {:direction => :in} )
-    nfu1 = Variable::new( "nfu1", Int, {:direction => :in} )
-    nfl2 = Variable::new( "nfl2", Int, {:direction => :in} )
-    nfu2 = Variable::new( "nfu2", Int, {:direction => :in} )
-    nfl3 = Variable::new( "nfl3", Int, {:direction => :in} )
-    nfu3 = Variable::new( "nfu3", Int, {:direction => :in} )
-  
-    x = Variable::new( "x", Int, {:direction => :in}  )
-    y = Variable::new( "y", Int, {:direction => :in}  )
-    
-    ib = Variable::new( "ib", Int, {:dimension => [ Dimension::new( 2 ), Dimension::new(nfl1 * 2 - 14 , nfu1 * 2 + 16 ), Dimension::new(nfl2 * 2 - 14, nfu2 * 2 + 16 ) ]} ) 
-  
-    l1 = Variable::new( "l1", Int )
-    l2 = Variable::new( "l2", Int )
-    i = Variable::new( "i", Int )
-    t = Variable::new( "t", Int )
-  
-    #y2i = Variable::new( "y2i", Real, {:
-    #
-  
-    p = Procedure::new( function_name, [n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, x, y, ib] )
-  
-    p.decl
-  end
+def ConvolutionGenerator::AnaRotPer(filt, center, unroll, invert, free=false )
 
+  function_name = "ana_rot_per"
+
+  if unroll>0 then
+    function_name += "_u#{unroll}"
+
+  n = Variable::new( "n", Int, {:direction => :in} )
+  ndat = Variable::new( "ndat", Int, {:direction => :in} )
+  x = Variable::new( "x", Real, {:direction => :in, :dimension => [ Dimension::new( 0, n*2+1 ), Dimension::new( ndat ) ]} )
+  y = Variable::new( "y", Real, {:direction => :out, :dimension => [ Dimension::new( ndat ), Dimension::new( 0, n*2+1 ) ]} )
+
+  i = Variable::new( "i", Int )
+  j = Variable::new( "j", Int )
+  k = Variable::new( "k", Int )
+  l = Variable::new( "l", Int )
+
+  ci = Variable::new( "ci", Real )
+  di = Variable::new( "di", Real )
+
+  ch = Variable::new( "ch", Real, {:dimension => [ Dimension::new( -7,8 )]} )
+  cg = Variable::new( "cg", Real, {:dimension => [ Dimension::new( -7,8 )]} )
+
+  chdata = [ "-0.0033824159510050025955_wp", 
+       "-0.00054213233180001068935_wp", 
+      "0.031695087811525991431_wp", 
+       "0.0076074873249766081919_wp",
+         "-0.14329423835127266284_wp", 
+       "-0.061273359067811077843_wp", 
+        "0.48135965125905339159_wp", 
+       "0.77718575169962802862_wp",
+        "0.36444189483617893676_wp",
+       "-0.051945838107881800736_wp",
+       "-0.027219029917103486322_wp",
+       "0.049137179673730286787_wp",
+        "0.0038087520138944894631_wp",
+       "-0.014952258337062199118_wp",
+      "-0.00030292051472413308126_wp",
+       "0.0018899503327676891843_wp" ]
+
+  charray = ConstArray::new( chdata )
+
+  cgdata = [ "-0.0018899503327676891843_wp",
+      "-0.00030292051472413308126_wp",
+      "0.014952258337062199118_wp", 
+      "0.0038087520138944894631_wp", 
+      "-0.049137179673730286787_wp", 
+      "-0.027219029917103486322_wp", 
+      "0.051945838107881800736_wp", 
+      "0.36444189483617893676_wp", 
+      "-0.77718575169962802862_wp",
+      "0.48135965125905339159_wp", 
+      "0.061273359067811077843_wp",
+      "-0.14329423835127266284_wp", 
+      "-0.0076074873249766081919_wp",
+      "0.031695087811525991431_wp", 
+      "0.00054213233180001068935_wp",
+      "-0.0033824159510050025955_wp", ]
+  cgarray = ConstArray::new( cgdata )
+
+  ch = Variable::new( "ch", Real, {:constant => charray, :dimension => [ Dimension::new( -7, 8 ) ]} )
+
+  cg = Variable::new( "cg", Real, {:constant => cgarray, :dimension => [ Dimension::new( -7, 8 ) ]} )
+
+p = Procedure::new( function_name, [n, ndat, x, y] ) {
+
+  i.decl
+  j.decl
+  k.decl
+  l.decl
+
+  ci.decl
+  di.decl
+
+  ch.decl
+  cg.decl
+
+  for1 = For::new( j, 0, n, 1 )
+  for1.print
+  for2 = For::new( i, 0, n, 1 ) {
+    (ci === "0.e0_wp").print
+    (di === "0.e0_wp").print
+
+    for3 = For::new( l, -7, 8, 1 ) {
+      (k === FuncCall::new( "modulo", l + i * 2, n * 2 + 2 )).print
+      (ci === ci + ch + ch[l] * x[k, j]).print
+      (di === di + ch + cg[l] * x[k, j]).print
+    }.print
+
+    (y[j, i] === ci).print
+    (y[j,n + 1 + i ] === di).print 
+  }.print
+  for1.close
+}.print
+
+  end
 end
 
 FILTER = [ "8.4334247333529341094733325815816e-7",
@@ -731,8 +790,8 @@ ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
 #ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
 
 
-ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
-ConvolutionGenerator::MagicFilter(FILTER,8,5,false)
-ConvolutionGenerator::MagicFilter(FILTER,8,8,false)
+#ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
+#ConvolutionGenerator::MagicFilter(FILTER,8,5,false)
+#ConvolutionGenerator::MagicFilter(FILTER,8,8,false)
 
-#ConvolutionGenerator::CombinedGrowSimple(FILTER, 8, 8, false )
+ConvolutionGenerator::AnaRotPer(FILTER, 8, 0, false)
