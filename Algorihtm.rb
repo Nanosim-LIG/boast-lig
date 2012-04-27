@@ -47,9 +47,9 @@ module ConvolutionGenerator
 
     def to_str
       s = ""
-      s += @operand1 if @operand1
-      s += " " + @operator
-      s += " " + @operand2.to_s
+      s += @operand1.to_s if @operand1
+      s += @operator.to_s
+      s += @operand2.to_s
       return s
     end
     def print(final=true)
@@ -123,7 +123,7 @@ module ConvolutionGenerator
         else
           start = 1
         end
-        s += " + (#{@indexes[i]} - #{start})"+ss
+        s += "+(#{@indexes[i]}-#{start})"+ss
         i+=1
       }
       s += "]"
@@ -204,7 +204,7 @@ module ConvolutionGenerator
     def decl_c(final=true)
       s = ""
       s += self.indent if final
-      s += "const " if @constant
+      s += "const " if @constant or @direction == :in
       s += @type.decl
       if(@dimension and not @constant) then
         s += " *"
@@ -265,10 +265,11 @@ module ConvolutionGenerator
     attr_reader :name
     attr_reader :parameters
     attr_reader :constants
-    def initialize(name, parameters=[], constants=[])
+    def initialize(name, parameters=[], constants=[], &block)
       @name = name
       @parameters = parameters
       @constants = constants
+      @block = block
     end
     def decl(final=true)
       return self.decl_fortran(final) if $lang==FORTRAN
@@ -292,6 +293,16 @@ module ConvolutionGenerator
       $output.puts s if final
       return s
     end
+
+    def print(final=true)
+      s = self.decl
+      if @block then
+        @block.call
+        s += self.close
+      end
+      return s
+    end
+
     def decl_c(final=true)
       s = ""
       s += "void #{@name}("
@@ -441,11 +452,12 @@ module ConvolutionGenerator
     attr_reader :begin
     attr_reader :end
     attr_reader :step
-    def initialize(i, b, e, s=1)
+    def initialize(i, b, e, s=1, &block)
       @iterator = i
       @begin = b
       @end = e
       @step = s
+      @block = block
     end
     def to_s
       self.to_str
@@ -472,6 +484,11 @@ module ConvolutionGenerator
       s += self.to_str
       $indent_level += $indent_increment
       $output.puts s if final
+      if @block then
+        s += "\n"
+        @block.call
+        s += self.close
+      end
       return s
     end
     def close(final=true)
@@ -548,75 +565,71 @@ module ConvolutionGenerator
     arr = ConstArray::new(filt)
     fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new(lowfil,upfil) ]})
   
-    p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil])
-
-    p.decl
-    i.decl
-    j.decl
-    k.decl
-    l.decl
-    tt.each { |t|
-      t.decl
-    }
-
-    fil.decl
-
-    if unroll>1 then 
-      for1 = For::new(j,1,ndat-(unroll-1), unroll)
-    else
-      for1 = For::new(j,1,ndat)
-    end
-    for1.print
-    for2 = For::new(i,dim_out_min, dim_out_max)
-    for2.print
-    tt.each{ |t|
-      (t === 0.0).print
-    }
-    if free and not invert
-      for3 = For::new(l, FuncCall::new("max", -i, lowfil), FuncCall::new("min", upfil, n-1-i) )
-    else
-      for3 = For::new(l, lowfil, upfil)
-    end
-    for3.print
-    if not free then
-      (k === FuncCall::new( "modulo", i+l, n)).print
-    else
-      (k === i+l).print
-    end
-    tt.each_index{ |index|
-      (tt[index] === tt[index] + x[k,j+index]*fil[l]).print
-    }
-    for3.close
-    tt.each_index{ |index|
-      (y[j+index,i] === tt[index]).print
-    }
-    for2.close
-    for1.close
-
-    if unroll>1 then
-      for1 = For::new(j,ndat-FuncCall::new("modulo",ndat,unroll)+1,ndat)
+    p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil]) {
+  
+      i.decl
+      j.decl
+      k.decl
+      l.decl
+      tt.each { |t|
+        t.decl
+      }
+  
+      fil.decl
+  
+      if unroll>1 then 
+        for1 = For::new(j,1,ndat-(unroll-1), unroll)
+      else
+        for1 = For::new(j,1,ndat)
+      end
       for1.print
-      for2 = For::new(i,dim_out_min,dim_out_max)
-      for2.print
-      (tt[0] === 0.0).print
-      if free and not invert then
-        for3 = For::new(l, FuncCall::new("max", -i, lowfil), FuncCall::new("min", upfil, n-1-i) )
-      else
-        for3 = For::new(l, lowfil, upfil)
-      end
-      for3.print
-      if not free then
-        (k === FuncCall::new( "modulo", i+l, n)).print
-      else
-        (k === i+l).print
-      end
-      (tt[0] === tt[0] + x[k,j] * fil[l] ).print
-      for3.close
-      (y[j,i] === tt[0]).print
-      for2.close
+      for2 = For::new(i,dim_out_min, dim_out_max) {
+        tt.each{ |t|
+          (t === 0.0).print
+        }
+        if free and not invert
+          for3 = For::new(l, FuncCall::new("max", -i, lowfil), FuncCall::new("min", upfil, n-1-i) )
+        else
+          for3 = For::new(l, lowfil, upfil)
+        end
+        for3.print
+        if not free then
+          (k === FuncCall::new( "modulo", i+l, n)).print
+        else
+          (k === i+l).print
+        end
+        tt.each_index{ |index|
+          (tt[index] === tt[index] + x[k,j+index]*fil[l]).print
+        }
+        for3.close
+        tt.each_index{ |index|
+          (y[j+index,i] === tt[index]).print
+        }
+      }.print
       for1.close
-    end
-    p.close
+  
+      if unroll>1 then
+        for1 = For::new(j,ndat-FuncCall::new("modulo",ndat,unroll)+1,ndat) {
+          for2 = For::new(i,dim_out_min,dim_out_max) {
+            (tt[0] === 0.0).print
+            if free and not invert then
+              for3 = For::new(l, FuncCall::new("max", -i, lowfil), FuncCall::new("min", upfil, n-1-i) )
+            else
+              for3 = For::new(l, lowfil, upfil)
+            end
+            for3.print
+            if not free then
+              (k === FuncCall::new( "modulo", i+l, n)).print
+            else
+              (k === i+l).print
+            end
+            (tt[0] === tt[0] + x[k,j] * fil[l] ).print
+            for3.close
+            (y[j,i] === tt[0]).print
+          }.print
+        }.print
+      end
+    }.print
   end
  
 end
@@ -643,7 +656,7 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
-ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+#ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 #ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
