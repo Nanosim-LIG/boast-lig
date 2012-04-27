@@ -632,7 +632,44 @@ module ConvolutionGenerator
     }.print
   end
  
+def ConvolutionGenerator::CombinedGrowSimple(filt, center, unroll, invert, free=false )
+
+  function_name = "combined_grow_simple"
+
+  if unroll>0 then
+    function_name += "_u#{unroll}"
+  end
+
+  n1 = Variable::new( "n1", Int, {:direction => :in} )
+  n2 = Variable::new( "n2", Int, {:direction => :in} )
+  n3 = Variable::new( "n3", Int, {:direction => :in} )
+
+  nfl1 = Variable::new( "nfl1", Int, {:direction => :in} )
+  nfu1 = Variable::new( "nfu1", Int, {:direction => :in} )
+  nfl2 = Variable::new( "nfl2", Int, {:direction => :in} )
+  nfu2 = Variable::new( "nfu2", Int, {:direction => :in} )
+  nfl3 = Variable::new( "nfl3", Int, {:direction => :in} )
+  nfu3 = Variable::new( "nfu3", Int, {:direction => :in} )
+
+  x = Variable::new( "x", Int, {:direction => :in}  )
+  y = Variable::new( "y", Int, {:direction => :in}  )
+  
+  ib = Variable::new( "ib", Int, {:dimension => [ Dimension::new( 2 ), Dimension::new( -14 + 2 * "nfl1", 2 * "nfu1" + 16 ), Dimension::new( -14 + 2 * "nfl2", 2 * "nfu2" + 16 ) ]} ) 
+
+  l1 = Variable::new( "l1", Int )
+  l2 = Variable::new( "l2", Int )
+  i = Variable::new( "i", Int )
+  t = Variable::new( "t", Int )
+
+  #y2i = Variable::new( "y2i", Real, {:
+  #
+
+  p = Procedure::new( function_name, [n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, x, y, ib] )
+
+  p.decl
 end
+
+             end
 
 FILTER = [ "8.4334247333529341094733325815816e-7",
        "-0.1290557201342060969516786758559028e-4",
@@ -656,6 +693,7 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
+ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
 #ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 #ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
@@ -663,6 +701,8 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 #ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
 
 
-ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
-ConvolutionGenerator::MagicFilter(FILTER,8,5,false)
-ConvolutionGenerator::MagicFilter(FILTER,8,8,false)
+#ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
+#ConvolutionGenerator::MagicFilter(FILTER,8,5,false)
+#ConvolutionGenerator::MagicFilter(FILTER,8,8,false)
+
+ConvolutionGenerator::CombinedGrowSimple(FILTER, 8, 8, false )
