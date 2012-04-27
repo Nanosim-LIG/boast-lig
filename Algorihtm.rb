@@ -3,6 +3,7 @@ module ConvolutionGenerator
   C = 2
   $output = STDOUT
   $lang = FORTRAN
+  $replace_constants = true
   $default_int_size = 4
   $default_real_size = 8
   $indent_level = 0
@@ -142,7 +143,7 @@ module ConvolutionGenerator
   class Variable
     attr_reader :name
     attr_reader :direction
-    attr_reader :constant
+    attr_accessor :constant
     attr_reader :type
     attr_reader :dimension
     def initialize(name,type,hash={})
@@ -158,6 +159,7 @@ module ConvolutionGenerator
     end    
 
     def to_str
+      return @constant.to_s if @constant and $replace_constants and not @dimension
       return @name.to_str
     end
 
@@ -478,6 +480,32 @@ module ConvolutionGenerator
       return s
     end
 
+    def unroll(final=true)
+      raise "Block not given!" if not @block
+      if @begin.kind_of?(Variable) then
+        start = @begin.constant
+      else
+        start = @begin.to_i
+      end
+      if @end.kind_of?(Variable) then
+        e = @end.constant
+      else
+        e = @end.to_i
+      end
+      if @step.kind_of?(Variable) then
+        step = @step.constant
+      else
+        step = @step.to_i
+      end
+      raise "Invalid bounds (not constants)!" if not ( start and e and step )
+      range = start..e
+      range.step(step) { |i|
+        @iterator.constant = i
+        @block.call
+      }
+      @iterator.constant = nil
+    end
+
     def print(final=true)
       s=""
       s += " "*$indent_level if final
@@ -613,18 +641,20 @@ module ConvolutionGenerator
           for2 = For::new(i,dim_out_min,dim_out_max) {
             (tt[0] === 0.0).print
             if free and not invert then
-              for3 = For::new(l, FuncCall::new("max", -i, lowfil), FuncCall::new("min", upfil, n-1-i) )
+              for3 = For::new(l, FuncCall::new("max", -i, lowfil), FuncCall::new("min", upfil, n-1-i) ) {
+                (k === i+l).print
+                (tt[0] === tt[0] + x[k,j] * fil[l] ).print
+              }.print
             else
-              for3 = For::new(l, lowfil, upfil)
+              for3 = For::new(l, lowfil, upfil) {
+                if not free then
+                  (k === FuncCall::new( "modulo", i+l, n)).print
+                else
+                  (k === i+l).print
+                end
+                (tt[0] === tt[0] + x[k,j] * fil[l] ).print
+              }.unroll
             end
-            for3.print
-            if not free then
-              (k === FuncCall::new( "modulo", i+l, n)).print
-            else
-              (k === i+l).print
-            end
-            (tt[0] === tt[0] + x[k,j] * fil[l] ).print
-            for3.close
             (y[j,i] === tt[0]).print
           }.print
         }.print
@@ -632,44 +662,44 @@ module ConvolutionGenerator
     }.print
   end
  
-def ConvolutionGenerator::CombinedGrowSimple(filt, center, unroll, invert, free=false )
-
-  function_name = "combined_grow_simple"
-
-  if unroll>0 then
-    function_name += "_u#{unroll}"
+  def ConvolutionGenerator::CombinedGrowSimple(filt, center, unroll, invert, free=false )
+  
+    function_name = "combined_grow_simple"
+  
+    if unroll>0 then
+      function_name += "_u#{unroll}"
+    end
+  
+    n1 = Variable::new( "n1", Int, {:direction => :in} )
+    n2 = Variable::new( "n2", Int, {:direction => :in} )
+    n3 = Variable::new( "n3", Int, {:direction => :in} )
+  
+    nfl1 = Variable::new( "nfl1", Int, {:direction => :in} )
+    nfu1 = Variable::new( "nfu1", Int, {:direction => :in} )
+    nfl2 = Variable::new( "nfl2", Int, {:direction => :in} )
+    nfu2 = Variable::new( "nfu2", Int, {:direction => :in} )
+    nfl3 = Variable::new( "nfl3", Int, {:direction => :in} )
+    nfu3 = Variable::new( "nfu3", Int, {:direction => :in} )
+  
+    x = Variable::new( "x", Int, {:direction => :in}  )
+    y = Variable::new( "y", Int, {:direction => :in}  )
+    
+    ib = Variable::new( "ib", Int, {:dimension => [ Dimension::new( 2 ), Dimension::new(nfl1 * 2 - 14 , nfu1 * 2 + 16 ), Dimension::new(nfl2 * 2 - 14, nfu2 * 2 + 16 ) ]} ) 
+  
+    l1 = Variable::new( "l1", Int )
+    l2 = Variable::new( "l2", Int )
+    i = Variable::new( "i", Int )
+    t = Variable::new( "t", Int )
+  
+    #y2i = Variable::new( "y2i", Real, {:
+    #
+  
+    p = Procedure::new( function_name, [n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, x, y, ib] )
+  
+    p.decl
   end
 
-  n1 = Variable::new( "n1", Int, {:direction => :in} )
-  n2 = Variable::new( "n2", Int, {:direction => :in} )
-  n3 = Variable::new( "n3", Int, {:direction => :in} )
-
-  nfl1 = Variable::new( "nfl1", Int, {:direction => :in} )
-  nfu1 = Variable::new( "nfu1", Int, {:direction => :in} )
-  nfl2 = Variable::new( "nfl2", Int, {:direction => :in} )
-  nfu2 = Variable::new( "nfu2", Int, {:direction => :in} )
-  nfl3 = Variable::new( "nfl3", Int, {:direction => :in} )
-  nfu3 = Variable::new( "nfu3", Int, {:direction => :in} )
-
-  x = Variable::new( "x", Int, {:direction => :in}  )
-  y = Variable::new( "y", Int, {:direction => :in}  )
-  
-  ib = Variable::new( "ib", Int, {:dimension => [ Dimension::new( 2 ), Dimension::new( -14 + 2 * "nfl1", 2 * "nfu1" + 16 ), Dimension::new( -14 + 2 * "nfl2", 2 * "nfu2" + 16 ) ]} ) 
-
-  l1 = Variable::new( "l1", Int )
-  l2 = Variable::new( "l2", Int )
-  i = Variable::new( "i", Int )
-  t = Variable::new( "t", Int )
-
-  #y2i = Variable::new( "y2i", Real, {:
-  #
-
-  p = Procedure::new( function_name, [n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, x, y, ib] )
-
-  p.decl
 end
-
-             end
 
 FILTER = [ "8.4334247333529341094733325815816e-7",
        "-0.1290557201342060969516786758559028e-4",
@@ -701,8 +731,8 @@ ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
 #ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
 
 
-#ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
-#ConvolutionGenerator::MagicFilter(FILTER,8,5,false)
-#ConvolutionGenerator::MagicFilter(FILTER,8,8,false)
+ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
+ConvolutionGenerator::MagicFilter(FILTER,8,5,false)
+ConvolutionGenerator::MagicFilter(FILTER,8,8,false)
 
-ConvolutionGenerator::CombinedGrowSimple(FILTER, 8, 8, false )
+#ConvolutionGenerator::CombinedGrowSimple(FILTER, 8, 8, false )
