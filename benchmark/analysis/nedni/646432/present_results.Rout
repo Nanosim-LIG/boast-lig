@@ -1,0 +1,45 @@
+
+R version 2.13.1 (2011-07-08)
+Copyright (C) 2011 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> dca <- read.table( "extracted_data/dca.dat", header = TRUE, sep = "\t")
+> dcm <- read.table( "extracted_data/dcm.dat", header = TRUE, sep = "\t")
+> icm <- read.table( "extracted_data/icm.dat", header = TRUE, sep = "\t")
+> tc <- read.table( "extracted_data/tc.dat", header = TRUE, sep = "\t")
+> tlb_dm <- read.table( "extracted_data/tlb_dm.dat", header = TRUE, sep = "\t")
+> tlb_im <- read.table( "extracted_data/tlb_im.dat", header = TRUE, sep = "\t")
+> 
+> 
+> par(mfrow=c(3,2))
+> plot(dca)
+> title("Cache access", col.main="#3366CC")
+> plot(dcm)
+> title("Cache misses", col.main="#3366CC")
+> plot(icm)
+> title("Instruction cache misses", col.main="#3366CC")
+> plot(tlb_dm)
+> title("TLB data misses", col.main="#3366CC")
+> plot(tlb_im)
+> title("TLB instruction misses", col.main="#3366CC")
+> plot(tc)
+> title("Total cycles", col.main="#3366CC")
+> 
+> proc.time()
+   user  system elapsed 
+   0.30    0.02    0.31 
