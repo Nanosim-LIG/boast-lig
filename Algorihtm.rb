@@ -668,6 +668,7 @@ def ConvolutionGenerator::AnaRotPer(filt, center, unroll, invert, free=false )
 
   if unroll>0 then
     function_name += "_u#{unroll}"
+  end
 
   n = Variable::new( "n", Int, {:direction => :in} )
   ndat = Variable::new( "ndat", Int, {:direction => :in} )
@@ -739,7 +740,7 @@ p = Procedure::new( function_name, [n, ndat, x, y] ) {
   ch.decl
   cg.decl
 
-  for1 = For::new( j, 0, n, 1 )
+  for1 = For::new( j, 1, ndat, 1 )
   for1.print
   for2 = For::new( i, 0, n, 1 ) {
     (ci === "0.e0_wp").print
@@ -747,8 +748,8 @@ p = Procedure::new( function_name, [n, ndat, x, y] ) {
 
     for3 = For::new( l, -7, 8, 1 ) {
       (k === FuncCall::new( "modulo", l + i * 2, n * 2 + 2 )).print
-      (ci === ci + ch + ch[l] * x[k, j]).print
-      (di === di + ch + cg[l] * x[k, j]).print
+      (ci === ci + ch[l] * x[k, j]).print
+      (di === di + cg[l] * x[k, j]).print
     }.print
 
     (y[j, i] === ci).print
@@ -782,7 +783,7 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
-ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
+ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 #ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 #ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
