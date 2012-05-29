@@ -759,6 +759,178 @@ p = Procedure::new( function_name, [n, ndat, x, y] ) {
 }.print
 
   end
+
+
+
+def ConvolutionGenerator::SynRotPer(filt, center, unroll, invert, free=false )
+
+    function_name = "syn_rot_per"
+
+  if unroll>0 then
+    function_name += "_u#{unroll}"
+  end
+
+  n = Variable::new( "n", Int, {:direction => :in} )
+  ndat = Variable::new( "ndat", Int, {:direction => :in} )
+  x = Variable::new( "x", Real, {:direction => :in, :dimension => [ Dimension::new( 0, n*2+1 ), Dimension::new( ndat ) ]} )
+  y = Variable::new( "y", Real, {:direction => :out, :dimension => [ Dimension::new( ndat ), Dimension::new( 0, n*2+1 ) ]} )
+
+  i = Variable::new( "i", Int )
+  j = Variable::new( "j", Int )
+  k = Variable::new( "k", Int )
+  l = Variable::new( "l", Int )
+
+  so = Variable::new( "so", Real )
+  se = Variable::new( "se", Real )
+
+  ch = Variable::new( "ch", Real, {:dimension => [ Dimension::new( -7,8 )]} )
+  cg = Variable::new( "cg", Real, {:dimension => [ Dimension::new( -7,8 )]} )
+
+  chdata = [ "-0.0033824159510050025955_wp", 
+       "-0.00054213233180001068935_wp", 
+      "0.031695087811525991431_wp", 
+       "0.0076074873249766081919_wp",
+         "-0.14329423835127266284_wp", 
+       "-0.061273359067811077843_wp", 
+        "0.48135965125905339159_wp", 
+       "0.77718575169962802862_wp",
+        "0.36444189483617893676_wp",
+       "-0.051945838107881800736_wp",
+       "-0.027219029917103486322_wp",
+       "0.049137179673730286787_wp",
+        "0.0038087520138944894631_wp",
+       "-0.014952258337062199118_wp",
+      "-0.00030292051472413308126_wp",
+       "0.0018899503327676891843_wp" ]
+
+  charray = ConstArray::new( chdata )
+
+  cgdata = [ "-0.0018899503327676891843_wp",
+      "-0.00030292051472413308126_wp",
+      "0.014952258337062199118_wp", 
+      "0.0038087520138944894631_wp", 
+      "-0.049137179673730286787_wp", 
+      "-0.027219029917103486322_wp", 
+      "0.051945838107881800736_wp", 
+      "0.36444189483617893676_wp", 
+      "-0.77718575169962802862_wp",
+      "0.48135965125905339159_wp", 
+      "0.061273359067811077843_wp",
+      "-0.14329423835127266284_wp", 
+      "-0.0076074873249766081919_wp",
+      "0.031695087811525991431_wp", 
+      "0.00054213233180001068935_wp",
+      "-0.0033824159510050025955_wp", ]
+  cgarray = ConstArray::new( cgdata )
+
+  ch = Variable::new( "ch", Real, {:constant => charray, :dimension => [ Dimension::new( -8, 9 ) ]} )
+
+  cg = Variable::new( "cg", Real, {:constant => cgarray, :dimension => [ Dimension::new( -8, 9 ) ]} )
+
+p = Procedure::new( function_name, [n, ndat, x, y] ) {
+
+  i.decl
+  j.decl
+  k.decl
+  l.decl
+
+  so.decl
+  se.decl
+
+  ch.decl
+  cg.decl
+
+  for1 = For::new( j, 1, ndat, 1 )
+  for1.print
+  for2 = For::new( i, 0, n, 1 ) {
+    (se === "0.e0_wp").print
+    (so === "0.e0_wp").print
+
+    for3 = For::new( l, -4, 4, 1 ) {
+      (k === FuncCall::new( "modulo", i - l, n + 1)).print
+      (se === se + ch[l * 2] * x[k, j] + cg[l * 2] * x[n + 1 + k, j] ).print
+      (so === so + cg[l * 2 + 1] * x[k, j] + cg[l * 2 + 1] * x[n + 1 + k, j] ).print
+    }.print
+
+    (y[j, i * 2] === se).print
+    (y[j, i * 2 + 1] === so).print 
+  }.print
+  for1.close
+}.print
+
+end
+
+def ConvolutionGenerator::ConvrotNPer(filt, center, unroll, invert, free=false )
+  
+    function_name = "convrot_n_per"
+
+  if unroll>0 then
+    function_name += "_u#{unroll}"
+  end
+
+  n1 = Variable::new( "n1", Int, {:direction => :in} )
+  ndat = Variable::new( "ndat", Int, {:direction => :in} )
+  x = Variable::new( "x", Real, {:direction => :in, :dimension => [ Dimension::new( 0, n1 ), Dimension::new( ndat ) ]} )
+  y = Variable::new( "y", Real, {:direction => :out, :dimension => [ Dimension::new( ndat ), Dimension::new( 0, n1 ) ]} )
+
+  lowfil = Variable::new( "lowfil", Int, {:constant => -8} )
+  lupfil = Variable::new( "lupfil", Int, {:constant => 7} )
+
+  i = Variable::new( "i", Int )
+  j = Variable::new( "j", Int )
+  k = Variable::new( "k", Int )
+  l = Variable::new( "l", Int )
+
+  tt = Variable::new( "tt", Real )
+
+  fildata = [ "8.4334247333529341094733325815816e-7_wp",
+    "-0.1290557201342060969516786758559028e-4_wp",
+    "0.8762984476210559564689161894116397e-4_wp",
+    "-0.30158038132690463167163703826169879e-3_wp",
+    "0.174723713672993903449447812749852942e-2_wp",
+    "-0.942047030201080385922711540948195075e-2_wp",
+    "0.2373821463724942397566389712597274535e-1_wp",
+    "0.612625895831207982195380597e-1_wp",
+    "0.9940415697834003993178616713_wp",
+    "-0.604895289196983516002834636e-1_wp ",
+    "-0.2103025160930381434955489412839065067e-1_wp",
+    "0.1337263414854794752733423467013220997e-1_wp",
+    "-0.344128144493493857280881509686821861e-2_wp",
+    "0.49443227688689919192282259476750972e-3_wp",
+    "-0.5185986881173432922848639136911487e-4_wp",
+    "2.72734492911979659657715313017228e-6_wp" ]
+
+  filarray = ConstArray::new( fildata )
+
+  fil = Variable::new( "fil", Real, {:size => "wp", :dimension => [ Dimension::new( "lowfil", "lupfil" ) ], :constant => filarray } )
+
+p = Procedure::new( function_name, [n1, ndat, x, y] ) {
+
+  lowfil.decl
+  lupfil.decl
+
+  i.decl
+  j.decl
+  k.decl
+  l.decl
+  
+  tt.decl
+  fil.decl
+
+  for1 = For::new( j, 1, ndat, 1 ) {
+    for2 = For::new( i, 0, n1, 1 ) {
+      (tt === "0.e0_wp").print
+      for3 = For::new( l, "lowfil", "lupfil", 1 ) {
+        (k === FuncCall::new( "modulo", i + l, n1 + 1)).print
+        (tt === tt + x[k, j] * fil[l]).print
+      }.print
+    (y[j, i] === tt).print
+    }.print
+  }.print
+}.print
+
+end
+
 end
 
 FILTER = [ "8.4334247333529341094733325815816e-7",
@@ -783,7 +955,7 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
-ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
 #ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 #ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
@@ -793,6 +965,8 @@ ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 
 #ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,false)
-#ConvolutionGenerator::MagicFilter(FILTER,8,8,false)
+#ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
 
-ConvolutionGenerator::AnaRotPer(FILTER, 8, 0, false)
+#ConvolutionGenerator::AnaRotPer(FILTER, 8, 0, false)
+#ConvolutionGenerator::SynRotPer(FILTER, 8, 0, false)
+ConvolutionGenerator::ConvrotNPer(FILTER, 8, 0, false)
