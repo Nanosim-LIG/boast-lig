@@ -931,6 +931,17 @@ p = Procedure::new( function_name, [n1, ndat, x, y] ) {
 
 end
 
+  def ConvolutionGenerator::SimpleLoop(unroll)
+    i = Variable::new('i', Int)
+    sum = Variable::new('sum', Int)
+    data = Variable::new("data",Int,{:dimension => [ Dimension::new(10)]})
+    For::new(i, 0, 9, unroll) {
+        1.upto(unroll) { |index|
+          (sum === sum + data[i + index]).print
+        }
+    }.print
+  end
+
 end
 
 FILTER = [ "8.4334247333529341094733325815816e-7",
@@ -955,18 +966,22 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
-ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-#ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+#ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
+ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 #ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
 #ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
 
 
-#ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
+ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
 #ConvolutionGenerator::MagicFilter(FILTER,8,5,false)
-#ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
+#ConvolutionGenerator::MagicFilter(FILTER,8,2,false, true)
 
 #ConvolutionGenerator::AnaRotPer(FILTER, 8, 0, false)
 #ConvolutionGenerator::SynRotPer(FILTER, 8, 0, false)
-ConvolutionGenerator::ConvrotNPer(FILTER, 8, 0, false)
+#ConvolutionGenerator::ConvrotNPer(FILTER, 8, 2, false)
+#1.upto( 12 ) { |index|
+#  ConvolutionGenerator::MagicFilter(FILTER, 8, index, false)
+#}
+#ConvolutionGenerator::SimpleLoop(7)
