@@ -1,0 +1,65 @@
+/******** PYPS Install Guide ********/
+
+1. Download setup_pips.sh from http://pips4u.org/copy_of_getting-pips/building-and-installing-pips-from%20svn [1]
+
+NOTE: There exist another installation method using autotools with the script get-pips4u.sh at http://pips4u.org/copy_of_getting-pips but I didn't get it to work, it should though.
+
+2. At [1] there is a list with all the dependencies which should be followed. Its also good to use the latest Ubuntu version, older ones might cause problems, which can be circumvented with a bit of work, I'm just gonna suggest that you use the latest version.
+
+The list does not mention that "ed" needs to be installed. Install it.
+
+3. The command I used was PIPS_CONFIG="--enable-pyps --enable-pyps-extra" ./get-pips4u.sh --devel
+
+It might complain that svn moved. In that case cd pips4u-0.1/src and then svn co address linear-0.1 if it is linear that is missing, same for the other libraries.
+
+As PYPS does not support fortran it no use to install it but the parameter to add to PIPS_CONFIG is --enable-fortran95. 
+
+5. When the compilation is done it will output some links to put in your environment. For me it was:
+
+export PATH=/home/cronsioe/pips4u-0.1/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+export LD_LIBRARY_PATH=/home/cronsioe/pips4u-0.1/lib
+export PKG_CONFIG_PATH=/home/cronsioe/pips4u-0.1/lib/pkgconfig
+export PYTHONPATH=/home/cronsioe/pips4u-0.1/lib/python2.6/site-packages/pips
+
+Done!
+
+
+Extras:
+To view documentation: use pydoc. For some reason some information seems to have disappeard so for the complete documentation see http://www.cri.ensmp.fr/pips/pipsmake-rc.htdoc/
+
+I did a small explenation to the files found in the pyps folder[2]. Its not complete and might be faulty, its what i gathered from a short inspection.
+
+[2] ~/pips4u-0.1/lib/python2.6/site-packages/pips
+
+apypips.py - Thread safe queue for storing actions
+binary_size.py - Compile a program and return binary size
+broker.py - Inherits pypsbase, something about callbacks
+ir_navigator.py - Produces internal representation output for a module
+memalign.py - Using this workspace we automtically align memory allocations. a = malloc( size ) to ( posix_memalign( &a, alignsize, size ), a )
+  openmp.py - Inherits pypsbase.Maker and generates makefiles for openmp
+  p3.py - Used for filtering pragma flags
+  pii.py - Inherits pipscc
+  pipscc.py - Pips compiler front-end.
+  pipsgcc.py - Compiles c code
+  pocc.py - Finds static control parts?
+  pypips.py - Wraps c/c++ code to python
+  pypsbase.py - Base class that includes Maker, loop, module and workspace
+  pypsconfig.py - Change global variable to dynamic. Not important.
+  pypsearch.py - Search a tree? Seems to contain a lot of classes for transformation and stuff.
+  pypsex.py - Handles transformations like unfold, simdizer. Dependancy graph, 
+  pyps.py - Includes a lot of stuff. Transformations, passes etc. Adds them to modules: module.add_pragma = add_pragma.
+  Is just a binder to call the pips functions through pypips.
+  pypsutils.py - Some simple functions pyps uses, e.g. file2string.
+  pyrops.py - Extension of Pyro for launching processes. Also extends workspace.
+  random_debug.py - Used for letting the user save the random values of randint to restore them later.
+  sacexplore.py - Some kind of transformation, see below.
+  sac.py - Workspace for adapting code to SIMD
+  simpleExampleBroker.py - 
+  simpleStubBroker.py - Gather stub files by searching for file corresponding to module
+  terapyps_asm.py - For tera code
+  terapyps.py - For tera code
+  validation.py - Handles special PIPS validation stuff. 
+  workspace_check.py - Checks output after each phase
+  workspace_gettime.py - Helps meassuring time of a program for benchmarking
+  workspace_git.py - Uses git to track modifications along passes
+  workspace_remote.py - When working with pyps remotely
