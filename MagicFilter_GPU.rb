@@ -69,7 +69,7 @@ module ConvolutionGenerator
         f2 = For::new(l, 0, filt.length-1) {
           (tt === tt + tmp_buff[k+l+i2, j2]*fil[l]).print
         }.unroll
-        ( y[i2 + k, jg] == tt ).print
+        ( y[i2 + k, jg] === tt ).print
       }.unroll
       if (size_n.modulo(wgs) != 0) then
         (i2 === i2 + size_n - wgs).print
@@ -77,7 +77,7 @@ module ConvolutionGenerator
         f2 = For::new(l, 0, filt.length-1) {
           (tt === tt + tmp_buff[i2+l, j2]*fil[l]).print
         }.unroll
-        ( y[i2 , jg] == tt ).print
+        ( y[i2 , jg] === tt ).print
       end
     }.print
     $array_start = array_start

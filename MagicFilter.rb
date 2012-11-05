@@ -112,7 +112,7 @@ module ConvolutionGenerator
                   (k === i+l).print
                 end
                 (tt[0] === tt[0] + x[k,j] * fil[l] ).print
-              }.unroll
+              }.print
             end
             (y[j,i] === tt[0]).print
           }.print
