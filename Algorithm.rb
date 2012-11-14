@@ -304,6 +304,24 @@ module ConvolutionGenerator
     end
   end
 
+  class CodeBlock
+     def initialize(&block)
+       @block = block
+     end
+
+     def print(final=true)
+      s=""
+      s += " "*$indent_level if final
+      $indent_level += $indent_increment
+      $output.puts s if final
+      if @block then
+        s += "\n"
+        @block.call
+      end
+      return s
+    end 
+  end
+
   class Procedure
     attr_reader :name
     attr_reader :parameters
@@ -480,7 +498,7 @@ module ConvolutionGenerator
   class ConstArray < Array
     def initialize(array,type = nil)
       super(array)
-      @type = type::new
+      @type = type::new if type
     end
     def to_s
       self.to_str
@@ -494,10 +512,10 @@ module ConvolutionGenerator
       return s if not self.first
       s += "(/ &\n"
       s += self.first
-      s += "_d0" if @type and @type.size == 8
+      s += "d0" if @type and @type.size == 8
       self[1..-1].each { |v|
         s += ", &\n"+v
-        s += "_d0" if @type and @type.size == 8
+        s += "d0" if @type and @type.size == 8
       }
       s += " /)"
     end

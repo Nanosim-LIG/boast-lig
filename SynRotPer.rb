@@ -126,21 +126,54 @@ module ConvolutionGenerator
           }
         }
         for3.unroll
-        se.each_index { |ind|
+        so.each_index { |ind|
           (y[j+ind,n*2-1] === so[ind]).print
+        }
+        se.each_index { |ind|
           (y[j+ind,0] === se[ind]).print
         }
 
-        for2 = For::new(i,0,n-2) {
+        For::new(i,0,-lowfil-1) {
           so.each{ |s| (s === 0.0).print }
           se.each{ |s| (s === 0.0).print }
           for3.unroll
-          se.each_index { |ind|
+          so.each_index { |ind|
             (y[j+ind,i*2+1] === so[ind]).print
+          }
+          se.each_index { |ind|
+            (y[j+ind,i*2+2] === se[ind]).print
+          }
+        }.print
+ 
+        For::new(i,-lowfil, n-upfil-1) {
+          so.each{ |s| (s === 0.0).print }
+          se.each{ |s| (s === 0.0).print }
+          For::new(l,lowfil,upfil){
+            (k === i + l).print
+            se.each_index{ |ind|
+              (se[ind] === se[ind] + fil[l*2]*x[k,j+ind] + fil[l*-2+3]*x[n+k,j+ind]).print
+              (so[ind] === so[ind] + fil[l*2+1]*x[k,j+ind] - fil[l*-2+2]*x[n+k,j+ind]).print
+            }
+          }.unroll
+          so.each_index { |ind|
+            (y[j+ind,i*2+1] === so[ind]).print
+          }
+          se.each_index { |ind|
             (y[j+ind,i*2+2] === se[ind]).print
           }
         }.print
 
+        For::new(i,n-upfil,n-2) {
+          so.each{ |s| (s === 0.0).print }
+          se.each{ |s| (s === 0.0).print }
+          for3.unroll
+          so.each_index { |ind|
+            (y[j+ind,i*2+1] === so[ind]).print
+          }
+          se.each_index { |ind|
+            (y[j+ind,i*2+2] === se[ind]).print
+          }
+        }.print
       for1.close
   
 
