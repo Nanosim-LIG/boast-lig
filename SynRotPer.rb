@@ -77,8 +77,21 @@ module ConvolutionGenerator
 
     dim_in_min = 0
     dim_in_max = n*2-1
-    dim_out_min = 0
-    dim_out_max = n*2-1
+    if free then
+      dim_out_min = lowfil - upfil #-7 in free BC
+      dim_out_max = n*2 -1 - lowfil + upfil #2*n+6 in free BC
+    else
+      dim_out_min = 0
+      dim_out_max = n*2-1
+    end
+
+    if free then
+      lowlimit=lowfil-1 #(dim_out_min-1)/2 #0 in periodic, -4 in free BC
+      uplimit=n-2+upfil #(dim_out_max-1)/2 #n-1 in periodic, n+2 in free BC
+    else
+      lowlimit=0
+      uplimit=n-2
+    end
 
     x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(dim_in_min, dim_in_max), Dimension::new(ndat) ] })
     y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(ndat), Dimension::new(dim_out_min, dim_out_max) ] })
@@ -97,9 +110,9 @@ module ConvolutionGenerator
     arr = ConstArray::new(filt,Real)
 
     fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new((1-center),(filt.length - center)) ]})
-  
+    
     p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil]) {
-  
+      
       i.decl
       j.decl
       k.decl
@@ -108,102 +121,141 @@ module ConvolutionGenerator
       so.each{ |s| s.decl }
       se.each{ |s| s.decl }
 
-      if unroll > 0 then
-        for1 = For::new(j,1,ndat-(unroll-1), unroll)
+      $output.print("!$omp parallel default (private) shared(x,y,fil,ndat,n)\n")
+      $output.print("!$omp do\n")
+
+      #internal loop taking care of BCs
+      if free then
+        forBC = For::new(l, FuncCall::new("max", -i,lowfil), FuncCall::new("min", upfil, n-1-i) ){
+          (k === i+l).print
+          se.each_index{ |ind|
+            (se[ind] === se[ind] + fil[l*2]*x[k,j+ind] + fil[l*-2+3]*x[n+k,j+ind]).print
+            (so[ind] === so[ind] + fil[l*2+1]*x[k,j+ind] - fil[l*-2+2]*x[n+k,j+ind]).print
+          }
+        }
       else
-        for1 = For::new(j,1,ndat)
-      end
-      for1.print
- 
-        so.each{ |s| (s === 0.0).print }
-        se.each{ |s| (s === 0.0).print }
-        (i === n-1).print
-        for3 = For::new(l,lowfil,upfil){
+        forBC = For::new(l,lowfil,upfil){
           (k === FuncCall::new( "modulo", i+l, n)).print
           se.each_index{ |ind|
             (se[ind] === se[ind] + fil[l*2]*x[k,j+ind] + fil[l*-2+3]*x[n+k,j+ind]).print
             (so[ind] === so[ind] + fil[l*2+1]*x[k,j+ind] - fil[l*-2+2]*x[n+k,j+ind]).print
           }
         }
-        for3.unroll
+      end
+
+
+      if unroll > 0 then
+        for1 = For::new(j,1,ndat-(unroll-1), unroll)
+      else
+        for1 = For::new(j,1,ndat)
+      end
+      for1.print
+      if not free then
+        so.each{ |s| (s === 0.0).print }
+        se.each{ |s| (s === 0.0).print }
+        (i === n-1).print
+        forBC.unroll
         so.each_index { |ind|
           (y[j+ind,n*2-1] === so[ind]).print
         }
         se.each_index { |ind|
           (y[j+ind,0] === se[ind]).print
         }
+      end
 
-        For::new(i,0,-lowfil-1) {
-          so.each{ |s| (s === 0.0).print }
-          se.each{ |s| (s === 0.0).print }
-          for3.unroll
-          so.each_index { |ind|
-            (y[j+ind,i*2+1] === so[ind]).print
-          }
-          se.each_index { |ind|
-            (y[j+ind,i*2+2] === se[ind]).print
-          }
-        }.print
- 
-        For::new(i,-lowfil, n-upfil-1) {
-          so.each{ |s| (s === 0.0).print }
-          se.each{ |s| (s === 0.0).print }
-          For::new(l,lowfil,upfil){
-            (k === i + l).print
-            se.each_index{ |ind|
-              (se[ind] === se[ind] + fil[l*2]*x[k,j+ind] + fil[l*-2+3]*x[n+k,j+ind]).print
-              (so[ind] === so[ind] + fil[l*2+1]*x[k,j+ind] - fil[l*-2+2]*x[n+k,j+ind]).print
-            }
-          }.unroll
-          so.each_index { |ind|
-            (y[j+ind,i*2+1] === so[ind]).print
-          }
-          se.each_index { |ind|
-            (y[j+ind,i*2+2] === se[ind]).print
-          }
-        }.print
+      For::new(i,lowlimit,-lowfil-1) {
+        so.each{ |s| (s === 0.0).print }
+        se.each{ |s| (s === 0.0).print }
+        if free then
+          forBC.print
+        else
+          forBC.unroll
+        end
 
-        For::new(i,n-upfil,n-2) {
-          so.each{ |s| (s === 0.0).print }
-          se.each{ |s| (s === 0.0).print }
-          for3.unroll
-          so.each_index { |ind|
-            (y[j+ind,i*2+1] === so[ind]).print
-          }
-          se.each_index { |ind|
-            (y[j+ind,i*2+2] === se[ind]).print
-          }
-        }.print
-      for1.close
-  
-
-
-      if unroll>1 then
-          for1 = For::new(j,ndat-FuncCall::new("modulo",ndat,unroll)+1,ndat) {
-          ind=0
-          (so[ind] === 0.0).print
-          (se[ind] === 0.0).print
-          
-          (i === n-1).print
-          for3 = For::new(l,lowfil,upfil){
-            (k === FuncCall::new( "modulo", i+l, n)).print
+        so.each_index { |ind|
+          (y[j+ind,i*2+1] === so[ind]).print
+        }
+        se.each_index { |ind|
+          (y[j+ind,i*2+2] === se[ind]).print
+        }
+      }.print
+      
+      For::new(i,-lowfil,n-1-upfil) {
+        so.each{ |s| (s === 0.0).print }
+        se.each{ |s| (s === 0.0).print }
+        For::new(l,lowfil,upfil){
+          (k === i + l).print
+          se.each_index{ |ind|
             (se[ind] === se[ind] + fil[l*2]*x[k,j+ind] + fil[l*-2+3]*x[n+k,j+ind]).print
             (so[ind] === so[ind] + fil[l*2+1]*x[k,j+ind] - fil[l*-2+2]*x[n+k,j+ind]).print
           }
-          for3.unroll
-          (y[j+ind,n*2-1] === so[ind]).print
-          (y[j+ind,0] === se[ind]).print
-  
-          for2 = For::new(i,0,n-2) {
+        }.unroll
+        so.each_index { |ind|
+          (y[j+ind,i*2+1] === so[ind]).print
+        }
+        se.each_index { |ind|
+          (y[j+ind,i*2+2] === se[ind]).print
+        }
+      }.print
+
+      For::new(i,n-upfil,uplimit) {
+        so.each{ |s| (s === 0.0).print }
+        se.each{ |s| (s === 0.0).print }
+        if free then
+          forBC.print
+        else
+          forBC.unroll
+        end
+        so.each_index { |ind|
+          (y[j+ind,i*2+1] === so[ind]).print
+        }
+        se.each_index { |ind|
+          (y[j+ind,i*2+2] === se[ind]).print
+        }
+      }.print
+      for1.close
+      $output.print("!$omp end do\n")
+
+
+      if unroll>1 then
+        $output.print("!$omp do\n")
+        for1 = For::new(j,ndat-FuncCall::new("modulo",ndat,unroll)+1,ndat) {
+          ind=0
+          if not free then
             (so[ind] === 0.0).print
             (se[ind] === 0.0).print
+            
+            (i === n-1).print
+            for3 = For::new(l,lowfil,upfil){
+              (k === FuncCall::new( "modulo", i+l, n)).print
+              (se[ind] === se[ind] + fil[l*2]*x[k,j+ind] + fil[l*-2+3]*x[n+k,j+ind]).print
+              (so[ind] === so[ind] + fil[l*2+1]*x[k,j+ind] - fil[l*-2+2]*x[n+k,j+ind]).print
+            }
             for3.unroll
+            (y[j+ind,n*2-1] === so[ind]).print
+            (y[j+ind,0] === se[ind]).print
+          end
+          
+          for2 = For::new(i,lowlimit,uplimit) {
+            (so[ind] === 0.0).print
+            (se[ind] === 0.0).print
+            if free then
+              For::new(l, FuncCall::new("max", -i,lowfil), FuncCall::new("min", upfil, n-1-i) ){
+                (k === i+l).print
+                (se[ind] === se[ind] + fil[l*2]*x[k,j+ind] + fil[l*-2+3]*x[n+k,j+ind]).print
+                (so[ind] === so[ind] + fil[l*2+1]*x[k,j+ind] - fil[l*-2+2]*x[n+k,j+ind]).print
+              }.print
+            else
+              for3.unroll
+            end
             (y[j+ind,i*2+1] === so[ind]).print
             (y[j+ind,i*2+2] === se[ind]).print
           }.print
           
         }.print
+        $output.print("!$omp end do\n")
       end
+      $output.print("!$omp end parallel\n")
     }.print
   end
 end
@@ -226,6 +278,9 @@ FILTER = ["0.0018899503327676891843",
           "-0.0033824159510050025955"]
 
 ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-ConvolutionGenerator::Synthesis(FILTER,7,0,false)
-ConvolutionGenerator::Synthesis(FILTER,7,2,false)
-ConvolutionGenerator::Synthesis(FILTER,7,8,false)
+(0..8).each{ |unroll|
+  ConvolutionGenerator::Synthesis(FILTER,7,unroll,true)
+}
+(0..8).each{ |unroll|
+  ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
+}

@@ -57,6 +57,10 @@ module ConvolutionGenerator
     def *(x)
       return Expression::new("*",self,x)
     end
+
+    def /(x)
+      return Expression::new("/",self,x)
+    end
  
     def -(x)
       return Expression::new("-",self,x)
@@ -64,9 +68,15 @@ module ConvolutionGenerator
 
     def to_str
       s = ""
-      s += @operand1.to_s if @operand1
+      if @operand1 then
+        s += "(" if (@operator == "*" or @operator == "/") 
+        s += @operand1.to_s
+        s += ")" if (@operator == "*" or @operator == "/") 
+      end        
       s += " " + @operator.to_s + " "
+      s += "(" if (@operator == "*" or @operator == "/") 
       s += @operand2.to_s
+      s += ")" if (@operator == "*" or @operator == "/") 
       return s
     end
     def print(final=true)
