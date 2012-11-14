@@ -478,6 +478,10 @@ module ConvolutionGenerator
   end
 
   class ConstArray < Array
+    def initialize(array,type = nil)
+      super(array)
+      @type = type::new
+    end
     def to_s
       self.to_str
     end
@@ -489,9 +493,11 @@ module ConvolutionGenerator
       s = ""
       return s if not self.first
       s += "(/ &\n"
-      s += self.first 
+      s += self.first
+      s += "_d0" if @type and @type.size == 8
       self[1..-1].each { |v|
         s += ", &\n"+v
+        s += "_d0" if @type and @type.size == 8
       }
       s += " /)"
     end
