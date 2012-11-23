@@ -1,6 +1,9 @@
-require "./Algorithm.rb"
+require "./BOAST.rb"
 module ConvolutionGenerator
   def ConvolutionGenerator::MagicFilter(filt, center, unroll, invert, free=false )
+    kernel = CKernel::new
+    ConvolutionGenerator::set_output( kernel.code )
+    kernel.lang = ConvolutionGenerator::get_lang
     function_name = "magicfilter"
     if free then
       function_name += "_free"
@@ -118,7 +121,10 @@ module ConvolutionGenerator
           }.print
         }.print
       end
-    }.print
+    }
+    p.print
+    kernel.procedure = p
+    return kernel
   end
 end
 
@@ -142,14 +148,17 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 
 
 ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
-ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
-ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
-ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
+k = ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
+k.print
+k.build
+#ConvolutionGenerator::MagicFilter(FILTER,8,5,true).print
+#ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true).print
+#ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true).print
 ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
-ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
-ConvolutionGenerator::MagicFilter(FILTER,8,5,true)
-ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true)
-ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
-
+#ConvolutionGenerator::MagicFilter(FILTER,8,0,false).print
+#ConvolutionGenerator::MagicFilter(FILTER,8,5,true).print
+#ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true).print
+k = ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
+k.print
+k.build
 

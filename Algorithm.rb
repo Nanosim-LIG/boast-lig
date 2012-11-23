@@ -1,3 +1,4 @@
+
 module ConvolutionGenerator
   FORTRAN = 1
   C = 2
@@ -16,8 +17,16 @@ module ConvolutionGenerator
     $lang = lang
   end
 
-  def set_output(output)
+  def ConvolutionGenerator::get_lang
+    return $lang
+  end
+
+  def ConvolutionGenerator::set_output(output)
     $output = output
+  end
+
+  def ConvolutionGenerator::get_output(output)
+    return $output
   end
 
   class Expression
@@ -168,7 +177,7 @@ module ConvolutionGenerator
 
   class Variable
     attr_reader :name
-    attr_reader :direction
+    attr_accessor :direction
     attr_accessor :constant
     attr_reader :type
     attr_reader :dimension
@@ -180,6 +189,10 @@ module ConvolutionGenerator
       @dimension = hash[:dimension]
       @local = hash[:local]
       @type = type::new(hash)
+    end
+
+    def copy
+      return Variable::new(@name, @type.class, {:direction => @direction, :constant => @constant, :dimension => @dimension, :local => @local})
     end
   
     def to_s
@@ -343,6 +356,29 @@ module ConvolutionGenerator
       @constants = constants
       @block = block
       @properties = properties
+    end
+    def header(lang=C,final=true)
+      s = ""
+      if $lang == OpenCL then
+        s += "__kernel " if $lang == OpenCL
+        wgs = @properties[:reqd_work_group_size]
+        if wgs then
+          s += "__attribute__((reqd_work_group_size(#{wgs[0]},#{wgs[1]},#{wgs[2]}))) "
+        end
+      end
+      trailer = ""
+      trailer += "_" if lang == FORTRAN
+      s += "void #{@name}#{trailer}("
+      if parameters.first then
+        s += parameters.first.decl(false)
+        parameters[1..-1].each { |p|
+          s += ", "+p.decl(false)
+        }
+      end
+      s += ")"
+      s += ";\n" if final
+      $output.print s if final
+      return s
     end
     def decl(final=true)
       return self.decl_fortran(final) if $lang==FORTRAN
