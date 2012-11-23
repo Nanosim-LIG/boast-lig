@@ -251,6 +251,34 @@ module ConvolutionGenerator
        return s
     end
 
+    def header(lang=C,final=true)
+      s = ""
+      s += self.indent if final
+      s += "const " if @constant or @direction == :in
+      s += "__global " if @direction and @dimension and $lang == OpenCL
+      s += "__local " if @local and $lang == OpenCL
+      s += @type.decl
+      if(@dimension and not @constant and not @local) then
+        s += " *"
+      end
+      if not @dimension and lang == FORTRAN then
+        s += " *"
+      end
+      s += " #{@name}"
+      if(@dimension and @constant) then
+        s += "[]"
+      end
+      if(@dimension and @local) then
+         s +="["
+         s += @dimension.reverse.join("*")
+         s +="]"
+      end 
+      s += " = #{@constant}" if @constant
+      s += self.finalize if final
+      $output.print s if final
+      return s
+    end
+
     def decl(final=true)
       return self.decl_fortran(final) if $lang == FORTRAN
       return self.decl_c(final) if $lang == C or $lang == OpenCL      
@@ -370,9 +398,10 @@ module ConvolutionGenerator
       trailer += "_" if lang == FORTRAN
       s += "void #{@name}#{trailer}("
       if parameters.first then
-        s += parameters.first.decl(false)
+        s += parameters.first.header(lang,false)
         parameters[1..-1].each { |p|
-          s += ", "+p.decl(false)
+          s += ", "
+          s += p.header(lang,false)
         }
       end
       s += ")"

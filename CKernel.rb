@@ -133,7 +133,19 @@ EOF
       module_file.print "  #{@procedure.name}"
       module_file.print "_" if previous_lang == ConvolutionGenerator::FORTRAN
       module_file.print "("
-      module_file.print @procedure.parameters.join(", ")
+      if(previous_lang == ConvolutionGenerator::FORTRAN) then
+        params = []
+        @procedure.parameters.each { |param|
+          if param.dimension then
+            params.push( param.name )
+          else
+            params.push( "&"+param.name )
+          end
+        }
+        module_file.print params.join(", ")
+      else
+        module_file.print @procedure.parameters.join(", ") 
+      end
       module_file.print "  );\n"
       module_file.print "  return Qnil;"
       module_file.print  "}"
@@ -150,7 +162,7 @@ EOF
       Rake::Task[module_final].invoke
       require(module_final)
       eval "self.extend(#{module_name})"
-      self.run(32,32,"0"*32*32*8, "0"*32*32*8)
+#      self.run(32,32,"0"*32*32*8, "0"*32*32*8)
       f = File::open(target,"rb")
       @binary = StringIO::new
       @binary.write( f.read )
