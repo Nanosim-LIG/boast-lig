@@ -150,7 +150,7 @@ EOF
       module_file.print "  return Qnil;"
       module_file.print  "}"
       module_file.rewind
-      puts module_file.read
+#      puts module_file.read
       module_file.close
       ConvolutionGenerator::set_lang(previous_lang)
       ConvolutionGenerator::set_output(previous_output)

@@ -54,7 +54,12 @@ module ConvolutionGenerator
     if invert then filt = filt.reverse end 
     arr = ConstArray::new(filt)
     fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new(lowfil,upfil) ]})
-  
+
+    if ConvolutionGenerator::get_lang == C then
+      $output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
+      $output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
+      $output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
+    end  
     p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil]) {
   
       i.decl
@@ -148,17 +153,13 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 
 
 ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-k = ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
-k.print
-k.build
-#ConvolutionGenerator::MagicFilter(FILTER,8,5,true).print
-#ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true).print
-#ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true).print
+ConvolutionGenerator::MagicFilter(FILTER,8,0,false).build
+ConvolutionGenerator::MagicFilter(FILTER,8,5,true).build
+ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true).build
+ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true).build
 ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
-#ConvolutionGenerator::MagicFilter(FILTER,8,0,false).print
-#ConvolutionGenerator::MagicFilter(FILTER,8,5,true).print
-#ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true).print
-k = ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true)
-k.print
-k.build
+ConvolutionGenerator::MagicFilter(FILTER,8,0,false).build
+ConvolutionGenerator::MagicFilter(FILTER,8,5,true).build
+ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true).build
+ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true).build
 
