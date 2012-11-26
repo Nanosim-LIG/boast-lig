@@ -162,7 +162,6 @@ EOF
       Rake::Task[module_final].invoke
       require(module_final)
       eval "self.extend(#{module_name})"
-#      self.run(32,32,"0"*32*32*8, "0"*32*32*8)
       f = File::open(target,"rb")
       @binary = StringIO::new
       @binary.write( f.read )
@@ -171,7 +170,15 @@ EOF
       File.unlink(module_target)
       File.unlink(module_file_name)
       File.unlink(module_final)
+      return self
+    end
+    def method_missing(meth, *args, &block)
+     if meth.to_s == "run" then
+       self.build
+       self.run(*args,&block)
+     else
+       super
+     end
     end
   end
-
 end
