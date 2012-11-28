@@ -1,4 +1,5 @@
 require "./BOAST.rb"
+require 'narray'
 module ConvolutionGenerator
   def ConvolutionGenerator::MagicFilter(filt, center, unroll, invert, free=false )
     kernel = CKernel::new
@@ -153,12 +154,15 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 
 
 ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-#ConvolutionGenerator::MagicFilter(FILTER,8,0,false).run(32,32,"0"*32*32*8, "0"*32*32*8)
+ConvolutionGenerator::MagicFilter(FILTER,8,0,false).run(32, 32, NArray.float(32*32), NArray.float(32*32))
+ConvolutionGenerator::MagicFilter(FILTER,8,0,false).run(32, 32, " "*32*32*8, " "*32*32*8)
 ConvolutionGenerator::MagicFilter(FILTER,8,0,false).build
 ConvolutionGenerator::MagicFilter(FILTER,8,5,true).build
 ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true).build
 ConvolutionGenerator::MagicFilter(FILTER,8,4,true,true).build
 ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+ConvolutionGenerator::MagicFilter(FILTER,8,0,false).run(32, 32, NArray.float(32*32), NArray.float(32*32))
+ConvolutionGenerator::MagicFilter(FILTER,8,0,false).run(32, 32, " "*32*32*8, " "*32*32*8)
 ConvolutionGenerator::MagicFilter(FILTER,8,0,false).build
 ConvolutionGenerator::MagicFilter(FILTER,8,5,true).build
 ConvolutionGenerator::MagicFilter(FILTER,8,3,false,true).build

@@ -3,6 +3,7 @@ require 'stringio'
 require 'rake'
 require 'tempfile'
 require 'rbconfig'
+require 'rubygems'
 
 module ConvolutionGenerator
   class CKernel
@@ -24,7 +25,16 @@ module ConvolutionGenerator
       includes = "-I#{RbConfig::CONFIG["archdir"]}"
       includes += " -I#{RbConfig::CONFIG["rubyhdrdir"]} -I#{RbConfig::CONFIG["rubyhdrdir"]}/#{RbConfig::CONFIG["arch"]}"
       ldflags = "-L#{RbConfig::CONFIG["libdir"]} #{RbConfig::CONFIG["LIBRUBYARG"]}"
+      narray_path = nil
+      begin
+        spec = Gem::Specification::find_by_name('narray')
+        narray_path = spec.full_gem_path
+      rescue Gem::LoadError => e
+        
+      end
+      includes += " -I#{narray_path}" if narray_path
       cflags = "-Wall -fPIC #{includes}"
+      cflags += " -DHAVE_NARRAY_H" if narray_path
       fcflags = "-Wall -fPIC"
       rule '.o' => '.c' do |t|
         sh "cc #{cflags} -c -o #{t.name} #{t.source}"
@@ -57,31 +67,6 @@ module ConvolutionGenerator
 #ifdef HAVE_NARRAY_H
 #include "narray.h"
 #endif
-static VALUE rb_cVArray;
-
-enum vector_type {
-  VA_NONE,
-  VA_CHAR,
-  VA_UCHAR,
-  VA_SHORT,
-  VA_USHORT,
-  VA_INT,
-  VA_UINT,
-  VA_LONG,
-  VA_ULONG,
-  VA_FLOAT,
-  VA_DOUBLE,
-  VA_ERROR
-};
-
-typedef struct _struct_varray {
-  void* ptr;
-  enum vector_type type;
-  unsigned int n;
-  size_t length;
-  size_t size;
-  VALUE obj;
-} struct_varray;
 EOF
       @procedure.header(previous_lang)
       module_file.write <<EOF
@@ -121,10 +106,10 @@ EOF
           module_file.print <<EOF
   if (TYPE(rb_ptr) == T_STRING) {
     #{param.name} = (void *) RSTRING_PTR(rb_ptr);
-  } else if (CLASS_OF(rb_ptr) == rb_cVArray) {
-    struct_varray *s_vary;
-    Data_Get_Struct(rb_ptr, struct_varray, s_vary);
-    #{param.name} = (void *) s_vary->ptr;
+  } else if IsNArray(rb_ptr) {
+    struct NARRAY *n_ary;
+    Data_Get_Struct(rb_ptr, struct NARRAY, n_ary);
+    #{param.name} = (void *) n_ary->ptr;
   } else
     rb_raise(rb_eArgError, "wrong type of argument %d", #{i});
 EOF
