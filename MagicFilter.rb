@@ -217,8 +217,8 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 
 
 
-n1 = 126
-n2 = 128
+n1 = 124
+n2 = 132
 n3 = 130
 input = NArray.float(n1,n2,n3).random
 output_ref = NArray.float(n1,n2,n3)
@@ -228,14 +228,19 @@ epsilon = 10e-15
 
 
 ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-ConvolutionGenerator::magicfilter_per_ref.run(n1, n2*n3, input, output_ref)
+k = ConvolutionGenerator::magicfilter_per_ref
+stats = k.run(n1, n2*n3, input, output_ref)
+puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
 #ConvolutionGenerator::MagicFilter(FILTER,8,0,false).run(32, 32, " "*32*32*8, " "*32*32*8)
 1.upto(15) { |i|
-  ConvolutionGenerator::MagicFilter(FILTER,8,i,false).run(n1, n2*n3, input, output)
+  k = ConvolutionGenerator::MagicFilter(FILTER,8,i,false)
+  stats = k.run(n1, n2*n3, input, output)
+  stats = k.run(n1, n2*n3, input, output)
   diff = (output_ref - output).abs
   diff.each { |elem|
     puts "Warning: residue too big: #{elem}" if elem > epsilon
   }
+  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
 }
 
 ConvolutionGenerator::MagicFilter(FILTER,8,5,true).build

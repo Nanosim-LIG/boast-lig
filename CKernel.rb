@@ -25,7 +25,7 @@ module ConvolutionGenerator
       Rake.verbose(false)
       includes = "-I#{RbConfig::CONFIG["archdir"]}"
       includes += " -I#{RbConfig::CONFIG["rubyhdrdir"]} -I#{RbConfig::CONFIG["rubyhdrdir"]}/#{RbConfig::CONFIG["arch"]}"
-      ldflags = "-L#{RbConfig::CONFIG["libdir"]} #{RbConfig::CONFIG["LIBRUBYARG"]}"
+      ldflags = "-L#{RbConfig::CONFIG["libdir"]} #{RbConfig::CONFIG["LIBRUBYARG"]} -lrt"
       narray_path = nil
       begin
         spec = Gem::Specification::find_by_name('narray')
@@ -65,6 +65,7 @@ module ConvolutionGenerator
       module_file.write <<EOF
 #include "ruby.h"
 #include <inttypes.h>
+#include <time.h>
 #ifdef HAVE_NARRAY_H
 #include "narray.h"
 #endif
@@ -116,6 +117,10 @@ EOF
 EOF
         end
       end
+      module_file.print "  VALUE stats = rb_hash_new();\n"
+      module_file.print "  struct timespec start, stop;\n"
+      module_file.print "  unsigned long long int duration;\n"
+      module_file.print "  clock_gettime(CLOCK_REALTIME, &start);\n"
       module_file.print "  #{@procedure.name}"
       module_file.print "_" if previous_lang == ConvolutionGenerator::FORTRAN
       module_file.print "("
@@ -133,7 +138,11 @@ EOF
         module_file.print @procedure.parameters.join(", ") 
       end
       module_file.print "  );\n"
-      module_file.print "  return Qnil;"
+      module_file.print "  clock_gettime(CLOCK_REALTIME, &stop);\n"
+      module_file.print "  duration = (unsigned long long int)stop.tv_sec * (unsigned long long int)1000000000 + stop.tv_nsec;\n"
+      module_file.print "  duration -= (unsigned long long int)start.tv_sec * (unsigned long long int)1000000000 + start.tv_nsec;\n"
+      module_file.print "  rb_hash_aset(stats,rb_str_new2(\"duration\"),rb_float_new((double)duration*(double)1e-9));\n"
+      module_file.print "  return stats;\n"
       module_file.print  "}"
       module_file.rewind
 #      puts module_file.read
