@@ -478,6 +478,7 @@ module ConvolutionGenerator
       end
       s += ")\n"
       $indent_level += $indent_increment
+      s += " "*$indent_level + "integer, parameter :: wp=kind(1.0d0)\n"
       constants.each { |c|
         s += " "*$indent_level
         s += c.decl(false)
@@ -587,10 +588,10 @@ module ConvolutionGenerator
       return s if not self.first
       s += "(/ &\n"
       s += self.first
-      s += "d0" if @type and @type.size == 8
+      s += "_wp" if @type and @type.size == 8
       self[1..-1].each { |v|
         s += ", &\n"+v
-        s += "d0" if @type and @type.size == 8
+        s += "_wp" if @type and @type.size == 8
       }
       s += " /)"
     end
