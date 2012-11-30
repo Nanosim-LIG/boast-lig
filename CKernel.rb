@@ -4,8 +4,10 @@ require 'rake'
 require 'tempfile'
 require 'rbconfig'
 require 'rubygems'
+require 'systemu'
 
 module ConvolutionGenerator
+  $verbose = false
   class CKernel
     include Rake::DSL
     attr_accessor :code
@@ -22,7 +24,8 @@ module ConvolutionGenerator
       puts @code.read
     end
     def build
-      Rake.verbose(false)
+      Rake::verbose($verbose)
+      Rake::FileUtilsExt.verbose_flag=$verbose
       includes = "-I#{RbConfig::CONFIG["archdir"]}"
       includes += " -I#{RbConfig::CONFIG["rubyhdrdir"]} -I#{RbConfig::CONFIG["rubyhdrdir"]}/#{RbConfig::CONFIG["arch"]}"
       ldflags = "-L#{RbConfig::CONFIG["libdir"]} #{RbConfig::CONFIG["LIBRUBYARG"]} -lrt"
@@ -34,14 +37,32 @@ module ConvolutionGenerator
         
       end
       includes += " -I#{narray_path}" if narray_path
-      cflags = "-Wall -fPIC #{includes}"
+      cflags = "-O2 -Wall -fPIC #{includes}"
       cflags += " -DHAVE_NARRAY_H" if narray_path
-      fcflags = "-Wall -fPIC"
+      fcflags = "-O2 -Wall -fPIC"
       rule '.o' => '.c' do |t|
-        sh "cc #{cflags} -c -o #{t.name} #{t.source}"
+        if $verbose then
+          sh "cc #{cflags} -c -o #{t.name} #{t.source}"
+        else
+          status, stdout, stderr = systemu "cc #{cflags} -c -o #{t.name} #{t.source}"
+          if not status.success? then
+            puts stderr
+            fail "#{t.source}: compilation failed"
+          end
+          status.success?
+        end
       end
       rule '.o' => '.f90' do |t|
-        sh "gfortran #{fcflags} -c -o #{t.name} #{t.source}"
+        if $verbose then
+          sh "gfortran #{fcflags} -c -o #{t.name} #{t.source}"
+        else
+          status, stdout, stderr = systemu "gfortran #{fcflags} -c -o #{t.name} #{t.source}"
+          if not status.success? then
+            puts stderr
+            fail "#{t.source}: compilation failed"
+          end
+          status.success?
+        end
       end
 
       extension = ".c" if @lang == ConvolutionGenerator::C
