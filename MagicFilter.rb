@@ -143,29 +143,29 @@ EOF
         for1 = For::new(j,1,ndat)
       end
       for1.print
-      for2 = For::new(i,dim_out_min, dim_out_max) {
-        tt.each{ |t|
-          (t === 0.0).print
-        }
-        if free and not invert
-          for3 = For::new(l, FuncCall::new("max", -i, lowfil), FuncCall::new("min", upfil, n-1-i) )
-        else
-          for3 = For::new(l, lowfil, upfil)
-        end
-        for3.print
-        if not free then
-          (k === FuncCall::new( "modulo", i+l, n)).print
-        else
-          (k === i+l).print
-        end
-        tt.each_index{ |index|
-          (tt[index] === tt[index] + x[k,j+index]*fil[l]).print
-        }
-        for3.close
-        tt.each_index{ |index|
-          (y[j+index,i] === tt[index]).print
-        }
-      }.print
+        for2 = For::new(i, dim_out_min, dim_out_max) {
+          tt.each{ |t|
+            (t === 0.0).print
+          }
+          if free and not invert
+            for3 = For::new(l, FuncCall::new("max", -i, lowfil), FuncCall::new("min", upfil, n-1-i) )
+          else
+            for3 = For::new(l, lowfil, upfil)
+          end
+          for3.print
+            if not free then
+              (k === FuncCall::new( "modulo", i+l, n)).print
+            else
+              (k === i+l).print
+            end
+            tt.each_index{ |index|
+              (tt[index] === tt[index] + x[k,j+index]*fil[l]).print
+            }
+          for3.close
+          tt.each_index{ |index|
+            (y[j+index,i] === tt[index]).print
+          }
+        }.print
       for1.close
   
       if unroll>1 then
