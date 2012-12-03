@@ -83,9 +83,9 @@ module ConvolutionGenerator
         s += ")" if (@operator == "*" or @operator == "/") 
       end        
       s += " " + @operator.to_s + " "
-      s += "(" if (@operator == "*" or @operator == "/") 
+      s += "(" if (@operator == "*" or @operator == "/" or @operator == "-") 
       s += @operand2.to_s
-      s += ")" if (@operator == "*" or @operator == "/") 
+      s += ")" if (@operator == "*" or @operator == "/" or @operator == "-") 
       return s
     end
     def print(final=true)
@@ -149,7 +149,7 @@ module ConvolutionGenerator
       ss = ""
       @source.dimension[0..-2].each{ |d|
         if d.val2 then
-          ss += " * (#{d.val2} - #{d.val1} + 1)"
+          ss += " * (#{d.val2} - (#{d.val1}) + 1)"
         else
           ss += " * #{d.val1}"
         end
@@ -159,7 +159,7 @@ module ConvolutionGenerator
         else
           start = 1
         end
-        sub += " + (#{@indexes[i]} - #{start})"+ss
+        sub += " + (#{@indexes[i]} - (#{start}))"+ss
         i+=1
       }
       s += sub + "]"
