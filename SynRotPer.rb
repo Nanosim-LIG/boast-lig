@@ -72,13 +72,71 @@ module ConvolutionGenerator
     dim_in_max = n*2-1
     dim_out_min = -7
     dim_out_max = n*2+6
+#    dim_in_min = 0
+#    dim_in_max = n*2-1
+#    dim_out_min = -7
+#    dim_out_max = n*2+6
     x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(dim_in_min, dim_in_max), Dimension::new(ndat) ] })
     y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(ndat), Dimension::new(dim_out_min, dim_out_max) ] })
     p = Procedure::new(function_name, [n,ndat,x,y])
     kernel.code.print <<EOF
+subroutine synthesis_free_ref_b(n,ndat,x,y)
+  implicit real(kind=8) (a-h,o-z)
+  dimension x(0:2*n+1,ndat),y(ndat,-7:2*n+8)
+  real(kind=8) ch(-8:9) ,cg(-8:9)
+  !       Daubechy S16
+  data ch  /  0.d0 , -0.0033824159510050025955D0, & 
+       -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
+       0.0076074873249766081919D0, -0.14329423835127266284D0, & 
+       -0.061273359067811077843D0, 0.48135965125905339159D0,  & 
+       0.77718575169962802862D0,0.36444189483617893676D0, &
+       -0.051945838107881800736D0,-0.027219029917103486322D0, &
+       0.049137179673730286787D0,0.0038087520138944894631D0, &
+       -0.014952258337062199118D0,-0.00030292051472413308126D0, &
+       0.0018899503327676891843D0 , 0.d0 /
+  data cg  / 0.d0 , -0.0018899503327676891843D0, &
+       -0.00030292051472413308126D0, 0.014952258337062199118D0, &
+       0.0038087520138944894631D0, -0.049137179673730286787D0, &
+       -0.027219029917103486322D0, 0.051945838107881800736D0, &
+       0.36444189483617893676D0, -0.77718575169962802862D0, &
+       0.48135965125905339159D0, 0.061273359067811077843D0, &
+       -0.14329423835127266284D0, -0.0076074873249766081919D0, &
+       0.031695087811525991431D0, 0.00054213233180001068935D0, &
+       -0.0033824159510050025955D0 , 0.d0 /
+
+  do j=1,ndat
+
+     i=-4
+     so=0.d0
+     do l=max(i-n,-4),min(i,4)
+        so=so+ch(2*l+1)*x(i-l,j)+cg(2*l+1)*x(n+1+i-l,j)
+     enddo
+     y(j,2*i+1)=so
+
+     do i=-3,n+3
+        se=0.d0
+        so=0.d0
+        do l=max(i-n,-4),min(i,4)
+           se=se+ch(2*l  )*x(i-l,j)+cg(2*l  )*x(n+1+i-l,j)
+           so=so+ch(2*l+1)*x(i-l,j)+cg(2*l+1)*x(n+1+i-l,j)
+        enddo
+        y(j,2*i  )=se
+        y(j,2*i+1)=so
+     enddo
+
+     i=n+4
+     se=0.d0
+     do l=max(i-n,-4),min(i,4)
+        se=se+ch(2*l  )*x(i-l,j)+cg(2*l  )*x(n+1+i-l,j)
+     enddo
+     y(j,2*i  )=se
+
+  enddo
+
+  return
+END SUBROUTINE synthesis_free_ref_b
 subroutine synthesis_free_ref(n,ndat,x,y)
   implicit real(kind=8) (a-h,o-z)
-  integer, parameter :: wp=kind(1.0d0)
   dimension x(0:2*n-1,ndat),y(ndat,-7:2*n+6)
   real(kind=8) ch(-8:9) ,cg(-8:9)
   !       Daubechy S16
@@ -105,7 +163,7 @@ subroutine synthesis_free_ref(n,ndat,x,y)
 
      i=-4
      so=0.d0
-     do l=max(i-n-1,-4),min(i,4)
+     do l=max(i-n+1,-4),min(i,4)
         so=so+ch(2*l+1)*x(i-l,j)+cg(2*l+1)*x(n+i-l,j)
      enddo
      y(j,2*i+1)=so
@@ -113,7 +171,7 @@ subroutine synthesis_free_ref(n,ndat,x,y)
      do i=-3,n+2
         se=0.d0
         so=0.d0
-        do l=max(i-n-1,-4),min(i,4)
+        do l=max(i-n+1,-4),min(i,4)
            se=se+ch(2*l  )*x(i-l,j)+cg(2*l  )*x(n+i-l,j)
            so=so+ch(2*l+1)*x(i-l,j)+cg(2*l+1)*x(n+i-l,j)
         enddo
@@ -123,7 +181,7 @@ subroutine synthesis_free_ref(n,ndat,x,y)
 
      i=n+3
      se=0.d0
-     do l=max(i-n-1,-4),min(i,4)
+     do l=max(i-n+1,-4),min(i,4)
         se=se+ch(2*l  )*x(i-l,j)+cg(2*l  )*x(n+i-l,j)
      enddo
      y(j,2*i  )=se
