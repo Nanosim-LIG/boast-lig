@@ -23,9 +23,18 @@ module ConvolutionGenerator
       @code.rewind
       puts @code.read
     end
-    def build
-      Rake::verbose($verbose)
-      Rake::FileUtilsExt.verbose_flag=$verbose
+    def setup_compiler(options = {})
+      verbose = options[:verbose]
+      verbose = $verbose if not verbose
+      Rake::verbose(verbose)
+      Rake::FileUtilsExt.verbose_flag=verbose
+      f_compiler = options[:FC]
+      f_compiler = "gfortran" if not f_compiler
+      c_compiler = options[:CC]
+      c_compiler = "cc" if not c_compiler
+      cxx_compiler = options[:CXX]
+      cxx_compiler = "g++" if not cxx_compiler
+
       includes = "-I#{RbConfig::CONFIG["archdir"]}"
       includes += " -I#{RbConfig::CONFIG["rubyhdrdir"]} -I#{RbConfig::CONFIG["rubyhdrdir"]}/#{RbConfig::CONFIG["arch"]}"
       ldflags = "-L#{RbConfig::CONFIG["libdir"]} #{RbConfig::CONFIG["LIBRUBYARG"]} -lrt"
@@ -38,33 +47,43 @@ module ConvolutionGenerator
       end
       includes += " -I#{narray_path}" if narray_path
       cflags = "-O2 -Wall -fPIC #{includes}"
+      cxxflags = String::new(cflags)
       cflags += " -DHAVE_NARRAY_H" if narray_path
       fcflags = "-O2 -Wall -fPIC"
+
+      runner = lambda { |t, call_string|
+        if verbose then
+          sh call_string
+        else
+          status, stdout, stderr = systemu call_string
+          if not status.success? then
+            puts stderr
+            fail "#{t.source}: compilation failed"
+          end
+          status.success?
+        end
+      }
+
       rule '.o' => '.c' do |t|
-        if $verbose then
-          sh "cc #{cflags} -c -o #{t.name} #{t.source}"
-        else
-          status, stdout, stderr = systemu "cc #{cflags} -c -o #{t.name} #{t.source}"
-          if not status.success? then
-            puts stderr
-            fail "#{t.source}: compilation failed"
-          end
-          status.success?
-        end
-      end
-      rule '.o' => '.f90' do |t|
-        if $verbose then
-          sh "gfortran #{fcflags} -c -o #{t.name} #{t.source}"
-        else
-          status, stdout, stderr = systemu "gfortran #{fcflags} -c -o #{t.name} #{t.source}"
-          if not status.success? then
-            puts stderr
-            fail "#{t.source}: compilation failed"
-          end
-          status.success?
-        end
+        c_call_string = "#{c_compiler} #{cflags} -c -o #{t.name} #{t.source}"
+        runner.call(t, c_call_string)
       end
 
+      rule '.o' => '.f90' do |t|
+        f_call_string = "#{f_compiler} #{fcflags} -c -o #{t.name} #{t.source}"
+        runner.call(t, f_call_string)
+      end
+
+      rule '.o' => '.cpp' do |t|
+        cxx_call_string = "#{cxx_compiler} #{cxxflags} -c -o #{t.name} #{t.source}"
+        runner.call(t, cxx_call_string)
+      end
+
+      return ldflags
+    end
+
+    def build(options = {})
+      ldflags = self.setup_compiler(options)
       extension = ".c" if @lang == ConvolutionGenerator::C
       extension = ".f90" if @lang == ConvolutionGenerator::FORTRAN
       extension = ".cl" if @lang == ConvolutionGenerator::OpenCL
@@ -166,7 +185,7 @@ EOF
       module_file.print "  return stats;\n"
       module_file.print  "}"
       module_file.rewind
-#      puts module_file.read
+#     puts module_file.read
       module_file.close
       ConvolutionGenerator::set_lang(previous_lang)
       ConvolutionGenerator::set_output(previous_output)
