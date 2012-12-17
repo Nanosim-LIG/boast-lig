@@ -1,9 +1,9 @@
 require './Algorithm.rb'
 require 'stringio'
+require 'rubygems'
 require 'rake'
 require 'tempfile'
 require 'rbconfig'
-require 'rubygems'
 require 'systemu'
 
 module ConvolutionGenerator
