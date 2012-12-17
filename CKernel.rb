@@ -24,6 +24,7 @@ module ConvolutionGenerator
       puts @code.read
     end
     def setup_compiler(options = {})
+      Rake::Task::clear
       verbose = options[:verbose]
       verbose = $verbose if not verbose
       Rake::verbose(verbose)
