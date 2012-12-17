@@ -43,7 +43,12 @@ module ConvolutionGenerator
         spec = Gem::Specification::find_by_name('narray')
         narray_path = spec.full_gem_path
       rescue Gem::LoadError => e
-        
+      rescue NoMethodError => e
+        spec = Gem::available?('narray')
+        if spec then
+          require 'narray' 
+          narray_path = Gem.loaded_specs['narray'].full_gem_path
+        end
       end
       includes += " -I#{narray_path}" if narray_path
       cflags = "-O2 -Wall -fPIC #{includes}"
