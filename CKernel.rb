@@ -35,10 +35,16 @@ module ConvolutionGenerator
       c_compiler = "cc" if not c_compiler
       cxx_compiler = options[:CXX]
       cxx_compiler = "g++" if not cxx_compiler
+      f_flags = options[:FCFLAGS]
+      f_flags = "-O2 -Wall -fPIC" if not f_flags
+      f_flags += " -fno-second-underscore" if f_compiler == 'g95'
+      ld_flags = options[:LDFLAGS]
+      ld_flags = "" if not ld_flags
+
 
       includes = "-I#{RbConfig::CONFIG["archdir"]}"
       includes += " -I#{RbConfig::CONFIG["rubyhdrdir"]} -I#{RbConfig::CONFIG["rubyhdrdir"]}/#{RbConfig::CONFIG["arch"]}"
-      ldflags = "-L#{RbConfig::CONFIG["libdir"]} #{RbConfig::CONFIG["LIBRUBYARG"]} -lrt"
+      ld_flags += " -L#{RbConfig::CONFIG["libdir"]} #{RbConfig::CONFIG["LIBRUBYARG"]} -lrt"
       narray_path = nil
       begin
         spec = Gem::Specification::find_by_name('narray')
@@ -55,7 +61,7 @@ module ConvolutionGenerator
       cflags = "-O2 -Wall -fPIC #{includes}"
       cxxflags = String::new(cflags)
       cflags += " -DHAVE_NARRAY_H" if narray_path
-      fcflags = "-O2 -Wall -fPIC"
+      fcflags = f_flags
 
       runner = lambda { |t, call_string|
         if verbose then
@@ -85,7 +91,7 @@ module ConvolutionGenerator
         runner.call(t, cxx_call_string)
       end
 
-      return ldflags
+      return ld_flags
     end
 
     def build(options = {})
@@ -93,6 +99,10 @@ module ConvolutionGenerator
       extension = ".c" if @lang == ConvolutionGenerator::C
       extension = ".f90" if @lang == ConvolutionGenerator::FORTRAN
       extension = ".cl" if @lang == ConvolutionGenerator::OpenCL
+#temporary
+      c_compiler = options[:CC]
+      c_compiler = "cc" if not c_compiler
+#end temporary
       source_file = Tempfile::new([@procedure.name,extension])
       path = source_file.path
       target = path.chomp(File::extname(path))+".o"
@@ -198,7 +208,7 @@ EOF
       module_target = module_file_name.chomp(File::extname(module_file_name))+".o"
       module_final = module_file_name.chomp(File::extname(module_file_name))+".so"
       file module_final => [module_target, target] do
-        sh "cc -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}" 
+        sh "#{c_compiler} -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}" 
       end
       Rake::Task[module_final].invoke
       require(module_final)
