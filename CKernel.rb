@@ -36,7 +36,8 @@ module ConvolutionGenerator
       cxx_compiler = options[:CXX]
       cxx_compiler = "g++" if not cxx_compiler
       f_flags = options[:FCFLAGS]
-      f_flags = "-O2 -Wall -fPIC" if not f_flags
+      f_flags = "-O2 -Wall" if not f_flags
+      f_flags += " -fPIC"
       f_flags += " -fno-second-underscore" if f_compiler == 'g95'
       ld_flags = options[:LDFLAGS]
       ld_flags = "" if not ld_flags

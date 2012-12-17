@@ -83,9 +83,11 @@ module ConvolutionGenerator
         s += ")" if (@operator == "*" or @operator == "/") 
       end        
       s += " " + @operator.to_s + " "
-      s += "(" if (@operator == "*" or @operator == "/" or @operator == "-") 
+      s += "(" if (@operator == "*" or @operator == "/" or @operator == "-" or @operator == "+") 
+#      s += "(" if (@operator == "*" or @operator == "/" or @operator == "-")
       s += @operand2.to_s
-      s += ")" if (@operator == "*" or @operator == "/" or @operator == "-") 
+#      s += ")" if (@operator == "*" or @operator == "/" or @operator == "-") 
+      s += ")" if (@operator == "*" or @operator == "/" or @operator == "-" or @operator == "+") 
       return s
     end
     def print(final=true)
