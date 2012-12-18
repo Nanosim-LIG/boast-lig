@@ -165,7 +165,7 @@ EOF
           module_file.print <<EOF
   if (TYPE(rb_ptr) == T_STRING) {
     #{param.name} = (void *) RSTRING_PTR(rb_ptr);
-  } else if IsNArray(rb_ptr) {
+  } else if ( IsNArray(rb_ptr) ) {
     struct NARRAY *n_ary;
     Data_Get_Struct(rb_ptr, struct NARRAY, n_ary);
     #{param.name} = (void *) n_ary->ptr;
