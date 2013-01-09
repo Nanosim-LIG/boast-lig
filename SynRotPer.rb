@@ -2,64 +2,7 @@ require './BOAST.rb'
 require 'rubygems'
 require 'narray'
 module ConvolutionGenerator
-#subroutine syn_rot_per_temp(n,ndat,x,y)
-#  use module_base
-#  implicit none
-#  integer, intent(in) :: n,ndat
-#  real(wp), dimension(0:2*n-1,ndat), intent(in) :: x
-#  real(wp), dimension(ndat,0:2*n-1), intent(out) :: y
-#  !local variables
-#  integer :: i,j,k,l
-#  real(wp) :: so,se
-#  !       Daubechy S16
-#  real(wp), dimension(-6:9), parameter :: ch=(/&
-#                                    0.0018899503327676891843_wp, &
-#       -0.00030292051472413308126_wp,-0.014952258337062199118_wp, &
-#       0.0038087520138944894631_wp, 0.049137179673730286787_wp, &
-#       -0.027219029917103486322_wp, -0.051945838107881800736_wp, &
-#       0.36444189483617893676_wp, 0.77718575169962802862_wp, &
-#       0.48135965125905339159_wp, -0.061273359067811077843_wp, &
-#       -0.14329423835127266284_wp, 0.0076074873249766081919_wp, &
-#       0.031695087811525991431_wp, -0.00054213233180001068935_wp, &
-#       -0.0033824159510050025955_wp/)
-#  real(wp), dimension(-6:9), parameter :: cg=(/&
-#                                    -0.0033824159510050025955_wp, & 
-#       0.00054213233180001068935_wp, 0.031695087811525991431_wp, & 
-#       -0.0076074873249766081919_wp, -0.14329423835127266284_wp, & 
-#       0.061273359067811077843_wp, 0.48135965125905339159_wp,  & 
-#       -0.77718575169962802862_wp,0.36444189483617893676_wp, &
-#       0.051945838107881800736_wp,-0.027219029917103486322_wp, &
-#       -0.049137179673730286787_wp,0.0038087520138944894631_wp, &
-#       0.014952258337062199118_wp,-0.00030292051472413308126_wp, &
-#       -0.0018899503327676891843_wp  /)
-#  
-#  do j=1,ndat
-#
-#     !fifth changement
-#     so=0.0_wp
-#     se=0.0_wp
-#     do l=-3,4
-#        k=modulo(n-1+l,n)
-#        se=se+ch(2*l)*x(k,j)+cg(2*l)*x(n+k,j)
-#        so=so+ch(2*l+1)*x(k,j)+cg(2*l+1)*x(n+k  ,j)
-#     end do
-#     y(j,2*n-1)=so
-#     y(j,0  )=se
-#
-#     do i=0,n-2
-#        so=0.0_wp
-#        se=0.0_wp
-#        do l=-3,4
-#           k=modulo(i+l,n)
-#           se=se+ch(2*l)*x(k,j)+cg(2*l)*x(n+k,j)
-#           so=so+ch(2*l+1)*x(k,j)+cg(2*l+1)*x(n+k ,j)
-#        end do
-#        y(j,2*i+1)=so
-#        y(j,2*i+2)=se
-#     end do
-#  end do
-#
-#END SUBROUTINE syn_rot_per_temp
+
   def ConvolutionGenerator::synthesis_free_ref
     lang = ConvolutionGenerator::get_lang
     ConvolutionGenerator::set_lang(ConvolutionGenerator::FORTRAN)
@@ -80,61 +23,6 @@ module ConvolutionGenerator
     y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(ndat), Dimension::new(dim_out_min, dim_out_max) ] })
     p = Procedure::new(function_name, [n,ndat,x,y])
     kernel.code.print <<EOF
-subroutine synthesis_free_ref_b(n,ndat,x,y)
-  implicit real(kind=8) (a-h,o-z)
-  dimension x(0:2*n+1,ndat),y(ndat,-7:2*n+8)
-  real(kind=8) ch(-8:9) ,cg(-8:9)
-  !       Daubechy S16
-  data ch  /  0.d0 , -0.0033824159510050025955D0, & 
-       -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
-       0.0076074873249766081919D0, -0.14329423835127266284D0, & 
-       -0.061273359067811077843D0, 0.48135965125905339159D0,  & 
-       0.77718575169962802862D0,0.36444189483617893676D0, &
-       -0.051945838107881800736D0,-0.027219029917103486322D0, &
-       0.049137179673730286787D0,0.0038087520138944894631D0, &
-       -0.014952258337062199118D0,-0.00030292051472413308126D0, &
-       0.0018899503327676891843D0 , 0.d0 /
-  data cg  / 0.d0 , -0.0018899503327676891843D0, &
-       -0.00030292051472413308126D0, 0.014952258337062199118D0, &
-       0.0038087520138944894631D0, -0.049137179673730286787D0, &
-       -0.027219029917103486322D0, 0.051945838107881800736D0, &
-       0.36444189483617893676D0, -0.77718575169962802862D0, &
-       0.48135965125905339159D0, 0.061273359067811077843D0, &
-       -0.14329423835127266284D0, -0.0076074873249766081919D0, &
-       0.031695087811525991431D0, 0.00054213233180001068935D0, &
-       -0.0033824159510050025955D0 , 0.d0 /
-
-  do j=1,ndat
-
-     i=-4
-     so=0.d0
-     do l=max(i-n,-4),min(i,4)
-        so=so+ch(2*l+1)*x(i-l,j)+cg(2*l+1)*x(n+1+i-l,j)
-     enddo
-     y(j,2*i+1)=so
-
-     do i=-3,n+3
-        se=0.d0
-        so=0.d0
-        do l=max(i-n,-4),min(i,4)
-           se=se+ch(2*l  )*x(i-l,j)+cg(2*l  )*x(n+1+i-l,j)
-           so=so+ch(2*l+1)*x(i-l,j)+cg(2*l+1)*x(n+1+i-l,j)
-        enddo
-        y(j,2*i  )=se
-        y(j,2*i+1)=so
-     enddo
-
-     i=n+4
-     se=0.d0
-     do l=max(i-n,-4),min(i,4)
-        se=se+ch(2*l  )*x(i-l,j)+cg(2*l  )*x(n+1+i-l,j)
-     enddo
-     y(j,2*i  )=se
-
-  enddo
-
-  return
-END SUBROUTINE synthesis_free_ref_b
 subroutine synthesis_free_ref(n,ndat,x,y)
   implicit real(kind=8) (a-h,o-z)
   dimension x(0:2*n-1,ndat),y(ndat,-7:2*n+6)
