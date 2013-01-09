@@ -443,12 +443,6 @@ EOF
             (se[ind] === 0.0).print
             
             (i === n-1).print
-#            for3 = For::new(l,lowfil,upfil){
-#              (k === FuncCall::new( "modulo", i+(l), n)).print
-#              (se[ind] === se[ind] + fil[l*2]*x[k,j+ind] + fil[l*-2+3]*x[n+k,j+ind]).print
-#              (so[ind] === so[ind] + fil[l*2+1]*x[k,j+ind] - fil[l*-2+2]*x[n+k,j+ind]).print
-#            }
-#            for3.unroll
             forBC.unroll([se[ind]], [so[ind]])
             (y[j+ind,n*2-1] === so[ind]).print
             (y[j+ind,0] === se[ind]).print
@@ -458,15 +452,9 @@ EOF
             (so[ind] === 0.0).print
             (se[ind] === 0.0).print
             if free then
-#              For::new(l, FuncCall::new("max", -i,lowfil), FuncCall::new("min", upfil, n-1-i) ){
-#                (k === i+l).print
-#                (se[ind] === se[ind] + fil[l*2]*x[k,j+ind] + fil[l*-2+3]*x[n+k,j+ind]).print
-#                (so[ind] === so[ind] + fil[l*2+1]*x[k,j+ind] - fil[l*-2+2]*x[n+k,j+ind]).print
-#              }.print
              forBC.print([se[ind]], [so[ind]])
             else
              forBC.unroll([se[ind]], [so[ind]])
-#              for3.unroll
             end
             (y[j+ind,i*2+1] === so[ind]).print
             (y[j+ind,i*2+2] === se[ind]).print
