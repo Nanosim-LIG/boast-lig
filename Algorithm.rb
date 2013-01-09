@@ -765,7 +765,7 @@ module ConvolutionGenerator
       return s
     end
 
-    def unroll(final=true)
+    def unroll(*args)
       raise "Block not given!" if not @block
       if @begin.kind_of?(Variable) then
         start = @begin.constant
@@ -786,12 +786,13 @@ module ConvolutionGenerator
       range = start..e
       range.step(step) { |i|
         @iterator.constant = i
-        @block.call
+        @block.call(*args)
       }
       @iterator.constant = nil
     end
 
-    def print(final=true)
+    def print(*args)
+      final = true
       s=""
       s += " "*$indent_level if final
       s += self.to_str
@@ -799,11 +800,12 @@ module ConvolutionGenerator
       $output.puts s if final
       if @block then
         s += "\n"
-        @block.call
+        @block.call(*args)
         s += self.close
       end
       return s
     end
+
     def close(final=true)
       return self.close_fortran(final) if $lang == FORTRAN
       return self.close_c(final) if $lang == C or $lang == OpenCL
