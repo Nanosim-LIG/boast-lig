@@ -767,22 +767,26 @@ module ConvolutionGenerator
 
     def unroll(*args)
       raise "Block not given!" if not @block
-      if @begin.kind_of?(Variable) then
-        start = @begin.constant
-      else
-        start = @begin.to_i
+      begin
+        if @begin.kind_of?(Variable) then
+          start = @begin.constant
+        else
+          start = @begin.to_i
+        end
+        if @end.kind_of?(Variable) then
+          e = @end.constant
+        else
+          e = @end.to_i
+        end
+        if @step.kind_of?(Variable) then
+          step = @step.constant
+        else
+          step = @step.to_i
+        end
+        raise "Invalid bounds (not constants)!" if not ( start and e and step )
+      rescue Exception => e
+        return self.print(*args) if not ( start and e and step )
       end
-      if @end.kind_of?(Variable) then
-        e = @end.constant
-      else
-        e = @end.to_i
-      end
-      if @step.kind_of?(Variable) then
-        step = @step.constant
-      else
-        step = @step.to_i
-      end
-      raise "Invalid bounds (not constants)!" if not ( start and e and step )
       range = start..e
       range.step(step) { |i|
         @iterator.constant = i

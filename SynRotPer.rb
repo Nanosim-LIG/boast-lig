@@ -248,9 +248,33 @@ EOF
 
       for_noBC = For::new(l,lowfil,upfil){ |e,o|
         (k === i + l).print
-        se.each_index{ |ind|
-          (se[ind] === se[ind] + fil[l*2]*x[k,j+ind] + fil[l*-2+3]*x[n+k,j+ind]).print
-          (so[ind] === so[ind] + fil[l*2+1]*x[k,j+ind] - fil[l*-2+2]*x[n+k,j+ind]).print
+        e.each_index{ |ind|
+          (e[ind] === e[ind] + fil[l*2]*x[k,j+ind] + fil[l*-2+3]*x[n+k,j+ind]).print
+          (o[ind] === o[ind] + fil[l*2+1]*x[k,j+ind] - fil[l*-2+2]*x[n+k,j+ind]).print
+        }
+      }
+      
+      inner_block_uniq = lambda { |e, o, inner_for|
+        o.each{ |s| (s === 0.0).print }
+        e.each{ |s| (s === 0.0).print }
+        inner_for.unroll(e, o)
+        o.each_index { |ind|
+          (y[j+ind,n*2-1] === o[ind]).print
+        }
+        e.each_index { |ind|
+          (y[j+ind,0] === e[ind]).print
+        }
+      }
+
+      inner_block = lambda { |e, o, inner_for|
+        o.each{ |s| (s === 0.0).print }
+        e.each{ |s| (s === 0.0).print }
+        inner_for.unroll(e, o)
+        o.each_index { |ind|
+          (y[j+ind,i*2+1] === o[ind]).print
+        }
+        e.each_index { |ind|
+          (y[j+ind,i*2+2] === e[ind]).print
         }
       }
 
@@ -262,61 +286,20 @@ EOF
       end
       for1.print
       if not free then
-        so.each{ |s| (s === 0.0).print }
-        se.each{ |s| (s === 0.0).print }
         (i === n-1).print
-        forBC.unroll(se, so)
-        so.each_index { |ind|
-          (y[j+ind,n*2-1] === so[ind]).print
-        }
-        se.each_index { |ind|
-          (y[j+ind,0] === se[ind]).print
-        }
+        inner_block_uniq.call(se, so, forBC)
       end
 
       For::new(i,lowlimit,-lowfil-1) {
-        so.each{ |s| (s === 0.0).print }
-        se.each{ |s| (s === 0.0).print }
-        if free then
-          forBC.print(se, so)
-        else
-          forBC.unroll(se, so)
-        end
-
-        so.each_index { |ind|
-          (y[j+ind,i*2+1] === so[ind]).print
-        }
-        se.each_index { |ind|
-          (y[j+ind,i*2+2] === se[ind]).print
-        }
+        inner_block.call(se, so, forBC)
       }.print
       
       For::new(i,-lowfil,n-1-upfil) {
-        so.each{ |s| (s === 0.0).print }
-        se.each{ |s| (s === 0.0).print }
-        for_noBC.unroll(se, so)
-        so.each_index { |ind|
-          (y[j+ind,i*2+1] === so[ind]).print
-        }
-        se.each_index { |ind|
-          (y[j+ind,i*2+2] === se[ind]).print
-        }
+        inner_block.call(se, so, for_noBC)
       }.print
 
       For::new(i,n-upfil,uplimit) {
-        so.each{ |s| (s === 0.0).print }
-        se.each{ |s| (s === 0.0).print }
-        if free then
-          forBC.print(se, so)
-        else
-          forBC.unroll(se, so)
-        end
-        so.each_index { |ind|
-          (y[j+ind,i*2+1] === so[ind]).print
-        }
-        se.each_index { |ind|
-          (y[j+ind,i*2+2] === se[ind]).print
-        }
+        inner_block.call(se, so, forBC)
       }.print
       for1.close
       $output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
@@ -324,28 +307,15 @@ EOF
 
       if unroll>1 then
         $output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
-        for1 = For::new(j,ndat-FuncCall::new("modulo",ndat,unroll)+1,ndat) {
+        For::new(j,ndat-FuncCall::new("modulo",ndat,unroll)+1,ndat) {
           ind=0
           if not free then
-            (so[ind] === 0.0).print
-            (se[ind] === 0.0).print
-            
             (i === n-1).print
-            forBC.unroll([se[ind]], [so[ind]])
-            (y[j+ind,n*2-1] === so[ind]).print
-            (y[j+ind,0] === se[ind]).print
+            inner_block_uniq.call([se[ind]], [so[ind]], forBC)
           end
           
-          for2 = For::new(i,lowlimit,uplimit) {
-            (so[ind] === 0.0).print
-            (se[ind] === 0.0).print
-            if free then
-             forBC.print([se[ind]], [so[ind]])
-            else
-             forBC.unroll([se[ind]], [so[ind]])
-            end
-            (y[j+ind,i*2+1] === so[ind]).print
-            (y[j+ind,i*2+2] === se[ind]).print
+          For::new(i,lowlimit,uplimit) {
+            inner_block.call([se[ind]], [so[ind]], forBC)
           }.print
           
         }.print
