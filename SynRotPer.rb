@@ -360,7 +360,7 @@ puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["du
 
 (0..8).each{ |unroll|
   k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
-#  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O3 -openmp",:LDFLAGS => "-openmp"})
   stats = k.run(n1/2, n2*n3, input, output)
   stats = k.run(n1/2, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -372,7 +372,7 @@ puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["du
 ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 (0..8).each{ |unroll|
   k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
-#  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+
   stats = k.run(n1/2, n2*n3, input, output)
   stats = k.run(n1/2, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -390,13 +390,13 @@ output_ref = NArray.float(n2,n3,n1+14)
 output = NArray.float(n2,n3,n1+14)
 epsilon = 10e-15
 ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-#k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O3 -openmp",:LDFLAGS => "-openmp"})
 k = ConvolutionGenerator::synthesis_free_ref
 stats = k.run(n1/2, n2*n3, input, output_ref)
 puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
 (0..8).each{ |unroll|
   k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,true)
-#  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O3 -openmp",:LDFLAGS => "-openmp"})
   stats = k.run(n1/2, n2*n3, input, output)
   stats = k.run(n1/2, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -408,7 +408,7 @@ puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["du
 ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 (0..8).each{ |unroll|
   k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,true)
-#  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O3 -openmp",:LDFLAGS => "-openmp"})
   stats = k.run(n1/2, n2*n3, input, output)
   stats = k.run(n1/2, n2*n3, input, output)
   diff = (output_ref - output).abs
