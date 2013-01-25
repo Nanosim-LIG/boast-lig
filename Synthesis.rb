@@ -224,8 +224,17 @@ EOF
       so.each{ |s| s.decl }
       se.each{ |s| s.decl }
 
-      $output.print("!$omp parallel default (private) shared(x,y,fil,ndat,n)\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      $output.print("!$omp parallel default(private) shared(x,y,ndat,n)\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      if ConvolutionGenerator::get_lang == ConvolutionGenerator::C then
+        $output.print("#pragma omp parallel private(")
+        $output.print(se.join(","))
+        $output.print(",")
+        $output.print(so.join(","))
+        $output.print(",i,j,k,l) shared(x,y)\n") 
+      end
+      $output.print("{\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
       $output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      $output.print("#pragma omp for\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
 
       #internal loop taking care of BCs
       if free then
@@ -306,6 +315,7 @@ EOF
 
 
       if unroll>1 then
+        $output.print("#pragma omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
         $output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
         For::new(j,ndat-FuncCall::new("modulo",ndat,unroll)+1,ndat) {
           ind=0
@@ -322,6 +332,7 @@ EOF
         $output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
       end
       $output.print("!$omp end parallel\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      $output.print("}\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
     }
     p.print
     kernel.procedure = p
@@ -329,91 +340,4 @@ EOF
   end
 end
 
-FILTER = ["0.0018899503327676891843",
-          "-0.00030292051472413308126",
-          "-0.014952258337062199118",
-          "0.0038087520138944894631",
-          "0.049137179673730286787",
-          "-0.027219029917103486322",
-          "-0.051945838107881800736",
-          "0.36444189483617893676",
-          "0.77718575169962802862",
-          "0.48135965125905339159",
-          "-0.061273359067811077843",
-          "-0.14329423835127266284",
-          "0.0076074873249766081919",
-          "0.031695087811525991431",
-          "-0.00054213233180001068935",
-          "-0.0033824159510050025955"]
 
-n1 = 124
-n2 = 132
-n3 = 130
-input = NArray.float(n1,n2,n3).random
-output_ref = NArray.float(n1,n2,n3)
-output = NArray.float(n1,n2,n3)
-epsilon = 10e-15
-ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-k = ConvolutionGenerator::synthesis_per_ref
-stats = k.run(n1/2, n2*n3, input, output_ref)
-puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
-
-(0..8).each{ |unroll|
-  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
-  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O3 -openmp",:LDFLAGS => "-openmp"})
-  stats = k.run(n1/2, n2*n3, input, output)
-  stats = k.run(n1/2, n2*n3, input, output)
-  diff = (output_ref - output).abs
-  diff.each { |elem|
-    puts "Warning: residue too big: #{elem}" if elem > epsilon
-  }
-  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
-}
-ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
-(0..8).each{ |unroll|
-  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
-
-  stats = k.run(n1/2, n2*n3, input, output)
-  stats = k.run(n1/2, n2*n3, input, output)
-  diff = (output_ref - output).abs
-  diff.each { |elem|
-    puts "Warning: residue too big: #{elem}" if elem > epsilon
-  }
-  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
-}
-
-n1 = 124
-n2 = 132
-n3 = 130
-input = NArray.float(n1,n2,n3).random
-output_ref = NArray.float(n2,n3,n1+14)
-output = NArray.float(n2,n3,n1+14)
-epsilon = 10e-15
-ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O3 -openmp",:LDFLAGS => "-openmp"})
-k = ConvolutionGenerator::synthesis_free_ref
-stats = k.run(n1/2, n2*n3, input, output_ref)
-puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
-(0..8).each{ |unroll|
-  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,true)
-  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O3 -openmp",:LDFLAGS => "-openmp"})
-  stats = k.run(n1/2, n2*n3, input, output)
-  stats = k.run(n1/2, n2*n3, input, output)
-  diff = (output_ref - output).abs
-  diff.each { |elem|
-    puts "Warning: residue too big: #{elem}" if elem > epsilon
-  }
-  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
-}
-ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
-(0..8).each{ |unroll|
-  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,true)
-  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O3 -openmp",:LDFLAGS => "-openmp"})
-  stats = k.run(n1/2, n2*n3, input, output)
-  stats = k.run(n1/2, n2*n3, input, output)
-  diff = (output_ref - output).abs
-  diff.each { |elem|
-    puts "Warning: residue too big: #{elem}" if elem > epsilon
-  }
-  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
-}

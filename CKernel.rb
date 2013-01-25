@@ -62,6 +62,7 @@ module ConvolutionGenerator
       cflags = "-O2 -Wall -fPIC #{includes}"
       cxxflags = String::new(cflags)
       cflags += " -DHAVE_NARRAY_H" if narray_path
+      cflags += options[:CFLAGS] if options[:CFLAGS]
       fcflags = f_flags
 
       runner = lambda { |t, call_string|
@@ -95,11 +96,41 @@ module ConvolutionGenerator
       return ld_flags
     end
 
+    def build_opencl(options)
+      require 'opencl'
+      platform = nil
+      platforms = OpenCL::Platform::get_platforms
+      if options[:platform_vendor] then
+        platforms.each{ |p|
+          platform = p if p.vendor.match(options[:platform_vendor])
+        }
+      else
+        platform = platforms.first
+      end
+      device = nil
+      type = options[:device_type] ? options[:device_type] : OpenCL::Device::TYPE_ALL
+      devices = OpenCL::Device.get_devices(platform, type)
+      if options[:device_name] then
+        devices.each{ |d|
+          device = d if d.name.match(options[:device_name])
+        }
+      else
+        device = devices.first
+      end
+      context = OpenCL::Context::new(nil,[device])
+      program = OpenCL::Program::create_with_source(context, [@code.string])
+      program.build
+      @queue = OpenCL::CommandQueue::new(context, device, OpenCL::CommandQueue::PROFILING_ENABLE)
+      @kernel = OpenCL::Kernel::new( program, @procedure.name)
+#      run_method = "def run("
+#      @procedure.parameters.each_index do |i|
+    end
+
     def build(options = {})
+      return build_opencl(options) if @lang == ConvolutionGenerator::OpenCL
       ldflags = self.setup_compiler(options)
       extension = ".c" if @lang == ConvolutionGenerator::C
       extension = ".f90" if @lang == ConvolutionGenerator::FORTRAN
-      extension = ".cl" if @lang == ConvolutionGenerator::OpenCL
 #temporary
       c_compiler = options[:CC]
       c_compiler = "cc" if not c_compiler
