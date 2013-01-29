@@ -2,7 +2,7 @@
 module ConvolutionGenerator
   FORTRAN = 1
   C = 2
-  OpenCL = 3
+  CL = 3
   $output = STDOUT
   $lang = FORTRAN
   $replace_constants = true
@@ -94,7 +94,7 @@ module ConvolutionGenerator
       s=""
       s += " "*$indent_level if final
       s += self.to_str
-      s += ";" if final and $lang==C or $lang==OpenCL
+      s += ";" if final and $lang==C or $lang==CL
       $output.puts s if final
       return s
     end
@@ -130,7 +130,7 @@ module ConvolutionGenerator
     end
     def to_str
       return self.to_str_fortran if $lang == FORTRAN
-      return self.to_str_c if $lang == C or $lang == OpenCL
+      return self.to_str_c if $lang == C or $lang == CL
     end
     def to_str_fortran
       s = ""
@@ -171,7 +171,7 @@ module ConvolutionGenerator
       s=""
       s += " "*$indent_level if final
       s += self.to_str
-      s += ";" if final and $lang == C or $lang = OpenCL
+      s += ";" if final and $lang == C or $lang = CL
       $output.puts s if final
       return s
     end
@@ -248,7 +248,7 @@ module ConvolutionGenerator
 
     def finalize
        s = ""
-       s += ";" if $lang == C or $lang == OpenCL
+       s += ";" if $lang == C or $lang == CL
        s+="\n"
        return s
     end
@@ -257,8 +257,8 @@ module ConvolutionGenerator
       s = ""
       s += self.indent if final
       s += "const " if @constant or @direction == :in
-      s += "__global " if @direction and @dimension and $lang == OpenCL
-      s += "__local " if @local and $lang == OpenCL
+      s += "__global " if @direction and @dimension and $lang == CL
+      s += "__local " if @local and $lang == CL
       s += @type.decl
       if(@dimension and not @constant and not @local) then
         s += " *"
@@ -283,15 +283,15 @@ module ConvolutionGenerator
 
     def decl(final=true)
       return self.decl_fortran(final) if $lang == FORTRAN
-      return self.decl_c(final) if $lang == C or $lang == OpenCL      
+      return self.decl_c(final) if $lang == C or $lang == CL      
     end
 
     def decl_c(final=true)
       s = ""
       s += self.indent if final
       s += "const " if @constant or @direction == :in
-      s += "__global " if @direction and @dimension and $lang == OpenCL
-      s += "__local " if @local and $lang == OpenCL
+      s += "__global " if @direction and @dimension and $lang == CL
+      s += "__local " if @local and $lang == CL
       s += @type.decl
       if(@dimension and not @constant and not @local) then
         s += " *"
@@ -350,7 +350,7 @@ module ConvolutionGenerator
         return "float" if @size == 4
         return "double" if @size == 8
       end
-      if $lang == OpenCL then
+      if $lang == CL then
         return "cl_float" if @size == 4
         return "cl_double" if @size == 8
       end
@@ -389,8 +389,8 @@ module ConvolutionGenerator
     end
     def header(lang=C,final=true)
       s = ""
-      if $lang == OpenCL then
-        s += "__kernel " if $lang == OpenCL
+      if $lang == CL then
+        s += "__kernel " if $lang == CL
         wgs = @properties[:reqd_work_group_size]
         if wgs then
           s += "__attribute__((reqd_work_group_size(#{wgs[0]},#{wgs[1]},#{wgs[2]}))) "
@@ -413,11 +413,11 @@ module ConvolutionGenerator
     end
     def decl(final=true)
       return self.decl_fortran(final) if $lang==FORTRAN
-      return self.decl_c(final) if $lang==C or $lang==OpenCL
+      return self.decl_c(final) if $lang==C or $lang==CL
     end
     def close(final=true)
       return self.close_fortran(final) if $lang==FORTRAN
-      return self.close_c(final) if $lang==C or $lang==OpenCL
+      return self.close_c(final) if $lang==C or $lang==CL
     end
     def close_c(final=true)
       $indent_level -= $indent_increment
@@ -445,8 +445,8 @@ module ConvolutionGenerator
 
     def decl_c(final=true)
       s = ""
-      if $lang == OpenCL then
-        s += "__kernel " if $lang == OpenCL
+      if $lang == CL then
+        s += "__kernel " if $lang == CL
         wgs = @properties[:reqd_work_group_size]
         if wgs then
           s += "__attribute__((reqd_work_group_size(#{wgs[0]},#{wgs[1]},#{wgs[2]}))) "
@@ -515,7 +515,7 @@ module ConvolutionGenerator
           s += val1.to_s
           s += ":"
           s += val2.to_s
-        elsif $lang == C or $lang == OpenCL then
+        elsif $lang == C or $lang == CL then
           s += (val2 - val1 + 1).to_s
         end
       else
@@ -537,9 +537,9 @@ module ConvolutionGenerator
     def decl
       return "integer(kind=#{$default_int_signed})" if $lang == FORTRAN
       if not @signed then
-        return "size_t" if $lang == C or $lang == OpenCL
+        return "size_t" if $lang == C or $lang == CL
       else
-        return "ptrdiff_t" if $lang == C or $lang == OpenCL
+        return "ptrdiff_t" if $lang == C or $lang == CL
       end
     end
   end
@@ -562,7 +562,7 @@ module ConvolutionGenerator
     def decl
       return "integer(kind=#{@size})" if $lang == FORTRAN
       return "int#{8*@size}_t" if $lang == C
-      if $lang == OpenCL then
+      if $lang == CL then
         char="cl_"
         char += "u" if not @signed
         return char += "char" if @size==1
@@ -583,7 +583,7 @@ module ConvolutionGenerator
     end
     def to_str
       return self.to_str_fortran if $lang == FORTRAN
-      return self.to_str_c if $lang == C or $lang == OpenCL
+      return self.to_str_c if $lang == C or $lang == CL
     end
     def to_str_fortran
       s = ""
@@ -658,7 +658,7 @@ module ConvolutionGenerator
 
     def to_str
       raise "Ternary operator unsupported in Fortran!" if $lang == FORTRAN
-      return self.to_str_c if $lang == C or $lang == OpenCL
+      return self.to_str_c if $lang == C or $lang == CL
     end
     def to_str_c
       s = ""
@@ -668,7 +668,7 @@ module ConvolutionGenerator
       s=""
       s += " "*$indent_level if final
       s += self.to_str
-      s += ";" if final and $lang == C or $lang = OpenCL
+      s += ";" if final and $lang == C or $lang = CL
       $output.puts s if final
       return s
     end
@@ -714,7 +714,7 @@ module ConvolutionGenerator
 
     def to_str
       return self.to_str_fortran if $lang == FORTRAN
-      return self.to_str_c if $lang == C or $lang == OpenCL
+      return self.to_str_c if $lang == C or $lang == CL
     end
     def to_str_fortran
       s = ""
@@ -728,7 +728,7 @@ module ConvolutionGenerator
       s=""
       s += " "*$indent_level if final
       s += self.to_str
-      s += ";" if final and $lang == C or $lang = OpenCL
+      s += ";" if final and $lang == C or $lang = CL
       $output.puts s if final
       return s
     end
@@ -751,7 +751,7 @@ module ConvolutionGenerator
     end
     def to_str
       return self.to_str_fortran if $lang == FORTRAN
-      return self.to_str_c if $lang == C or $lang == OpenCL
+      return self.to_str_c if $lang == C or $lang == CL
     end
     def to_str_fortran
       s = ""
@@ -812,7 +812,7 @@ module ConvolutionGenerator
 
     def close(final=true)
       return self.close_fortran(final) if $lang == FORTRAN
-      return self.close_c(final) if $lang == C or $lang == OpenCL
+      return self.close_c(final) if $lang == C or $lang == CL
     end
     def close_c(final=true)
       s = ""
@@ -834,9 +834,3 @@ module ConvolutionGenerator
 
 end
 
-
-#ConvolutionGenerator::MagicFilter(FILTER,8,0,false)
-#ConvolutionGenerator::MagicFilter(FILTER,8,5,false)
-#ConvolutionGenerator::MagicFilter(FILTER,8,2,false, true)
-
-#ConvolutionGenerator::AnaRotPer(FILTER, 8, 0, false)

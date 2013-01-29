@@ -117,17 +117,78 @@ module ConvolutionGenerator
       else
         device = devices.first
       end
-      context = OpenCL::Context::new(nil,[device])
-      program = OpenCL::Program::create_with_source(context, [@code.string])
+      @context = OpenCL::Context::new(nil,[device])
+      program = OpenCL::Program::create_with_source(@context, [@code.string])
       program.build
-      @queue = OpenCL::CommandQueue::new(context, device, OpenCL::CommandQueue::PROFILING_ENABLE)
+      @queue = OpenCL::CommandQueue::new(@context, device, OpenCL::CommandQueue::PROFILING_ENABLE)
       @kernel = OpenCL::Kernel::new( program, @procedure.name)
-#      run_method = "def run("
-#      @procedure.parameters.each_index do |i|
+      run_method = <<EOF
+def run(*args)\n
+  raise "Wrong number of arguments \#{args.length} for #{@procedure.parameters.length}" if args.length > #{@procedure.parameters.length+1} or args.length < #{@procedure.parameters.length}
+  params = []
+  opts = {}
+  opts = args.pop if args.length == #{@procedure.parameters.length+1}
+  @procedure.parameters.each_index { |i|
+    if @procedure.parameters[i].dimension then
+      if @procedure.parameters[i].direction == :in and @procedure.parameters[i].direction == :out then
+        params[i] = OpenCL::Buffer::new(@context, OpenCL::Mem::READ_WRITE, :size => args[i].size * args[i].element_size )
+        @queue.enqueue_write_buffer(params[i], OpenCL::TRUE, args[i], :cb => args[i].size * args[i].element_size )
+      elsif @procedure.parameters[i].direction == :in then
+        params[i] = OpenCL::Buffer::new(@context, OpenCL::Mem::READ_ONLY, :size => args[i].size * args[i].element_size )
+        @queue.enqueue_write_buffer(params[i], OpenCL::TRUE, args[i], :cb => args[i].size * args[i].element_size )
+      elsif @procedure.parameters[i].direction == :out then
+        params[i] = OpenCL::Buffer::new(@context, OpenCL::Mem::WRITE_ONLY, :size => args[i].size * args[i].element_size )
+      else
+        params[i] = OpenCL::Buffer::new(@context, OpenCL::Mem::READ_WRITE, :size => args[i].size * args[i].element_size )
+      end
+    else
+      if @procedure.parameters[i].type.is_a?(Real) then
+        params[i] = OpenCL::Half::new(args[i]) if @procedure.parameters[i].type.size == 2
+        params[i] = OpenCL::Float::new(args[i]) if @procedure.parameters[i].type.size == 4
+        params[i] = OpenCL::Double::new(args[i]) if @procedure.parameters[i].type.size == 8
+      elsif @procedure.parameters[i].type.is_a?(Int) then
+        if @procedure.parameters[i].type.signed
+          params[i] = OpenCL::Char::new(args[i]) if @procedure.parameters[i].type.size == 1
+          params[i] = OpenCL::Short::new(args[i]) if @procedure.parameters[i].type.size == 2
+          params[i] = OpenCL::Int::new(args[i]) if @procedure.parameters[i].type.size == 4
+          params[i] = OpenCL::Long::new(args[i]) if @procedure.parameters[i].type.size == 8
+        else
+          params[i] = OpenCL::UChar::new(args[i]) if @procedure.parameters[i].type.size == 1
+          params[i] = OpenCL::UShort::new(args[i]) if @procedure.parameters[i].type.size == 2
+          params[i] = OpenCL::UInt::new(args[i]) if @procedure.parameters[i].type.size == 4
+          params[i] = OpenCL::ULong::new(args[i]) if @procedure.parameters[i].type.size == 8
+        end
+      else
+        params[i] = args[i]
+      end
+    end
+  }
+  params.each_index{ |i|
+    @kernel.set_arg(i, params[i])
+  }
+  event = @queue.enqueue_NDrange_kernel(@kernel, opts[:global_work_size], opts[:local_work_size])
+  @procedure.parameters.each_index { |i|
+    if @procedure.parameters[i].dimension then
+      if @procedure.parameters[i].direction == :in and @procedure.parameters[i].direction == :out then
+        @queue.enqueue_read_buffer(params[i], OpenCL::TRUE, :ptr => args[i], :cb => args[i].size * args[i].element_size )
+      elsif @procedure.parameters[i].direction == :out then
+        @queue.enqueue_read_buffer(params[i], OpenCL::TRUE, :ptr => args[i], :cb => args[i].size * args[i].element_size )
+      end
+    end
+  }
+  result = {}
+  result[:start] = event.get_profiling_info(OpenCL::PROFILING_COMMAND_START).unpack("L").first
+  result[:end] = event.get_profiling_info(OpenCL::PROFILING_COMMAND_END).unpack("L").first
+  result[:duration] = (result[:end] - result[:start])/1000000000.0
+  return result
+end
+EOF
+    eval run_method
+    return self
     end
 
     def build(options = {})
-      return build_opencl(options) if @lang == ConvolutionGenerator::OpenCL
+      return build_opencl(options) if @lang == ConvolutionGenerator::CL
       ldflags = self.setup_compiler(options)
       extension = ".c" if @lang == ConvolutionGenerator::C
       extension = ".f90" if @lang == ConvolutionGenerator::FORTRAN
@@ -229,7 +290,7 @@ EOF
       module_file.print "  clock_gettime(CLOCK_REALTIME, &stop);\n"
       module_file.print "  duration = (unsigned long long int)stop.tv_sec * (unsigned long long int)1000000000 + stop.tv_nsec;\n"
       module_file.print "  duration -= (unsigned long long int)start.tv_sec * (unsigned long long int)1000000000 + start.tv_nsec;\n"
-      module_file.print "  rb_hash_aset(stats,rb_str_new2(\"duration\"),rb_float_new((double)duration*(double)1e-9));\n"
+      module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"duration\")),rb_float_new((double)duration*(double)1e-9));\n"
       module_file.print "  return stats;\n"
       module_file.print  "}"
       module_file.rewind

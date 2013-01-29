@@ -1,6 +1,91 @@
-require './Algorithm.rb'
+require './BOAST.rb'
 
 module ConvolutionGenerator
+  def ConvolutionGenerator::magicfilter_GPU_per_ref
+    lang = ConvolutionGenerator::get_lang
+    ConvolutionGenerator::set_lang(ConvolutionGenerator::CL)
+    kernel = CKernel::new
+    kernel.lang = ConvolutionGenerator::CL
+    function_name = "magicfilter_per_ref"
+    n = Variable::new("n",Int,{:direction => :in, :signed => false})
+    ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
+    dim_in_min = 0
+    dim_in_max = n-1
+    dim_out_min = 0
+    dim_out_max = n-1
+    x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(dim_in_min, dim_in_max), Dimension::new(ndat) ] })
+    y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(ndat), Dimension::new(dim_out_min, dim_out_max) ] })
+    p = Procedure::new(function_name, [n,ndat,x,y])
+    kernel.code.print <<EOF
+#ifdef cl_khr_fp64
+#pragma OPENCL EXTENSION cl_khr_fp64: enable
+#elif defined (cl_amd_fp64)
+#pragma OPENCL EXTENSION cl_amd_fp64: enable
+#endif
+#define FILTER_WIDTH 16
+#define FILT0   8.4334247333529341094733325815816e-7
+#define FILT1  -0.1290557201342060969516786758559028e-4
+#define FILT2   0.8762984476210559564689161894116397e-4
+#define FILT3  -0.30158038132690463167163703826169879e-3
+#define FILT4   0.174723713672993903449447812749852942e-2
+#define FILT5  -0.942047030201080385922711540948195075e-2
+#define FILT6   0.2373821463724942397566389712597274535e-1
+#define FILT7   0.612625895831207982195380597e-1
+#define FILT8   0.9940415697834003993178616713
+#define FILT9  -0.604895289196983516002834636e-1
+#define FILT10 -0.2103025160930381434955489412839065067e-1
+#define FILT11  0.1337263414854794752733423467013220997e-1
+#define FILT12 -0.344128144493493857280881509686821861e-2
+#define FILT13  0.49443227688689919192282259476750972e-3
+#define FILT14 -0.5185986881173432922848639136911487e-4
+#define FILT15  2.72734492911979659657715313017228e-6
+#define filter(tmp) double tt = 0.0;tt = mad(*tmp++, FILT0, tt);tt = mad(*tmp++, FILT1, tt);tt = mad(*tmp++, FILT2, tt);tt = mad(*tmp++, FILT3, tt);tt = mad(*tmp++, FILT4, tt);tt = mad(*tmp++, FILT5, tt);tt = mad(*tmp++, FILT6, tt);tt = mad(*tmp++, FILT7, tt);tt = mad(*tmp++, FILT8, tt);tt = mad(*tmp++, FILT9, tt);tt = mad(*tmp++, FILT10, tt);tt = mad(*tmp++, FILT11, tt);tt = mad(*tmp++, FILT12, tt);tt = mad(*tmp++, FILT13, tt);tt = mad(*tmp++, FILT14, tt);tt = mad(*tmp++, FILT15, tt);
+//n is supposed to be greater or equal than get_local_size(0)
+//this filter is for periodic boundary conditions
+__kernel __attribute__((reqd_work_group_size(16,16, 1))) void #{function_name}(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];
+__local double *tmp = &tmp1[0];
+//get our position in the local work group
+size_t ig = get_global_id(0);
+size_t jg = get_global_id(1);
+//get our position in the result matrix
+const size_t i2 = get_local_id(0);
+const size_t j2 = get_local_id(1);
+//get our group number
+ptrdiff_t igt = get_group_id(0);
+ptrdiff_t jgt = get_group_id(1);
+//if data are ill dimentioned border blocks recomputes part of the data
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;
+//transpose indexes in the work group in order to read transposed data
+igt = ig - i2 + j2 - FILTER_WIDTH/2;
+jgt = jg - j2 + i2;
+//if we are on the outside, select a border element to load, wrapping around
+//we will be loading 2 elements each
+if ( igt < 0 ) 
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + ( n + igt ) * ndat];
+else 
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];
+igt += FILTER_WIDTH;
+if ( igt >= n ) 
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];
+else
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];
+//rest position in the buffer to first element involved in the convolution
+tmp += j2*(2*FILTER_WIDTH+1) + i2;
+//wait for buffer to be full
+barrier(CLK_LOCAL_MEM_FENCE);
+//apply filter
+filter(tmp);
+//store the result
+out[(jg*n+ig)]=tt;
+};
+EOF
+    kernel.procedure = p
+    ConvolutionGenerator::set_lang(lang)
+    return kernel
+  end
+
   def ConvolutionGenerator::MagicFilter_GPU(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
     array_start = $array_start
     $array_start = 0
@@ -86,24 +171,4 @@ module ConvolutionGenerator
 
 end
 
-FILTER = [ "8.4334247333529341094733325815816e-7",
-       "-0.1290557201342060969516786758559028e-4",
-       "0.8762984476210559564689161894116397e-4",
-       "-0.30158038132690463167163703826169879e-3",
-       "0.174723713672993903449447812749852942e-2",
-       "-0.942047030201080385922711540948195075e-2",
-       "0.2373821463724942397566389712597274535e-1",
-       "0.612625895831207982195380597e-1",
-       "0.9940415697834003993178616713",
-       "-0.604895289196983516002834636e-1",
-       "-0.2103025160930381434955489412839065067e-1",
-       "0.1337263414854794752733423467013220997e-1",
-       "-0.344128144493493857280881509686821861e-2",
-       "0.49443227688689919192282259476750972e-3",
-       "-0.5185986881173432922848639136911487e-4",
-       "2.72734492911979659657715313017228e-6" ]
 
-
-
-ConvolutionGenerator::set_lang( ConvolutionGenerator::OpenCL )
-ConvolutionGenerator::MagicFilter_GPU(FILTER,8,31)

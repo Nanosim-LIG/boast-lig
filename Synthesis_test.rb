@@ -65,7 +65,7 @@ ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
 k = ConvolutionGenerator::synthesis_free_ref
 k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
 stats = k.run(n1/2, n2*n3, input, output_ref)
-puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 (0..8).each{ |unroll|
   k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,true)
 #  k.print if unroll == 0
@@ -76,7 +76,7 @@ puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["du
   diff.each { |elem|
    raise  "Warning: residue too big: #{elem}" if elem > epsilon
   }
-  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
 ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 (0..8).each{ |unroll|
@@ -89,5 +89,5 @@ ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
   diff.each { |elem|
     raise "Warning: residue too big: #{elem}" if elem > epsilon
   }
-  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }

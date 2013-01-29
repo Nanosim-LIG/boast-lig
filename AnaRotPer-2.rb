@@ -305,7 +305,7 @@ epsilon = 10e-15
 ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
 k = ConvolutionGenerator::analysis_free_ref
 stats = k.run(n1/2, n2*n3, input, output_ref)
-puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
 (0..8).each{ |unroll|
   k = ConvolutionGenerator::Analysis(FILTER,7,unroll,true)
@@ -317,7 +317,7 @@ puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["du
   diff.each { |elem|
     puts "Warning: residue too big: #{elem}" if elem > epsilon
   }
-  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
 ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 (0..8).each{ |unroll|
@@ -329,6 +329,6 @@ ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
   diff.each { |elem|
     puts "Warning: residue too big: #{elem}" if elem > epsilon
   }
-  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
 
