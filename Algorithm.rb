@@ -351,8 +351,8 @@ module ConvolutionGenerator
         return "double" if @size == 8
       end
       if $lang == CL then
-        return "cl_float" if @size == 4
-        return "cl_double" if @size == 8
+        return "float" if @size == 4
+        return "double" if @size == 8
       end
     end
   end
@@ -563,7 +563,8 @@ module ConvolutionGenerator
       return "integer(kind=#{@size})" if $lang == FORTRAN
       return "int#{8*@size}_t" if $lang == C
       if $lang == CL then
-        char="cl_"
+        #char="cl_"
+        char=""
         char += "u" if not @signed
         return char += "char" if @size==1
         return char += "short" if @size==2

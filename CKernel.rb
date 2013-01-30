@@ -123,7 +123,7 @@ module ConvolutionGenerator
       @queue = OpenCL::CommandQueue::new(@context, device, OpenCL::CommandQueue::PROFILING_ENABLE)
       @kernel = OpenCL::Kernel::new( program, @procedure.name)
       run_method = <<EOF
-def run(*args)\n
+def self.run(*args)
   raise "Wrong number of arguments \#{args.length} for #{@procedure.parameters.length}" if args.length > #{@procedure.parameters.length+1} or args.length < #{@procedure.parameters.length}
   params = []
   opts = {}

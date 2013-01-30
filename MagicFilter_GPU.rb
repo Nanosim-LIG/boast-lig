@@ -86,9 +86,15 @@ EOF
     return kernel
   end
 
-  def ConvolutionGenerator::MagicFilter_GPU(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
+  def ConvolutionGenerator::magicfilter_GPU(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
     array_start = $array_start
     $array_start = 0
+
+    lang = ConvolutionGenerator::get_lang
+    ConvolutionGenerator::set_lang(ConvolutionGenerator::CL)
+    kernel = CKernel::new
+    kernel.lang = ConvolutionGenerator::CL
+    ConvolutionGenerator::set_output( kernel.code )
 
     function_name = "magicfilter_n#{size_n}"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
@@ -105,6 +111,7 @@ EOF
     fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new(filt.length) ]})
     
     wgs = 8
+    $output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
     p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil], {:reqd_work_group_size => [wgs,wgs,1]}) {
       buff_length = size_n+filt.length-1
       buff_length = buff_length.modulo(16) == 0 ? buff_length : buff_length + 16 - buff_length.modulo(16)
@@ -128,7 +135,6 @@ EOF
       igtf.decl
       (jgt === FuncCall::new( "get_group_id", 1)).print
       (jg === (Ternary::new( jgt == FuncCall::new( "get_num_groups", 1) - 1 , jg + ndat - FuncCall::new( "get_global_size", 1) , jg))).print
-      replace_constants = $replace_constants
       (igt === j2 + lowfil).print
       (jgt === jg - j2 + i2).print
       #load into buffers
@@ -145,6 +151,7 @@ EOF
         (tmp_buff[j2+(size_n+filt.length-1-wgs),i2] === x[jgt, igtf]).print
       end
       FuncCall::new( "barrier","CLK_LOCAL_MEM_FENCE").print
+      fil.decl
       tt = Variable::new( "tt", Real)
       tt.decl
       l = Variable::new( "l",Int)
@@ -164,8 +171,12 @@ EOF
         }.unroll
         ( y[i2 , jg] === tt ).print
       end
-    }.print
+    }
+    p.print
     $array_start = array_start
+    kernel.procedure = p
+    ConvolutionGenerator::set_lang(lang)
+    return kernel
   end
 
 
