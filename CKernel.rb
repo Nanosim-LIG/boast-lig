@@ -119,7 +119,8 @@ module ConvolutionGenerator
       end
       @context = OpenCL::Context::new(nil,[device])
       program = OpenCL::Program::create_with_source(@context, [@code.string])
-      program.build
+      opts = options[:CLFLAGS]
+      program.build(:options => options[:CLFLAGS])
       @queue = OpenCL::CommandQueue::new(@context, device, OpenCL::CommandQueue::PROFILING_ENABLE)
       @kernel = OpenCL::Kernel::new( program, @procedure.name)
       run_method = <<EOF

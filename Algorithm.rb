@@ -71,6 +71,10 @@ module ConvolutionGenerator
       return Expression::new("/",self,x)
     end
  
+    def dereference
+      return Expression::new("*",nil,self)
+    end
+   
     def -(x)
       return Expression::new("-",self,x)
     end
@@ -82,12 +86,14 @@ module ConvolutionGenerator
         s += @operand1.to_s
         s += ")" if (@operator == "*" or @operator == "/") 
       end        
-      s += " " + @operator.to_s + " "
-      s += "(" if (@operator == "*" or @operator == "/" or @operator == "-" or @operator == "+") 
-#      s += "(" if (@operator == "*" or @operator == "/" or @operator == "-")
-      s += @operand2.to_s
-#      s += ")" if (@operator == "*" or @operator == "/" or @operator == "-") 
-      s += ")" if (@operator == "*" or @operator == "/" or @operator == "-" or @operator == "+") 
+      s += " " if @operator.to_s != "++"
+      s += @operator.to_s 
+      s += " "
+      if @operand2 then
+        s += "(" if (@operator == "*" or @operator == "/" or @operator == "-" or @operator == "+") 
+        s += @operand2.to_s
+        s += ")" if (@operator == "*" or @operator == "/" or @operator == "-" or @operator == "+") 
+      end
       return s
     end
     def print(final=true)
@@ -138,8 +144,6 @@ module ConvolutionGenerator
       return s
     end
     def to_str_c
-      s = ""
-      s += "#{@source}["
       dim = @source.dimension.first
       if dim.val2 then
         start = dim.val1
@@ -164,6 +168,17 @@ module ConvolutionGenerator
         sub += " + (#{@indexes[i]} - (#{start}))"+ss
         i+=1
       }
+      if $replace_constants then
+        begin
+#         puts sub
+         indx = eval(sub)
+         indx = indx.to_i
+#         puts indx
+         return "#{@source.constant[indx]}"
+        rescue Exception => e
+        end
+      end
+      s = "#{@source}["
       s += sub + "]"
       return s
     end
@@ -236,6 +251,14 @@ module ConvolutionGenerator
  
     def -@
       return Expression::new("-",nil,self)
+    end
+   
+    def dereference
+      return Expression::new("*",nil,self)
+    end
+   
+    def inc
+      return Expression::new("++",self,nil)
     end
 
     def [](*args)
