@@ -234,18 +234,18 @@ EOF
       igt.decl
       (jgt === FuncCall::new( "get_group_id", 1)).print
       (jg === (Ternary::new( jgt == FuncCall::new( "get_num_groups", 1) - 1 , jg + ndat - FuncCall::new( "get_global_size", 1) , jg))).print
-      (igt === j2).print
       (jgt === jg - j2 + i2).print
       #load into buffers
       k = Variable::new("k", Int)
 
-      if size_n.modulo(wgs) != 0 then
+      if size_n > wgs then
         (igt === j2 + size_n - wgs).print
         (tmp_buff[igt,i2] === x[jgt, igt]).print
       end
+      (igt === j2).print
       (tmp_buff[igt,i2] === x[jgt, igt]).print
       (igt === igt + wgs).print
-      For::new(k, wgs, size_n-wgs, wgs){
+      For::new(k, wgs, size_n-wgs-1, wgs){
         (tmp_buff[igt,i2] === x[jgt, igt]).print
         (igt === igt + wgs).print
       }.unroll
@@ -275,7 +275,12 @@ EOF
       (y[ig, jg] === tt ).print
       
       (ig === i2 + wgs/2).print
-      For::new(k, wgs/2, size_n-wgs/2-wgs, wgs) {
+      ((wgs/2)..(size_n-wgs/2-wgs)).step(wgs) { |k|
+#        if(k+wgs/2 <= size_n-wgs-1) then
+#          (igt === j2 + k+wgs/2).print
+#          (tmp_buff[igt,i2] === x[jgt, igt]).print
+#          FuncCall::new( "barrier","CLK_LOCAL_MEM_FENCE").print
+#        end
         (igt === ig + lowfil).print
         (tt === 0.0).print
         f2 = For::new(l, lowfil, upfil) {
@@ -283,15 +288,29 @@ EOF
         }.unroll
         ( y[ig, jg] === tt ).print
         (ig === ig + wgs).print
-      }.unroll
+      }
 
       if (size_n.modulo(wgs) != 0) then
         (ig === i2 + size_n - wgs - wgs/2).print
-        (igt === ig + lowfil).print
         (tt === 0.0).print
-        f2 = For::new(l, lowfil, upfil) {
-          (tt === tt + tmp_buff[igt.inc, j2]*fil[l]).print
-        }.unroll
+        if (size_n < wgs+filt.length) then
+          (ig === Ternary::new( ig < 0 , ig + size_n , ig ) ).print
+          For::new( l, lowfil, -1) {
+            (igt === ig+l).print
+            (igt === Ternary::new(igt < 0, igt + size_n, igt) ).print 
+            (tt === tt + tmp_buff[igt, j2]*fil[l]).print
+          }.unroll
+          For::new( l, 0, upfil) {
+            (igt === ig+l).print
+            (igt === Ternary::new( igt >= size_n, igt - size_n, igt) ).print 
+            (tt === tt + tmp_buff[igt, j2]*fil[l]).print
+          }.unroll
+        else
+          (igt === ig + lowfil).print
+          f2 = For::new(l, lowfil, upfil) {
+            (tt === tt + tmp_buff[igt.inc, j2]*fil[l]).print
+          }.unroll
+        end
         ( y[ig , jg] === tt ).print
       end
     }
@@ -301,6 +320,141 @@ EOF
     ConvolutionGenerator::set_lang(lang)
     return kernel
   end
+
+  def ConvolutionGenerator::magicfilter_GPU_next_next(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
+    array_start = $array_start
+    $array_start = 0
+
+    lang = ConvolutionGenerator::get_lang
+    ConvolutionGenerator::set_lang(ConvolutionGenerator::CL)
+    kernel = CKernel::new
+    kernel.lang = ConvolutionGenerator::CL
+    ConvolutionGenerator::set_output( kernel.code )
+
+    function_name = "magicfilter_n#{size_n}"
+    n = Variable::new("n",Int,{:direction => :in, :signed => false})
+    ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
+    lowfil = Variable::new("lowfil",Int,{:constant => center-filt.length})
+    upfil = Variable::new("upfil",Int,{:constant => center-1})
+    dim_in_min = 0
+    dim_in_max = size_n-1
+    dim_out_min = 0
+    dim_out_max = size_n-1
+    x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(ndat), Dimension::new(dim_in_min, dim_in_max) ] })
+    y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(dim_out_min, dim_out_max), Dimension::new(ndat) ] })
+    arr = ConstArray::new(filt)
+    fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new(lowfil, upfil) ]})
+    
+    wgs = 16
+    $output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
+    p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil], {:reqd_work_group_size => [wgs,wgs,1]}) {
+      buff_length = size_n
+      buff_length = buff_length.modulo(16) == 0 ? buff_length : buff_length + 16 - buff_length.modulo(16)
+      buff_length += 1
+      tmp_buff = Variable::new("tmp_buff", Real, { :local => true, :dimension => [Dimension::new( buff_length), Dimension::new(wgs)] } )
+      tmp_buff.decl
+      jg = Variable::new("jg", Sizet)
+      jg.decl
+      (jg === FuncCall::new( "get_global_id", 1)).print
+      i2 = Variable::new("i2", Sizet) #, {:constant =>FuncCall::new( "get_local_id", 0)})
+      i2.decl
+      (i2 === FuncCall::new( "get_local_id", 0)).print
+      j2 = Variable::new("j2", Sizet) #, {:constant =>FuncCall::new( "get_local_id", 1)})
+      j2.decl
+      (j2 === FuncCall::new( "get_local_id", 1)).print
+      jgt = Variable::new("jgt", Sizet, {:signed => true})
+      jgt.decl
+      igt = Variable::new("igt", Sizet, {:signed => true})
+      igt.decl
+      (jgt === FuncCall::new( "get_group_id", 1)).print
+      (jg === (Ternary::new( jgt == FuncCall::new( "get_num_groups", 1) - 1 , jg + ndat - FuncCall::new( "get_global_size", 1) , jg))).print
+      (jgt === jg - j2 + i2).print
+      #load into buffers
+      k = Variable::new("k", Int)
+
+      if size_n > wgs then
+        (igt === j2 + size_n - wgs).print
+        (tmp_buff[igt,i2] === x[jgt, igt]).print
+      end
+      (igt === j2).print
+      (tmp_buff[igt,i2] === x[jgt, igt]).print
+      (igt === igt + wgs).print
+#      For::new(k, wgs, size_n-wgs-1, wgs){
+#        (tmp_buff[igt,i2] === x[jgt, igt]).print
+#        (igt === igt + wgs).print
+#      }.unroll
+
+      FuncCall::new( "barrier","CLK_LOCAL_MEM_FENCE").print
+
+      tt = Variable::new( "tt", Real)
+      tt.decl
+      l = Variable::new( "l",Int)
+      ig = Variable::new("ig", Sizet, {:signed => true})
+      ig.decl
+      (ig === i2 - wgs/2).print
+
+      (ig === Ternary::new( ig < 0 , ig + size_n , ig ) ).print
+        
+      (tt === 0.0).print
+      For::new( l, lowfil, -1) {
+        (igt === ig+l).print
+        (igt === Ternary::new(igt < 0, igt + size_n, igt) ).print 
+        (tt === tt + tmp_buff[igt, j2]*fil[l]).print
+      }.unroll
+      For::new( l, 0, upfil) {
+        (igt === ig+l).print
+        (igt === Ternary::new( igt >= size_n, igt -size_n, igt) ).print 
+        (tt === tt + tmp_buff[igt, j2]*fil[l]).print
+      }.unroll
+      (y[ig, jg] === tt ).print
+      
+      (ig === i2 + wgs/2).print
+      ((wgs/2)..(size_n-wgs/2-wgs)).step(wgs) { |k|
+        if(k+wgs/2 <= size_n-wgs-1) then
+          (igt === j2 + k+wgs/2).print
+          (tmp_buff[igt,i2] === x[jgt, igt]).print
+          FuncCall::new( "barrier","CLK_LOCAL_MEM_FENCE").print
+        end
+        (igt === ig + lowfil).print
+        (tt === 0.0).print
+        f2 = For::new(l, lowfil, upfil) {
+          (tt === tt + tmp_buff[igt.inc, j2]*fil[l]).print
+        }.unroll
+        ( y[ig, jg] === tt ).print
+        (ig === ig + wgs).print
+      }
+
+      if (size_n.modulo(wgs) != 0) then
+        (ig === i2 + size_n - wgs - wgs/2).print
+        (tt === 0.0).print
+        if (size_n < wgs+filt.length) then
+          (ig === Ternary::new( ig < 0 , ig + size_n , ig ) ).print
+          For::new( l, lowfil, -1) {
+            (igt === ig+l).print
+            (igt === Ternary::new(igt < 0, igt + size_n, igt) ).print 
+            (tt === tt + tmp_buff[igt, j2]*fil[l]).print
+          }.unroll
+          For::new( l, 0, upfil) {
+            (igt === ig+l).print
+            (igt === Ternary::new( igt >= size_n, igt - size_n, igt) ).print 
+            (tt === tt + tmp_buff[igt, j2]*fil[l]).print
+          }.unroll
+        else
+          (igt === ig + lowfil).print
+          f2 = For::new(l, lowfil, upfil) {
+            (tt === tt + tmp_buff[igt.inc, j2]*fil[l]).print
+          }.unroll
+        end
+        ( y[ig , jg] === tt ).print
+      end
+    }
+    p.print
+    $array_start = array_start
+    kernel.procedure = p
+    ConvolutionGenerator::set_lang(lang)
+    return kernel
+  end
+
 
 
 end
