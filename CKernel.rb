@@ -109,7 +109,7 @@ module ConvolutionGenerator
       end
       device = nil
       type = options[:device_type] ? options[:device_type] : OpenCL::Device::TYPE_ALL
-      devices = OpenCL::Device.get_devices(platform, type)
+      devices = platform.devices(type)
       if options[:device_name] then
         devices.each{ |d|
           device = d if d.name.match(options[:device_name])
