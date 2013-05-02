@@ -361,21 +361,25 @@ module ConvolutionGenerator
   class Real
     attr_reader :size
     def initialize(hash={})
-      if hash["size"] then
-        @size = hash["size"]
+      if hash[":size"] then
+        @size = hash[":isize"]
       else
         @size = $default_real_size
+      end
+      if hash[":vector_length"] and hash[":vector_length"] > 1 then
+        @vector_length = hash[":vector_length"]
+      else
+        @vector_length = 1
       end
     end
     def decl
       return "real(kind=#{@size})" if $lang == FORTRAN
-      if $lang == C then
+      if ($lang == C or $lang == CL) and @vector_length == 1 then
         return "float" if @size == 4
         return "double" if @size == 8
-      end
-      if $lang == CL then
-        return "float" if @size == 4
-        return "double" if @size == 8
+      elsif $lang == CL and @vector_length > 1 then
+        return "float#{@vector_length}" if @size == 4
+        return "double#{@vector_length}" if @size == 8
       end
     end
   end

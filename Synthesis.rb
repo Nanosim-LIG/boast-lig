@@ -223,8 +223,16 @@ EOF
       fil.decl
       so.each{ |s| s.decl }
       se.each{ |s| s.decl }
-
-      $output.print("!$omp parallel default(private) shared(x,y,ndat,n)\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+        $output.print("!$omp parallel default(shared) shared(x,y,ndat,n)&\n")
+        $output.print("!$omp private(i,j,k,l)&\n")
+        $output.print("!$omp private(")
+        $output.print(se.join(","))
+        $output.print(")&\n")
+        $output.print("!$omp private(")
+        $output.print(so.join(","))
+        $output.print(")\n")
+      end
       if ConvolutionGenerator::get_lang == ConvolutionGenerator::C then
         $output.print("#pragma omp parallel private(")
         $output.print(se.join(","))
