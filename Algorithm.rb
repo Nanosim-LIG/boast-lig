@@ -217,7 +217,11 @@ module ConvolutionGenerator
     end    
 
     def to_str
-      return @constant.to_s if @constant and $replace_constants and not @dimension
+      if @constant and $replace_constants and not @dimension then
+        s = @constant.to_s 
+        s += "_wp" if $lang == FORTRAN and @type and @type.size == 8
+        return s
+      end
       return @name.to_str
     end
 
@@ -350,7 +354,10 @@ module ConvolutionGenerator
         s += ")"
       end
       s += " :: #{@name}"
-      s += " = #{@constant}" if @constant
+      if @constant
+        s += " = #{@constant}"
+        s += "_wp" if not @dimension and @type and @type.size == 8
+      end
       s += self.finalize if final
       $output.print s if final
       return s
