@@ -29,11 +29,86 @@ filt = ["-6.924474940639200152025730585882e-18",
         "-5.813879830282540547959250667e-11",
         " 2.70800493626319438269856689037647576e-13",   # ---------------------
         "-6.924474940639200152025730585882e-18"]
+
+n1 = 124
+n2 = 132
+n3 = 130
+input = NArray.float(n1,n2,n3).random
+output_ref = NArray.float(n1,n2,n3)
+output = NArray.float(n1,n2,n3)
+hgrid = NArray.float(3)
+hgrid[0] = 0.5
+hgrid[1] = 0.6
+hgrid[2] = 0.7
+kstrten_ref = NArray.float(3)
+kstrten = NArray.float(3)
+epsilon = 10e-15
 ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-k = ConvolutionGenerator::kinetic(filt, 15, 1, free=[false,true,false] )
+k = ConvolutionGenerator::kinetic_per_ref
+stats = k.run(n1, n2, n3, hgrid, input, output_ref, 0.5)
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+k = ConvolutionGenerator::kinetic_per_ref_optim
+k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
+stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
+stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+diff = (output_ref - output).abs
+diff.each { |elem|
+  raise "Warning: residue too big: #{elem}" if elem > epsilon
+}
+
+(1..14).each{ |unroll|
+  k = ConvolutionGenerator::kinetic(filt,14,unroll)
+  #k.print
+  #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
+  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
+  begin
+    stats = k.run(n1, n2, n3, hgrid, input, output, 0.5)
+    stats = k.run(n1, n2, n3, hgrid, input, output, 0.5)
+  rescue Exception => e
+    puts e.inspect
+  end
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+  diff = (output_ref - output).abs
+  diff.each { |elem|
+    raise "Warning: residue too big: #{elem}" if elem > epsilon
+  }
+}
+k = ConvolutionGenerator::kinetic_per_ref_optim_ekin
+stats = k.run(n1, n2, n3, hgrid, input, output_ref, kstrten_ref)
+k = ConvolutionGenerator::kinetic(filt,14,1,true)
 k.print
-k.build
-ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
-k = ConvolutionGenerator::kinetic(filt, 15, 1, free=[false,true,false] )
-k.print
-k.build
+stats = k.run(n1, n2, n3, hgrid, input, output, kstrten)
+diff = (output_ref - output).abs
+diff.each { |elem|
+  raise "Warning: residue too big: #{elem}" if elem > epsilon
+}
+diff = (kstrten_ref - kstrten)
+diff.each { |elem|
+  raise "Warning: residue too big: #{elem}" if elem > epsilon
+}
+#
+#(0..8).each{ |unroll|
+#  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
+#  k.print if unroll == 0
+#  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
+#  stats = k.run(n1/2, n2*n3, input, output)
+#  stats = k.run(n1/2, n2*n3, input, output)
+#  diff = (output_ref - output).abs
+#  diff.each { |elem|
+#    raise "Warning: residue too big: #{elem}" if elem > epsilon
+#  }
+#  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
+#}
+#ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+#(0..8).each{ |unroll|
+#  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
+#
+#  stats = k.run(n1/2, n2*n3, input, output)
+#  stats = k.run(n1/2, n2*n3, input, output)
+#  diff = (output_ref - output).abs
+#  diff.each { |elem|
+#    raise "Warning: residue too big: #{elem}" if elem > epsilon
+#  }
+#  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
+#

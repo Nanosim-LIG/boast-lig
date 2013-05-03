@@ -249,6 +249,10 @@ module ConvolutionGenerator
       return Expression::new("*",self,x)
     end
  
+    def /(x)
+      return Expression::new("/",self,x)
+    end
+ 
     def -(x)
       return Expression::new("-",self,x)
     end
