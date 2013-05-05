@@ -678,7 +678,7 @@ module ConvolutionGenerator
     def *(x)
       return Expression::new("*",self,x)
     end
- 
+
     def -(x)
       return Expression::new("-",self,x)
     end
