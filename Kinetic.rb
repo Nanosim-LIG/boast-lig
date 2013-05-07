@@ -524,6 +524,265 @@ subroutine kinetic_per_ref_optim(n1,n2,n3,hgrid,x,y,c)
     end do
     !$omp end do
   END SUBROUTINE conv_kin_x
+subroutine conv_kin_y_new(mod_arr,fil0,x0,y0,n1,n2,n3)
+  implicit none
+  !Arguments
+  integer, parameter :: wp=kind(1.0d0)
+  integer, parameter :: lowfil=-14,lupfil=14,ncache=4*1024
+  integer, parameter :: unrol=4
+  integer, intent(in) :: n1,n2,n3
+  integer, dimension(lowfil:n2+lupfil), intent(in) :: mod_arr
+  real(wp), dimension(lowfil:lupfil,3), intent(in) :: fil0
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x0
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y0
+  integer :: i1,i2,i3,l,j,j3,nol,ndim,k
+  real(wp) :: tt,tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
+  real(wp), dimension(ncache) :: zcache
+
+  !number of lines in n1 to be treated simultaneously 
+  ndim=(n2-lowfil+lupfil+1)
+  nol=min(ncache/(unrol*ndim),n1) 
+
+  if (nol <1) stop 'nol'
+
+  
+  !$omp do
+  do i3=0,n3/unrol-1
+     do i1=0,(n1/nol)*nol-1,nol
+        k=1
+        !first boundary
+        do j=0,nol-1
+           do i2=1,-lowfil
+              do j3=0,unrol-1
+                 !zcache(i2+j*ndim+j3*ndim*nol)=&
+                 zcache(k)=&
+                      x0(i1+j,i2+lowfil-1+n2+1,i3*unrol+j3)
+                 k=k+1
+              end do
+           end do
+           do i2=-lowfil+1,n2-lowfil+1
+              do j3=0,unrol-1
+                 !zcache(i2+j*ndim+j3*ndim*nol)=&
+                 zcache(k)=&
+                      x0(i1+j,i2+lowfil-1,i3*unrol+j3)
+                 k=k+1
+              end do
+           end do
+           do i2=n2-lowfil+2,n2-lowfil+1+lupfil
+              do j3=0,unrol-1
+                 !zcache(i2+j*ndim+j3*ndim*nol)=&
+                 zcache(k)=&
+                      x0(i1+j,i2+lowfil-1-n2-1,i3*unrol+j3)
+                 k=k+1
+              end do
+           end do
+        end do
+!zcache=zcache(unrol,ndim,nol)
+        do j=0,nol-1
+           k=1+j*unrol*ndim
+           do i2=0,n2
+              tt0=0.e0_wp
+              tt1=0.e0_wp
+              tt2=0.e0_wp
+              tt3=0.e0_wp
+!!$              tt4=0.e0_wp
+!!$              tt5=0.e0_wp
+!!$              tt6=0.e0_wp
+!!$              tt7=0.e0_wp
+
+              do l=lowfil,lupfil
+                 tt0=tt0+zcache(k+0)*fil0(l,2)
+                 tt1=tt1+zcache(k+1)*fil0(l,2)
+                 tt2=tt2+zcache(k+2)*fil0(l,2)
+                 tt3=tt3+zcache(k+3)*fil0(l,2)
+!!$                 tt4=tt4+zcache(k+4)*fil0(l,2)
+!!$                 tt5=tt5+zcache(k+5)*fil0(l,2)
+!!$                 tt6=tt6+zcache(k+6)*fil0(l,2)
+!!$                 tt7=tt7+zcache(k+7)*fil0(l,2)
+
+                 k=k+unrol
+              end do
+              k=k-(-lowfil+lupfil)*unrol
+              y0(i1+j,i2,i3*unrol+0)=y0(i1+j,i2,i3*unrol+0)+tt0
+              y0(i1+j,i2,i3*unrol+1)=y0(i1+j,i2,i3*unrol+1)+tt1
+              y0(i1+j,i2,i3*unrol+2)=y0(i1+j,i2,i3*unrol+2)+tt2
+              y0(i1+j,i2,i3*unrol+3)=y0(i1+j,i2,i3*unrol+3)+tt3
+!!$              y0(i1+j,i2,i3*unrol+4)=y0(i1+j,i2,i3*unrol+4)+tt4
+!!$              y0(i1+j,i2,i3*unrol+5)=y0(i1+j,i2,i3*unrol+5)+tt5
+!!$              y0(i1+j,i2,i3*unrol+6)=y0(i1+j,i2,i3*unrol+6)+tt6
+!!$              y0(i1+j,i2,i3*unrol+7)=y0(i1+j,i2,i3*unrol+7)+tt7
+           end do
+        end do
+     end do
+
+
+     do i1=(n1/nol)*nol,n1
+        do i2=0,n2
+           tt0=0.e0_wp
+           tt1=0.e0_wp
+           tt2=0.e0_wp
+           tt3=0.e0_wp
+!!$           tt4=0.e0_wp
+!!$           tt5=0.e0_wp
+!!$           tt6=0.e0_wp
+!!$           tt7=0.e0_wp
+
+           do l=lowfil,lupfil
+              j=mod_arr(i2+l)
+
+              tt0=tt0+x0(i1,j,i3*unrol+0)*fil0(l,2)
+              tt1=tt1+x0(i1,j,i3*unrol+1)*fil0(l,2)
+              tt2=tt2+x0(i1,j,i3*unrol+2)*fil0(l,2)
+              tt3=tt3+x0(i1,j,i3*unrol+3)*fil0(l,2)
+!!$              tt4=tt4+x0(i1,j,i3*unrol+4)*fil0(l,2)
+!!$              tt5=tt5+x0(i1,j,i3*unrol+5)*fil0(l,2)
+!!$              tt6=tt6+x0(i1,j,i3*unrol+6)*fil0(l,2)
+!!$              tt7=tt7+x0(i1,j,i3*unrol+7)*fil0(l,2)
+           end do
+           y0(i1,i2,i3*unrol+0)=y0(i1,i2,i3*unrol+0)+tt0
+           y0(i1,i2,i3*unrol+1)=y0(i1,i2,i3*unrol+1)+tt1
+           y0(i1,i2,i3*unrol+2)=y0(i1,i2,i3*unrol+2)+tt2
+           y0(i1,i2,i3*unrol+3)=y0(i1,i2,i3*unrol+3)+tt3
+!!$           y0(i1,i2,i3*unrol+4)=y0(i1,i2,i3*unrol+4)+tt4
+!!$           y0(i1,i2,i3*unrol+5)=y0(i1,i2,i3*unrol+5)+tt5
+!!$           y0(i1,i2,i3*unrol+6)=y0(i1,i2,i3*unrol+6)+tt6
+!!$           y0(i1,i2,i3*unrol+7)=y0(i1,i2,i3*unrol+7)+tt7
+        end do
+     end do
+
+  end do
+  !$omp end do
+
+  !$omp do 
+  do i3=(n3/unrol)*unrol,n3
+     do i1=0,n1
+        do i2=0,n2
+           tt=0.e0_wp
+           do l=lowfil,lupfil
+              j=mod_arr(i2+l)
+              tt=tt+x0(i1,j   ,i3)*fil0(l,2)
+           end do
+           y0(i1,i2,i3)=y0(i1,i2,i3)+tt
+        end do
+     end do
+  end do
+  !$omp end do
+END SUBROUTINE conv_kin_y_new
+
+  subroutine conv_kin_z_new(mod_arr,fil0,x0,y0,n,ndat)
+    implicit none
+    integer, parameter :: wp=kind(1.0d0)
+    integer, parameter :: lowfil=-14,lupfil=14,ncache=2*1024
+    integer, parameter :: unrol=4,nol=unrol
+    integer, intent(in) :: n,ndat
+    integer, dimension(lowfil:n+lupfil), intent(in) :: mod_arr   
+    real(wp), dimension(lowfil:lupfil,3), intent(in) :: fil0
+    real(wp),intent(in):: x0(ndat,0:n)
+    real(wp),intent(inout)::y0(ndat,0:n)
+    integer :: i3,i,l,j,k,ndim!,nol
+    real(wp) :: tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
+    real(wp), dimension(ncache) :: zcache
+
+    !number of lines in ndat to be treated simultaneously 
+    ndim=(n-lowfil+lupfil+1)
+!!$    nol=min(ncache/(unrol*ndim),unrol)
+!!$
+!!$    !for the moment the number of lines equals the unrolling pattern
+!!$    if (nol <unrol) stop 'nol'
+
+    !$omp do 
+    do i=0,ndat/unrol-1
+       !copy buffer
+       l=1
+       do i3=1,-lowfil
+          do k=1,nol
+             zcache(l)=&
+                  !zcache(i3+k*ndim)=&
+                  x0(i*unrol+k,i3+lowfil-1+n+1)
+             l=l+1
+          end do
+       end do
+       do i3=-lowfil+1,n-lowfil+1
+          do k=1,nol
+             zcache(l)=&
+                  x0(i*unrol+k,i3+lowfil-1)
+             l=l+1
+          end do
+       end do
+       do i3=n-lowfil+2,n-lowfil+1+lupfil
+          do k=1,nol
+             zcache(l)=&
+                  x0(i*unrol+k,i3+lowfil-1-n-1)
+             l=l+1
+          end do
+       end do
+
+!zcache=zcache(unrol,ndim)
+
+       k=0
+       do i3=0,n
+          tt1=0.e0_wp
+          tt2=0.e0_wp
+          tt3=0.e0_wp
+          tt4=0.e0_wp
+!!$          tt5=0.e0_wp
+!!$          tt6=0.e0_wp
+!!$          tt7=0.e0_wp
+!!$          tt8=0.e0_wp
+!!$          tt9 =0.e0_wp
+!!$          tt10=0.e0_wp
+!!$          tt11=0.e0_wp
+!!$          tt12=0.e0_wp
+
+          do l=lowfil,lupfil
+
+             tt1=tt1+  zcache(k+1 )*fil0(l,3)
+             tt2=tt2+  zcache(k+2 )*fil0(l,3)
+             tt3=tt3+  zcache(k+3 )*fil0(l,3)
+             tt4=tt4+  zcache(k+4 )*fil0(l,3)
+!!$             tt5=tt5+  zcache(k+5 )*fil0(l,3)
+!!$             tt6=tt6+  zcache(k+6 )*fil0(l,3)
+!!$             tt7=tt7+  zcache(k+7 )*fil0(l,3)
+!!$             tt8=tt8+  zcache(k+8 )*fil0(l,3)
+!!$             tt9 =tt9 +zcache(k+9 )*fil0(l,3)
+!!$             tt10=tt10+zcache(k+10)*fil0(l,3)
+!!$             tt11=tt11+zcache(k+11)*fil0(l,3)
+!!$             tt12=tt12+zcache(k+12)*fil0(l,3)
+
+             k=k+unrol
+
+          end do
+          k=k-(-lowfil+lupfil)*unrol
+
+          y0(i*unrol+1,i3)=y0(i*unrol+1,i3)+tt1
+          y0(i*unrol+2,i3)=y0(i*unrol+2,i3)+tt2
+          y0(i*unrol+3,i3)=y0(i*unrol+3,i3)+tt3
+          y0(i*unrol+4,i3)=y0(i*unrol+4,i3)+tt4
+!!$          y0(i*unrol+5,i3)=y0(i*unrol+5,i3)+tt5
+!!$          y0(i*unrol+6,i3)=y0(i*unrol+6,i3)+tt6
+!!$          y0(i*unrol+7,i3)=y0(i*unrol+7,i3)+tt7
+!!$          y0(i*unrol+8,i3)=y0(i*unrol+8,i3)+tt8
+!!$          y0(i*unrol+9 ,i3)=y0(i*unrol+9 ,i3)+tt9 
+!!$          y0(i*unrol+10,i3)=y0(i*unrol+10,i3)+tt10
+!!$          y0(i*unrol+11,i3)=y0(i*unrol+11,i3)+tt11
+!!$          y0(i*unrol+12,i3)=y0(i*unrol+12,i3)+tt12
+       end do
+    end do
+    !$omp end do
+
+    !$omp do 
+    do i=(ndat/unrol)*unrol+1,ndat
+       do i3=0,n
+          tt=0.e0_wp
+          do l=lowfil,lupfil
+             j=mod_arr(i3+l)
+             tt=tt+x0(i,j)*fil0(l,3)
+          end do
+          y0(i,i3)=y0(i,i3)+tt
+       end do
+    end do
+    !$omp end do
+  END SUBROUTINE conv_kin_z_new
 
 
   subroutine conv_kin_y(mod_arr,fil0,x0,y0,n1,n2,n3)
@@ -809,7 +1068,7 @@ EOF
     return kernel
   end
 
-  def ConvolutionGenerator::kinetic(filt, center, unroll, ekin = false, free=[false,false,false])
+  def ConvolutionGenerator::kinetic(filt, center, unroll, ekin = false, free=[false,false,false],mod_arr=[false,false,false])
     kernel = CKernel::new
     ConvolutionGenerator::set_output( kernel.code )
     kernel.lang = ConvolutionGenerator::get_lang
@@ -821,8 +1080,8 @@ EOF
       end
     }
     function_name += "_" + fr.join("")
-    if unroll>0 then
-      function_name += "_u#{unroll}"
+    if unroll.max > 0 then
+      function_name += "_u#{unroll.join("_")}"
     end
 
     n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
@@ -854,12 +1113,20 @@ EOF
     i3 = Variable::new("i3",Int)
     l = Variable::new("l",Int)
     k = Variable::new("k",Int)
-    tt = [Variable::new("tt1",Real)]
-    2.upto(unroll) { |index|
-      tt.push(Variable::new("tt#{index}",Real))
-    }
     dims = [n1,n2,n3]
     iters = [i1,i2,i3]
+
+    #to replace modulo operation
+    mods=[]
+    mod_arr.each_index { |i| 
+      mods[i]=Variable::new("mod_arr#{i}",Real,{:dimension => [ Dimension::new((-center),dims[i]+(filt.length - center -1)) ]}) if mod_arr[i] and not free[i]
+    }
+      
+
+    tt = [Variable::new("tt1",Real)]
+    2.upto(unroll.max) { |index|
+      tt.push(Variable::new("tt#{index}",Real))
+    }
 
 
     for_BC = lambda { |t,dim,unro,init|
@@ -878,17 +1145,18 @@ EOF
             j3 = (dim[2] == 2 ? k : (unro == 2 ? i3 + ind : i3))
             (t[ind] === t[ind] + x[j1,j2,j3]*fil[l] ).print
           }
-        }.print
+        }.unroll#.print#
       else
         For::new( l, lowfil, upfil) {
-          (k === FuncCall::new( "modulo", iters[dim[2]]+(l), dims[dim[2]] )).print
+          #(k === FuncCall::new( "modulo", iters[dim[2]]+(l), dims[dim[2]] )).print
+          (k ===  iters[dim[2]]+(l) - ((iters[dim[2]]+(l) +  dims[dim[2]] * 2 )/(dims[dim[2]]) - 2) *dims[dim[2]]  ).print unless mods[dim[2]]
           t.each_index { |ind|
-            j1 = (dim[2] == 0 ? k : (unro == 0 ? i1 + ind : i1))
-            j2 = (dim[2] == 1 ? k : (unro == 1 ? i2 + ind : i2))
-            j3 = (dim[2] == 2 ? k : (unro == 2 ? i3 + ind : i3))
+            j1 = (dim[2] == 0 ? (mods[0]? mods[0][iters[0]+(l)] : k ) : (unro == 0 ? i1 + ind : i1))
+            j2 = (dim[2] == 1 ? (mods[1]? mods[1][iters[1]+(l)] : k ) : (unro == 1 ? i2 + ind : i2))
+            j3 = (dim[2] == 2 ? (mods[2]? mods[2][iters[2]+(l)] : k ) : (unro == 2 ? i3 + ind : i3))
             (t[ind] === t[ind] + x[j1,j2,j3]*fil[l] ).print
           }
-        }.print
+        }.unroll#.print#
       end
       t.each_index { |ind|
           j1 = (unro == 0 ? i1 + ind : i1)
@@ -913,7 +1181,7 @@ EOF
           j3 = (dim[2] == 2 ? i3 + l : (unro == 2 ? i3 + ind : i3))
           (t[ind] === t[ind] + x[j1,j2,j3]*fil[l] ).print
         }
-      }.print
+      }.unroll#.print#
       t.each_index { |ind|
           j1 = (unro == 0 ? i1 + ind : i1)
           j2 = (unro == 1 ? i2 + ind : i2)
@@ -925,10 +1193,10 @@ EOF
     }
 
 
-    kinetic_d = lambda { |t,dim,unro,init,reliq|
+    kinetic_d = lambda { |t,dim,unro,init,reliq,unrol|
       $output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
-      For::new(iters[dim[0]], (reliq and unro == dim[0] ) ? (dims[dim[0]]/unroll)*unroll : 0 , (unro == dim[0] and not reliq) ? dims[dim[0]]-unroll : dims[dim[0]]-1, unro == dim[0] ? t.length : 1 ) {
-        For::new(iters[dim[1]], (reliq and unro == dim[1] ) ? (dims[dim[1]]/unroll)*unroll : 0 , (unro == dim[1] and not reliq) ? dims[dim[1]]-unroll : dims[dim[1]]-1, unro == dim[1] ? t.length : 1) {
+      For::new(iters[dim[0]], (reliq and unro == dim[0] ) ? (dims[dim[0]]/unrol)*unrol : 0 , (unro == dim[0] and not reliq) ? dims[dim[0]]-unrol : dims[dim[0]]-1, unro == dim[0] ? t.length : 1 ) {
+        For::new(iters[dim[1]], (reliq and unro == dim[1] ) ? (dims[dim[1]]/unrol)*unrol : 0 , (unro == dim[1] and not reliq) ? dims[dim[1]]-unrol : dims[dim[1]]-1, unro == dim[1] ? t.length : 1) {
           For::new(iters[dim[2]], 0, -lowfil) {
             for_BC.call(t, dim, unro, init)
           }.print
@@ -960,10 +1228,21 @@ EOF
         }
       end
       tt.each { |t| t.decl }
+      mods.each{ |mod| mod.decl if mod}
+
       (0..2).each { |ind|
         (scal[ind] === -zerocinq / (hgrid[ind] * hgrid[ind])).print
         (eks[ind] === 0.0).print if ekin
       }
+      mod_arr.each_index{ |i|
+        if mods[i] then
+          For::new(k,(-center),dims[i]+(filt.length - center -1)) {
+            (mods[i][k] === FuncCall::new( "modulo", k+(l), dims[i])).print
+          }.print
+        end
+      }
+      
+
       
       if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN then
         $output.print("!$omp parallel default(shared)&\n")
@@ -973,12 +1252,12 @@ EOF
         $output.print(tt.join(","))
         $output.print(")\n")
       end
-      kinetic_d.call(tt, [2,1,0], 1, true,false)
-      kinetic_d.call([tt[0]], [2,1,0], 1, true,true) if unroll > 1
-      kinetic_d.call(tt, [2,0,1], 0, false,false)
-      kinetic_d.call([tt[0]], [2,0,1], 0, false,true) if unroll > 1
-      kinetic_d.call(tt, [1,0,2], 0, false,false) 
-      kinetic_d.call([tt[0]], [1,0,2], 0, false,true) if unroll > 1
+      kinetic_d.call(tt[0...unroll[0]], [2,1,0], 1, true,false,unroll[0])
+      kinetic_d.call([tt[0]], [2,1,0], 1, true,true,unroll[0]) if unroll[0] > 1
+      kinetic_d.call(tt[0...unroll[1]], [2,0,1], 2, false,false,unroll[1])
+      kinetic_d.call([tt[0]], [2,0,1], 2, false,true,unroll[1]) if unroll[1] > 1
+      kinetic_d.call(tt[0...unroll[2]], [1,0,2], 0, false,false,unroll[2]) 
+      kinetic_d.call([tt[0]], [1,0,2], 0, false,true,unroll[2]) if unroll[2] > 1
       $output.print("!$omp  end parallel\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
       (0..2).each { |ind|
         (ek[ind] === eks[ind]).print if ekin

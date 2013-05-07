@@ -413,7 +413,7 @@ EOF
       }
 
 
-      analysis_d = lambda { |ci,di,js,ntot,fBC1|
+      analysis_d = lambda { |ci,di,js,ntot,fBC|
         unro=ci.length
         #external loop, with unrolling. the rest is excluded
         $output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
@@ -426,9 +426,9 @@ EOF
         #print the do part
         forJ1.print
         #in the case of free BC there is no start or end
-        if fBC1 then
+        if fBC then
           For::new(i,0,n-1) {
-            inner_op.call(ci,di,fBC1)
+            inner_op.call(ci,di,fBC)
           }.print
         else
           #left border
@@ -493,7 +493,7 @@ k = ConvolutionGenerator::analysis_free_ref
 stats = k.run(n1/2, n2*n3, input, output_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
-(7..7).each{ |unroll|
+(1..12).each{ |unroll|
   k = ConvolutionGenerator::Analysis(FILTER,7,unroll,true)
   #k.print
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
@@ -507,7 +507,7 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
 ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
-(2..2).each{ |unroll|
+(1..12).each{ |unroll|
   k = ConvolutionGenerator::Analysis(FILTER,7,unroll,true)
 
   stats = k.run(n1/2, n2*n3, input, output)
@@ -519,16 +519,16 @@ ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
 
-n1 = 132
-n2 = 42
-n3 = 64
+n1 = 124
+n2 = 132
+n3 = 130
 input = NArray.float(n1,n2,n3).random
 output_ref = NArray.float(n1,n2,n3)
 output = NArray.float(n1,n2,n3)
 epsilon = 10e-15
 ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
 k = ConvolutionGenerator::analysis_per_ref
-k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
+k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp",:LD => "ifort"})
 stats = k.run(n1/2-1, n2*n3, input, output_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
@@ -537,8 +537,8 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
   k = ConvolutionGenerator::Analysis(FILTER,7,unroll,false)
   #k.print
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
-  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
-  #k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp",:LD => "ifort"})
+  #k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -g -C",:LDFLAGS => "",:LD => "ifort"})
 
   stats = k.run(n1/2, n2*n3, input, output)
   diff = (output_ref - output).abs

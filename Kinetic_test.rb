@@ -1,4 +1,4 @@
-require "./Kinetic.rb"
+require "./Kinetic-2.rb"
 
 filt = ["-6.924474940639200152025730585882e-18",
         " 2.70800493626319438269856689037647576e-13",   # ---------------------
@@ -29,11 +29,16 @@ filt = ["-6.924474940639200152025730585882e-18",
         "-5.813879830282540547959250667e-11",
         " 2.70800493626319438269856689037647576e-13",   # ---------------------
         "-6.924474940639200152025730585882e-18"]
-
+#filt=["0.0e0"]*29
 n1 = 124
 n2 = 132
 n3 = 130
 input = NArray.float(n1,n2,n3).random
+input_y = NArray.float(n1,n2,n3)
+input_y = 0.5*input
+output_y = NArray.float(n1,n2,n3)
+output_x = NArray.float(n1,n2,n3)
+temp = NArray.float(n1,n2,n3)
 output_ref = NArray.float(n1,n2,n3)
 output = NArray.float(n1,n2,n3)
 hgrid = NArray.float(3)
@@ -42,13 +47,15 @@ hgrid[1] = 0.6
 hgrid[2] = 0.7
 kstrten_ref = NArray.float(3)
 kstrten = NArray.float(3)
-epsilon = 10e-15
+epsilon = 10e-13
 ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
 k = ConvolutionGenerator::kinetic_per_ref
 stats = k.run(n1, n2, n3, hgrid, input, output_ref, 0.5)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 k = ConvolutionGenerator::kinetic_per_ref_optim
-k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
+#k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -ftree-vectorize -fopenmp",:LDFLAGS => "-fopenmp"})
+k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -axSSE4.2 -openmp",:LDFLAGS => "-openmp"})
+stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output_ref, 0.5)
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
@@ -57,11 +64,12 @@ diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
 
-(1..14).each{ |unroll|
-  k = ConvolutionGenerator::kinetic(filt,14,unroll)
+(1..0).each{ |unroll|
+  k = ConvolutionGenerator::kinetic(filt,14,[12,8,12],false,[false]*3,[true]*3)
   #k.print
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
-  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
+  #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
+  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
   begin
     stats = k.run(n1, n2, n3, hgrid, input, output, 0.5)
     stats = k.run(n1, n2, n3, hgrid, input, output, 0.5)
@@ -74,8 +82,43 @@ diff.each { |elem|
     raise "Warning: residue too big: #{elem}" if elem > epsilon
   }
 }
+
+(1..12).each{ |unroll|
+  k = ConvolutionGenerator::kinetic_1d(filt,14,unroll,false,false,true)
+  input_y = 0.5*input
+  #k.print
+  #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
+  #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
+  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
+  begin
+    3.times {
+      input_y = 0.5*input
+      stat = []
+      stat[0] = k.run(n1, n2*n3, -0.5/(hgrid[0]*hgrid[0]), input, input_y, output_x, output)
+      #output.each {|o| puts o}
+      #puts "here2" 
+      #output_ref.each {|o| puts o}
+      #output=output.transpose(2,0,1)
+      stat[1] = k.run(n2, n1*n3, -0.5/(hgrid[1]*hgrid[1]), output_x, output, temp ,input_y)
+      stat[2] = k.run(n3, n2*n1, -0.5/(hgrid[2]*hgrid[2]), temp, input_y, output_x , output)
+      stats={}
+      stats[:duration] = 0
+      stat.each { |s| stats[:duration] += s[:duration] }
+    }
+  rescue Exception => e
+    puts e.inspect
+  end
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+  #diff = (output_ref - output).abs
+  #diff.each { |elem|
+  #  raise "Warning: residue too big: #{elem}" if elem > epsilon
+  #}
+}
+
+exit
+
 k = ConvolutionGenerator::kinetic_per_ref_optim_ekin
-stats = k.run(n1, n2, n3, hgrid, input, output_ref, kstrten_ref)
+stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output_ref, kstrten_ref)
 k = ConvolutionGenerator::kinetic(filt,14,1,true)
 k.print
 stats = k.run(n1, n2, n3, hgrid, input, output, kstrten)

@@ -196,6 +196,8 @@ EOF
 #temporary
       c_compiler = options[:CC]
       c_compiler = "cc" if not c_compiler
+      linker = options[:LD]
+      linker = c_compiler if not linker
 #end temporary
       source_file = Tempfile::new([@procedure.name,extension])
       path = source_file.path
@@ -302,7 +304,8 @@ EOF
       module_target = module_file_name.chomp(File::extname(module_file_name))+".o"
       module_final = module_file_name.chomp(File::extname(module_file_name))+".so"
       file module_final => [module_target, target] do
-        sh "#{c_compiler} -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}" 
+        #puts "#{linker} -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
+        sh "#{linker} -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}" 
       end
       Rake::Task[module_final].invoke
       require(module_final)

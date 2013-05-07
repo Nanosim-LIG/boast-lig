@@ -1,65 +1,43 @@
 require "./BOAST.rb"
 require 'narray'
 module ConvolutionGenerator
-  def ConvolutionGenerator::magicfilter_per_ref
+  def ConvolutionGenerator::magicfilter_per_ref( invert = false, free = false )
     lang = ConvolutionGenerator::get_lang
     ConvolutionGenerator::set_lang(ConvolutionGenerator::FORTRAN)
     kernel = CKernel::new
     kernel.lang = ConvolutionGenerator::FORTRAN
-    function_name = "magicfilter_per_ref"
+    lowfil=-8
+    lupfil=7
+    function_name = "magicfilter"
+    if not free then
+      function_name += "_per"
+    else
+      function_name += "_free"
+    end
+    function_name += "_t" if invert
+    function_name += "_ref"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
     ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
+
     dim_in_min = 0
     dim_in_max = n-1
     dim_out_min = 0
     dim_out_max = n-1
+    if free then
+      if invert then
+        dim_in_min = lowfil
+        dim_in_max = n-1+lupfil
+      else
+        dim_out_min = -lupfil
+        dim_out_max = n-1-lowfil
+      end
+    end
+
+
     x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(dim_in_min, dim_in_max), Dimension::new(ndat) ] })
     y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(ndat), Dimension::new(dim_out_min, dim_out_max) ] })
     p = Procedure::new(function_name, [n,ndat,x,y])
-    kernel.code.print <<EOF
-subroutine magicfilter_per_ref(n1,ndat,x,y)
-  implicit none
-  integer, parameter :: wp=kind(1.0d0)
-  integer, intent(in) :: n1,ndat
-  real(kind=8), dimension(0:(n1-1),ndat), intent(in) :: x
-  real(kind=8), dimension(ndat,0:(n1-1)), intent(out) :: y
-  !local variables
-  integer, parameter :: lowfil=-8,lupfil=7
-  integer :: i,j,k,l
-  real(kind=8) :: tt
-
-  !          THE MAGIC FILTER FOR DAUBECHIES-16
-  real(kind=8) fil(lowfil:lupfil)
-  DATA fil / &
-       8.4334247333529341094733325815816e-7_wp,&
-       -0.1290557201342060969516786758559028e-4_wp,&
-       0.8762984476210559564689161894116397e-4_wp,&
-       -0.30158038132690463167163703826169879e-3_wp,&
-       0.174723713672993903449447812749852942e-2_wp,&
-       -0.942047030201080385922711540948195075e-2_wp,&
-       0.2373821463724942397566389712597274535e-1_wp,&
-       0.612625895831207982195380597e-1_wp,&
-       0.9940415697834003993178616713_wp,&
-       -0.604895289196983516002834636e-1_wp, &
-       -0.2103025160930381434955489412839065067e-1_wp,&
-       0.1337263414854794752733423467013220997e-1_wp,&
-       -0.344128144493493857280881509686821861e-2_wp,&
-       0.49443227688689919192282259476750972e-3_wp,&
-       -0.5185986881173432922848639136911487e-4_wp,&
-       2.72734492911979659657715313017228e-6_wp /
-  do j=1,ndat
-     do i=0,n1-1
-        tt=0.e0_wp
-        do l=lowfil,lupfil
-           k=modulo(i+l,n1)  
-           tt=tt+x(  k,j)*fil(l)
-        enddo
-        y(j,i)=tt
-     enddo
-  enddo
-
-END SUBROUTINE magicfilter_per_ref
-EOF
+    kernel.code.print(File::read("magicfilter_refs.f90"))
     kernel.procedure = p
     ConvolutionGenerator::set_lang(lang)
     return kernel
