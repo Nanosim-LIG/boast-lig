@@ -449,6 +449,13 @@ module ConvolutionGenerator
       $output.print s if final
       return s
     end
+    def call(*parameters)
+      prefix = ""
+      prefix += "call " if $lang==FORTRAN
+      f = FuncCall::new(@name, *parameters)
+      f.prefix = prefix
+      return f
+    end
     def decl(final=true)
       return self.decl_fortran(final) if $lang==FORTRAN
       return self.decl_c(final) if $lang==C or $lang==CL
@@ -717,11 +724,13 @@ module ConvolutionGenerator
   class FuncCall
     attr_reader :func_name
     attr_reader :args
+    attr_accessor :prefix
 
     def initialize(func_name, *args)
       @func_name = func_name
       @args = args
     end
+      
     def to_s
       self.to_str
     end
@@ -757,10 +766,12 @@ module ConvolutionGenerator
     end
     def to_str_fortran
       s = ""
+      s += @prefix if @prefix
       s += "#{func_name}(#{@args.join(", ")})"
     end
     def to_str_c
       s = ""
+      s += @prefix if @prefix
       s += "#{func_name}(#{@args.join(", ")})"
     end
     def print(final=true)
