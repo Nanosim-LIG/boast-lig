@@ -1,14 +1,14 @@
 require "./BOAST.rb"
 require 'narray'
 module ConvolutionGenerator
-  def ConvolutionGenerator::kernel_read_ref( unrolled = false, size = 4 )
+  def ConvolutionGenerator::kernel_read_ref( unrolled = 1, size = 4 )
     lang = ConvolutionGenerator::get_lang
     ConvolutionGenerator::set_lang(ConvolutionGenerator::C)
     kernel = CKernel::new
     ConvolutionGenerator::set_output( kernel.code )
     kernel.lang = ConvolutionGenerator::C
     function_name = "kernel_read_ref"
-    function_name += "_unroll" if unrolled
+    function_name += "_#{unrolled}"
     m_start = Variable::new("m_start",Int,{:direction => :in})
     m_cycles = Variable::new("m_cycles",Int,{:direction => :in})
     m_stride = Variable::new("m_stride",Int,{:direction => :in})
@@ -22,17 +22,17 @@ module ConvolutionGenerator
       j.decl
       sum.decl
       For::new(i, 1, m_cycles*m_stride) {
-        For::new(j, m_start, buffer_size+m_start-1, m_stride) {
-          (sum === sum + buffer[j]).print
+        For::new(j, m_start, buffer_size+m_start-1, m_stride*unrolled) {
+          unrolled.times { |k|
+            (sum === sum + buffer[j+m_stride*k]).print
+          }
         }.print
       }.print
-    }.print 
-    
+    }
+    p.print 
     kernel.procedure = p
     return kernel
   end
 
 end
 
-k = ConvolutionGenerator::kernel_read_ref
-puts k.print
