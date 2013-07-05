@@ -21,6 +21,7 @@ module ConvolutionGenerator
       i.decl
       j.decl
       sum.decl
+      (sum === 0).print
       For::new(i, 1, m_cycles*m_stride) {
         For::new(j, m_start, buffer_size+m_start-1, m_stride*unrolled) {
           unrolled.times { |k|

@@ -269,10 +269,14 @@ EOF
 EOF
         end
       end
+      module_file.print "  #{@procedure.properties[:return].type.decl} ret;\n" if @procedure.properties[:return]
       module_file.print "  VALUE stats = rb_hash_new();\n"
       module_file.print "  struct timespec start, stop;\n"
       module_file.print "  unsigned long long int duration;\n"
       module_file.print "  clock_gettime(CLOCK_REALTIME, &start);\n"
+      if @procedure.properties[:return] then
+        module_file.print "  ret = "
+      end
       module_file.print "  #{@procedure.name}"
       module_file.print "_" if previous_lang == ConvolutionGenerator::FORTRAN
       module_file.print "("
@@ -294,6 +298,12 @@ EOF
       module_file.print "  duration = (unsigned long long int)stop.tv_sec * (unsigned long long int)1000000000 + stop.tv_nsec;\n"
       module_file.print "  duration -= (unsigned long long int)start.tv_sec * (unsigned long long int)1000000000 + start.tv_nsec;\n"
       module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"duration\")),rb_float_new((double)duration*(double)1e-9));\n"
+      if @procedure.properties[:return] then
+        type_ret = @procedure.properties[:return].type
+        module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"return\")),rb_int_new((long long)ret));\n" if type_ret.kind_of?(Int) and type_ret.signed
+        module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"return\")),rb_int_new((unsigned long long)ret));\n" if type_ret.kind_of?(Int) and not type_ret.signed
+        module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"return\")),rb_float_new((double)ret));\n" if type_ret.kind_of?(Real)
+      end
       module_file.print "  return stats;\n"
       module_file.print  "}"
       module_file.rewind

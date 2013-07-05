@@ -6,8 +6,7 @@ m_cycle = 1024*5
 m_stride = 1
 buffer_size = 1024
 
-output = NArray.int(1024*12).random
-
+output = NArray.int(1024*12).random(1000)
 
 k = ConvolutionGenerator::kernel_read_ref
 puts k.print
