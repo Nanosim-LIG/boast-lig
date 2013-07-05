@@ -13,11 +13,11 @@ module ConvolutionGenerator
     m_cycles = Variable::new("m_cycles",Int,{:direction => :in})
     m_stride = Variable::new("m_stride",Int,{:direction => :in})
     buffer_size = Variable::new("buffer_size",Int,{:direction => :in})
+    sum = Variable::new("sum",Int);
     buffer = Variable::new("buffer", Int, {:direction => :in, :size => size, :dimension => [ Dimension::new(0,buffer_size-1) ]})
     i = Variable::new("i",Int);
     j = Variable::new("j",Int);
-    sum = Variable::new("sum",Int);
-    p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer]) {
+    p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum } ) {
       i.decl
       j.decl
       sum.decl

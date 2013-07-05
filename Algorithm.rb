@@ -436,7 +436,12 @@ module ConvolutionGenerator
       end
       trailer = ""
       trailer += "_" if lang == FORTRAN
-      s += "void #{@name}#{trailer}("
+      if @properties[:return] then
+        s += "#{@properties[:return].type.decl} "
+      else
+        s += "void "
+      end
+      s += "#{@name}#{trailer}("
       if parameters.first then
         s += parameters.first.header(lang,false)
         parameters[1..-1].each { |p|
@@ -467,6 +472,7 @@ module ConvolutionGenerator
     def close_c(final=true)
       $indent_level -= $indent_increment
       s = ""
+      s += "  return #{@properties[:return]};\n" if @properties[:return]
       s += "}"
       $output.puts s if final
       return s
@@ -474,7 +480,12 @@ module ConvolutionGenerator
     def close_fortran(final=true)
       $indent_level -= $indent_increment
       s = ""
-      s += "END SUBROUTINE #{name}"
+      if @properties[:return] then
+        s += "  #{@name} = #{@properties[:return]}\n"
+        s += "END FUNCTION #{@name}"
+      else
+        s += "END SUBROUTINE #{@name}"
+      end
       $output.puts s if final
       return s
     end
@@ -497,7 +508,12 @@ module ConvolutionGenerator
           s += "__attribute__((reqd_work_group_size(#{wgs[0]},#{wgs[1]},#{wgs[2]}))) "
         end
       end
-      s += "void #{@name}("
+      if @properties[:return] then
+        s += "#{@properties[:return].type.decl} "
+      else
+        s += "void "
+      end
+      s += "#{@name}("
       if parameters.first then
         s += parameters.first.decl(false)
         parameters[1..-1].each { |p|
@@ -516,7 +532,12 @@ module ConvolutionGenerator
     end
     def decl_fortran(final=true)
       s = ""
-      s += "subroutine #{@name}("
+      if @properties[:return] then
+        s += "#{@properties[:return].type.decl} FUNCTION "
+      else
+        s += "SUBROUTINE "
+      end
+      s += "#{@name}("
       if parameters.first then
         s += parameters.first
         parameters[1..-1].each { |p|
