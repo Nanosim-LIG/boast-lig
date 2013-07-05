@@ -25,7 +25,7 @@ k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{4*buffer_size*page*m_cycle/(stats[:duration]*1.0e9)}"
 }
 
-k = ConvolutionGenerator::kernel_read_ref(4, 16)
+k = ConvolutionGenerator::kernel_read_ref(4, 8)
 puts k.print
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 (1..10).each { |page|
