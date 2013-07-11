@@ -8,6 +8,7 @@ buffer_size = 1024
 
 element = 4
 
+NArray.srand(42)
 output = NArray.int(1024*12).random(1000)
 
 (1..2).each { |m|

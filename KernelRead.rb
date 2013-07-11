@@ -17,16 +17,20 @@ module ConvolutionGenerator
     buffer = Variable::new("buffer", Int, {:direction => :in, :size => size, :dimension => [ Dimension::new(0,buffer_size-1) ]})
     i = Variable::new("i",Int);
     j = Variable::new("j",Int);
+    $output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
     p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum } ) {
       i.decl
       j.decl
       sum.decl
       (sum === 0).print
       For::new(i, 1, m_cycles*m_stride) {
-        For::new(j, m_start, buffer_size+m_start-1, m_stride*unrolled) {
+        For::new(j, m_start, buffer_size + m_start - m_stride*unrolled, m_stride*unrolled) {
           unrolled.times { |k|
             (sum === sum + buffer[j+m_stride*k]).print
           }
+        }.print
+        For::new(j, buffer_size + m_start - FuncCall::new( "modulo", buffer_size+m_start, m_stride*unrolled),  buffer_size + m_start - 1, m_stride) {
+            (sum === sum + buffer[j]).print
         }.print
       }.print
     }
