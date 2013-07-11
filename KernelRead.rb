@@ -8,7 +8,7 @@ module ConvolutionGenerator
     ConvolutionGenerator::set_output( kernel.code )
     kernel.lang = ConvolutionGenerator::C
     function_name = "kernel_read_ref"
-    function_name += "_#{unrolled}"
+    function_name += "_#{unrolled}l_#{size*8}b"
     m_start = Variable::new("m_start",Int,{:direction => :in})
     m_cycles = Variable::new("m_cycles",Int,{:direction => :in})
     m_stride = Variable::new("m_stride",Int,{:direction => :in})
