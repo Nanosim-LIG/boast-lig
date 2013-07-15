@@ -2,7 +2,7 @@ require "./BOAST.rb"
 require 'narray'
 
 module ConvolutionGenerator
-  def ConvolutionGenerator::kernel_read_vectorized( unrolled = 1, elem_size = 8, length = 2)
+  def ConvolutionGenerator::kernel_read_vectorized( unrolled = 1, elem_size = 8, length = 2, machine = "sse3")
     lang = ConvolutionGenerator::get_lang
     ConvolutionGenerator::set_lang(ConvolutionGenerator::C)
     kernel = CKernel::new
@@ -15,8 +15,13 @@ module ConvolutionGenerator
     m_stride = Variable::new("m_stride",Int,{:direction => :in})
     buffer_size = Variable::new("buffer_size",Int,{:direction => :in})
     type_name=nil
-    if elem_size * length == 16 then
-      type_name = "__m128i"
+    header=nil
+    if machine == "sse3" then
+      type_name = "__m128i" 
+      header="immintrin.h"
+    elsif machine == "neon" then
+      type_name = "int64x2_t"
+      header="arm_neon.h"
     end
     resultV = Variable::new("resultV",Int, {:size => 8, :dimension => [Dimension::new(0,1)], :local => true})
     sum = Variable::new("sum",Int)
@@ -25,24 +30,40 @@ module ConvolutionGenerator
     i = Variable::new("i",Int)
     j = Variable::new("j",Int)
     $output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
-    p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum , :headers => ["immintrin.h"]}) {
+    p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum , :headers => [header]}) {
       i.decl
       j.decl
       resultV.decl
       sumV.decl
       sum.decl
-      $output.print "  sumV = _mm_set_epi32(0,0,0,0);\n"
+      if machine == "sse3" then
+        $output.print "  sumV = _mm_set_epi32(0,0,0,0);\n"
+      elsif machine == "neon" then
+             $output.print "  sumV = vmovq_n_s64(0);\n"
+      end
       For::new(i, 1, m_cycles*m_stride) {
         For::new(j, m_start, buffer_size + m_start - m_stride*unrolled, m_stride*unrolled) {
           unrolled.times { |k|
-            (sumV === FuncCall::new("_mm_add_epi64", sumV, buffer[j+m_stride*k])).print
-          }
+             if machine == "sse3" then
+               (sumV === FuncCall::new("_mm_add_epi64", sumV, buffer[j+m_stride*k])).print
+             elsif machine == "neon" then
+                    (sumV === FuncCall::new("vaddq_s64", sumV, buffer[j+m_stride*k])).print
+             end
+                }
         }.print
         For::new(j, buffer_size + m_start - FuncCall::new( "modulo", buffer_size+m_start, m_stride*unrolled),  buffer_size + m_start - 1, m_stride) {
-            (sumV === FuncCall::new("_mm_add_epi64", sumV, buffer[j])).print
+           if machine == "sse3" then
+             (sumV === FuncCall::new("_mm_add_epi64", sumV, buffer[j])).print
+           elsif machine == "neon" then
+                  (sumV === FuncCall::new("vaddq_s64", sumV, buffer[j])).print
+           end
         }.print
       }.print
-      $output.print "  _mm_store_si128((__m128i *) resultV, sumV);\n"
+      if machine == "sse3" then
+        $output.print "  _mm_store_si128((__m128i *) resultV, sumV);\n"
+      elsif machine == "neon" then
+             $output.print "  vst1q_s64(resultV, sumV);\n"
+      end
       (sum === resultV[0] + resultV[1]).print
     }
     p.print 
