@@ -4,7 +4,7 @@ require'./KernelRead.rb'
 m_start = 0
 m_cycle = 1024*4
 m_stride = 1
-buffer_size = 1024
+buffer_size = 1024*4
 
 element = 4
 
