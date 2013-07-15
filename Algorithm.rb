@@ -206,10 +206,11 @@ module ConvolutionGenerator
       @dimension = hash[:dimension]
       @local = hash[:local]
       @type = type::new(hash)
+      @hash = hash
     end
 
     def copy
-      return Variable::new(@name, @type.class, {:direction => @direction, :constant => @constant, :dimension => @dimension, :local => @local})
+      return Variable::new(@name, @type.class, @hash)
     end
   
     def to_s
@@ -430,15 +431,21 @@ module ConvolutionGenerator
     attr_reader :parameters
     attr_reader :constants
     attr_reader :properties
+    attr_reader :headers
     def initialize(name, parameters=[], constants=[], properties={}, &block)
       @name = name
       @parameters = parameters
       @constants = constants
       @block = block
       @properties = properties
+      @headers = properties[:headers]
+      @headers = [] if not @headers
     end
     def header(lang=C,final=true)
       s = ""
+      headers.each { |h|
+        s += "#include <#{h}>\n"
+      }
       if $lang == CL then
         s += "__kernel " if $lang == CL
         wgs = @properties[:reqd_work_group_size]
@@ -513,6 +520,8 @@ module ConvolutionGenerator
 
     def decl_c(final=true)
       s = ""
+      s += self.header($lang,false)
+      s += ";\n"
       if $lang == CL then
         s += "__kernel " if $lang == CL
         wgs = @properties[:reqd_work_group_size]

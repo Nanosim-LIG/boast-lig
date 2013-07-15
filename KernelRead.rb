@@ -1,5 +1,6 @@
 require "./BOAST.rb"
 require 'narray'
+
 module ConvolutionGenerator
   def ConvolutionGenerator::kernel_read_vectorized( unrolled = 1, elem_size = 8, length = 2)
     lang = ConvolutionGenerator::get_lang
@@ -24,7 +25,7 @@ module ConvolutionGenerator
     i = Variable::new("i",Int)
     j = Variable::new("j",Int)
     $output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
-    p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum } ) {
+    p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum , :headers => ["immintrin.h"]}) {
       i.decl
       j.decl
       resultV.decl
@@ -41,7 +42,7 @@ module ConvolutionGenerator
             (sumV === FuncCall::new("_mm_add_epi64", sumV, buffer[j])).print
         }.print
       }.print
-      $output.print "  _mm_storesi128((__m128i *) resultV, sumV);\n"
+      $output.print "  _mm_store_si128((__m128i *) resultV, sumV);\n"
       (sum === resultV[0] + resultV[1]).print
     }
     p.print 
