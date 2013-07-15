@@ -369,16 +369,28 @@ module ConvolutionGenerator
 
   end
 
+  class CustomType
+    attr_reader :size, :name, :vector_length
+    def initialize(hash={})
+      @name = hash[:type_name]
+      @size = hash[:size]
+      @vector_length = hash[:vector_length]
+    end
+    def decl
+      return "#{@name}" if $lang == C or $lang == CL
+    end
+  end
+
   class Real
     attr_reader :size
     def initialize(hash={})
-      if hash[":size"] then
-        @size = hash[":isize"]
+      if hash[:size] then
+        @size = hash[:size]
       else
         @size = $default_real_size
       end
-      if hash[":vector_length"] and hash[":vector_length"] > 1 then
-        @vector_length = hash[":vector_length"]
+      if hash[:vector_length] and hash[:vector_length] > 1 then
+        @vector_length = hash[:vector_length]
       else
         @vector_length = 1
       end
