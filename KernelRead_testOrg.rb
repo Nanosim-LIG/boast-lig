@@ -22,14 +22,14 @@ puts k.print
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 # WARMUP:
 (1..10).each { |page|
-  k.run(m_start, m_cycle, m_stride, buffer_size*page/2, output)
+  k.run(m_start, m_cycle, m_stride, buffer_size*page/element, output)
 }
 # EXECUTION:
 puts "** Results:"
 puts "NAME LOOP ELEMENT PAGE TIME BANDWIDTH ID" 
 (1..10).each { |page|
-  stats = k.run(m_start, m_cycle, m_stride, buffer_size*page/2, output)
-      puts "#{k.procedure.name}: #{loop} #{element*8} #{page} #{stats[:duration]*1.0e3} #{8*buffer_size*page*m_cycle/(2*stats[:duration]*1.0e9)} #{stats[:return]}"
+  stats = k.run(m_start, m_cycle, m_stride, buffer_size*page/element, output)
+      puts "#{k.procedure.name}: #{loop} #{element*8} #{page} #{stats[:duration]*1.0e3} #{buffer_size*page*m_cycle/(stats[:duration]*1.0e9)} #{stats[:return]}"
 }
 puts "#################"
 }
