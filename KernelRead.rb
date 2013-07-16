@@ -22,8 +22,16 @@ module ConvolutionGenerator
     elsif machine == "neon" then
       type_name = "int64x2_t"
       header="arm_neon.h"
+    elsif machine == "avx" then
+      type_name = "__m256d"
+      header="immintrin.h"
     end
-    resultV = Variable::new("resultV",Int, {:size => 8, :dimension => [Dimension::new(0,1)], :local => true})
+    resultV=nil
+    if machine == "sse3" or machine == "neon" then
+      resultV = Variable::new("resultV",Int, {:size => 8, :dimension => [Dimension::new(0,1)], :local => true})
+    elsif machine == "avx" then
+      resultV = Variable::new("resultV",Real, {:size => 8, :dimension => [Dimension::new(0,3)], :local => true})
+    end
     sum = Variable::new("sum",Int)
     sumV = Variable::new("sumV",CustomType, {:type_name => type_name, :size => elem_size*length})
     buffer = Variable::new("buffer", CustomType, {:type_name => type_name, :direction => :in, :size => elem_size*length, :dimension => [ Dimension::new(0,buffer_size-1) ]})
@@ -39,7 +47,9 @@ module ConvolutionGenerator
       if machine == "sse3" then
         $output.print "  sumV = _mm_set_epi32(0,0,0,0);\n"
       elsif machine == "neon" then
-             $output.print "  sumV = vmovq_n_s64(0);\n"
+        $output.print "  sumV = vmovq_n_s64(0);\n"
+      elsif machine == "avx" then
+        $output.print "  _mm256_set1_pd(0);\n"
       end
       For::new(i, 1, m_cycles*m_stride) {
         For::new(j, m_start, buffer_size + m_start - m_stride*unrolled, m_stride*unrolled) {
@@ -47,7 +57,9 @@ module ConvolutionGenerator
              if machine == "sse3" then
                (sumV === FuncCall::new("_mm_add_epi64", sumV, buffer[j+m_stride*k])).print
              elsif machine == "neon" then
-                    (sumV === FuncCall::new("vaddq_s64", sumV, buffer[j+m_stride*k])).print
+               (sumV === FuncCall::new("vaddq_s64", sumV, buffer[j+m_stride*k])).print
+             elsif machine == "avx" then
+               (sumV === FuncCall::new("_mm256_add_pd", sumV, buffer[j+m_stride*k])).print
              end
                 }
         }.print
@@ -56,15 +68,21 @@ module ConvolutionGenerator
              (sumV === FuncCall::new("_mm_add_epi64", sumV, buffer[j])).print
            elsif machine == "neon" then
                   (sumV === FuncCall::new("vaddq_s64", sumV, buffer[j])).print
+           elsif machine == "avx" then
+               (sumV === FuncCall::new("_mm256_add_pd", sumV, buffer[j])).print
            end
         }.print
       }.print
       if machine == "sse3" then
         $output.print "  _mm_store_si128((__m128i *) resultV, sumV);\n"
+        (sum === resultV[0] + resultV[1]).print
       elsif machine == "neon" then
-             $output.print "  vst1q_s64(resultV, sumV);\n"
+        $output.print "  vst1q_s64(resultV, sumV);\n"
+        (sum === resultV[0] + resultV[1]).print
+      elsif machine == "avx" then
+        $output.print "  _mm256_store_pd(resultV, sumV);\n"
+        (sum === resultV[0] + resultV[1] + resultV[2] + resultV[3]).print
       end
-      (sum === resultV[0] + resultV[1]).print
     }
     p.print 
     kernel.procedure = p

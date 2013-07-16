@@ -1,7 +1,7 @@
 require'./KernelRead.rb'
 #puts k.print
 
-machine="intel"
+machine="sse3"
 
 vect=nil
 flag=nil
@@ -11,10 +11,13 @@ flag="-msse3"
 elsif machine == "arm" then
 vect="neon"
 flag="-mfpu=neon"
+elsif machine == "avx" then
+vect="avx"
+flag="-mavx"
 end
 
 m_start = 0
-m_cycle = 1024*4
+m_cycle = 1024*8
 m_stride = 1
 buffer_size = 1024*4
 
@@ -50,6 +53,9 @@ puts "#################"
 # VECTORIZED INSTRUCTIONS
 element = 8
 length = 2
+if machine == "avx" then
+length = 4
+end
 
 (1..10).each { |loop|
 # WRITING CODE AND COMPILING:
