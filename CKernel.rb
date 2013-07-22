@@ -206,9 +206,7 @@ EOF
       source_file = Tempfile::new([@procedure.name,extension])
       path = source_file.path
       target = path.chomp(File::extname(path))+".o"
-      @code.rewind
-      source_file.puts "#include <inttypes.h>" if @lang == ConvolutionGenerator::C
-      source_file.write @code.read
+      fill_code(source_file)
       source_file.close
 
       previous_lang = ConvolutionGenerator::get_lang
@@ -242,6 +240,13 @@ EOF
       File.unlink(module_file_name)
       File.unlink(module_final)
       return self
+    end
+
+    def fill_code(source_file)
+      @code.rewind
+      source_file.puts "#include <inttypes.h>" if @lang == ConvolutionGenerator::C
+      source_file.write @code.read
+      @code.rewind
     end
 
     def fill_module(module_file, module_name)
@@ -305,7 +310,9 @@ EOF
       module_file.print "  struct timespec start, stop;\n"
       module_file.print "  unsigned long long int duration;\n"
       module_file.print "  clock_gettime(CLOCK_REALTIME, &start);\n"
-      if @procedure.properties[:return] then
+      if @lang == ConvolutionGenerator::CUDA then
+        module_file.print "  duration = "
+      elsif @procedure.properties[:return] then
         module_file.print "  ret = "
       end
       module_file.print "  #{@procedure.name}"
@@ -326,9 +333,13 @@ EOF
       end
       module_file.print "  );\n"
       module_file.print "  clock_gettime(CLOCK_REALTIME, &stop);\n"
-      module_file.print "  duration = (unsigned long long int)stop.tv_sec * (unsigned long long int)1000000000 + stop.tv_nsec;\n"
-      module_file.print "  duration -= (unsigned long long int)start.tv_sec * (unsigned long long int)1000000000 + start.tv_nsec;\n"
-      module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"duration\")),rb_float_new((double)duration*(double)1e-9));\n"
+      if @lang == ConvolutionGenerator::CUDA then
+        module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"duration\")),rb_float_new((double)duration*(double)1e-3));\n"
+      else
+        module_file.print "  duration = (unsigned long long int)stop.tv_sec * (unsigned long long int)1000000000 + stop.tv_nsec;\n"
+        module_file.print "  duration -= (unsigned long long int)start.tv_sec * (unsigned long long int)1000000000 + start.tv_nsec;\n"
+        module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"duration\")),rb_float_new((double)duration*(double)1e-9));\n"
+      end
       if @procedure.properties[:return] then
         type_ret = @procedure.properties[:return].type
         module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"return\")),rb_int_new((long long)ret));\n" if type_ret.kind_of?(Int) and type_ret.signed
@@ -337,7 +348,6 @@ EOF
       end
       module_file.print "  return stats;\n"
       module_file.print  "}"
- 
     end
 
     def method_missing(meth, *args, &block)
