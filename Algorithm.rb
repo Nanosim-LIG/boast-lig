@@ -3,6 +3,7 @@ module ConvolutionGenerator
   FORTRAN = 1
   C = 2
   CL = 3
+  CUDA = 4
   $output = STDOUT
   $lang = FORTRAN
   $replace_constants = true

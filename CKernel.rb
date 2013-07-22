@@ -188,6 +188,10 @@ EOF
     return self
     end
 
+    def build_cuda(options)
+      
+    end
+
     def build(options = {})
       return build_opencl(options) if @lang == ConvolutionGenerator::CL
       ldflags = self.setup_compiler(options)
@@ -207,13 +211,40 @@ EOF
       source_file.write @code.read
       source_file.close
 
-      previous_lang = $lang
+      previous_lang = ConvolutionGenerator::get_lang
       previous_output = $output
       ConvolutionGenerator::set_lang(ConvolutionGenerator::C)
       module_file_name = File::split(path.chomp(File::extname(path)))[0] + "/Mod_" + File::split(path.chomp(File::extname(path)))[1].gsub("-","_") + ".c"
       module_name = File::split(module_file_name.chomp(File::extname(module_file_name)))[1]
       module_file = File::open(module_file_name,"w+")
       ConvolutionGenerator::set_output(module_file)
+      fill_module(module_file, module_name)
+      module_file.rewind
+#     puts module_file.read
+      module_file.close
+      ConvolutionGenerator::set_lang(previous_lang)
+      ConvolutionGenerator::set_output(previous_output)
+      module_target = module_file_name.chomp(File::extname(module_file_name))+".o"
+      module_final = module_file_name.chomp(File::extname(module_file_name))+".so"
+      file module_final => [module_target, target] do
+        #puts "#{linker} -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
+        sh "#{linker} -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}" 
+      end
+      Rake::Task[module_final].invoke
+      require(module_final)
+      eval "self.extend(#{module_name})"
+      f = File::open(target,"rb")
+      @binary = StringIO::new
+      @binary.write( f.read )
+      f.close
+      File.unlink(target)
+      File.unlink(module_target)
+      File.unlink(module_file_name)
+      File.unlink(module_final)
+      return self
+    end
+
+    def fill_module(module_file, module_name)
       module_file.write <<EOF
 #include "ruby.h"
 #include <inttypes.h>
@@ -222,7 +253,7 @@ EOF
 #include "narray.h"
 #endif
 EOF
-      @procedure.header(previous_lang)
+      @procedure.header(@lang)
       module_file.write <<EOF
 VALUE #{module_name} = Qnil;
 void Init_#{module_name}();
@@ -278,9 +309,9 @@ EOF
         module_file.print "  ret = "
       end
       module_file.print "  #{@procedure.name}"
-      module_file.print "_" if previous_lang == ConvolutionGenerator::FORTRAN
+      module_file.print "_" if @lang == ConvolutionGenerator::FORTRAN
       module_file.print "("
-      if(previous_lang == ConvolutionGenerator::FORTRAN) then
+      if(@lang == ConvolutionGenerator::FORTRAN) then
         params = []
         @procedure.parameters.each { |param|
           if param.dimension then
@@ -306,30 +337,9 @@ EOF
       end
       module_file.print "  return stats;\n"
       module_file.print  "}"
-      module_file.rewind
-#     puts module_file.read
-      module_file.close
-      ConvolutionGenerator::set_lang(previous_lang)
-      ConvolutionGenerator::set_output(previous_output)
-      module_target = module_file_name.chomp(File::extname(module_file_name))+".o"
-      module_final = module_file_name.chomp(File::extname(module_file_name))+".so"
-      file module_final => [module_target, target] do
-        #puts "#{linker} -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
-        sh "#{linker} -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}" 
-      end
-      Rake::Task[module_final].invoke
-      require(module_final)
-      eval "self.extend(#{module_name})"
-      f = File::open(target,"rb")
-      @binary = StringIO::new
-      @binary.write( f.read )
-      f.close
-      File.unlink(target)
-      File.unlink(module_target)
-      File.unlink(module_file_name)
-      File.unlink(module_final)
-      return self
+ 
     end
+
     def method_missing(meth, *args, &block)
      if meth.to_s == "run" then
        self.build
