@@ -35,17 +35,23 @@ module ConvolutionGenerator
       c_compiler = "cc" if not c_compiler
       cxx_compiler = options[:CXX]
       cxx_compiler = "g++" if not cxx_compiler
+      cuda_compiler = options[:NVCC]
+      cuda_compiler = "nvcc"if not cuda_compiler
       f_flags = options[:FCFLAGS]
       f_flags = "-O2 -Wall" if not f_flags
       f_flags += " -fPIC"
       f_flags += " -fno-second-underscore" if f_compiler == 'g95'
       ld_flags = options[:LDFLAGS]
       ld_flags = "" if not ld_flags
+      cuda_flags = options[:NVCCFLAGS]
+      cuda_flags = "-O2 -Wall" if not cuda_flags
+      cuda_flags += " -fPIC"
 
 
       includes = "-I#{RbConfig::CONFIG["archdir"]}"
       includes += " -I#{RbConfig::CONFIG["rubyhdrdir"]} -I#{RbConfig::CONFIG["rubyhdrdir"]}/#{RbConfig::CONFIG["arch"]}"
       ld_flags += " -L#{RbConfig::CONFIG["libdir"]} #{RbConfig::CONFIG["LIBRUBYARG"]} -lrt"
+      ld_flags += " -lcuda" if @lang == ConvolutionGenerator::CUDA
       narray_path = nil
       begin
         spec = Gem::Specification::find_by_name('narray')
@@ -93,6 +99,10 @@ module ConvolutionGenerator
         runner.call(t, cxx_call_string)
       end
 
+      rule '.o' => '.cu' do |t|
+        cuda_call_string = "#{cuda_compiler} #{cudaflags} -c -o #{t.name} #{t.source}"
+        runner.call(t, cuda_call_string)
+      end
       return ld_flags
     end
 
@@ -188,14 +198,11 @@ EOF
     return self
     end
 
-    def build_cuda(options)
-      
-    end
-
     def build(options = {})
       return build_opencl(options) if @lang == ConvolutionGenerator::CL
       ldflags = self.setup_compiler(options)
       extension = ".c" if @lang == ConvolutionGenerator::C
+      extension = ".cu" if @lang == ConvolutionGenerator::CUDA
       extension = ".f90" if @lang == ConvolutionGenerator::FORTRAN
 #temporary
       c_compiler = options[:CC]
@@ -244,8 +251,11 @@ EOF
 
     def fill_code(source_file)
       @code.rewind
-      source_file.puts "#include <inttypes.h>" if @lang == ConvolutionGenerator::C
+      source_file.puts "#include <inttypes.h>" if @lang == ConvolutionGenerator::C or @lang == ConvolutionGenerator::CUDA
+      source_file.puts "#include <cuda.h>" if @lang == ConvolutionGenerator::CUDA
       source_file.write @code.read
+      if @lang == ConvolutionGenerator::CUDA then
+      end
       @code.rewind
     end
 

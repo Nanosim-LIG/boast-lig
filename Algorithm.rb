@@ -458,6 +458,8 @@ module ConvolutionGenerator
       trailer += "_" if lang == FORTRAN
       if @properties[:return] then
         s += "#{@properties[:return].type.decl} "
+      elsif lang == CUDA
+        s += "float "
       else
         s += "void "
       end
