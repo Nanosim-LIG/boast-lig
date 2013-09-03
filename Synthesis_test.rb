@@ -17,43 +17,45 @@ FILTER = ["0.0018899503327676891843",
           "-0.00054213233180001068935",
           "-0.0033824159510050025955"]
 
-#n1 = 124
-#n2 = 132
-#n3 = 130
-#input = NArray.float(n1,n2,n3).random
-#output_ref = NArray.float(n1,n2,n3)
-#output = NArray.float(n1,n2,n3)
-#epsilon = 10e-15
-#ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-#k = ConvolutionGenerator::synthesis_per_ref
-#stats = k.run(n1/2, n2*n3, input, output_ref)
-#puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
-#
-#(0..8).each{ |unroll|
-#  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
-#  k.print if unroll == 0
-#  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
-#  stats = k.run(n1/2, n2*n3, input, output)
-#  stats = k.run(n1/2, n2*n3, input, output)
-#  diff = (output_ref - output).abs
-#  diff.each { |elem|
-#    raise "Warning: residue too big: #{elem}" if elem > epsilon
-#  }
-#  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
-#}
-#ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
-#(0..8).each{ |unroll|
-#  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
-#
-#  stats = k.run(n1/2, n2*n3, input, output)
-#  stats = k.run(n1/2, n2*n3, input, output)
-#  diff = (output_ref - output).abs
-#  diff.each { |elem|
-#    raise "Warning: residue too big: #{elem}" if elem > epsilon
-#  }
-#  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
-#}
-
+puts "Periodic Boundary Conditions"
+n1 = 124
+n2 = 132
+n3 = 130
+input = NArray.float(n1,n2,n3).random
+output_ref = NArray.float(n1,n2,n3)
+output = NArray.float(n1,n2,n3)
+epsilon = 10e-15
+ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
+k = ConvolutionGenerator::synthesis_per_ref
+stats = k.run(n1/2, n2*n3, input, output_ref)
+puts "Reference"
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+puts "FORTRAN"
+(0..8).each{ |unroll|
+  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
+  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+  stats = k.run(n1/2, n2*n3, input, output)
+  stats = k.run(n1/2, n2*n3, input, output)
+  diff = (output_ref - output).abs
+  diff.each { |elem|
+    raise "Warning: residue too big: #{elem}" if elem > epsilon
+  }
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+}
+puts "C"
+ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+(0..8).each{ |unroll|
+  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
+  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+  stats = k.run(n1/2, n2*n3, input, output)
+  stats = k.run(n1/2, n2*n3, input, output)
+  diff = (output_ref - output).abs
+  diff.each { |elem|
+    raise "Warning: residue too big: #{elem}" if elem > epsilon
+  }
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+}
+puts "Free Boundary Conditions"
 n1 = 124
 n2 = 132
 n3 = 130
@@ -65,6 +67,7 @@ ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
 k = ConvolutionGenerator::synthesis_free_ref
 k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
 stats = k.run(n1/2, n2*n3, input, output_ref)
+puts "Reference"
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 puts "FORTRAN OpenMP"
 (1..8).each{ |unroll|
