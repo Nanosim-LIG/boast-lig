@@ -14,15 +14,18 @@ module ConvolutionGenerator
     attr_accessor :procedure
     attr_accessor :lang
     attr_accessor :binary
+    attr_accessor :kernels
     
-    def initialize
+    def initialize(kernels=[])
       @code = StringIO::new
+      @kernels = kernels
     end
 
     def print
       @code.rewind
       puts @code.read
     end
+
     def setup_compiler(options = {})
       Rake::Task::clear
       verbose = options[:verbose]
@@ -231,9 +234,17 @@ EOF
       ConvolutionGenerator::set_output(previous_output)
       module_target = module_file_name.chomp(File::extname(module_file_name))+".o"
       module_final = module_file_name.chomp(File::extname(module_file_name))+".so"
+      kernel_files = []
+      @kernels.each { |kernel|
+        kernel_file = Tempfile::new([kernel.procedure.name,".o"])
+        kernel.binary.rewind
+        kernel_file.write( kernel.binary.read )
+        kernel_file.close
+        kernel_files.push(kernel_file.path)
+      }
       file module_final => [module_target, target] do
         #puts "#{linker} -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
-        sh "#{linker} -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}" 
+        sh "#{linker} -shared -o #{module_final} #{module_target} #{target} #{kernel_files.join(" ")} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
       end
       Rake::Task[module_final].invoke
       require(module_final)
@@ -246,6 +257,9 @@ EOF
       File.unlink(module_target)
       File.unlink(module_file_name)
       File.unlink(module_final)
+      kernel_files.each { |f|
+        File.unlink(f)
+      }
       return self
     end
 
@@ -255,6 +269,11 @@ EOF
       source_file.puts "#include <cuda.h>" if @lang == ConvolutionGenerator::CUDA
       source_file.write @code.read
       if @lang == ConvolutionGenerator::CUDA then
+        source_file.puts @procedure.header(ConvolutionGenerator::CUDA,false) + "{"
+        source_file.puts "dim3 dimBlock(block_size[0], block_size[1], block_size[2]);"
+        source_file.puts "dim3 dimGrid(block_number[0], block_number[1], block_number[2]);"
+        
+        source_file.puts "}"
       end
       @code.rewind
     end
@@ -278,10 +297,23 @@ void Init_#{module_name}() {
   rb_define_method(#{module_name}, "run", method_run, -1);
 }
 VALUE method_run(int argc, VALUE *argv, VALUE self) {
+EOF
+      if( @lang == ConvolutionGenerator::CUDA ) then
+        module_file.write <<EOF
+  if( argc < #{@procedure.parameters.length} || argc > #{@procedure.parameters.length + 1} )
+    rb_raise(rb_eArgError, "wrong number of arguments for #{@procedure.name} (%d for #{@procedure.parameters.length})", argc);
+  VALUE rb_opts;
+  VALUE rb_ptr;
+  size_t block_size[3] = {1,1,1};
+  size_t block_number[3] = {1,1,1};
+EOF
+      else
+        module_file.write <<EOF
   if( argc != #{@procedure.parameters.length} )
     rb_raise(rb_eArgError, "wrong number of arguments for #{@procedure.name} (%d for #{@procedure.parameters.length})", argc);
   VALUE rb_ptr;
 EOF
+      end
       argc = @procedure.parameters.length
       argv = Variable::new("argv",Real,{:dimension => [ Dimension::new(0,argc-1) ] })
       rb_ptr = Variable::new("rb_ptr",Int)
@@ -315,6 +347,39 @@ EOF
 EOF
         end
       end
+      if( @lang == ConvolutionGenerator::CUDA ) then
+        module_file.write <<EOF
+  if( argc == #{@procedure.parameters.length + 1} ) {
+    rb_opts = argv[argc -1];
+    if ( rb_opts != Qnil ) {
+      VALUE rb_array_data = Qnil;
+      int i;
+      if (TYPE(rb_opts) != T_HASH)
+        rb_raise(rb_eArgError, "Cuda options should be passed as a hash");
+      rb_ptr = rb_hash_aref(rb_opts, ID2SYM(rb_intern("block_size")));
+      if( rb_ptr != Qnil ) {
+        if (TYPE(rb_ptr) != T_ARRAY)
+          rb_raise(rb_eArgError, "Cuda option block_size should be an array");
+        for(i=0; i<3; i++) {
+          rb_array_data = rb_ary_entry(rb_ptr, i);
+          if( rb_array_data != Qnil )
+            block_size[i] = (size_t) NUM2LONG( rb_array_data );
+        }
+      }
+      rb_ptr = rb_hash_aref(rb_opts, ID2SYM(rb_intern("block_number")));
+      if( rb_ptr != Qnil ) {
+        if (TYPE(rb_ptr) != T_ARRAY)
+          rb_raise(rb_eArgError, "Cuda option block_number should be an array");
+        for(i=0; i<3; i++) {
+          rb_array_data = rb_ary_entry(rb_ptr, i);
+          if( rb_array_data != Qnil )
+            block_number[i] = (size_t) NUM2LONG( rb_array_data );
+        }
+      }
+    }
+  }
+EOF
+      end
       module_file.print "  #{@procedure.properties[:return].type.decl} ret;\n" if @procedure.properties[:return]
       module_file.print "  VALUE stats = rb_hash_new();\n"
       module_file.print "  struct timespec start, stop;\n"
@@ -327,6 +392,7 @@ EOF
       end
       module_file.print "  #{@procedure.name}"
       module_file.print "_" if @lang == ConvolutionGenerator::FORTRAN
+      module_file.print "_wrapper" if @lang == ConvolutionGenerator::CUDA
       module_file.print "("
       if(@lang == ConvolutionGenerator::FORTRAN) then
         params = []
@@ -340,6 +406,10 @@ EOF
         module_file.print params.join(", ")
       else
         module_file.print @procedure.parameters.join(", ") 
+      end
+      if @lang == ConvolutionGenerator::CUDA then
+        module_file.print ", " if @procedure.parameters.length > 0
+        module_file.print "block_number, block_size"
       end
       module_file.print "  );\n"
       module_file.print "  clock_gettime(CLOCK_REALTIME, &stop);\n"

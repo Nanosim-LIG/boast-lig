@@ -152,7 +152,28 @@ EOF
     return kernel
   end
 
-  def ConvolutionGenerator::Synthesis(filt, center, unroll, free=false )
+  def ConvolutionGenerator::synthesis3D_per(kernel_1D)
+    kernel = CKernel::new([kernel_1D])
+    ConvolutionGenerator::set_output( kernel.code )
+    kernel.lang = ConvolutionGenerator::get_lang
+    function_name = "synthesis3d_per"
+    n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
+    n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
+    n3 = Variable::new("n3",Int,{:direction => :in, :signed => false})
+    input = Variable::new("input",Real,{:direction => :in, :dimension => [ Dimension::new(n1 * n2 * n3) ] })
+    output = Variable::new("output",Real,{:direction => :out, :dimension => [ Dimension::new(n1 * n2 * n3) ] })
+    temp = Variable::new("temp",Real,{:direction => :out, :dimension => [ Dimension::new(n1 * n2 * n3) ] })
+    p = Procedure::new(function_name,[n1,n2,n3,input,output,temp]) {
+      kernel_1D.procedure.call(n1/2,n2*n3, input, output).print
+      kernel_1D.procedure.call(n2/2,n3*n1, output, temp).print
+      kernel_1D.procedure.call(n3/2,n1*n2, temp, output).print
+    }
+    p.print
+    kernel.procedure = p
+    return kernel
+  end
+
+  def ConvolutionGenerator::synthesis(filt, center, unroll, free=false )
     kernel = CKernel::new
     ConvolutionGenerator::set_output( kernel.code )
     kernel.lang = ConvolutionGenerator::get_lang

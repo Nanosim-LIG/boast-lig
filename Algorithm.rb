@@ -187,7 +187,7 @@ module ConvolutionGenerator
       s=""
       s += " "*$indent_level if final
       s += self.to_str
-      s += ";" if final and $lang == C or $lang = CL
+      s += ";" if final and $lang == C or $lang == CL
       $output.puts s if final
       return s
     end
@@ -442,6 +442,7 @@ module ConvolutionGenerator
       @headers = properties[:headers]
       @headers = [] if not @headers
     end
+
     def header(lang=C,final=true)
       s = ""
       headers.each { |h|
@@ -456,6 +457,7 @@ module ConvolutionGenerator
       end
       trailer = ""
       trailer += "_" if lang == FORTRAN
+      trailer += "_wrapper" if lang == CUDA
       if @properties[:return] then
         s += "#{@properties[:return].type.decl} "
       elsif lang == CUDA
@@ -471,11 +473,16 @@ module ConvolutionGenerator
           s += p.header(lang,false)
         }
       end
+      if lang == CUDA then
+        s += ", " if parameters.first
+        s += "size_t *block_number, size_t *block_size"
+      end
       s += ")"
       s += ";\n" if final
       $output.print s if final
       return s
     end
+
     def call(*parameters)
       prefix = ""
       prefix += "call " if $lang==FORTRAN
@@ -759,7 +766,7 @@ module ConvolutionGenerator
       s=""
       s += " "*$indent_level if final
       s += self.to_str
-      s += ";" if final and $lang == C or $lang = CL
+      s += ";" if final and $lang == C or $lang == CL
       $output.puts s if final
       return s
     end
@@ -823,7 +830,7 @@ module ConvolutionGenerator
       s=""
       s += " "*$indent_level if final
       s += self.to_str
-      s += ";" if final and $lang == C or $lang = CL
+      s += ";" if final and $lang == C or $lang == CL
       $output.puts s if final
       return s
     end
