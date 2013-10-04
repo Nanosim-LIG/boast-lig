@@ -461,7 +461,7 @@ module ConvolutionGenerator
       if @properties[:return] then
         s += "#{@properties[:return].type.decl} "
       elsif lang == CUDA
-        s += "float "
+        s += "unsigned long long int "
       else
         s += "void "
       end

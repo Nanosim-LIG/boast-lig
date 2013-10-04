@@ -269,11 +269,22 @@ EOF
       source_file.puts "#include <cuda.h>" if @lang == ConvolutionGenerator::CUDA
       source_file.write @code.read
       if @lang == ConvolutionGenerator::CUDA then
-        source_file.puts @procedure.header(ConvolutionGenerator::CUDA,false) + "{"
-        source_file.puts "dim3 dimBlock(block_size[0], block_size[1], block_size[2]);"
-        source_file.puts "dim3 dimGrid(block_number[0], block_number[1], block_number[2]);"
-        
-        source_file.puts "}"
+        source_file.write <<EOF
+ #{@procedure.header(ConvolutionGenerator::CUDA,false)}{
+  dim3 dimBlock(block_size[0], block_size[1], block_size[2]);
+  dim3 dimGrid(block_number[0], block_number[1], block_number[2]);
+  cudaEvent_t start, stop;
+  float time;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start, 0);
+  #{@procedure.name}<<<dimGrid,dimBlock>>>(#{@procedure.parameters.join(", ")});
+  cudaEventRecord(stopd, 0);
+  cudaEventSynchronize(stop);
+  cudaEventElapsedTime(&time, start, stop);
+  return (unsigned long long int)((double)time*(double)1e6);
+}
+EOF
       end
       @code.rewind
     end
@@ -335,7 +346,27 @@ EOF
           end
         else
           (rb_ptr === argv[i]).print
-          module_file.print <<EOF
+          if @lang == ConvolutionGenerator::CUDA then
+            module_file.print <<EOF
+  if ( IsNArray(rb_ptr) ) {
+    struct NARRAY *n_ary;
+    size_t array_size;
+    Data_Get_Struct(rb_ptr, struct NARRAY, n_ary);
+    array_size = n_ary->total * na_sizeof[ary->type];
+    cudaMalloc( (void **) &#{param.name}, array_size);
+EOF
+            if param.direction == :in then
+            module_file.print <<EOF
+    cudaMemcpy(#{param.name}, (void *) n_ary->ptr, array_size, cudaMemcpyHostToDevice);
+EOF
+            end
+            module_file.print <<EOF
+  } else
+    rb_raise(rb_eArgError, "wrong type of argument %d", #{i});
+  
+EOF
+          else
+            module_file.print <<EOF
   if (TYPE(rb_ptr) == T_STRING) {
     #{param.name} = (void *) RSTRING_PTR(rb_ptr);
   } else if ( IsNArray(rb_ptr) ) {
@@ -345,9 +376,10 @@ EOF
   } else
     rb_raise(rb_eArgError, "wrong type of argument %d", #{i});
 EOF
+          end
         end
       end
-      if( @lang == ConvolutionGenerator::CUDA ) then
+      if @lang == ConvolutionGenerator::CUDA then
         module_file.write <<EOF
   if( argc == #{@procedure.parameters.length + 1} ) {
     rb_opts = argv[argc -1];
@@ -413,13 +445,38 @@ EOF
       end
       module_file.print "  );\n"
       module_file.print "  clock_gettime(CLOCK_REALTIME, &stop);\n"
+
       if @lang == ConvolutionGenerator::CUDA then
-        module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"duration\")),rb_float_new((double)duration*(double)1e-3));\n"
-      else
+        @procedure.parameters.each_index do |i|
+          param = @procedure.parameters[i]
+          if param.dimension then
+            (rb_ptr === argv[i]).print
+            module_file.print <<EOF
+  if ( IsNArray(rb_ptr) ) {
+    struct NARRAY *n_ary;
+    size_t array_size;
+    Data_Get_Struct(rb_ptr, struct NARRAY, n_ary);
+    array_size = n_ary->total * na_sizeof[ary->type];
+EOF
+            if param.direction == :out then
+            module_file.print <<EOF
+    cudaMemcpy(#{param.name}, (void *) n_ary->ptr, array_size, cudaMemcpyDeviceToHost);
+EOF
+            end
+            module_file.print <<EOF
+    cudaFree( (void *) #{param.name});
+  } else
+    rb_raise(rb_eArgError, "wrong type of argument %d", #{i});
+  
+EOF
+          end
+        end
+      end
+      if @lang != ConvolutionGenerator::CUDA then
         module_file.print "  duration = (unsigned long long int)stop.tv_sec * (unsigned long long int)1000000000 + stop.tv_nsec;\n"
         module_file.print "  duration -= (unsigned long long int)start.tv_sec * (unsigned long long int)1000000000 + start.tv_nsec;\n"
-        module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"duration\")),rb_float_new((double)duration*(double)1e-9));\n"
       end
+      module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"duration\")),rb_float_new((double)duration*(double)1e-9));\n"
       if @procedure.properties[:return] then
         type_ret = @procedure.properties[:return].type
         module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"return\")),rb_int_new((long long)ret));\n" if type_ret.kind_of?(Int) and type_ret.signed
