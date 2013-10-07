@@ -15,7 +15,7 @@ module ConvolutionGenerator
     dim_out_max = n-1
     x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(dim_in_min, dim_in_max), Dimension::new(ndat) ] })
     y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(ndat), Dimension::new(dim_out_min, dim_out_max) ] })
-    p = Procedure::new(function_name, [n,ndat,x,y])
+    p = Procedure::new(function_name, [n,ndat,x,y], [],{:reqd_work_group_size => [16,16,1]})
     kernel.code.print <<EOF
 #ifdef cl_khr_fp64
 #pragma OPENCL EXTENSION cl_khr_fp64: enable

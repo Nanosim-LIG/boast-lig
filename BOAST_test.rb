@@ -12,6 +12,9 @@ module ConvolutionGenerator
     b = Variable::new("b",Real,{:direction => :in, :dimension => [ Dimension::new(n)] })
     c = Variable::new("c",Real,{:direction => :out, :dimension => [ Dimension::new(n)] })
     i = Variable::new("i",Int,{:signed => false})
+    if kernel.lang == ConvolutionGenerator::CL and ConvolutionGenerator::get_default_real_size == 8 then
+      $output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
+    end
     p = Procedure::new(function_name, [n,a,b,c]) {
       if(ConvolutionGenerator::get_lang == ConvolutionGenerator::CUDA) then
       else
@@ -38,7 +41,34 @@ a = NArray.float(n).random
 b = NArray.float(n).random
 c = NArray.float(n)
 c_ref = NArray.float(n)
+
+ConvolutionGenerator::set_default_real_size(4)
+epsilon = 10e-5
+
+ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
+puts "FORTRAN"
+k = ConvolutionGenerator::vector_add
+k.run(n,a,b,c_ref)
+ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+puts "C"
+k = ConvolutionGenerator::vector_add
+k.run(n,a,b,c)
+diff = (c_ref - c).abs
+diff.each { |elem|
+  raise "Warning: residue too big: #{elem}" if elem > epsilon
+}
+ConvolutionGenerator::set_lang( ConvolutionGenerator::CL )
+puts "CL"
+k = ConvolutionGenerator::vector_add
+k.run(n, a, b, c, :global_work_size => [rndup(n,32), 1,1], :local_work_size => [32,1,1] )
+diff = (c_ref - c).abs
+diff.each { |elem|
+  raise "Warning: residue too big: #{elem}" if elem > epsilon
+}
+
+ConvolutionGenerator::set_default_real_size(8)
 epsilon = 10e-15
+
 ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
 puts "FORTRAN"
 k = ConvolutionGenerator::vector_add

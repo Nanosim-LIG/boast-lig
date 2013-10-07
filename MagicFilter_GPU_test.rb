@@ -17,18 +17,45 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
        "0.49443227688689919192282259476750972e-3",
        "-0.5185986881173432922848639136911487e-4",
        "2.72734492911979659657715313017228e-6" ]
-(65..150).each {|n3|
+
+require 'opencl'
+require 'statsample'
+platform = OpenCL::Platform::get_platforms.pop
+device = OpenCL::Device::get_devices(platform, OpenCL::Device::TYPE_ALL).pop
+
+def bench (k, name,n1,n2,n3,input,output,ref=nil)
+#  puts "#{n1} #{n2} #{n3} #{[rndup(n3,16), rndup(n1*n2,16),1]}"
+  epsilon = 10e-15
+  stats = []
+  k.build(:CLFLAGS => "-cl-mad-enable")
+  prop = k.procedure.properties
+  wgs = prop[:reqd_work_group_size]
+  if not ref then
+    20.times { stats.push( k.run(n3, n1*n2, input, output, :global_work_size => [rndup(n3,wgs[0]), rndup(n1*n2,wgs[1]),wgs[2]], :local_work_size => wgs )) }
+  else
+    20.times { stats.push( k.run(n3, n1*n2, input, output, :global_work_size => [wgs[0], rndup(n1*n2,wgs[1]),wgs[2]], :local_work_size => wgs )) }
+  end
+  durations = stats.collect{ |elem| elem[:duration] }
+  durations.sort!
+  puts "#{n3} #{k.procedure.name}#{name}: #{durations.first*1.0e3} #{32*n1*n2*n3 / (durations.first*1.0e9)} GFlops"
+  if ref then
+    diff = (ref - output).abs
+    diff.each { |elem|
+      raise "Error benching #{n3} for #{k.procedure.name}#{name}" if elem > epsilon
+    }
+  end
+end
+def rndup( val, div)
+  return (val%div) == 0 ? val : val + div - (val%div)
+end
+(16..64).each {|n3|
 
 n1 = 62
 n2 = 66
-#n3 = 130
-#n3 = 32
 input = NArray.float(n1,n2,n3).random
 output_ref = NArray.float(n1,n2,n3)
 output = NArray.float(n1,n2,n3)
 tmp = NArray.float(n1*n2*n3)
-epsilon = 10e-15
-
 
 #k = ConvolutionGenerator::magicfilter_per_ref
 #stats = k.run(n1, n2*n3, input, output_ref)
@@ -38,11 +65,8 @@ epsilon = 10e-15
 #stats = k.run(n3, n1*n2, tmp, output_ref)
 #puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 #
-def rndup( val, div)
-  return (val%div) == 0 ? val : val + div - (val%div)
-end
 
-k = ConvolutionGenerator::magicfilter_GPU_per_ref
+bench(ConvolutionGenerator::magicfilter_GPU_per_ref,"",n1,n2,n3,input,output_ref)
 #stats = k.run(n3, n1*n2, input, output, :global_work_size => [rndup(n3,16), rndup(n1*n2,16),1], :local_work_size => [16,16,1] )
 #puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 #stats = k.run(n2, n3*n1, output, tmp, :global_work_size => [rndup(n2,16), rndup(n3*n1,16),1], :local_work_size => [16,16,1] )
@@ -56,43 +80,52 @@ k = ConvolutionGenerator::magicfilter_GPU_per_ref
 #}
 #
 #
-stats = k.run(n3, n1*n2, input, output_ref, :global_work_size => [rndup(n3,16), rndup(n1*n2,16),1], :local_work_size => [16,16,1] )
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+#stats = []
+#stats.push( k.run(n3, n1*n2, input, output_ref, :global_work_size => [rndup(n3,16), rndup(n1*n2,16),1], :local_work_size => [16,16,1] ))
+#durations = stats.collect{ |elem| elem[:duration] }
+#durations.sort!
+#puts "#{k.procedure.name}: #{durations.first*1.0e3} #{32*n1*n2*n3 / (durations.first*1.0e9)} GFlops"
 
-platform = OpenCL::Platform::get_platforms.pop
-device = OpenCL::Device::get_devices(platform, OpenCL::Device::TYPE_ALL).pop
-k = ConvolutionGenerator::magicfilter_GPU(FILTER,8,n3,256, device.local_mem_size )
-stats = k.run(n3, n1*n2, input, output, :global_work_size => [8, rndup(n1*n2,8),1], :local_work_size => [8,8,1] )
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+bench(ConvolutionGenerator::magicfilter_GPU(FILTER,8,n3,256, device.local_mem_size ),"-1",n1,n2,n3,input,output,output_ref)
 
-
-diff = (output_ref - output).abs
-diff.each { |elem|
-  puts "Warning: residue too big: #{elem}" if elem > epsilon
-}
-
+#k = ConvolutionGenerator::magicfilter_GPU(FILTER,8,n3,256, device.local_mem_size )
+#stats = []
+#stats.push(k.run(n3, n1*n2, input, output, :global_work_size => [8, rndup(n1*n2,8),1], :local_work_size => [8,8,1] ))
+#puts "#{k.procedure.name}-1: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+#
+#
+#diff = (output_ref - output).abs
+#diff.each { |elem|
+#  puts "Warning: residue too big: #{elem}" if elem > epsilon
+#}
+#
 output.fill!(0.0)
 
-k = ConvolutionGenerator::magicfilter_GPU_next(FILTER,8,n3,256, device.local_mem_size )
+bench(ConvolutionGenerator::magicfilter_GPU_next(FILTER,8,n3,256, device.local_mem_size ),"-2",n1,n2,n3,input,output,output_ref)
+output.fill!(0.0)
 #puts k.print
-k.build(:CLFLAGS => "-cl-mad-enable")
-stats = k.run(n3, n1*n2, input, output, :global_work_size => [16, rndup(n1*n2,16),1], :local_work_size => [16,16,1] )
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-
-diff = (output_ref - output).abs
-diff.each { |elem|
-#  puts "Warning: residue too big: #{elem}" if elem > epsilon
-  raise "Error benching #{n3}" if elem > epsilon
-}
-k = ConvolutionGenerator::magicfilter_GPU_next_next(FILTER,8,n3,256, device.local_mem_size )
+#k.build(:CLFLAGS => "-cl-mad-enable")
+#stats = []
+#stats.push( k.run(n3, n1*n2, input, output, :global_work_size => [16, rndup(n1*n2,16),1], :local_work_size => [16,16,1] ))
+#puts "#{k.procedure.name}-2: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+#
+#diff = (output_ref - output).abs
+#diff.each { |elem|
+##  puts "Warning: residue too big: #{elem}" if elem > epsilon
+#  raise "Error benching #{n3}" if elem > epsilon
+#}
+bench(ConvolutionGenerator::magicfilter_GPU_next_next(FILTER,8,n3,256, device.local_mem_size ),"-3",n1,n2,n3,input,output,output_ref)
+output.fill!(0.0)
+$stdout.flush
 #puts k.print
-k.build(:CLFLAGS => "-cl-mad-enable")
-stats = k.run(n3, n1*n2, input, output, :global_work_size => [16, rndup(n1*n2,16),1], :local_work_size => [16,16,1] )
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+#k.build(:CLFLAGS => "-cl-mad-enable")
+#stats = []
+#stats.push( k.run(n3, n1*n2, input, output, :global_work_size => [16, rndup(n1*n2,16),1], :local_work_size => [16,16,1] ))
+#puts "#{k.procedure.name}-3: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} G,n1,n2,n3,input,output,output_refFlops"
 
-diff = (output_ref - output).abs
-diff.each { |elem|
+#diff = (output_ref - output).abs
+#diff.each { |elem|
 #  puts "Warning: residue too big: #{elem}" if elem > epsilon
-  raise "Error benching #{n3}" if elem > epsilon
-}
+#  raise "Error benching #{n3}" if elem > epsilon
+#}
 }

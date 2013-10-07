@@ -14,6 +14,14 @@ module ConvolutionGenerator
   $indent_increment = 2
   $array_start = 1
 
+  def ConvolutionGenerator::set_default_real_size(size)
+    $default_real_size = size
+  end
+
+  def ConvolutionGenerator::get_default_real_size
+    return $default_real_size
+  end
+
   def ConvolutionGenerator::set_lang(lang)
     $lang = lang
   end
@@ -26,7 +34,7 @@ module ConvolutionGenerator
     $output = output
   end
 
-  def ConvolutionGenerator::get_output(output)
+  def ConvolutionGenerator::get_output
     return $output
   end
 
