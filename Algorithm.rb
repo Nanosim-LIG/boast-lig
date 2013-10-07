@@ -407,7 +407,7 @@ module ConvolutionGenerator
     end
     def decl
       return "real(kind=#{@size})" if $lang == FORTRAN
-      if ($lang == C or $lang == CL) and @vector_length == 1 then
+      if ($lang == C or $lang == CL or $lang == CUDA) and @vector_length == 1 then
         return "float" if @size == 4
         return "double" if @size == 8
       elsif $lang == CL and @vector_length > 1 then
@@ -675,6 +675,14 @@ module ConvolutionGenerator
         return char += "short" if @size==2
         return char += "int" if @size==4
         return char += "long" if @size==8
+      end
+      if $lang == CUDA then
+        char = ""
+        char += "unsigned " if not @signed
+        return char += "char" if @size==1
+        return char += "short" if @size==2
+        return char += "int" if @size==4
+        return char += "long long" if @size==8
       end
     end
   end

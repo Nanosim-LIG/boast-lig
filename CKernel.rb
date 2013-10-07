@@ -47,8 +47,8 @@ module ConvolutionGenerator
       ld_flags = options[:LDFLAGS]
       ld_flags = "" if not ld_flags
       cuda_flags = options[:NVCCFLAGS]
-      cuda_flags = "-O2 -Wall" if not cuda_flags
-      cuda_flags += " -fPIC"
+      cuda_flags = "-O2" if not cuda_flags
+#      cuda_flags += " -fPIC"
 
 
       includes = "-I#{RbConfig::CONFIG["archdir"]}"
@@ -73,6 +73,7 @@ module ConvolutionGenerator
       cflags += " -DHAVE_NARRAY_H" if narray_path
       cflags += options[:CFLAGS] if options[:CFLAGS]
       fcflags = f_flags
+      cudaflags = cuda_flags
 
       runner = lambda { |t, call_string|
         if verbose then
@@ -279,7 +280,7 @@ EOF
   cudaEventCreate(&stop);
   cudaEventRecord(start, 0);
   #{@procedure.name}<<<dimGrid,dimBlock>>>(#{@procedure.parameters.join(", ")});
-  cudaEventRecord(stopd, 0);
+  cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&time, start, stop);
   return (unsigned long long int)((double)time*(double)1e6);
@@ -299,7 +300,7 @@ EOF
 #endif
 EOF
       if( @lang == ConvolutionGenerator::CUDA ) then
-        module_file.print "#include <cuda.h>\n"
+        module_file.print "#include <cuda_runtime.h>\n"
       end
       module_file.print @procedure.header(@lang)
       module_file.write <<EOF
@@ -355,7 +356,7 @@ EOF
     struct NARRAY *n_ary;
     size_t array_size;
     Data_Get_Struct(rb_ptr, struct NARRAY, n_ary);
-    array_size = n_ary->total * na_sizeof[ary->type];
+    array_size = n_ary->total * na_sizeof[n_ary->type];
     cudaMalloc( (void **) &#{param.name}, array_size);
 EOF
             if param.direction == :in then
@@ -459,7 +460,7 @@ EOF
     struct NARRAY *n_ary;
     size_t array_size;
     Data_Get_Struct(rb_ptr, struct NARRAY, n_ary);
-    array_size = n_ary->total * na_sizeof[ary->type];
+    array_size = n_ary->total * na_sizeof[n_ary->type];
 EOF
             if param.direction == :out then
             module_file.print <<EOF
