@@ -298,7 +298,10 @@ EOF
 #include "narray.h"
 #endif
 EOF
-      @procedure.header(@lang)
+      if( @lang == ConvolutionGenerator::CUDA ) then
+        module_file.print "#include <cuda.h>\n"
+      end
+      module_file.print @procedure.header(@lang)
       module_file.write <<EOF
 VALUE #{module_name} = Qnil;
 void Init_#{module_name}();
