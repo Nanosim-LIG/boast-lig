@@ -48,13 +48,13 @@ module ConvolutionGenerator
       ld_flags = "" if not ld_flags
       cuda_flags = options[:NVCCFLAGS]
       cuda_flags = "-O2" if not cuda_flags
-#      cuda_flags += " -fPIC"
+      cuda_flags += " --compiler-options '-fPIC'"
 
 
       includes = "-I#{RbConfig::CONFIG["archdir"]}"
       includes += " -I#{RbConfig::CONFIG["rubyhdrdir"]} -I#{RbConfig::CONFIG["rubyhdrdir"]}/#{RbConfig::CONFIG["arch"]}"
       ld_flags += " -L#{RbConfig::CONFIG["libdir"]} #{RbConfig::CONFIG["LIBRUBYARG"]} -lrt"
-      ld_flags += " -lcuda" if @lang == ConvolutionGenerator::CUDA
+      ld_flags += " -lcudart" if @lang == ConvolutionGenerator::CUDA
       narray_path = nil
       begin
         spec = Gem::Specification::find_by_name('narray')
@@ -244,7 +244,7 @@ EOF
         kernel_files.push(kernel_file.path)
       }
       file module_final => [module_target, target] do
-        #puts "#{linker} -shared -o #{module_final} #{module_target} #{target} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
+        #puts "#{linker} -shared -o #{module_final} #{module_target} #{target} #{kernel_files.join(" ")} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
         sh "#{linker} -shared -o #{module_final} #{module_target} #{target} #{kernel_files.join(" ")} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
       end
       Rake::Task[module_final].invoke
@@ -271,19 +271,21 @@ EOF
       source_file.write @code.read
       if @lang == ConvolutionGenerator::CUDA then
         source_file.write <<EOF
- #{@procedure.header(ConvolutionGenerator::CUDA,false)}{
-  dim3 dimBlock(block_size[0], block_size[1], block_size[2]);
-  dim3 dimGrid(block_number[0], block_number[1], block_number[2]);
-  cudaEvent_t start, stop;
-  float time;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start, 0);
-  #{@procedure.name}<<<dimGrid,dimBlock>>>(#{@procedure.parameters.join(", ")});
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&time, start, stop);
-  return (unsigned long long int)((double)time*(double)1e6);
+extern "C" {
+  #{@procedure.header(ConvolutionGenerator::CUDA,false)}{
+    dim3 dimBlock(block_size[0], block_size[1], block_size[2]);
+    dim3 dimGrid(block_number[0], block_number[1], block_number[2]);
+    cudaEvent_t start, stop;
+    float time;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start, 0);
+    #{@procedure.name}<<<dimGrid,dimBlock>>>(#{@procedure.parameters.join(", ")});
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&time, start, stop);
+    return (unsigned long long int)((double)time*(double)1e6);
+  }
 }
 EOF
       end

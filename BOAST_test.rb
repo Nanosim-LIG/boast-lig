@@ -65,6 +65,7 @@ puts k.print
 k.run(n,a,b,c_ref)
 ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
 puts "C"
+c.random
 k = ConvolutionGenerator::vector_add
 puts k.print
 k.run(n,a,b,c)
@@ -74,6 +75,7 @@ diff.each { |elem|
 }
 ConvolutionGenerator::set_lang( ConvolutionGenerator::CL )
 puts "CL"
+c.random
 k = ConvolutionGenerator::vector_add
 puts k.print
 k.run(n, a, b, c, :global_work_size => [rndup(n,32), 1,1], :local_work_size => [32,1,1] )
@@ -83,8 +85,10 @@ diff.each { |elem|
 }
 ConvolutionGenerator::set_lang( ConvolutionGenerator::CUDA )
 puts "CUDA"
+c.random
 k = ConvolutionGenerator::vector_add
 puts k.print
+k.build(:LDFLAGS => " -L/usr/local/cuda-5.5.22/lib64")
 k.run(n, a, b, c, :block_number => [rndup(n,32)/32, 1,1], :block_size => [32,1,1] )
 diff = (c_ref - c).abs
 diff.each { |elem|
