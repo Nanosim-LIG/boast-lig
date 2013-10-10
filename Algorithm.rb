@@ -157,7 +157,7 @@ module ConvolutionGenerator
       if dim.val2 then
         start = dim.val1
       else
-        start = 1
+        start = $array_start
       end
       sub = "#{@indexes.first} - #{start}"
       i=1
@@ -172,7 +172,7 @@ module ConvolutionGenerator
         if dim.val2 then
           start = dim.val1
         else
-          start = 1
+          start = $array_start
         end
         sub += " + (#{@indexes[i]} - (#{start}))"+ss
         i+=1
@@ -360,11 +360,16 @@ module ConvolutionGenerator
       s += ", parameter" if @constant
       if(@dimension) then
         s += ", dimension("
-        s += @dimension[0]
-        @dimension[1..-1].each { |d|
-           s += ", "
-           s += d
-        }
+        dim = @dimension[0].to_str
+        if dim then
+          s += dim
+          @dimension[1..-1].each { |d|
+             s += ", "
+             s += d
+          }
+        else
+          s += ":"
+        end
         s += ")"
       end
       s += " :: #{@name}"
@@ -604,8 +609,10 @@ module ConvolutionGenerator
   class Dimension
     attr_reader :val1
     attr_reader :val2
-    def initialize(val1,val2=nil)
-      if not val2 then
+    def initialize(val1=nil,val2=nil)
+      if not val1 then
+        @val1 = nil
+      elsif not val2 then
         @val1 = $array_start
         @val2 = val1 + $array_start - 1
       else
@@ -623,9 +630,12 @@ module ConvolutionGenerator
         elsif $lang == C or $lang == CL then
           s += (val2 - val1 + 1).to_s
         end
+      elsif not val1 then
+        return nil
       else
         s += val1.to_s
       end
+      return s
     end
     def to_s
       self.to_str
@@ -851,6 +861,66 @@ module ConvolutionGenerator
       return s
     end
   end
+
+  class If
+    attr_reader :condition
+    def initialize(condition, &block)
+      @condition = condition
+      @block = block
+    end
+    def to_s
+      self.to_str
+    end
+    def to_str
+      return self.to_str_fortran if $lang == FORTRAN
+      return self.to_str_c if $lang == C or $lang == CL or $lang == CUDA
+    end
+    def to_str_fortran
+      s = ""
+      s += "if #{@condition} then"
+      return s
+    end
+    def to_str_c
+      s = ""
+      s += "if(#{@condition}){"
+      return s
+    end
+    def print(*args)
+      final = true
+      s=""
+      s += " "*$indent_level if final
+      s += self.to_str
+      $indent_level += $indent_increment
+      $output.puts s if final
+      if @block then
+        s += "\n"
+        @block.call(*args)
+        s += self.close
+      end
+      return s
+    end
+    def close(final=true)
+      return self.close_fortran(final) if $lang == FORTRAN
+      return self.close_c(final) if $lang == C or $lang == CL
+    end
+    def close_c(final=true)
+      s = ""
+      $indent_level -= $indent_increment
+      s += " "*$indent_level if final
+      s += "}"
+      $output.puts s if final
+      return s
+    end
+    def close_fortran(final=true)
+      s = ""
+      $indent_level -= $indent_increment
+      s += " "*$indent_level if final
+      s += "end if"
+      $output.puts s if final
+      return s
+    end
+
+  end
  
   class For
     attr_reader :iterator
@@ -869,7 +939,7 @@ module ConvolutionGenerator
     end
     def to_str
       return self.to_str_fortran if $lang == FORTRAN
-      return self.to_str_c if $lang == C or $lang == CL
+      return self.to_str_c if $lang == C or $lang == CL or $lang == CUDA
     end
     def to_str_fortran
       s = ""
