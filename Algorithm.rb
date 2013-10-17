@@ -64,6 +64,10 @@ module ConvolutionGenerator
       return Expression::new("+",self,x)
     end
  
+    def >(x)
+      return Expression::new(">",self,x)
+    end
+ 
     def <(x)
       return Expression::new("<",self,x)
     end
@@ -243,6 +247,10 @@ module ConvolutionGenerator
       return Expression::new("==",self,x)
     end
 
+    def >(x)
+      return Expression::new(">",self,x)
+    end
+ 
     def <(x)
       return Expression::new("<",self,x)
     end
@@ -782,7 +790,7 @@ module ConvolutionGenerator
 
     def to_str
       raise "Ternary operator unsupported in Fortran!" if $lang == FORTRAN
-      return self.to_str_c if $lang == C or $lang == CL
+      return self.to_str_c if $lang == C or $lang == CL or $lang == CUDA
     end
     def to_str_c
       s = ""
@@ -862,6 +870,66 @@ module ConvolutionGenerator
     end
   end
 
+  class While
+    attr_reader :condition
+    def initialize(condition, &block)
+      @condition = condition
+      @block = block
+    end
+    def to_s
+      self.to_str
+    end
+    def to_str
+      return self.to_str_fortran if $lang == FORTRAN
+      return self.to_str_c if $lang == C or $lang == CL or $lang == CUDA
+    end
+    def to_str_fortran
+      s = ""
+      s += "do while( #{@condition} )"
+      return s
+    end
+    def to_str_c
+      s = ""
+      s += "while(#{@condition}){"
+      return s
+    end
+    def print(*args)
+      final = true
+      s=""
+      s += " "*$indent_level if final
+      s += self.to_str
+      $indent_level += $indent_increment
+      $output.puts s if final
+      if @block then
+        s += "\n"
+        @block.call(*args)
+        s += self.close
+      end
+      return s
+    end
+    def close(final=true)
+      return self.close_fortran(final) if $lang == FORTRAN
+      return self.close_c(final) if $lang == C or $lang == CL or $lang == CUDA
+    end
+    def close_c(final=true)
+      s = ""
+      $indent_level -= $indent_increment
+      s += " "*$indent_level if final
+      s += "}"
+      $output.puts s if final
+      return s
+    end
+    def close_fortran(final=true)
+      s = ""
+      $indent_level -= $indent_increment
+      s += " "*$indent_level if final
+      s += "end do"
+      $output.puts s if final
+      return s
+    end
+
+  end
+ 
   class If
     attr_reader :condition
     def initialize(condition, &block)
@@ -901,7 +969,7 @@ module ConvolutionGenerator
     end
     def close(final=true)
       return self.close_fortran(final) if $lang == FORTRAN
-      return self.close_c(final) if $lang == C or $lang == CL
+      return self.close_c(final) if $lang == C or $lang == CL or $lang == CUDA
     end
     def close_c(final=true)
       s = ""

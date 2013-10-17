@@ -1,6 +1,6 @@
 typedef float realw;
-__global__ void assemble_boundary_potential_on_device(realw* d_potential_dot_dot_acoustic,
-                                                      realw* d_send_potential_dot_dot_buffer,
+__global__ void assemble_boundary_accel_on_device(realw* d_accel,
+                                                      realw* d_send_accel_buffer,
                                                       int num_interfaces,
                                                       int max_nibool_interfaces,
                                                       int* d_nibool_interfaces,
@@ -13,13 +13,12 @@ __global__ void assemble_boundary_potential_on_device(realw* d_potential_dot_dot
     if(id < d_nibool_interfaces[iinterface]) {
 
       iloc = id + max_nibool_interfaces*iinterface;
-
       iglob = d_ibool_interfaces[iloc] - 1;
 
-      // assembles values
-      atomicAdd(&d_potential_dot_dot_acoustic[iglob],d_send_potential_dot_dot_buffer[iloc]);
+      // assembles acceleration: adds contributions from buffer array
+      atomicAdd(&d_accel[3*iglob],d_send_accel_buffer[3*iloc]);
+      atomicAdd(&d_accel[3*iglob + 1],d_send_accel_buffer[3*iloc + 1]);
+      atomicAdd(&d_accel[3*iglob + 2],d_send_accel_buffer[3*iloc + 2]);
     }
   }
 }
-
-

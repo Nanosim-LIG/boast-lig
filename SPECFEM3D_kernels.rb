@@ -8,7 +8,11 @@ end
 
 kernels = [
 :prepare_boundary_potential_on_device,
-:assemble_boundary_potential_on_device
+:assemble_boundary_potential_on_device,
+:prepare_boundary_accel_on_device,
+:assemble_boundary_accel_on_device,
+:get_maximum_scalar_kernel,
+:get_maximum_vector_kernel
 ]
 
 langs = [ :CUDA, :CL]
