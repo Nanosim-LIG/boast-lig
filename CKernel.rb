@@ -26,6 +26,16 @@ module ConvolutionGenerator
       puts @code.read
     end
 
+    def to_str
+      @code.rewind
+      return code.read
+    end
+
+    def to_s
+      @code.rewind
+      return code.read
+    end
+
     def setup_compiler(options = {})
       Rake::Task::clear
       verbose = options[:verbose]
