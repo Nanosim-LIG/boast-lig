@@ -13,7 +13,8 @@ kernels = [
 :assemble_boundary_accel_on_device,
 :get_maximum_scalar_kernel,
 :get_maximum_vector_kernel,
-:compute_add_sources_adjoint_kernel
+:compute_add_sources_adjoint_kernel,
+:compute_add_sources_kernel
 ]
 
 langs = [ :CUDA, :CL]

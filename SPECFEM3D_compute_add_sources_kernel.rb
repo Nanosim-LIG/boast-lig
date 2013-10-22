@@ -1,18 +1,19 @@
 module ConvolutionGenerator
-  def ConvolutionGenerator::compute_add_sources_adjoint_kernel
+  def ConvolutionGenerator::compute_add_sources_kernel
     old_array_start = $array_start
     $array_start = 0
     kernel = CKernel::new
     ConvolutionGenerator::set_output( kernel.code )
     kernel.lang = ConvolutionGenerator::get_lang
-    function_name = "compute_add_sources_adjoint_kernel"
-    nrec = Variable::new("nrec",Int,{:direction => :in})
+    function_name = "compute_add_sources_kernel"
     accel = Variable::new("accel", Real,{:direction => :out, :dimension => [ Dimension::new ]})
-    adj_sourcearrays = Variable::new("adj_sourcearrays", Real,{:direction => :in, :dimension => [ Dimension::new ]})
     ibool = Variable::new("ibool",Int,{:direction => :in, :dimension => [ Dimension::new ]})
-    ispec_selected_rec = Variable::new("ispec_selected_rec",Int,{:direction => :in, :dimension => [ Dimension::new ]})
-    pre_computed_irec = Variable::new("pre_computed_irec",Int,{:direction => :in, :dimension => [ Dimension::new ]})
-    nadj_rec_local = Variable::new("nadj_rec_local",Int,{:direction => :in})
+    sourcearrays = Variable::new("sourcearrays", Real,{:direction => :in, :dimension => [ Dimension::new ]})
+    stf_pre_compute = Variable::new("stf_pre_compute", Real,{:size => 8, :direction => :in, :dimension => [ Dimension::new ]})
+    myrank = Variable::new("myrank",Int,{:direction => :in})
+    islice_selected_source = Variable::new("islice_selected_source",Int,{:direction => :in, :dimension => [ Dimension::new ]})
+    ispec_selected_source = Variable::new("ispec_selected_source",Int,{:direction => :in, :dimension => [ Dimension::new ]})
+    nsources = Variable::new("nsources",Int,{:direction => :in})
 
     ndim =  Variable::new("NDIM", Int, :constant => 3)
     ngllx =  Variable::new("NGLLX", Int, :constant => 5)
@@ -20,7 +21,7 @@ module ConvolutionGenerator
       $output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
       $output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
     end
-    p = Procedure::new(function_name, [nrec,accel,adj_sourcearrays,ibool,ispec_selected_rec,pre_computed_irec,nadj_rec_local], [ndim,ngllx])
+    p = Procedure::new(function_name, [accel,ibool,sourcearrays,stf_pre_compute,myrank,islice_selected_source,ispec_selected_source,nsources], [ndim,ngllx])
     if(ConvolutionGenerator::get_lang == ConvolutionGenerator::CUDA) then
       $output.print File::read("specfem3D/#{function_name}.cu")
     elsif(ConvolutionGenerator::get_lang == ConvolutionGenerator::CL) then
@@ -49,30 +50,32 @@ EOF
       p.decl
       ispec = Variable::new("ispec", Int)
       iglob = Variable::new("iglob", Int)
-      irec_local = Variable::new("irec_local", Int)
-      irec = Variable::new("irec", Int)
+      stf = Variable::new("stf", Real)
+      isource = Variable::new("isource", Int)
       i = Variable::new("i", Int)
       j = Variable::new("j", Int)
       k = Variable::new("k", Int)
       ispec.decl
       iglob.decl
-      irec_local.decl
-      irec.decl
+      stf.decl
+      isource.decl
       i.decl
       j.decl
       k.decl
+      (i === FuncCall::new("get_local_id",0)).print
+      (j === FuncCall::new("get_local_id",1)).print
+      (k === FuncCall::new("get_local_id",2)).print
+      (isource === FuncCall::new("get_group_id",0) + FuncCall::new("get_num_groups",0)*FuncCall::new("get_group_id",1)).print
 
-      (irec_local === FuncCall::new("get_group_id",0) + FuncCall::new("get_num_groups",0)*FuncCall::new("get_group_id",1)).print
-      If::new(irec_local < nadj_rec_local) {
-        (irec === pre_computed_irec[irec_local]).print
-        (ispec === ispec_selected_rec[irec] - 1).print
-        (i === FuncCall::new("get_local_id",0)).print
-        (j === FuncCall::new("get_local_id",1)).print
-        (k === FuncCall::new("get_local_id",2)).print
-        (iglob === ibool[FuncCall::new("INDEX4",ngllx,ngllx,ngllx,i,j,k,ispec)] - 1).print
-        (0..2).each { |indx|
-          (FuncCall::new("atomicAdd_f",accel+iglob*3+indx, adj_sourcearrays[FuncCall::new("INDEX5",ndim,ngllx,ngllx,ngllx,indx,i,j,k,irec_local)])).print
-        }
+      If::new(isource < nsources) {
+        If::new(myrank == islice_selected_source[isource]) {
+          (ispec === ispec_selected_source[isource] - 1).print
+          (stf === stf_pre_compute[isource]).print
+          (iglob === ibool[FuncCall::new("INDEX4",ngllx,ngllx,ngllx,i,j,k,ispec)] - 1).print
+          (0..2).each { |indx|
+            (FuncCall::new("atomicAdd_f",accel+iglob*3+indx, sourcearrays[FuncCall::new("INDEX5",ndim,ngllx,ngllx,ngllx,indx,i,j,k,isource)]*stf)).print
+          }
+        }.print
       }.print
 
       p.close
