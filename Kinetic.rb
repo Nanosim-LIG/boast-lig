@@ -1097,9 +1097,9 @@ EOF
     x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
     y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
     if ConvolutionGenerator::get_lang == C then
-      $output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
-      $output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
-      $output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
+      @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
+      @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
+      @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
     end
 
     lowfil = Variable::new("lowfil",Int,{:constant => -center})
@@ -1194,7 +1194,7 @@ EOF
 
 
     kinetic_d = lambda { |t,dim,unro,init,reliq,unrol|
-      $output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
       For::new(iters[dim[0]], (reliq and unro == dim[0] ) ? (dims[dim[0]]/unrol)*unrol : 0 , (unro == dim[0] and not reliq) ? dims[dim[0]]-unrol : dims[dim[0]]-1, unro == dim[0] ? t.length : 1 ) {
         For::new(iters[dim[1]], (reliq and unro == dim[1] ) ? (dims[dim[1]]/unrol)*unrol : 0 , (unro == dim[1] and not reliq) ? dims[dim[1]]-unrol : dims[dim[1]]-1, unro == dim[1] ? t.length : 1) {
           For::new(iters[dim[2]], 0, -lowfil) {
@@ -1208,7 +1208,7 @@ EOF
           }.print
         }.print
       }.print
-      $output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
     }
 
     vars = [n1,n2,n3,hgrid,x,y]
@@ -1245,12 +1245,12 @@ EOF
 
       
       if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN then
-        $output.print("!$omp parallel default(shared)&\n")
-        $output.print("!$omp reduction(+:#{eks.join(",")})&\n") if ekin
-        $output.print("!$omp private(i1,i2,i3,k,l)&\n")
-        $output.print("!$omp private(")
-        $output.print(tt.join(","))
-        $output.print(")\n")
+        @@output.print("!$omp parallel default(shared)&\n")
+        @@output.print("!$omp reduction(+:#{eks.join(",")})&\n") if ekin
+        @@output.print("!$omp private(i1,i2,i3,k,l)&\n")
+        @@output.print("!$omp private(")
+        @@output.print(tt.join(","))
+        @@output.print(")\n")
       end
       kinetic_d.call(tt[0...unroll[0]], [2,1,0], 1, true,false,unroll[0])
       kinetic_d.call([tt[0]], [2,1,0], 1, true,true,unroll[0]) if unroll[0] > 1
@@ -1258,7 +1258,7 @@ EOF
       kinetic_d.call([tt[0]], [2,0,1], 2, false,true,unroll[1]) if unroll[1] > 1
       kinetic_d.call(tt[0...unroll[2]], [1,0,2], 0, false,false,unroll[2]) 
       kinetic_d.call([tt[0]], [1,0,2], 0, false,true,unroll[2]) if unroll[2] > 1
-      $output.print("!$omp  end parallel\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp  end parallel\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
       (0..2).each { |ind|
         (ek[ind] === eks[ind]).print if ekin
       }

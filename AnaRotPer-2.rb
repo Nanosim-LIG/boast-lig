@@ -365,9 +365,9 @@ EOF
 
 
     if ConvolutionGenerator::get_lang == C then
-      $output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
-      $output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
-      $output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
+      @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
+      @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
+      @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
     end
     
     p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil]) {
@@ -416,7 +416,7 @@ EOF
       analysis_d = lambda { |ci,di,js,ntot,fBC|
         unro=ci.length
         #external loop, with unrolling. the rest is excluded
-        $output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+        @@output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
         if unro > 1 then
           #forJ1 = For::new(j,js,ntot-(unro-1), unro) #do not forget to add the rest
           forJ1 = For::new(j,js,(ntot/unro)*unro, unro) #do not forget to add the rest
@@ -446,17 +446,17 @@ EOF
         end      
         #end do for the external loop
         forJ1.close
-        $output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+        @@output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
       }
 
       #body of the routine
-      $output.print("!$omp parallel default (private) shared(x,y,fil,ndat,n)\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp parallel default (private) shared(x,y,fil,ndat,n)\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
       analysis_d.call(ci,di,1,ndat,free)
       #remaining part after unrolling
       if unroll>1 then
         analysis_d.call([ci[0]],[di[0]],(ndat/unroll)*unroll+1,ndat,free)
       end
-      $output.print("!$omp end parallel\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp end parallel\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
       }
     p.print
     kernel.procedure = p

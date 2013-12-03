@@ -1,10 +1,8 @@
 module ConvolutionGenerator
   def ConvolutionGenerator::prepare_boundary_potential_on_device
-    old_array_start = $array_start
-    $array_start = 0
+    old_array_start = @@array_start
+    @@array_start = 0
     kernel = CKernel::new
-    ConvolutionGenerator::set_output( kernel.code )
-    kernel.lang = ConvolutionGenerator::get_lang
     function_name = "prepare_boundary_potential_on_device"
     num_interfaces = Variable::new("num_interfaces",Int,{:direction => :in})
     max_nibool_interfaces = Variable::new("max_nibool_interfaces",Int,{:direction => :in})
@@ -13,11 +11,11 @@ module ConvolutionGenerator
     d_nibool_interfaces = Variable::new("d_nibool_interfaces",Int,{:direction => :in, :dimension => [ Dimension::new(num_interfaces) ]})
     d_ibool_interfaces = Variable::new("d_ibool_interfaces",Int,{:direction => :in, :dimension => [ Dimension::new(num_interfaces*max_nibool_interfaces) ]})
     if kernel.lang == ConvolutionGenerator::CL and ConvolutionGenerator::get_default_real_size == 8 then
-      $output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
+      @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
     end
     p = Procedure::new(function_name, [d_potential_dot_dot_acoustic,d_send_potential_dot_dot_buffer,num_interfaces,max_nibool_interfaces,d_nibool_interfaces,d_ibool_interfaces])
     if(ConvolutionGenerator::get_lang == ConvolutionGenerator::CUDA) then
-      $output.print File::read("specfem3D/#{function_name}.cu")
+      @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(ConvolutionGenerator::get_lang == ConvolutionGenerator::CL) then
       p.decl
       id = Variable::new("id", Int)
@@ -43,7 +41,7 @@ module ConvolutionGenerator
       raise "Unsupported language!"
     end
     kernel.procedure = p
-    $array_start = old_array_start
+    @@array_start = old_array_start
     return kernel
   end
 end

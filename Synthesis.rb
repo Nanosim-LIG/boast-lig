@@ -4,10 +4,7 @@ require 'narray'
 module ConvolutionGenerator
 
   def ConvolutionGenerator::synthesis_free_ref
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::FORTRAN)
-    kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::FORTRAN
+    kernel = CKernel::new(:lang => ConvolutionGenerator::FORTRAN)
     function_name = "synthesis_free_ref"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
     ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
@@ -85,14 +82,10 @@ subroutine synthesis_free_ref(n,ndat,x,y)
 END SUBROUTINE synthesis_free_ref
 EOF
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
     return kernel
   end
   def ConvolutionGenerator::synthesis_per_ref
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::FORTRAN)
-    kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::FORTRAN
+    kernel = CKernel::new(:lang => ConvolutionGenerator::FORTRAN)
     function_name = "synthesis_per_ref"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
     ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
@@ -153,14 +146,11 @@ subroutine synthesis_per_ref(n,ndat,x,y)
 END SUBROUTINE synthesis_per_ref
 EOF
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
     return kernel
   end
 
   def ConvolutionGenerator::synthesis3D_per(kernel_1D)
-    kernel = CKernel::new([kernel_1D])
-    ConvolutionGenerator::set_output( kernel.code )
-    kernel.lang = ConvolutionGenerator::get_lang
+    kernel = CKernel::new(:kernels => [kernel_1D])
     function_name = "synthesis3d_per"
     n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
     n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
@@ -180,8 +170,6 @@ EOF
 
   def ConvolutionGenerator::synthesis(filt, center, unroll, free=false )
     kernel = CKernel::new
-    ConvolutionGenerator::set_output( kernel.code )
-    kernel.lang = ConvolutionGenerator::get_lang
     function_name = "synthesis"
     if free then
       function_name += "_free"
@@ -235,9 +223,9 @@ EOF
     
 
     if ConvolutionGenerator::get_lang == C then
-      $output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
-      $output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
-      $output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
+      @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
+      @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
+      @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
     end
 
     p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil]) {
@@ -250,25 +238,25 @@ EOF
       so.each{ |s| s.decl }
       se.each{ |s| s.decl }
       if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
-        $output.print("!$omp parallel default(shared) shared(x,y,ndat,n)&\n")
-        $output.print("!$omp private(i,j,k,l)&\n")
-        $output.print("!$omp private(")
-        $output.print(se.join(","))
-        $output.print(")&\n")
-        $output.print("!$omp private(")
-        $output.print(so.join(","))
-        $output.print(")\n")
+        @@output.print("!$omp parallel default(shared) shared(x,y,ndat,n)&\n")
+        @@output.print("!$omp private(i,j,k,l)&\n")
+        @@output.print("!$omp private(")
+        @@output.print(se.join(","))
+        @@output.print(")&\n")
+        @@output.print("!$omp private(")
+        @@output.print(so.join(","))
+        @@output.print(")\n")
       end
       if ConvolutionGenerator::get_lang == ConvolutionGenerator::C then
-        $output.print("#pragma omp parallel private(")
-        $output.print(se.join(","))
-        $output.print(",")
-        $output.print(so.join(","))
-        $output.print(",i,j,k,l) shared(x,y)\n") 
+        @@output.print("#pragma omp parallel private(")
+        @@output.print(se.join(","))
+        @@output.print(",")
+        @@output.print(so.join(","))
+        @@output.print(",i,j,k,l) shared(x,y)\n") 
       end
-      $output.print("{\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
-      $output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
-      $output.print("#pragma omp for\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
+      @@output.print("{\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
+      @@output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("#pragma omp for\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
 
       #internal loop taking care of BCs
       if free then
@@ -345,12 +333,12 @@ EOF
         inner_block.call(se, so, forBC)
       }.print
       for1.close
-      $output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
 
 
       if unroll>1 then
-        $output.print("#pragma omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
-        $output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+        @@output.print("#pragma omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
+        @@output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
         For::new(j,ndat-FuncCall::new("modulo",ndat,unroll)+1,ndat) {
           ind=0
           if not free then
@@ -363,10 +351,10 @@ EOF
           }.print
           
         }.print
-        $output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+        @@output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
       end
-      $output.print("!$omp end parallel\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
-      $output.print("}\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
+      @@output.print("!$omp end parallel\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("}\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
     }
     p.print
     kernel.procedure = p

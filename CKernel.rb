@@ -7,7 +7,16 @@ require 'rbconfig'
 require 'systemu'
 
 module ConvolutionGenerator
-  $verbose = false
+  @@verbose = false
+
+  def ConvolutionGenerator::get_verbose
+    return @@verbose
+  end
+
+  def ConvolutionGenerator::set_verbose(verbose)
+    @@verbose = verbose
+  end
+
   class CKernel
     include Rake::DSL
     attr_accessor :code
@@ -16,9 +25,26 @@ module ConvolutionGenerator
     attr_accessor :binary
     attr_accessor :kernels
     
-    def initialize(kernels=[])
-      @code = StringIO::new
-      @kernels = kernels
+    def initialize(options={})
+      if options[:code] then
+        @code = options[:code]
+      elsif ConvolutionGenerator::get_chain_code
+        @code = ConvolutionGenerator::get_output
+        @code.seek(0,SEEK_END)
+      else
+        @code = StringIO::new
+      end
+      ConvolutionGenerator::set_output( @code )
+      if options[:kernels] then
+        @kernels = options[:kernels]
+      else
+        @kernels  = []
+      end
+      if options[:lang] then
+        @lang = options[:lang]
+      else
+        @lang = ConvolutionGenerator::get_lang
+      end
     end
 
     def print
@@ -39,7 +65,7 @@ module ConvolutionGenerator
     def setup_compiler(options = {})
       Rake::Task::clear
       verbose = options[:verbose]
-      verbose = $verbose if not verbose
+      verbose = ConvolutionGenerator::get_verbose if not verbose
       Rake::verbose(verbose)
       Rake::FileUtilsExt.verbose_flag=verbose
       f_compiler = options[:FC]
@@ -231,7 +257,7 @@ EOF
       source_file.close
 
       previous_lang = ConvolutionGenerator::get_lang
-      previous_output = $output
+      previous_output = ConvolutionGenerator::get_output
       ConvolutionGenerator::set_lang(ConvolutionGenerator::C)
       module_file_name = File::split(path.chomp(File::extname(path)))[0] + "/Mod_" + File::split(path.chomp(File::extname(path)))[1].gsub("-","_") + ".c"
       module_name = File::split(module_file_name.chomp(File::extname(module_file_name)))[1]

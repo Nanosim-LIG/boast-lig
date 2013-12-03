@@ -21,8 +21,8 @@ module ConvolutionGenerator
       i.decl
       j.decl
       sum.decl
-      $output.puts "#pragma statement cache_subsector_size #{sec} #{12-sec}"
-      $output.puts "#pragma statement cache_subsector_assign #{vars[var_idx]}"
+      @@output.puts "#pragma statement cache_subsector_size #{sec} #{12-sec}"
+      @@output.puts "#pragma statement cache_subsector_assign #{vars[var_idx]}"
       For::new(i,1,np) {
         (sum === 0.0).print
         For::new(j,1,np) {

@@ -87,8 +87,8 @@ EOF
   end
 
   def ConvolutionGenerator::magicfilter_GPU(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
-    array_start = $array_start
-    $array_start = 0
+    array_start = @@array_start
+    @@array_start = 0
 
     lang = ConvolutionGenerator::get_lang
     ConvolutionGenerator::set_lang(ConvolutionGenerator::CL)
@@ -111,7 +111,7 @@ EOF
     fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new(filt.length) ]})
     
     wgs = 8
-    $output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
+    @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
     p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil], {:reqd_work_group_size => [wgs,wgs,1]}) {
       buff_length = size_n+filt.length-1
       buff_length = buff_length.modulo(16) == 0 ? buff_length : buff_length + 16 - buff_length.modulo(16)
@@ -181,15 +181,15 @@ EOF
       end
     }
     p.print
-    $array_start = array_start
+    @@array_start = array_start
     kernel.procedure = p
     ConvolutionGenerator::set_lang(lang)
     return kernel
   end
 
   def ConvolutionGenerator::magicfilter_GPU_next(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
-    array_start = $array_start
-    $array_start = 0
+    array_start = @@array_start
+    @@array_start = 0
 
     lang = ConvolutionGenerator::get_lang
     ConvolutionGenerator::set_lang(ConvolutionGenerator::CL)
@@ -212,7 +212,7 @@ EOF
     fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new(lowfil, upfil) ]})
     
     wgs = 16
-    $output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
+    @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
     p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil], {:reqd_work_group_size => [wgs,wgs,1]}) {
       buff_length = size_n
       buff_length = buff_length.modulo(16) == 0 ? buff_length : buff_length + 16 - buff_length.modulo(16)
@@ -315,15 +315,15 @@ EOF
       end
     }
     p.print
-    $array_start = array_start
+    @@array_start = array_start
     kernel.procedure = p
     ConvolutionGenerator::set_lang(lang)
     return kernel
   end
 
   def ConvolutionGenerator::magicfilter_GPU_next_next(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
-    array_start = $array_start
-    $array_start = 0
+    array_start = @@array_start
+    @@array_start = 0
 
     lang = ConvolutionGenerator::get_lang
     ConvolutionGenerator::set_lang(ConvolutionGenerator::CL)
@@ -346,7 +346,7 @@ EOF
     fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new(lowfil, upfil) ]})
     
     wgs = 16
-    $output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
+    @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
     p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil], {:reqd_work_group_size => [wgs,wgs,1]}) {
       buff_length = size_n
       buff_length = buff_length.modulo(16) == 0 ? buff_length : buff_length + 16 - buff_length.modulo(16)
@@ -449,7 +449,7 @@ EOF
       end
     }
     p.print
-    $array_start = array_start
+    @@array_start = array_start
     kernel.procedure = p
     ConvolutionGenerator::set_lang(lang)
     return kernel

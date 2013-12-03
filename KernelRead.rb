@@ -37,7 +37,7 @@ module ConvolutionGenerator
     buffer = Variable::new("buffer", CustomType, {:type_name => type_name, :direction => :in, :size => elem_size*length, :dimension => [ Dimension::new(0,buffer_size-1) ]})
     i = Variable::new("i",Int)
     j = Variable::new("j",Int)
-    $output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
+    @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
     p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum , :headers => [header]}) {
       i.decl
       j.decl
@@ -45,11 +45,11 @@ module ConvolutionGenerator
       sumV.decl
       sum.decl
       if machine == "sse3" then
-        $output.print "  sumV = _mm_set_epi32(0,0,0,0);\n"
+        @@output.print "  sumV = _mm_set_epi32(0,0,0,0);\n"
       elsif machine == "neon" then
-        $output.print "  sumV = vmovq_n_s64(0);\n"
+        @@output.print "  sumV = vmovq_n_s64(0);\n"
       elsif machine == "avx" then
-        $output.print "  _mm256_set1_pd(0);\n"
+        @@output.print "  _mm256_set1_pd(0);\n"
       end
       For::new(i, 1, m_cycles*m_stride) {
         For::new(j, m_start, buffer_size + m_start - m_stride*unrolled, m_stride*unrolled) {
@@ -74,13 +74,13 @@ module ConvolutionGenerator
         }.print
       }.print
       if machine == "sse3" then
-        $output.print "  _mm_store_si128((__m128i *) resultV, sumV);\n"
+        @@output.print "  _mm_store_si128((__m128i *) resultV, sumV);\n"
         (sum === resultV[0] + resultV[1]).print
       elsif machine == "neon" then
-        $output.print "  vst1q_s64(resultV, sumV);\n"
+        @@output.print "  vst1q_s64(resultV, sumV);\n"
         (sum === resultV[0] + resultV[1]).print
       elsif machine == "avx" then
-        $output.print "  _mm256_store_pd(resultV, sumV);\n"
+        @@output.print "  _mm256_store_pd(resultV, sumV);\n"
         (sum === resultV[0] + resultV[1] + resultV[2] + resultV[3]).print
       end
     }
@@ -104,7 +104,7 @@ module ConvolutionGenerator
     buffer = Variable::new("buffer", Int, {:direction => :in, :size => size, :dimension => [ Dimension::new(0,buffer_size-1) ]})
     i = Variable::new("i",Int)
     j = Variable::new("j",Int)
-    $output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
+    @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
     p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum } ) {
       i.decl
       j.decl

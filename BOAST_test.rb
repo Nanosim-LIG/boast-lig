@@ -14,11 +14,11 @@ module ConvolutionGenerator
     i = Variable::new("i",Int,{:signed => false})
     ig = Variable::new("ig", Sizet)
     if kernel.lang == ConvolutionGenerator::CL then
-      $output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
+      @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
     end
     if(ConvolutionGenerator::get_lang == ConvolutionGenerator::CUDA) then
       p = Procedure::new(function_name, [n,a,b,c])
-      $output.print <<EOF
+      @@output.print <<EOF
 __global__ void vector_add(unsigned int n, const double *a, const double *b, double *c) {
    unsigned int ig = blockDim.x * blockIdx.x + threadIdx.x;
    c[ig] = a[ig] + b[ig];

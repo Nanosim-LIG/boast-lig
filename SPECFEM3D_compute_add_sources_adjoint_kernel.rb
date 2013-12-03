@@ -1,10 +1,8 @@
 module ConvolutionGenerator
   def ConvolutionGenerator::compute_add_sources_adjoint_kernel
-    old_array_start = $array_start
-    $array_start = 0
+    old_array_start = @@array_start
+    @@array_start = 0
     kernel = CKernel::new
-    ConvolutionGenerator::set_output( kernel.code )
-    kernel.lang = ConvolutionGenerator::get_lang
     function_name = "compute_add_sources_adjoint_kernel"
     nrec = Variable::new("nrec",Int,{:direction => :in})
     accel = Variable::new("accel", Real,{:direction => :out, :dimension => [ Dimension::new ]})
@@ -17,12 +15,12 @@ module ConvolutionGenerator
     ndim =  Variable::new("NDIM", Int, :constant => 3)
     ngllx =  Variable::new("NGLLX", Int, :constant => 5)
     if kernel.lang == ConvolutionGenerator::CL and ConvolutionGenerator::get_default_real_size == 8 then
-      $output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
-      $output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
+      @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
+      @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
     end
     p = Procedure::new(function_name, [nrec,accel,adj_sourcearrays,ibool,ispec_selected_rec,pre_computed_irec,nadj_rec_local], [ndim,ngllx])
     if(ConvolutionGenerator::get_lang == ConvolutionGenerator::CUDA) then
-      $output.print File::read("specfem3D/#{function_name}.cu")
+      @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(ConvolutionGenerator::get_lang == ConvolutionGenerator::CL) then
       type_f = Real::new.decl
       if ConvolutionGenerator::get_default_real_size == 8 then
@@ -32,7 +30,7 @@ module ConvolutionGenerator
         type_i = "unsigned int"
         cmpx_name = "atomic_cmpxchg"
       end
-      $output.print <<EOF
+      @@output.print <<EOF
 static inline void atomicAdd_f(volatile __global float *source, const float val) {
   union {
     #{type_i} iVal;
@@ -80,7 +78,7 @@ EOF
       raise "Unsupported language!"
     end
     kernel.procedure = p
-    $array_start = old_array_start
+    @@array_start = old_array_start
     return kernel
   end
 end
