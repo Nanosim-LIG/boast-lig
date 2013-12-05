@@ -2,17 +2,34 @@ class Object
   alias_method :orig_method_missing, :method_missing
   
   def method_missing(m, *a, &b)
+    s=nil
     klass = begin
-      (self.is_a?(Module) ? self : self.class).const_get(m)
+      s = (self.is_a?(Module) ? self : self.class)
+      s.const_get(m)
     rescue NameError
     end
-  
+    
     return klass.send(:parens, *a, &b)  if klass.respond_to? :parens
+
+    return ConvolutionGenerator::FuncCall::new(m,*a,&b) if s == ConvolutionGenerator
+
     orig_method_missing m, *a, &b
   end
 end
 
 module ConvolutionGenerator
+#  alias_method :orig_method_missing, :method_missing
+#  
+#  def ConvolutionGenerator.method_missing(m, *a, &b)
+#    klass = begin
+#      (self.is_a?(Module) ? self : self.class).const_get(m)
+#    rescue NameError
+#    end
+#  
+#    return klass.send(:parens, *a, &b)  if klass.respond_to? :parens
+#    orig_method_missing m, *a, &b
+#  end
+
   FORTRAN = 1
   C = 2
   CL = 3
@@ -28,10 +45,14 @@ module ConvolutionGenerator
   @@array_start = 1
   @@chain_code = false
 
-  def push(vars = {})
+  def ConvolutionGenerator::push(vars = {})
     
   end
-  def pop()
+  def ConvolutionGenerator::pop()
+  end
+
+  def ConvolutionGenerator::print(a)
+    a.print
   end
 
   def ConvolutionGenerator::set_indent_level(level)

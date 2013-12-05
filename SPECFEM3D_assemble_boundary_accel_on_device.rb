@@ -46,19 +46,19 @@ EOF
       id.decl
       iglob.decl
       iloc.decl
-      (id === Call("get_global_id",0)+Call("get_global_size",0)*Call("get_global_id",1)).print
+      print id === get_global_id(0)+get_global_size(0)+get_global_id(1)
       iinterface.decl
       f = For(iinterface, 0, num_interfaces-1) {
         cond = If(id<d_nibool_interfaces[iinterface]) {
-          (iloc === id + max_nibool_interfaces*iinterface).print
-          (iglob === d_ibool_interfaces[iloc] - 1).print
+          print iloc === id + max_nibool_interfaces*iinterface
+          print iglob === d_ibool_interfaces[iloc] - 1
           (0..2).each { |i|
-             (Call("atomicAdd_f",d_accel + iglob*3  + i, d_send_accel_buffer[iloc*3+i])).print
+             print atomicAdd_f(d_accel + iglob*3  + i, d_send_accel_buffer[iloc*3+i])
           }
         }
-        cond.print
+        print cond
       }
-      f.print
+      print f
       p.close
     else
       raise "Unsupported language!"
