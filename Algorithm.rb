@@ -277,9 +277,9 @@ module ConvolutionGenerator
     attr_reader :local
     def initialize(name,type,hash={})
       @name = name
-      @direction = hash[:direction]
-      @constant = hash[:constant]
-      @dimension = hash[:dimension]
+      @direction = hash[:direction] ? hash[:direction] : hash[:dir]
+      @constant = hash[:constant] ? hash[:constant]  : hash[:const]
+      @dimension = hash[:dimension] ? hash[:dimension] : hash[:dim]
       @local = hash[:local]
       @type = type::new(hash)
       @hash = hash
@@ -1153,6 +1153,7 @@ module ConvolutionGenerator
       return s
     end
   end
-
+  Var = Variable
+  Dim = Dimension
 end
 

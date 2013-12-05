@@ -4,12 +4,12 @@ module ConvolutionGenerator
     @@array_start = 0
     kernel = CKernel::new
     function_name = "assemble_boundary_accel_on_device"
-    num_interfaces = Variable::new("num_interfaces",Int,{:direction => :in})
-    max_nibool_interfaces = Variable::new("max_nibool_interfaces",Int,{:direction => :in})
-    d_accel = Variable::new("d_accel",Real,{:direction => :out, :dimension => [ Dimension::new() ]})
-    d_send_accel_buffer = Variable::new("d_send_accel_buffer",Real,{:direction => :in, :dimension => [ Dimension::new(num_interfaces*max_nibool_interfaces*3) ]})
-    d_nibool_interfaces = Variable::new("d_nibool_interfaces",Int,{:direction => :in, :dimension => [ Dimension::new(num_interfaces) ]})
-    d_ibool_interfaces = Variable::new("d_ibool_interfaces",Int,{:direction => :in, :dimension => [ Dimension::new(num_interfaces*max_nibool_interfaces) ]})
+    num_interfaces        = Var::new("num_interfaces",       Int, {:dir => :in})
+    max_nibool_interfaces = Var::new("max_nibool_interfaces",Int, {:dir => :in})
+    d_accel               = Var::new("d_accel",              Real,{:dir => :out,:dim => [ Dim::new() ]})
+    d_send_accel_buffer   = Var::new("d_send_accel_buffer",  Real,{:dir => :in, :dim => [ Dim::new(num_interfaces*max_nibool_interfaces*3) ]})
+    d_nibool_interfaces   = Var::new("d_nibool_interfaces",  Int, {:dir => :in, :dim => [ Dim::new(num_interfaces) ]})
+    d_ibool_interfaces    = Var::new("d_ibool_interfaces",   Int, {:dir => :in, :dim => [ Dim::new(num_interfaces*max_nibool_interfaces) ]})
     if kernel.lang == CL and get_default_real_size == 8 then
       @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
       @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
@@ -39,10 +39,10 @@ static inline void atomicAdd_f(volatile __global float *source, const float val)
 }
 EOF
       p.decl
-      id = Variable::new("id", Int)
-      iglob = Variable::new("iglob", Int)
-      iloc = Variable::new("iloc", Int)
-      iinterface = Variable::new("iinterface", Int)
+      id = Var::new("id", Int)
+      iglob = Var::new("iglob", Int)
+      iloc = Var::new("iloc", Int)
+      iinterface = Var::new("iinterface", Int)
       (id === FuncCall::new("get_global_id",0)+FuncCall::new("get_global_size",0)*FuncCall::new("get_global_id",1)).print
       id.decl
       iglob.decl
