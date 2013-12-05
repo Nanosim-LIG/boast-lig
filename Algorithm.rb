@@ -1,3 +1,16 @@
+class Object
+  alias_method :orig_method_missing, :method_missing
+  
+  def method_missing(m, *a, &b)
+    klass = begin
+      (self.is_a?(Module) ? self : self.class).const_get(m)
+    rescue NameError
+    end
+  
+    return klass.send(:parens, *a, &b)  if klass.respond_to? :parens
+    orig_method_missing m, *a, &b
+  end
+end
 
 module ConvolutionGenerator
   FORTRAN = 1
@@ -269,6 +282,10 @@ module ConvolutionGenerator
   end
 
   class Variable
+    def self.parens(*args,&block)
+      return self::new(*args,&block)
+    end
+
     attr_reader :name
     attr_accessor :direction
     attr_accessor :constant
@@ -514,6 +531,10 @@ module ConvolutionGenerator
   end
 
   class Procedure
+    def self.parens(*args,&block)
+      return self::new(*args,&block)
+    end
+
     attr_reader :name
     attr_reader :parameters
     attr_reader :constants
@@ -682,6 +703,10 @@ module ConvolutionGenerator
   end
 
   class Dimension
+    def self.parens(*args,&block)
+      return self::new(*args,&block)
+    end
+
     attr_reader :val1
     attr_reader :val2
     def initialize(val1=nil,val2=nil)
@@ -874,6 +899,10 @@ module ConvolutionGenerator
   end
  
   class FuncCall
+    def self.parens(*args,&block)
+      return self::new(*args,&block)
+    end
+
     attr_reader :func_name
     attr_reader :args
     attr_accessor :prefix
@@ -937,6 +966,10 @@ module ConvolutionGenerator
   end
 
   class While
+    def self.parens(*args,&block)
+      return self::new(*args,&block)
+    end
+
     attr_reader :condition
     def initialize(condition, &block)
       @condition = condition
@@ -997,6 +1030,10 @@ module ConvolutionGenerator
   end
  
   class If
+    def self.parens(*args,&block)
+      return self::new(*args,&block)
+    end
+
     attr_reader :condition
     def initialize(condition, &block)
       @condition = condition
@@ -1061,6 +1098,11 @@ module ConvolutionGenerator
     attr_reader :begin
     attr_reader :end
     attr_reader :step
+
+    def self.parens(*args,&block)
+      return self::new(*args,&block)
+    end
+
     def initialize(i, b, e, s=1, &block)
       @iterator = i
       @begin = b
@@ -1155,5 +1197,6 @@ module ConvolutionGenerator
   end
   Var = Variable
   Dim = Dimension
+  Call = FuncCall
 end
 
