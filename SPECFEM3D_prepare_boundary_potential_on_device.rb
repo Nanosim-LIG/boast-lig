@@ -22,11 +22,11 @@ module ConvolutionGenerator
       iglob = Variable::new("iglob", Int)
       iloc = Variable::new("iloc", Int)
       iinterface = Variable::new("iinterface", Int)
-      (id === FuncCall::new("get_global_id",0)+FuncCall::new("get_global_size",0)*FuncCall::new("get_global_id",1)).print
       id.decl
       iglob.decl
       iloc.decl
       iinterface.decl
+      (id === FuncCall::new("get_global_id",0)+FuncCall::new("get_global_size",0)*FuncCall::new("get_global_id",1)).print
       f = For::new(iinterface, 0, num_interfaces-1) {
         cond = If::new(id<d_nibool_interfaces[iinterface]) {
           (iloc === id + max_nibool_interfaces*iinterface).print

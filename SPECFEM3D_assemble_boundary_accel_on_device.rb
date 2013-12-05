@@ -43,10 +43,10 @@ EOF
       iglob = Var("iglob", Int)
       iloc = Var("iloc", Int)
       iinterface = Var("iinterface", Int)
-      (id === Call("get_global_id",0)+Call("get_global_size",0)*Call("get_global_id",1)).print
       id.decl
       iglob.decl
       iloc.decl
+      (id === Call("get_global_id",0)+Call("get_global_size",0)*Call("get_global_id",1)).print
       iinterface.decl
       f = For(iinterface, 0, num_interfaces-1) {
         cond = If(id<d_nibool_interfaces[iinterface]) {
