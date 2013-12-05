@@ -38,16 +38,16 @@ static inline void atomicAdd_f(volatile __global float *source, const float val)
   } while (#{cmpx_name}((volatile __global #{type_i} *)source, orig.iVal, res.iVal) != orig.iVal);
 }
 EOF
-      p.decl
+      decl p
       id = Var("id", Int)
       iglob = Var("iglob", Int)
       iloc = Var("iloc", Int)
       iinterface = Var("iinterface", Int)
-      id.decl
-      iglob.decl
-      iloc.decl
+      decl id
+      decl iglob
+      decl iloc
       print id === get_global_id(0)+get_global_size(0)+get_global_id(1)
-      iinterface.decl
+      decl iinterface
       f = For(iinterface, 0, num_interfaces-1) {
         cond = If(id<d_nibool_interfaces[iinterface]) {
           print iloc === id + max_nibool_interfaces*iinterface
@@ -59,7 +59,7 @@ EOF
         print cond
       }
       print f
-      p.close
+      close p
     else
       raise "Unsupported language!"
     end

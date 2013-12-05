@@ -55,6 +55,14 @@ module ConvolutionGenerator
     a.print
   end
 
+  def ConvolutionGenerator::decl(a)
+    a.decl
+  end
+
+  def ConvolutionGenerator::close(a)
+    a.close
+  end
+
   def ConvolutionGenerator::set_indent_level(level)
     @@indent_level = level
   end
