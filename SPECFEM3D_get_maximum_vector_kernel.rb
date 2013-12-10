@@ -1,5 +1,5 @@
-module ConvolutionGenerator
-  def ConvolutionGenerator::get_maximum_vector_kernel
+module BOAST
+  def BOAST::get_maximum_vector_kernel
     old_array_start = @@array_start
     @@array_start = 0
     kernel = CKernel::new
@@ -8,13 +8,13 @@ module ConvolutionGenerator
     array = Variable::new("array", Real,{:direction => :in, :dimension => [ Dimension::new(size)]})
     d_max = Variable::new("d_max", Real,{:direction => :out, :dimension => [ Dimension::new]})
     blocksize_transfer =  Variable::new("blocksize_transfer", Int, :constant => 256)
-    if kernel.lang == ConvolutionGenerator::CL and ConvolutionGenerator::get_default_real_size == 8 then
+    if kernel.lang == BOAST::CL and BOAST::get_default_real_size == 8 then
       @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
     end
     p = Procedure::new(function_name, [array, size, d_max], [blocksize_transfer])
-    if(ConvolutionGenerator::get_lang == ConvolutionGenerator::CUDA) then
+    if(BOAST::get_lang == BOAST::CUDA) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
-    elsif(ConvolutionGenerator::get_lang == ConvolutionGenerator::CL) then
+    elsif(BOAST::get_lang == BOAST::CL) then
       p.decl
       sdata = Variable::new("sdata", Real, { :local => true, :dimension => [Dimension::new(blocksize_transfer)] } )
       tid = Variable::new("tid", Int)

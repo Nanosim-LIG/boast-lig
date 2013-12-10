@@ -18,15 +18,15 @@ kernels = [
 ]
 
 langs = [ :CUDA, :CL]
-ConvolutionGenerator::set_default_real_size(4)
+BOAST::set_default_real_size(4)
 
 kernels.each { |kern|
   require "./SPECFEM3D_#{kern.to_s}.rb"
   puts kern.to_s
   langs.each { |lang|
     puts lang.to_s
-    ConvolutionGenerator::set_lang( ConvolutionGenerator::const_get(lang))
-    k = ConvolutionGenerator::method(kern).call
+    BOAST::set_lang( BOAST::const_get(lang))
+    k = BOAST::method(kern).call
     k.print
   }
 }
@@ -40,35 +40,35 @@ kernels.each { |kern|
 #
 #epsilon = 10e-15
 #
-#ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
+#BOAST::set_lang( BOAST::FORTRAN )
 #puts "FORTRAN"
-#k = ConvolutionGenerator::vector_add
+#k = BOAST::vector_add
 #puts k.print
 #k.run(n,a,b,c_ref)
-#ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+#BOAST::set_lang( BOAST::C )
 #puts "C"
 #c.random
-#k = ConvolutionGenerator::vector_add
+#k = BOAST::vector_add
 #puts k.print
 #k.run(n,a,b,c)
 #diff = (c_ref - c).abs
 #diff.each { |elem|
 #  raise "Warning: residue too big: #{elem}" if elem > epsilon
 #}
-#ConvolutionGenerator::set_lang( ConvolutionGenerator::CL )
+#BOAST::set_lang( BOAST::CL )
 #puts "CL"
 #c.random
-#k = ConvolutionGenerator::vector_add
+#k = BOAST::vector_add
 #puts k.print
 #k.run(n, a, b, c, :global_work_size => [rndup(n,32), 1,1], :local_work_size => [32,1,1] )
 #diff = (c_ref - c).abs
 #diff.each { |elem|
 #  raise "Warning: residue too big: #{elem}" if elem > epsilon
 #}
-#ConvolutionGenerator::set_lang( ConvolutionGenerator::CUDA )
+#BOAST::set_lang( BOAST::CUDA )
 #puts "CUDA"
 #c.random
-#k = ConvolutionGenerator::vector_add
+#k = BOAST::vector_add
 #puts k.print
 #k.build(:LDFLAGS => " -L/usr/local/cuda-5.5.22/lib64")
 #k.run(n, a, b, c, :block_number => [rndup(n,32)/32, 1,1], :block_size => [32,1,1] )

@@ -1,5 +1,5 @@
 
-module ConvolutionGenerator
+module BOAST
   OPERATORS = {
     "===" => {
       :arity => 2,

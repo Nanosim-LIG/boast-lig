@@ -1,5 +1,5 @@
-module ConvolutionGenerator
-  def ConvolutionGenerator::compute_add_sources_adjoint_kernel
+module BOAST
+  def BOAST::compute_add_sources_adjoint_kernel
     old_array_start = @@array_start
     @@array_start = 0
     kernel = CKernel::new
@@ -14,16 +14,16 @@ module ConvolutionGenerator
 
     ndim =  Variable::new("NDIM", Int, :constant => 3)
     ngllx =  Variable::new("NGLLX", Int, :constant => 5)
-    if kernel.lang == ConvolutionGenerator::CL and ConvolutionGenerator::get_default_real_size == 8 then
+    if kernel.lang == BOAST::CL and BOAST::get_default_real_size == 8 then
       @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
       @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
     end
     p = Procedure::new(function_name, [nrec,accel,adj_sourcearrays,ibool,ispec_selected_rec,pre_computed_irec,nadj_rec_local], [ndim,ngllx])
-    if(ConvolutionGenerator::get_lang == ConvolutionGenerator::CUDA) then
+    if(BOAST::get_lang == BOAST::CUDA) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
-    elsif(ConvolutionGenerator::get_lang == ConvolutionGenerator::CL) then
+    elsif(BOAST::get_lang == BOAST::CL) then
       type_f = Real::new.decl
-      if ConvolutionGenerator::get_default_real_size == 8 then
+      if BOAST::get_default_real_size == 8 then
         type_i = "unsigned long int"
         cmpx_name = "atom_cmpxchg"
       else

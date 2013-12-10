@@ -31,7 +31,7 @@ element *= m
 (1..10).each { |loop|
 # WRITING CODE AND COMPILING:
 puts "* Unrolled (#{loop}) times, with element size (#{element*8}b):"
-k = ConvolutionGenerator::kernel_read_ref(loop, element)
+k = BOAST::kernel_read_ref(loop, element)
 puts "** Code:"
 puts k.print
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
@@ -60,7 +60,7 @@ end
 (1..10).each { |loop|
 # WRITING CODE AND COMPILING:
 puts "* Vectorized (#{vect}), unrolled (#{loop}) times, with element size (#{element*length*8}b):"
-k = ConvolutionGenerator::kernel_read_vectorized(loop, element, length, vect)
+k = BOAST::kernel_read_vectorized(loop, element, length, vect)
 puts "** Code:"
 puts k.print
     k.build({:CC => 'gcc',:CFLAGS => "-O3 #{flag}"})

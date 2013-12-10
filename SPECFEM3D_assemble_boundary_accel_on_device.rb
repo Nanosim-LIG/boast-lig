@@ -1,5 +1,5 @@
-module ConvolutionGenerator
-  def ConvolutionGenerator::assemble_boundary_accel_on_device
+module BOAST
+  def BOAST::assemble_boundary_accel_on_device
     old_array_start = @@array_start
     @@array_start = 0
     kernel = CKernel::new
@@ -39,15 +39,15 @@ static inline void atomicAdd_f(volatile __global float *source, const float val)
 }
 EOF
       decl p
-      id = Var("id", Int)
-      iglob = Var("iglob", Int)
-      iloc = Var("iloc", Int)
+      id         = Var("id", Int)
+      iglob      = Var("iglob", Int)
+      iloc       = Var("iloc", Int)
       iinterface = Var("iinterface", Int)
       decl id
       decl iglob
       decl iloc
-      print id === get_global_id(0)+get_global_size(0)+get_global_id(1)
       decl iinterface
+      print id === get_global_id(0)+get_global_size(0)+get_global_id(1)
       f = For(iinterface, 0, num_interfaces-1) {
         cond = If(id<d_nibool_interfaces[iinterface]) {
           print iloc === id + max_nibool_interfaces*iinterface

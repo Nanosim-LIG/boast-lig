@@ -1,11 +1,11 @@
 require "./BOAST.rb"
 require 'narray'
-module ConvolutionGenerator
-  def ConvolutionGenerator::magicfilter_per_ref
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::FORTRAN)
+module BOAST
+  def BOAST::magicfilter_per_ref
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::FORTRAN)
     kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::FORTRAN
+    kernel.lang = BOAST::FORTRAN
     function_name = "magicfilter_per_ref"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
     ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
@@ -19,6 +19,6 @@ module ConvolutionGenerator
     kernel.code.print(File::read("magicfilter_refs.f90"))
 
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
+    BOAST::set_lang(lang)
     return kernel
   end

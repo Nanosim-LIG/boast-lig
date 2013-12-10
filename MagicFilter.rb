@@ -1,11 +1,11 @@
 require "./BOAST.rb"
 require 'narray'
-module ConvolutionGenerator
-  def ConvolutionGenerator::magicfilter_per_ref( invert = false, free = false )
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::FORTRAN)
+module BOAST
+  def BOAST::magicfilter_per_ref( invert = false, free = false )
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::FORTRAN)
     kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::FORTRAN
+    kernel.lang = BOAST::FORTRAN
     lowfil=-8
     lupfil=7
     function_name = "magicfilter"
@@ -39,14 +39,14 @@ module ConvolutionGenerator
     p = Procedure::new(function_name, [n,ndat,x,y])
     kernel.code.print(File::read("magicfilter_refs.f90"))
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
+    BOAST::set_lang(lang)
     return kernel
   end
 
-  def ConvolutionGenerator::MagicFilter(filt, center, unroll, invert, free=false )
+  def BOAST::MagicFilter(filt, center, unroll, invert, free=false )
     kernel = CKernel::new
-    ConvolutionGenerator::set_output( kernel.code )
-    kernel.lang = ConvolutionGenerator::get_lang
+    BOAST::set_output( kernel.code )
+    kernel.lang = BOAST::get_lang
     function_name = "magicfilter"
     if free then
       function_name += "_free"
@@ -98,7 +98,7 @@ module ConvolutionGenerator
     arr = ConstArray::new(filt,Real)
     fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new(lowfil,upfil) ]})
 
-    if ConvolutionGenerator::get_lang == C then
+    if BOAST::get_lang == C then
       @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
       @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"

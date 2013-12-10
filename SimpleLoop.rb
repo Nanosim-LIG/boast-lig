@@ -1,6 +1,6 @@
 require './Algorithm.rb'
-module ConvolutionGenerator
-  def ConvolutionGenerator::SimpleLoop(unroll)
+module BOAST
+  def BOAST::SimpleLoop(unroll)
     i = Variable::new('i', Int)
     sum = Variable::new('sum', Int)
     data = Variable::new("data",Int,{:dimension => [ Dimension::new(10)]})

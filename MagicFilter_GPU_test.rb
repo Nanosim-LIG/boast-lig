@@ -57,7 +57,7 @@ output_ref = NArray.float(n1,n2,n3)
 output = NArray.float(n1,n2,n3)
 tmp = NArray.float(n1*n2*n3)
 
-#k = ConvolutionGenerator::magicfilter_per_ref
+#k = BOAST::magicfilter_per_ref
 #stats = k.run(n1, n2*n3, input, output_ref)
 #puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 #stats = k.run(n2, n3*n1, output_ref, tmp)
@@ -66,7 +66,7 @@ tmp = NArray.float(n1*n2*n3)
 #puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 #
 
-bench(ConvolutionGenerator::magicfilter_GPU_per_ref,"",n1,n2,n3,input,output_ref)
+bench(BOAST::magicfilter_GPU_per_ref,"",n1,n2,n3,input,output_ref)
 #stats = k.run(n3, n1*n2, input, output, :global_work_size => [rndup(n3,16), rndup(n1*n2,16),1], :local_work_size => [16,16,1] )
 #puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 #stats = k.run(n2, n3*n1, output, tmp, :global_work_size => [rndup(n2,16), rndup(n3*n1,16),1], :local_work_size => [16,16,1] )
@@ -86,9 +86,9 @@ bench(ConvolutionGenerator::magicfilter_GPU_per_ref,"",n1,n2,n3,input,output_ref
 #durations.sort!
 #puts "#{k.procedure.name}: #{durations.first*1.0e3} #{32*n1*n2*n3 / (durations.first*1.0e9)} GFlops"
 
-bench(ConvolutionGenerator::magicfilter_GPU(FILTER,8,n3,256, device.local_mem_size ),"-1",n1,n2,n3,input,output,output_ref)
+bench(BOAST::magicfilter_GPU(FILTER,8,n3,256, device.local_mem_size ),"-1",n1,n2,n3,input,output,output_ref)
 
-#k = ConvolutionGenerator::magicfilter_GPU(FILTER,8,n3,256, device.local_mem_size )
+#k = BOAST::magicfilter_GPU(FILTER,8,n3,256, device.local_mem_size )
 #stats = []
 #stats.push(k.run(n3, n1*n2, input, output, :global_work_size => [8, rndup(n1*n2,8),1], :local_work_size => [8,8,1] ))
 #puts "#{k.procedure.name}-1: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
@@ -101,7 +101,7 @@ bench(ConvolutionGenerator::magicfilter_GPU(FILTER,8,n3,256, device.local_mem_si
 #
 output.fill!(0.0)
 
-bench(ConvolutionGenerator::magicfilter_GPU_next(FILTER,8,n3,256, device.local_mem_size ),"-2",n1,n2,n3,input,output,output_ref)
+bench(BOAST::magicfilter_GPU_next(FILTER,8,n3,256, device.local_mem_size ),"-2",n1,n2,n3,input,output,output_ref)
 output.fill!(0.0)
 #puts k.print
 #k.build(:CLFLAGS => "-cl-mad-enable")
@@ -114,7 +114,7 @@ output.fill!(0.0)
 ##  puts "Warning: residue too big: #{elem}" if elem > epsilon
 #  raise "Error benching #{n3}" if elem > epsilon
 #}
-bench(ConvolutionGenerator::magicfilter_GPU_next_next(FILTER,8,n3,256, device.local_mem_size ),"-3",n1,n2,n3,input,output,output_ref)
+bench(BOAST::magicfilter_GPU_next_next(FILTER,8,n3,256, device.local_mem_size ),"-3",n1,n2,n3,input,output,output_ref)
 output.fill!(0.0)
 $stdout.flush
 #puts k.print

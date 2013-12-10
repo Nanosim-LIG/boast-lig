@@ -6,14 +6,14 @@ require 'tempfile'
 require 'rbconfig'
 require 'systemu'
 
-module ConvolutionGenerator
+module BOAST
   @@verbose = false
 
-  def ConvolutionGenerator::get_verbose
+  def BOAST::get_verbose
     return @@verbose
   end
 
-  def ConvolutionGenerator::set_verbose(verbose)
+  def BOAST::set_verbose(verbose)
     @@verbose = verbose
   end
 
@@ -28,13 +28,13 @@ module ConvolutionGenerator
     def initialize(options={})
       if options[:code] then
         @code = options[:code]
-      elsif ConvolutionGenerator::get_chain_code
-        @code = ConvolutionGenerator::get_output
+      elsif BOAST::get_chain_code
+        @code = BOAST::get_output
         @code.seek(0,SEEK_END)
       else
         @code = StringIO::new
       end
-      ConvolutionGenerator::set_output( @code )
+      BOAST::set_output( @code )
       if options[:kernels] then
         @kernels = options[:kernels]
       else
@@ -43,7 +43,7 @@ module ConvolutionGenerator
       if options[:lang] then
         @lang = options[:lang]
       else
-        @lang = ConvolutionGenerator::get_lang
+        @lang = BOAST::get_lang
       end
     end
 
@@ -65,7 +65,7 @@ module ConvolutionGenerator
     def setup_compiler(options = {})
       Rake::Task::clear
       verbose = options[:verbose]
-      verbose = ConvolutionGenerator::get_verbose if not verbose
+      verbose = BOAST::get_verbose if not verbose
       Rake::verbose(verbose)
       Rake::FileUtilsExt.verbose_flag=verbose
       f_compiler = options[:FC]
@@ -90,7 +90,7 @@ module ConvolutionGenerator
       includes = "-I#{RbConfig::CONFIG["archdir"]}"
       includes += " -I#{RbConfig::CONFIG["rubyhdrdir"]} -I#{RbConfig::CONFIG["rubyhdrdir"]}/#{RbConfig::CONFIG["arch"]}"
       ld_flags += " -L#{RbConfig::CONFIG["libdir"]} #{RbConfig::CONFIG["LIBRUBYARG"]} -lrt"
-      ld_flags += " -lcudart" if @lang == ConvolutionGenerator::CUDA
+      ld_flags += " -lcudart" if @lang == BOAST::CUDA
       narray_path = nil
       begin
         spec = Gem::Specification::find_by_name('narray')
@@ -239,11 +239,11 @@ EOF
     end
 
     def build(options = {})
-      return build_opencl(options) if @lang == ConvolutionGenerator::CL
+      return build_opencl(options) if @lang == BOAST::CL
       ldflags = self.setup_compiler(options)
-      extension = ".c" if @lang == ConvolutionGenerator::C
-      extension = ".cu" if @lang == ConvolutionGenerator::CUDA
-      extension = ".f90" if @lang == ConvolutionGenerator::FORTRAN
+      extension = ".c" if @lang == BOAST::C
+      extension = ".cu" if @lang == BOAST::CUDA
+      extension = ".f90" if @lang == BOAST::FORTRAN
 #temporary
       c_compiler = options[:CC]
       c_compiler = "cc" if not c_compiler
@@ -256,19 +256,19 @@ EOF
       fill_code(source_file)
       source_file.close
 
-      previous_lang = ConvolutionGenerator::get_lang
-      previous_output = ConvolutionGenerator::get_output
-      ConvolutionGenerator::set_lang(ConvolutionGenerator::C)
+      previous_lang = BOAST::get_lang
+      previous_output = BOAST::get_output
+      BOAST::set_lang(BOAST::C)
       module_file_name = File::split(path.chomp(File::extname(path)))[0] + "/Mod_" + File::split(path.chomp(File::extname(path)))[1].gsub("-","_") + ".c"
       module_name = File::split(module_file_name.chomp(File::extname(module_file_name)))[1]
       module_file = File::open(module_file_name,"w+")
-      ConvolutionGenerator::set_output(module_file)
+      BOAST::set_output(module_file)
       fill_module(module_file, module_name)
       module_file.rewind
 #     puts module_file.read
       module_file.close
-      ConvolutionGenerator::set_lang(previous_lang)
-      ConvolutionGenerator::set_output(previous_output)
+      BOAST::set_lang(previous_lang)
+      BOAST::set_output(previous_output)
       module_target = module_file_name.chomp(File::extname(module_file_name))+".o"
       module_final = module_file_name.chomp(File::extname(module_file_name))+".so"
       kernel_files = []
@@ -302,13 +302,13 @@ EOF
 
     def fill_code(source_file)
       @code.rewind
-      source_file.puts "#include <inttypes.h>" if @lang == ConvolutionGenerator::C or @lang == ConvolutionGenerator::CUDA
-      source_file.puts "#include <cuda.h>" if @lang == ConvolutionGenerator::CUDA
+      source_file.puts "#include <inttypes.h>" if @lang == BOAST::C or @lang == BOAST::CUDA
+      source_file.puts "#include <cuda.h>" if @lang == BOAST::CUDA
       source_file.write @code.read
-      if @lang == ConvolutionGenerator::CUDA then
+      if @lang == BOAST::CUDA then
         source_file.write <<EOF
 extern "C" {
-  #{@procedure.header(ConvolutionGenerator::CUDA,false)}{
+  #{@procedure.header(BOAST::CUDA,false)}{
     dim3 dimBlock(block_size[0], block_size[1], block_size[2]);
     dim3 dimGrid(block_number[0], block_number[1], block_number[2]);
     cudaEvent_t start, stop;
@@ -337,7 +337,7 @@ EOF
 #include "narray.h"
 #endif
 EOF
-      if( @lang == ConvolutionGenerator::CUDA ) then
+      if( @lang == BOAST::CUDA ) then
         module_file.print "#include <cuda_runtime.h>\n"
       end
       module_file.print @procedure.header(@lang)
@@ -351,7 +351,7 @@ void Init_#{module_name}() {
 }
 VALUE method_run(int argc, VALUE *argv, VALUE self) {
 EOF
-      if( @lang == ConvolutionGenerator::CUDA ) then
+      if( @lang == BOAST::CUDA ) then
         module_file.write <<EOF
   if( argc < #{@procedure.parameters.length} || argc > #{@procedure.parameters.length + 1} )
     rb_raise(rb_eArgError, "wrong number of arguments for #{@procedure.name} (%d for #{@procedure.parameters.length})", argc);
@@ -388,7 +388,7 @@ EOF
           end
         else
           (rb_ptr === argv[i]).print
-          if @lang == ConvolutionGenerator::CUDA then
+          if @lang == BOAST::CUDA then
             module_file.print <<EOF
   if ( IsNArray(rb_ptr) ) {
     struct NARRAY *n_ary;
@@ -421,7 +421,7 @@ EOF
           end
         end
       end
-      if @lang == ConvolutionGenerator::CUDA then
+      if @lang == BOAST::CUDA then
         module_file.write <<EOF
   if( argc == #{@procedure.parameters.length + 1} ) {
     rb_opts = argv[argc -1];
@@ -459,16 +459,16 @@ EOF
       module_file.print "  struct timespec start, stop;\n"
       module_file.print "  unsigned long long int duration;\n"
       module_file.print "  clock_gettime(CLOCK_REALTIME, &start);\n"
-      if @lang == ConvolutionGenerator::CUDA then
+      if @lang == BOAST::CUDA then
         module_file.print "  duration = "
       elsif @procedure.properties[:return] then
         module_file.print "  ret = "
       end
       module_file.print "  #{@procedure.name}"
-      module_file.print "_" if @lang == ConvolutionGenerator::FORTRAN
-      module_file.print "_wrapper" if @lang == ConvolutionGenerator::CUDA
+      module_file.print "_" if @lang == BOAST::FORTRAN
+      module_file.print "_wrapper" if @lang == BOAST::CUDA
       module_file.print "("
-      if(@lang == ConvolutionGenerator::FORTRAN) then
+      if(@lang == BOAST::FORTRAN) then
         params = []
         @procedure.parameters.each { |param|
           if param.dimension then
@@ -481,14 +481,14 @@ EOF
       else
         module_file.print @procedure.parameters.join(", ") 
       end
-      if @lang == ConvolutionGenerator::CUDA then
+      if @lang == BOAST::CUDA then
         module_file.print ", " if @procedure.parameters.length > 0
         module_file.print "block_number, block_size"
       end
       module_file.print "  );\n"
       module_file.print "  clock_gettime(CLOCK_REALTIME, &stop);\n"
 
-      if @lang == ConvolutionGenerator::CUDA then
+      if @lang == BOAST::CUDA then
         @procedure.parameters.each_index do |i|
           param = @procedure.parameters[i]
           if param.dimension then
@@ -514,7 +514,7 @@ EOF
           end
         end
       end
-      if @lang != ConvolutionGenerator::CUDA then
+      if @lang != BOAST::CUDA then
         module_file.print "  duration = (unsigned long long int)stop.tv_sec * (unsigned long long int)1000000000 + stop.tv_nsec;\n"
         module_file.print "  duration -= (unsigned long long int)start.tv_sec * (unsigned long long int)1000000000 + start.tv_nsec;\n"
       end

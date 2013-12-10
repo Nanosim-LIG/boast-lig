@@ -1,13 +1,13 @@
 require './BOAST.rb'
 require 'rubygems'
 require 'narray'
-module ConvolutionGenerator
+module BOAST
 
-  def ConvolutionGenerator::analysis_free_ref
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::FORTRAN)
+  def BOAST::analysis_free_ref
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::FORTRAN)
     kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::FORTRAN
+    kernel.lang = BOAST::FORTRAN
     function_name = "analysis_free_ref"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
     ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
@@ -64,14 +64,14 @@ subroutine analysis_free_ref(n,ndat,x,y)
 END SUBROUTINE analysis_free_ref
 EOF
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
+    BOAST::set_lang(lang)
     return kernel
   end
-  def ConvolutionGenerator::analysis_per_ref
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::FORTRAN)
+  def BOAST::analysis_per_ref
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::FORTRAN)
     kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::FORTRAN
+    kernel.lang = BOAST::FORTRAN
     function_name = "analysis_per_ref"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
     ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
@@ -303,14 +303,14 @@ END SUBROUTINE fill_mod_arr
 !END SUBROUTINE analysis_per_ref
 EOF
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
+    BOAST::set_lang(lang)
     return kernel
   end
 
-  def ConvolutionGenerator::Analysis(filt, center, unroll, free=false )
+  def BOAST::Analysis(filt, center, unroll, free=false )
     kernel = CKernel::new
-    ConvolutionGenerator::set_output( kernel.code )
-    kernel.lang = ConvolutionGenerator::get_lang
+    BOAST::set_output( kernel.code )
+    kernel.lang = BOAST::get_lang
     function_name = "analysis"
     if free then
       function_name += "_free"
@@ -364,7 +364,7 @@ EOF
     fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new(-center, -center -1 + filt.length) ]})
 
 
-    if ConvolutionGenerator::get_lang == C then
+    if BOAST::get_lang == C then
       @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
       @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
@@ -416,7 +416,7 @@ EOF
       analysis_d = lambda { |ci,di,js,ntot,fBC|
         unro=ci.length
         #external loop, with unrolling. the rest is excluded
-        @@output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+        @@output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
         if unro > 1 then
           #forJ1 = For::new(j,js,ntot-(unro-1), unro) #do not forget to add the rest
           forJ1 = For::new(j,js,(ntot/unro)*unro, unro) #do not forget to add the rest
@@ -446,17 +446,17 @@ EOF
         end      
         #end do for the external loop
         forJ1.close
-        @@output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+        @@output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
       }
 
       #body of the routine
-      @@output.print("!$omp parallel default (private) shared(x,y,fil,ndat,n)\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp parallel default (private) shared(x,y,fil,ndat,n)\n") if BOAST::get_lang == BOAST::FORTRAN
       analysis_d.call(ci,di,1,ndat,free)
       #remaining part after unrolling
       if unroll>1 then
         analysis_d.call([ci[0]],[di[0]],(ndat/unroll)*unroll+1,ndat,free)
       end
-      @@output.print("!$omp end parallel\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
       }
     p.print
     kernel.procedure = p
@@ -488,13 +488,13 @@ input = NArray.float(n1+14,n2,n3).random
 output_ref = NArray.float(n2,n3,n1)
 output = NArray.float(n2,n3,n1)
 epsilon = 10e-15
-ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-k = ConvolutionGenerator::analysis_free_ref
+BOAST::set_lang( BOAST::FORTRAN )
+k = BOAST::analysis_free_ref
 stats = k.run(n1/2, n2*n3, input, output_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
 (1..12).each{ |unroll|
-  k = ConvolutionGenerator::Analysis(FILTER,7,unroll,true)
+  k = BOAST::Analysis(FILTER,7,unroll,true)
   #k.print
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
   k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
@@ -506,9 +506,9 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
   }
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
-ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+BOAST::set_lang( BOAST::C )
 (1..12).each{ |unroll|
-  k = ConvolutionGenerator::Analysis(FILTER,7,unroll,true)
+  k = BOAST::Analysis(FILTER,7,unroll,true)
 
   stats = k.run(n1/2, n2*n3, input, output)
   stats = k.run(n1/2, n2*n3, input, output)
@@ -526,15 +526,15 @@ input = NArray.float(n1,n2,n3).random
 output_ref = NArray.float(n1,n2,n3)
 output = NArray.float(n1,n2,n3)
 epsilon = 10e-15
-ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-k = ConvolutionGenerator::analysis_per_ref
+BOAST::set_lang( BOAST::FORTRAN )
+k = BOAST::analysis_per_ref
 k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp",:LD => "ifort"})
 stats = k.run(n1/2-1, n2*n3, input, output_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
 (1..14).each{ |unroll|
-  #k = ConvolutionGenerator::analysis_per_ref
-  k = ConvolutionGenerator::Analysis(FILTER,7,unroll,false)
+  #k = BOAST::analysis_per_ref
+  k = BOAST::Analysis(FILTER,7,unroll,false)
   #k.print
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
   k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp",:LD => "ifort"})

@@ -1,10 +1,10 @@
 require './BOAST.rb'
 require 'rubygems'
 require 'narray'
-module ConvolutionGenerator
+module BOAST
 
-  def ConvolutionGenerator::synthesis_free_ref
-    kernel = CKernel::new(:lang => ConvolutionGenerator::FORTRAN)
+  def BOAST::synthesis_free_ref
+    kernel = CKernel::new(:lang => BOAST::FORTRAN)
     function_name = "synthesis_free_ref"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
     ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
@@ -84,8 +84,8 @@ EOF
     kernel.procedure = p
     return kernel
   end
-  def ConvolutionGenerator::synthesis_per_ref
-    kernel = CKernel::new(:lang => ConvolutionGenerator::FORTRAN)
+  def BOAST::synthesis_per_ref
+    kernel = CKernel::new(:lang => BOAST::FORTRAN)
     function_name = "synthesis_per_ref"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
     ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
@@ -149,7 +149,7 @@ EOF
     return kernel
   end
 
-  def ConvolutionGenerator::synthesis3D_per(kernel_1D)
+  def BOAST::synthesis3D_per(kernel_1D)
     kernel = CKernel::new(:kernels => [kernel_1D])
     function_name = "synthesis3d_per"
     n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
@@ -168,7 +168,7 @@ EOF
     return kernel
   end
 
-  def ConvolutionGenerator::synthesis(filt, center, unroll, free=false )
+  def BOAST::synthesis(filt, center, unroll, free=false )
     kernel = CKernel::new
     function_name = "synthesis"
     if free then
@@ -222,7 +222,7 @@ EOF
     fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new((1-center),(filt.length - center)) ]})
     
 
-    if ConvolutionGenerator::get_lang == C then
+    if BOAST::get_lang == C then
       @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
       @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
@@ -237,7 +237,7 @@ EOF
       fil.decl
       so.each{ |s| s.decl }
       se.each{ |s| s.decl }
-      if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      if BOAST::get_lang == BOAST::FORTRAN
         @@output.print("!$omp parallel default(shared) shared(x,y,ndat,n)&\n")
         @@output.print("!$omp private(i,j,k,l)&\n")
         @@output.print("!$omp private(")
@@ -247,16 +247,16 @@ EOF
         @@output.print(so.join(","))
         @@output.print(")\n")
       end
-      if ConvolutionGenerator::get_lang == ConvolutionGenerator::C then
+      if BOAST::get_lang == BOAST::C then
         @@output.print("#pragma omp parallel private(")
         @@output.print(se.join(","))
         @@output.print(",")
         @@output.print(so.join(","))
         @@output.print(",i,j,k,l) shared(x,y)\n") 
       end
-      @@output.print("{\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
-      @@output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
-      @@output.print("#pragma omp for\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
+      @@output.print("{\n") if BOAST::get_lang == BOAST::C
+      @@output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
+      @@output.print("#pragma omp for\n") if BOAST::get_lang == BOAST::C
 
       #internal loop taking care of BCs
       if free then
@@ -333,12 +333,12 @@ EOF
         inner_block.call(se, so, forBC)
       }.print
       for1.close
-      @@output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
 
 
       if unroll>1 then
-        @@output.print("#pragma omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
-        @@output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+        @@output.print("#pragma omp do\n") if BOAST::get_lang == BOAST::C
+        @@output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
         For::new(j,ndat-FuncCall::new("modulo",ndat,unroll)+1,ndat) {
           ind=0
           if not free then
@@ -351,10 +351,10 @@ EOF
           }.print
           
         }.print
-        @@output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+        @@output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
       end
-      @@output.print("!$omp end parallel\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
-      @@output.print("}\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::C
+      @@output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
+      @@output.print("}\n") if BOAST::get_lang == BOAST::C
     }
     p.print
     kernel.procedure = p

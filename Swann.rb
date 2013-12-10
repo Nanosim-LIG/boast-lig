@@ -2,11 +2,11 @@ require './BOAST.rb'
 require 'rubygems'
 require 'narray'
 
-module ConvolutionGenerator
-  def ConvolutionGenerator::swann_kernel(sec, var_idx)
+module BOAST
+  def BOAST::swann_kernel(sec, var_idx)
     kernel = CKernel::new
-    ConvolutionGenerator::set_output( kernel.code )
-    kernel.lang = ConvolutionGenerator::get_lang
+    BOAST::set_output( kernel.code )
+    kernel.lang = BOAST::get_lang
     function_name = "swann_#{sec}_#{var_idx}"
     ncolidx = Variable::new("ncolidx",Int, :constant => (150000*16*16+150000*17))
     colidx = Variable::new("colidx",Int,{:direction => :in, :dimension => [ Dimension::new(0,ncolidx-1)] })
@@ -36,10 +36,10 @@ module ConvolutionGenerator
   end
 end
 
-ConvolutionGenerator::set_lang(ConvolutionGenerator::C)
+BOAST::set_lang(BOAST::C)
 (1..11).each { |sec|
   (0..2).each { |var_idx|
-     k = ConvolutionGenerator::swann_kernel(sec,var_idx)
+     k = BOAST::swann_kernel(sec,var_idx)
      k.print
   }
 }

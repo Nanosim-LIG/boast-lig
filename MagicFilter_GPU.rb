@@ -1,11 +1,11 @@
 require './BOAST.rb'
 
-module ConvolutionGenerator
-  def ConvolutionGenerator::magicfilter_GPU_per_ref
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::CL)
+module BOAST
+  def BOAST::magicfilter_GPU_per_ref
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::CL)
     kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::CL
+    kernel.lang = BOAST::CL
     function_name = "magicfilter_per_ref"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
     ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
@@ -82,19 +82,19 @@ out[(jg*n+ig)]=tt;
 };
 EOF
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
+    BOAST::set_lang(lang)
     return kernel
   end
 
-  def ConvolutionGenerator::magicfilter_GPU(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
+  def BOAST::magicfilter_GPU(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
     array_start = @@array_start
     @@array_start = 0
 
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::CL)
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::CL)
     kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::CL
-    ConvolutionGenerator::set_output( kernel.code )
+    kernel.lang = BOAST::CL
+    BOAST::set_output( kernel.code )
 
     function_name = "magicfilter_n#{size_n}"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
@@ -183,19 +183,19 @@ EOF
     p.print
     @@array_start = array_start
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
+    BOAST::set_lang(lang)
     return kernel
   end
 
-  def ConvolutionGenerator::magicfilter_GPU_next(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
+  def BOAST::magicfilter_GPU_next(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
     array_start = @@array_start
     @@array_start = 0
 
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::CL)
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::CL)
     kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::CL
-    ConvolutionGenerator::set_output( kernel.code )
+    kernel.lang = BOAST::CL
+    BOAST::set_output( kernel.code )
 
     function_name = "magicfilter_n#{size_n}"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
@@ -317,19 +317,19 @@ EOF
     p.print
     @@array_start = array_start
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
+    BOAST::set_lang(lang)
     return kernel
   end
 
-  def ConvolutionGenerator::magicfilter_GPU_next_next(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
+  def BOAST::magicfilter_GPU_next_next(filt, center, size_n, max_work_item=256, local_mem_size=16384 )
     array_start = @@array_start
     @@array_start = 0
 
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::CL)
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::CL)
     kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::CL
-    ConvolutionGenerator::set_output( kernel.code )
+    kernel.lang = BOAST::CL
+    BOAST::set_output( kernel.code )
 
     function_name = "magicfilter_n#{size_n}"
     n = Variable::new("n",Int,{:direction => :in, :signed => false})
@@ -451,7 +451,7 @@ EOF
     p.print
     @@array_start = array_start
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
+    BOAST::set_lang(lang)
     return kernel
   end
 

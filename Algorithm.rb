@@ -11,24 +11,13 @@ class Object
     
     return klass.send(:parens, *a, &b)  if klass.respond_to? :parens
 
-    return ConvolutionGenerator::FuncCall::new(m,*a,&b) if s == ConvolutionGenerator
+    return BOAST::FuncCall::new(m,*a,&b) if s == BOAST
 
     orig_method_missing m, *a, &b
   end
 end
 
-module ConvolutionGenerator
-#  alias_method :orig_method_missing, :method_missing
-#  
-#  def ConvolutionGenerator.method_missing(m, *a, &b)
-#    klass = begin
-#      (self.is_a?(Module) ? self : self.class).const_get(m)
-#    rescue NameError
-#    end
-#  
-#    return klass.send(:parens, *a, &b)  if klass.respond_to? :parens
-#    orig_method_missing m, *a, &b
-#  end
+module BOAST
 
   FORTRAN = 1
   C = 2
@@ -45,101 +34,101 @@ module ConvolutionGenerator
   @@array_start = 1
   @@chain_code = false
 
-  def ConvolutionGenerator::push(vars = {})
+  def BOAST::push(vars = {})
     
   end
-  def ConvolutionGenerator::pop()
+  def BOAST::pop()
   end
 
-  def ConvolutionGenerator::print(a)
+  def BOAST::print(a)
     a.print
   end
 
-  def ConvolutionGenerator::decl(a)
+  def BOAST::decl(a)
     a.decl
   end
 
-  def ConvolutionGenerator::close(a)
+  def BOAST::close(a)
     a.close
   end
 
-  def ConvolutionGenerator::set_indent_level(level)
+  def BOAST::set_indent_level(level)
     @@indent_level = level
   end
 
-  def ConvolutionGenerator::get_indent_level
+  def BOAST::get_indent_level
     return @@indent_level
   end
 
-  def ConvolutionGenerator::increment_indent_level(increment = @@indent_increment)
+  def BOAST::increment_indent_level(increment = @@indent_increment)
     @@indent_level += increment
   end
   
-  def ConvolutionGenerator::decrement_indent_level(increment = @@indent_increment)
+  def BOAST::decrement_indent_level(increment = @@indent_increment)
     @@indent_level -= increment
   end
   
-  def ConvolutionGenerator::set_replace_constants(replace_constants)
+  def BOAST::set_replace_constants(replace_constants)
     @@replace_constants = replace_constants
   end
 
-  def ConvolutionGenerator::get_replace_constants
+  def BOAST::get_replace_constants
     return @@replace_constants
   end
 
-  def ConvolutionGenerator::set_default_int_signed(signed)
+  def BOAST::set_default_int_signed(signed)
     @@default_int_signed = signed
   end
 
-  def ConvolutionGenerator::get_default_int_signed
+  def BOAST::get_default_int_signed
     return @@default_int_signed
   end
 
-  def ConvolutionGenerator::set_default_int_size(size)
+  def BOAST::set_default_int_size(size)
     @@default_int_size = size
   end
 
-  def ConvolutionGenerator::get_default_int_size
+  def BOAST::get_default_int_size
     return @@default_int_size
   end
 
-  def ConvolutionGenerator::set_default_real_size(size)
+  def BOAST::set_default_real_size(size)
     @@default_real_size = size
   end
 
-  def ConvolutionGenerator::get_default_real_size
+  def BOAST::get_default_real_size
     return @@default_real_size
   end
 
-  def ConvolutionGenerator::set_lang(lang)
+  def BOAST::set_lang(lang)
     @@lang = lang
   end
 
-  def ConvolutionGenerator::get_lang
+  def BOAST::get_lang
     return @@lang
   end
 
-  def ConvolutionGenerator::set_output(output)
+  def BOAST::set_output(output)
     @@output = output
   end
 
-  def ConvolutionGenerator::get_output
+  def BOAST::get_output
     return @@output
   end
 
-  def ConvolutionGenerator::set_chain_code(chain_code)
+  def BOAST::set_chain_code(chain_code)
     @@chain_code = chain_code
   end
 
-  def ConvolutionGenerator::get_chain_code
+  def BOAST::get_chain_code
     return @@chain_code
   end
 
-  def ConvolutionGenerator::set_array_start(array_start)
+  def BOAST::set_array_start(array_start)
     @@array_start = array_start
   end
 
-  def ConvolutionGenerator::get_array_start
+  def BOAST::get_array_start
     return @@array_start
   end
 
@@ -216,10 +205,10 @@ module ConvolutionGenerator
     end
     def print(final=true)
       s=""
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      s += " "*BOAST::get_indent_level if final
       s += self.to_str
-      s += ";" if final and [C, CL, CUDA].include?( ConvolutionGenerator::get_lang ) 
-      ConvolutionGenerator::get_output.puts s if final
+      s += ";" if final and [C, CL, CUDA].include?( BOAST::get_lang ) 
+      BOAST::get_output.puts s if final
       return s
     end
   end
@@ -253,8 +242,8 @@ module ConvolutionGenerator
       self.to_str
     end
     def to_str
-      return self.to_str_fortran if ConvolutionGenerator::get_lang == FORTRAN
-      return self.to_str_c if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.to_str_fortran if BOAST::get_lang == FORTRAN
+      return self.to_str_c if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def to_str_fortran
       s = ""
@@ -266,7 +255,7 @@ module ConvolutionGenerator
       if dim.val2 then
         start = dim.val1
       else
-        start = ConvolutionGenerator::get_array_start
+        start = BOAST::get_array_start
       end
       sub = "#{@indexes.first} - #{start}"
       i=1
@@ -281,12 +270,12 @@ module ConvolutionGenerator
         if dim.val2 then
           start = dim.val1
         else
-          start = ConvolutionGenerator::get_array_start
+          start = BOAST::get_array_start
         end
         sub += " + (#{@indexes[i]} - (#{start}))"+ss
         i+=1
       }
-      if ConvolutionGenerator::get_replace_constants then
+      if BOAST::get_replace_constants then
         begin
 #         puts sub
          indx = eval(sub)
@@ -302,10 +291,10 @@ module ConvolutionGenerator
     end
     def print(final=true)
       s=""
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      s += " "*BOAST::get_indent_level if final
       s += self.to_str
-      s += ";" if final and [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
-      ConvolutionGenerator::get_output.puts s if final
+      s += ";" if final and [C, CL, CUDA].include?( BOAST::get_lang )
+      BOAST::get_output.puts s if final
       return s
     end
   end
@@ -340,9 +329,9 @@ module ConvolutionGenerator
     end    
 
     def to_str
-      if @constant and ConvolutionGenerator::get_replace_constants and not @dimension then
+      if @constant and BOAST::get_replace_constants and not @dimension then
         s = @constant.to_s 
-        s += "_wp" if ConvolutionGenerator::get_lang == FORTRAN and @type and @type.size == 8
+        s += "_wp" if BOAST::get_lang == FORTRAN and @type and @type.size == 8
         return s
       end
       return @name.to_str
@@ -401,12 +390,12 @@ module ConvolutionGenerator
     end
  
     def indent
-       return " "*ConvolutionGenerator::get_indent_level
+       return " "*BOAST::get_indent_level
     end
 
     def finalize
        s = ""
-       s += ";" if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+       s += ";" if [C, CL, CUDA].include?( BOAST::get_lang )
        s+="\n"
        return s
     end
@@ -415,9 +404,9 @@ module ConvolutionGenerator
       s = ""
       s += self.indent if final
       s += "const " if @constant or @direction == :in
-      s += "__global " if @direction and @dimension and ConvolutionGenerator::get_lang == CL
-      s += "__local " if @local and ConvolutionGenerator::get_lang == CL
-      s += "__shared__ " if @local and ConvolutionGenerator::get_lang == CUDA
+      s += "__global " if @direction and @dimension and BOAST::get_lang == CL
+      s += "__local " if @local and BOAST::get_lang == CL
+      s += "__shared__ " if @local and BOAST::get_lang == CUDA
       s += @type.decl
       if(@dimension and not @constant and not @local) then
         s += " *"
@@ -436,22 +425,22 @@ module ConvolutionGenerator
       end 
       s += " = #{@constant}" if @constant
       s += self.finalize if final
-      ConvolutionGenerator::get_output.print s if final
+      BOAST::get_output.print s if final
       return s
     end
 
     def decl(final=true)
-      return self.decl_fortran(final) if ConvolutionGenerator::get_lang == FORTRAN
-      return self.decl_c(final) if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.decl_fortran(final) if BOAST::get_lang == FORTRAN
+      return self.decl_c(final) if [C, CL, CUDA].include?( BOAST::get_lang )
     end
 
     def decl_c(final=true)
       s = ""
       s += self.indent if final
       s += "const " if @constant or @direction == :in
-      s += "__global " if @direction and @dimension and ConvolutionGenerator::get_lang == CL
-      s += "__local " if @local and ConvolutionGenerator::get_lang == CL
-      s += "__shared__ " if @local and ConvolutionGenerator::get_lang == CUDA
+      s += "__global " if @direction and @dimension and BOAST::get_lang == CL
+      s += "__local " if @local and BOAST::get_lang == CL
+      s += "__shared__ " if @local and BOAST::get_lang == CUDA
       s += @type.decl
       if(@dimension and not @constant and not @local) then
         s += " *"
@@ -467,7 +456,7 @@ module ConvolutionGenerator
       end 
       s += " = #{@constant}" if @constant
       s += self.finalize if final
-      ConvolutionGenerator::get_output.print s if final
+      BOAST::get_output.print s if final
       return s
     end
 
@@ -497,7 +486,7 @@ module ConvolutionGenerator
         s += "_wp" if not @dimension and @type and @type.size == 8
       end
       s += self.finalize if final
-      ConvolutionGenerator::get_output.print s if final
+      BOAST::get_output.print s if final
       return s
     end
 
@@ -511,7 +500,7 @@ module ConvolutionGenerator
       @vector_length = hash[:vector_length]
     end
     def decl
-      return "#{@name}" if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return "#{@name}" if [C, CL, CUDA].include?( BOAST::get_lang )
     end
   end
 
@@ -521,7 +510,7 @@ module ConvolutionGenerator
       if hash[:size] then
         @size = hash[:size]
       else
-        @size = ConvolutionGenerator::get_default_real_size
+        @size = BOAST::get_default_real_size
       end
       if hash[:vector_length] and hash[:vector_length] > 1 then
         @vector_length = hash[:vector_length]
@@ -530,11 +519,11 @@ module ConvolutionGenerator
       end
     end
     def decl
-      return "real(kind=#{@size})" if ConvolutionGenerator::get_lang == FORTRAN
-      if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang ) and @vector_length == 1 then
+      return "real(kind=#{@size})" if BOAST::get_lang == FORTRAN
+      if [C, CL, CUDA].include?( BOAST::get_lang ) and @vector_length == 1 then
         return "float" if @size == 4
         return "double" if @size == 8
-      elsif [CL, CUDA].include?(ConvolutionGenerator::get_lang) and @vector_length > 1 then
+      elsif [CL, CUDA].include?(BOAST::get_lang) and @vector_length > 1 then
         return "float#{@vector_length}" if @size == 4
         return "double#{@vector_length}" if @size == 8
       end
@@ -548,9 +537,9 @@ module ConvolutionGenerator
 
      def print(final=true)
       s=""
-      s += " "*ConvolutionGenerator::get_indent_level if final
-      ConvolutionGenerator::increment_indent_level
-      ConvolutionGenerator::get_output.puts s if final
+      s += " "*BOAST::get_indent_level if final
+      BOAST::increment_indent_level
+      BOAST::get_output.puts s if final
       if @block then
         s += "\n"
         @block.call
@@ -584,7 +573,7 @@ module ConvolutionGenerator
       headers.each { |h|
         s += "#include <#{h}>\n"
       }
-      if ConvolutionGenerator::get_lang == CL then
+      if BOAST::get_lang == CL then
         s += "__kernel "
         wgs = @properties[:reqd_work_group_size]
         if wgs then
@@ -615,35 +604,35 @@ module ConvolutionGenerator
       end
       s += ")"
       s += ";\n" if final
-      ConvolutionGenerator::get_output.print s if final
+      BOAST::get_output.print s if final
       return s
     end
 
     def call(*parameters)
       prefix = ""
-      prefix += "call " if ConvolutionGenerator::get_lang==FORTRAN
+      prefix += "call " if BOAST::get_lang==FORTRAN
       f = FuncCall::new(@name, *parameters)
       f.prefix = prefix
       return f
     end
     def decl(final=true)
-      return self.decl_fortran(final) if ConvolutionGenerator::get_lang==FORTRAN
-      return self.decl_c(final) if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.decl_fortran(final) if BOAST::get_lang==FORTRAN
+      return self.decl_c(final) if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def close(final=true)
-      return self.close_fortran(final) if ConvolutionGenerator::get_lang==FORTRAN
-      return self.close_c(final) if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.close_fortran(final) if BOAST::get_lang==FORTRAN
+      return self.close_c(final) if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def close_c(final=true)
-      ConvolutionGenerator::decrement_indent_level
+      BOAST::decrement_indent_level
       s = ""
       s += "  return #{@properties[:return]};\n" if @properties[:return]
       s += "}"
-      ConvolutionGenerator::get_output.puts s if final
+      BOAST::get_output.puts s if final
       return s
     end
     def close_fortran(final=true)
-      ConvolutionGenerator::decrement_indent_level
+      BOAST::decrement_indent_level
       s = ""
       if @properties[:return] then
         s += "  #{@name} = #{@properties[:return]}\n"
@@ -651,7 +640,7 @@ module ConvolutionGenerator
       else
         s += "END SUBROUTINE #{@name}"
       end
-      ConvolutionGenerator::get_output.puts s if final
+      BOAST::get_output.puts s if final
       return s
     end
 
@@ -666,15 +655,15 @@ module ConvolutionGenerator
 
     def decl_c(final=true)
       s = ""
-      s += self.header(ConvolutionGenerator::get_lang,false)
+      s += self.header(BOAST::get_lang,false)
       s += ";\n"
-      if ConvolutionGenerator::get_lang == CL then
+      if BOAST::get_lang == CL then
         s += "__kernel "
         wgs = @properties[:reqd_work_group_size]
         if wgs then
           s += "__attribute__((reqd_work_group_size(#{wgs[0]},#{wgs[1]},#{wgs[2]}))) "
         end
-      elsif ConvolutionGenerator::get_lang == CUDA then
+      elsif BOAST::get_lang == CUDA then
         s += "__global__ "
       end
       if @properties[:return] then
@@ -690,13 +679,13 @@ module ConvolutionGenerator
         }
       end
       s += "){\n"
-      ConvolutionGenerator::increment_indent_level
+      BOAST::increment_indent_level
       constants.each { |c|
-        s += " "*ConvolutionGenerator::get_indent_level
+        s += " "*BOAST::get_indent_level
         s += c.decl(false)
         s += ";\n"
       }
-      ConvolutionGenerator::get_output.print s if final
+      BOAST::get_output.print s if final
       return s
     end
     def decl_fortran(final=true)
@@ -714,19 +703,19 @@ module ConvolutionGenerator
         }
       end
       s += ")\n"
-      ConvolutionGenerator::increment_indent_level
-      s += " "*ConvolutionGenerator::get_indent_level + "integer, parameter :: wp=kind(1.0d0)\n"
+      BOAST::increment_indent_level
+      s += " "*BOAST::get_indent_level + "integer, parameter :: wp=kind(1.0d0)\n"
       constants.each { |c|
-        s += " "*ConvolutionGenerator::get_indent_level
+        s += " "*BOAST::get_indent_level
         s += c.decl(false)
         s += "\n"
       }
       parameters.each { |p|
-        s += " "*ConvolutionGenerator::get_indent_level
+        s += " "*BOAST::get_indent_level
         s += p.decl(false)
         s += "\n"
       }
-      ConvolutionGenerator::get_output.print s if final
+      BOAST::get_output.print s if final
       return s
     end
   end
@@ -742,8 +731,8 @@ module ConvolutionGenerator
       if not val1 then
         @val1 = nil
       elsif not val2 then
-        @val1 = ConvolutionGenerator::get_array_start
-        @val2 = val1 + ConvolutionGenerator::get_array_start - 1
+        @val1 = BOAST::get_array_start
+        @val2 = val1 + BOAST::get_array_start - 1
       else
         @val1 = val1
         @val2 = val2
@@ -752,11 +741,11 @@ module ConvolutionGenerator
     def to_str
       s = ""
       if val2 then
-        if ConvolutionGenerator::get_lang == FORTRAN then
+        if BOAST::get_lang == FORTRAN then
           s += val1.to_s
           s += ":"
           s += val2.to_s
-        elsif [C, CL, CUDA].include?( ConvolutionGenerator::get_lang ) then
+        elsif [C, CL, CUDA].include?( BOAST::get_lang ) then
           s += (val2 - val1 + 1).to_s
         end
       elsif not val1 then
@@ -779,11 +768,11 @@ module ConvolutionGenerator
       end
     end
     def decl
-      return "integer(kind=#{ConvolutionGenerator::get_default_int_signed})" if ConvolutionGenerator::get_lang == FORTRAN
+      return "integer(kind=#{BOAST::get_default_int_signed})" if BOAST::get_lang == FORTRAN
       if not @signed then
-        return "size_t" if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+        return "size_t" if [C, CL, CUDA].include?( BOAST::get_lang )
       else
-        return "ptrdiff_t" if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+        return "ptrdiff_t" if [C, CL, CUDA].include?( BOAST::get_lang )
       end
     end
   end
@@ -795,18 +784,18 @@ module ConvolutionGenerator
       if hash[:size] then
         @size = hash[:size]
       else
-        @size = ConvolutionGenerator::get_default_int_size
+        @size = BOAST::get_default_int_size
       end
       if hash[:signed] != nil then
         @signed = hash[:signed]
       else
-        @signed = ConvolutionGenerator::get_default_int_signed
+        @signed = BOAST::get_default_int_signed
       end
     end
     def decl
-      return "integer(kind=#{@size})" if ConvolutionGenerator::get_lang == FORTRAN
-      return "int#{8*@size}_t" if ConvolutionGenerator::get_lang == C
-      if ConvolutionGenerator::get_lang == CL then
+      return "integer(kind=#{@size})" if BOAST::get_lang == FORTRAN
+      return "int#{8*@size}_t" if BOAST::get_lang == C
+      if BOAST::get_lang == CL then
         #char="cl_"
         char=""
         char += "u" if not @signed
@@ -814,7 +803,7 @@ module ConvolutionGenerator
         return char += "short" if @size==2
         return char += "int" if @size==4
         return char += "long" if @size==8
-      elsif ConvolutionGenerator::get_lang == CUDA then
+      elsif BOAST::get_lang == CUDA then
         char = ""
         char += "unsigned " if not @signed
         return char += "char" if @size==1
@@ -834,8 +823,8 @@ module ConvolutionGenerator
       self.to_str
     end
     def to_str
-      return self.to_str_fortran if ConvolutionGenerator::get_lang == FORTRAN
-      return self.to_str_c if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.to_str_fortran if BOAST::get_lang == FORTRAN
+      return self.to_str_c if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def to_str_fortran
       s = ""
@@ -909,8 +898,8 @@ module ConvolutionGenerator
     end
 
     def to_str
-      raise "Ternary operator unsupported in Fortran!" if ConvolutionGenerator::get_lang == FORTRAN
-      return self.to_str_c if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      raise "Ternary operator unsupported in Fortran!" if BOAST::get_lang == FORTRAN
+      return self.to_str_c if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def to_str_c
       s = ""
@@ -918,10 +907,10 @@ module ConvolutionGenerator
     end
     def print(final=true)
       s=""
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      s += " "*BOAST::get_indent_level if final
       s += self.to_str
-      s += ";" if final and [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
-      ConvolutionGenerator::get_output.puts s if final
+      s += ";" if final and [C, CL, CUDA].include?( BOAST::get_lang )
+      BOAST::get_output.puts s if final
       return s
     end
 
@@ -971,8 +960,8 @@ module ConvolutionGenerator
  
 
     def to_str
-      return self.to_str_fortran if ConvolutionGenerator::get_lang == FORTRAN
-      return self.to_str_c if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.to_str_fortran if BOAST::get_lang == FORTRAN
+      return self.to_str_c if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def to_str_fortran
       s = ""
@@ -986,10 +975,10 @@ module ConvolutionGenerator
     end
     def print(final=true)
       s=""
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      s += " "*BOAST::get_indent_level if final
       s += self.to_str
-      s += ";" if final and [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
-      ConvolutionGenerator::get_output.puts s if final
+      s += ";" if final and [C, CL, CUDA].include?( BOAST::get_lang )
+      BOAST::get_output.puts s if final
       return s
     end
   end
@@ -1008,8 +997,8 @@ module ConvolutionGenerator
       self.to_str
     end
     def to_str
-      return self.to_str_fortran if ConvolutionGenerator::get_lang == FORTRAN
-      return self.to_str_c if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.to_str_fortran if BOAST::get_lang == FORTRAN
+      return self.to_str_c if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def to_str_fortran
       s = ""
@@ -1024,10 +1013,10 @@ module ConvolutionGenerator
     def print(*args)
       final = true
       s=""
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      s += " "*BOAST::get_indent_level if final
       s += self.to_str
-      ConvolutionGenerator::increment_indent_level      
-      ConvolutionGenerator::get_output.puts s if final
+      BOAST::increment_indent_level      
+      BOAST::get_output.puts s if final
       if @block then
         s += "\n"
         @block.call(*args)
@@ -1036,23 +1025,23 @@ module ConvolutionGenerator
       return s
     end
     def close(final=true)
-      return self.close_fortran(final) if ConvolutionGenerator::get_lang == FORTRAN
-      return self.close_c(final) if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.close_fortran(final) if BOAST::get_lang == FORTRAN
+      return self.close_c(final) if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def close_c(final=true)
       s = ""
-      ConvolutionGenerator::decrement_indent_level      
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      BOAST::decrement_indent_level      
+      s += " "*BOAST::get_indent_level if final
       s += "}"
-      ConvolutionGenerator::get_output.puts s if final
+      BOAST::get_output.puts s if final
       return s
     end
     def close_fortran(final=true)
       s = ""
-      ConvolutionGenerator::decrement_indent_level      
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      BOAST::decrement_indent_level      
+      s += " "*BOAST::get_indent_level if final
       s += "end do"
-      ConvolutionGenerator::get_output.puts s if final
+      BOAST::get_output.puts s if final
       return s
     end
 
@@ -1072,8 +1061,8 @@ module ConvolutionGenerator
       self.to_str
     end
     def to_str
-      return self.to_str_fortran if ConvolutionGenerator::get_lang == FORTRAN
-      return self.to_str_c if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.to_str_fortran if BOAST::get_lang == FORTRAN
+      return self.to_str_c if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def to_str_fortran
       s = ""
@@ -1088,10 +1077,10 @@ module ConvolutionGenerator
     def print(*args)
       final = true
       s=""
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      s += " "*BOAST::get_indent_level if final
       s += self.to_str
-      ConvolutionGenerator::increment_indent_level      
-      ConvolutionGenerator::get_output.puts s if final
+      BOAST::increment_indent_level      
+      BOAST::get_output.puts s if final
       if @block then
         s += "\n"
         @block.call(*args)
@@ -1100,23 +1089,23 @@ module ConvolutionGenerator
       return s
     end
     def close(final=true)
-      return self.close_fortran(final) if ConvolutionGenerator::get_lang == FORTRAN
-      return self.close_c(final) if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.close_fortran(final) if BOAST::get_lang == FORTRAN
+      return self.close_c(final) if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def close_c(final=true)
       s = ""
-      ConvolutionGenerator::decrement_indent_level      
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      BOAST::decrement_indent_level      
+      s += " "*BOAST::get_indent_level if final
       s += "}"
-      ConvolutionGenerator::get_output.puts s if final
+      BOAST::get_output.puts s if final
       return s
     end
     def close_fortran(final=true)
       s = ""
-      ConvolutionGenerator::decrement_indent_level      
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      BOAST::decrement_indent_level      
+      s += " "*BOAST::get_indent_level if final
       s += "end if"
-      ConvolutionGenerator::get_output.puts s if final
+      BOAST::get_output.puts s if final
       return s
     end
 
@@ -1143,8 +1132,8 @@ module ConvolutionGenerator
       self.to_str
     end
     def to_str
-      return self.to_str_fortran if ConvolutionGenerator::get_lang == FORTRAN
-      return self.to_str_c if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.to_str_fortran if BOAST::get_lang == FORTRAN
+      return self.to_str_c if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def to_str_fortran
       s = ""
@@ -1191,10 +1180,10 @@ module ConvolutionGenerator
     def print(*args)
       final = true
       s=""
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      s += " "*BOAST::get_indent_level if final
       s += self.to_str
-      ConvolutionGenerator::increment_indent_level      
-      ConvolutionGenerator::get_output.puts s if final
+      BOAST::increment_indent_level      
+      BOAST::get_output.puts s if final
       if @block then
         s += "\n"
         @block.call(*args)
@@ -1204,23 +1193,23 @@ module ConvolutionGenerator
     end
 
     def close(final=true)
-      return self.close_fortran(final) if ConvolutionGenerator::get_lang == FORTRAN
-      return self.close_c(final) if [C, CL, CUDA].include?( ConvolutionGenerator::get_lang )
+      return self.close_fortran(final) if BOAST::get_lang == FORTRAN
+      return self.close_c(final) if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def close_c(final=true)
       s = ""
-      ConvolutionGenerator::decrement_indent_level      
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      BOAST::decrement_indent_level      
+      s += " "*BOAST::get_indent_level if final
       s += "}"
-      ConvolutionGenerator::get_output.puts s if final
+      BOAST::get_output.puts s if final
       return s
     end
     def close_fortran(final=true)
       s = ""
-      ConvolutionGenerator::decrement_indent_level      
-      s += " "*ConvolutionGenerator::get_indent_level if final
+      BOAST::decrement_indent_level      
+      s += " "*BOAST::get_indent_level if final
       s += "enddo"
-      ConvolutionGenerator::get_output.puts s if final
+      BOAST::get_output.puts s if final
       return s
     end
   end
@@ -1228,4 +1217,4 @@ module ConvolutionGenerator
   Dim = Dimension
   Call = FuncCall
 end
-
+ConvolutionGenerator = BOAST

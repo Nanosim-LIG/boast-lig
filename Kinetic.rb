@@ -1,13 +1,13 @@
 require './BOAST.rb'
 require 'rubygems'
 require 'narray'
-module ConvolutionGenerator
+module BOAST
 
-  def ConvolutionGenerator::kinetic_per_ref_optim_ekin
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::FORTRAN)
+  def BOAST::kinetic_per_ref_optim_ekin
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::FORTRAN)
     kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::FORTRAN
+    kernel.lang = BOAST::FORTRAN
     function_name = "kinetic_per_ref_optim"
     n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
     n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
@@ -373,16 +373,16 @@ subroutine fill_mod_arr(arr,nleft,nright,n)
 END SUBROUTINE fill_mod_arr
 EOF
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
+    BOAST::set_lang(lang)
     return kernel
   end
 
 
-  def ConvolutionGenerator::kinetic_per_ref_optim
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::FORTRAN)
+  def BOAST::kinetic_per_ref_optim
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::FORTRAN)
     kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::FORTRAN
+    kernel.lang = BOAST::FORTRAN
     function_name = "kinetic_per_ref_optim"
     n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
     n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
@@ -960,16 +960,16 @@ END SUBROUTINE fill_mod_arr
 
 EOF
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
+    BOAST::set_lang(lang)
     return kernel
   end
 
 
-  def ConvolutionGenerator::kinetic_per_ref
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::FORTRAN)
+  def BOAST::kinetic_per_ref
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::FORTRAN)
     kernel = CKernel::new
-    kernel.lang = ConvolutionGenerator::FORTRAN
+    kernel.lang = BOAST::FORTRAN
     function_name = "kinetic_per_ref"
     n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
     n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
@@ -1064,14 +1064,14 @@ subroutine kinetic_per_ref(n1,n2,n3,hgrid,x,y,c)
 END SUBROUTINE kinetic_per_ref
 EOF
     kernel.procedure = p
-    ConvolutionGenerator::set_lang(lang)
+    BOAST::set_lang(lang)
     return kernel
   end
 
-  def ConvolutionGenerator::kinetic(filt, center, unroll, ekin = false, free=[false,false,false],mod_arr=[false,false,false])
+  def BOAST::kinetic(filt, center, unroll, ekin = false, free=[false,false,false],mod_arr=[false,false,false])
     kernel = CKernel::new
-    ConvolutionGenerator::set_output( kernel.code )
-    kernel.lang = ConvolutionGenerator::get_lang
+    BOAST::set_output( kernel.code )
+    kernel.lang = BOAST::get_lang
     function_name = "kinetic"
     fr = free.collect { |e|
       if e
@@ -1096,7 +1096,7 @@ EOF
     eks = [ek1, ek2, ek3]
     x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
     y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
-    if ConvolutionGenerator::get_lang == C then
+    if BOAST::get_lang == C then
       @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
       @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
@@ -1194,7 +1194,7 @@ EOF
 
 
     kinetic_d = lambda { |t,dim,unro,init,reliq,unrol|
-      @@output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
       For::new(iters[dim[0]], (reliq and unro == dim[0] ) ? (dims[dim[0]]/unrol)*unrol : 0 , (unro == dim[0] and not reliq) ? dims[dim[0]]-unrol : dims[dim[0]]-1, unro == dim[0] ? t.length : 1 ) {
         For::new(iters[dim[1]], (reliq and unro == dim[1] ) ? (dims[dim[1]]/unrol)*unrol : 0 , (unro == dim[1] and not reliq) ? dims[dim[1]]-unrol : dims[dim[1]]-1, unro == dim[1] ? t.length : 1) {
           For::new(iters[dim[2]], 0, -lowfil) {
@@ -1208,7 +1208,7 @@ EOF
           }.print
         }.print
       }.print
-      @@output.print("!$omp end do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
     }
 
     vars = [n1,n2,n3,hgrid,x,y]
@@ -1244,7 +1244,7 @@ EOF
       
 
       
-      if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN then
+      if BOAST::get_lang == BOAST::FORTRAN then
         @@output.print("!$omp parallel default(shared)&\n")
         @@output.print("!$omp reduction(+:#{eks.join(",")})&\n") if ekin
         @@output.print("!$omp private(i1,i2,i3,k,l)&\n")
@@ -1258,7 +1258,7 @@ EOF
       kinetic_d.call([tt[0]], [2,0,1], 2, false,true,unroll[1]) if unroll[1] > 1
       kinetic_d.call(tt[0...unroll[2]], [1,0,2], 0, false,false,unroll[2]) 
       kinetic_d.call([tt[0]], [1,0,2], 0, false,true,unroll[2]) if unroll[2] > 1
-      @@output.print("!$omp  end parallel\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
+      @@output.print("!$omp  end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
       (0..2).each { |ind|
         (ek[ind] === eks[ind]).print if ekin
       }

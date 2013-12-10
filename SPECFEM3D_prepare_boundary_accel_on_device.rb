@@ -1,5 +1,5 @@
-module ConvolutionGenerator
-  def ConvolutionGenerator::prepare_boundary_accel_on_device
+module BOAST
+  def BOAST::prepare_boundary_accel_on_device
     old_array_start = @@array_start
     @@array_start = 0
     kernel = CKernel::new
@@ -10,13 +10,13 @@ module ConvolutionGenerator
     d_send_accel_buffer = Variable::new("d_send_accel_buffer",Real,{:direction => :out, :dimension => [ Dimension::new(num_interfaces*max_nibool_interfaces*3) ]})
     d_nibool_interfaces = Variable::new("d_nibool_interfaces",Int,{:direction => :in, :dimension => [ Dimension::new(num_interfaces) ]})
     d_ibool_interfaces = Variable::new("d_ibool_interfaces",Int,{:direction => :in, :dimension => [ Dimension::new(num_interfaces*max_nibool_interfaces) ]})
-    if kernel.lang == ConvolutionGenerator::CL and ConvolutionGenerator::get_default_real_size == 8 then
+    if kernel.lang == BOAST::CL and BOAST::get_default_real_size == 8 then
       @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
     end
     p = Procedure::new(function_name, [d_accel,d_send_accel_buffer,num_interfaces,max_nibool_interfaces,d_nibool_interfaces,d_ibool_interfaces])
-    if(ConvolutionGenerator::get_lang == ConvolutionGenerator::CUDA) then
+    if(BOAST::get_lang == BOAST::CUDA) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
-    elsif(ConvolutionGenerator::get_lang == ConvolutionGenerator::CL) then
+    elsif(BOAST::get_lang == BOAST::CL) then
       p.decl
       id = Variable::new("id", Int)
       iglob = Variable::new("iglob", Int)

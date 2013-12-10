@@ -1,5 +1,5 @@
 require './Algorithm.rb'
-module ConvolutionGenerator
+module BOAST
 #subroutine syn_rot_per_temp(n,ndat,x,y)
 #  use module_base
 #  implicit none
@@ -59,7 +59,7 @@ module ConvolutionGenerator
 #
 #END SUBROUTINE syn_rot_per_temp
 
-  def ConvolutionGenerator::Synthesis(filt, center, unroll, free=false )
+  def BOAST::Synthesis(filt, center, unroll, free=false )
     function_name = "synthesis"
     if free then
       function_name += "_free"
@@ -192,7 +192,7 @@ FILTER = ["0.0018899503327676891843",
           "-0.00054213233180001068935",
           "-0.0033824159510050025955"]
 
-ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-ConvolutionGenerator::Synthesis(FILTER,7,0,false)
-ConvolutionGenerator::Synthesis(FILTER,7,2,false)
-ConvolutionGenerator::Synthesis(FILTER,7,8,false)
+BOAST::set_lang( BOAST::FORTRAN )
+BOAST::Synthesis(FILTER,7,0,false)
+BOAST::Synthesis(FILTER,7,2,false)
+BOAST::Synthesis(FILTER,7,8,false)

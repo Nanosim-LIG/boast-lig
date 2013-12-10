@@ -48,11 +48,11 @@ hgrid[2] = 0.7
 kstrten_ref = NArray.float(3)
 kstrten = NArray.float(3)
 epsilon = 10e-13
-ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-k = ConvolutionGenerator::kinetic_per_ref
+BOAST::set_lang( BOAST::FORTRAN )
+k = BOAST::kinetic_per_ref
 stats = k.run(n1, n2, n3, hgrid, input, output_ref, 0.5)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-k = ConvolutionGenerator::kinetic_per_ref_optim
+k = BOAST::kinetic_per_ref_optim
 #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -ftree-vectorize -fopenmp",:LDFLAGS => "-fopenmp"})
 k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -axSSE4.2 -openmp",:LDFLAGS => "-openmp"})
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output_ref, 0.5)
@@ -65,7 +65,7 @@ diff.each { |elem|
 }
 
 (1..0).each{ |unroll|
-  k = ConvolutionGenerator::kinetic(filt,14,[12,8,12],false,[false]*3,[true]*3)
+  k = BOAST::kinetic(filt,14,[12,8,12],false,[false]*3,[true]*3)
   #k.print
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
@@ -84,7 +84,7 @@ diff.each { |elem|
 }
 
 (1..12).each{ |unroll|
-  k = ConvolutionGenerator::kinetic_1d(filt,14,unroll,false,false,true)
+  k = BOAST::kinetic_1d(filt,14,unroll,false,false,true)
   input_y = 0.5*input
   #k.print
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
@@ -117,9 +117,9 @@ diff.each { |elem|
 
 exit
 
-k = ConvolutionGenerator::kinetic_per_ref_optim_ekin
+k = BOAST::kinetic_per_ref_optim_ekin
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output_ref, kstrten_ref)
-k = ConvolutionGenerator::kinetic(filt,14,1,true)
+k = BOAST::kinetic(filt,14,1,true)
 k.print
 stats = k.run(n1, n2, n3, hgrid, input, output, kstrten)
 diff = (output_ref - output).abs
@@ -132,7 +132,7 @@ diff.each { |elem|
 }
 #
 #(0..8).each{ |unroll|
-#  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
+#  k = BOAST::Synthesis(FILTER,7,unroll,false)
 #  k.print if unroll == 0
 #  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
 #  stats = k.run(n1/2, n2*n3, input, output)
@@ -143,9 +143,9 @@ diff.each { |elem|
 #  }
 #  puts "#{k.procedure.name}: #{stats["duration"]*1.0e3} #{32*n1*n2*n3 / (stats["duration"]*1.0e9)} GFlops"
 #}
-#ConvolutionGenerator::set_lang( ConvolutionGenerator::C )
+#BOAST::set_lang( BOAST::C )
 #(0..8).each{ |unroll|
-#  k = ConvolutionGenerator::Synthesis(FILTER,7,unroll,false)
+#  k = BOAST::Synthesis(FILTER,7,unroll,false)
 #
 #  stats = k.run(n1/2, n2*n3, input, output)
 #  stats = k.run(n1/2, n2*n3, input, output)

@@ -29,13 +29,13 @@ epsilon = 10e-15
 
 
 
-ConvolutionGenerator::set_lang( ConvolutionGenerator::FORTRAN )
-k = ConvolutionGenerator::magicfilter_per_ref
+BOAST::set_lang( BOAST::FORTRAN )
+k = BOAST::magicfilter_per_ref
 stats = k.run(n1, n2*n3, input, output_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-#ConvolutionGenerator::MagicFilter(FILTER,8,0,false).run(32, 32, " "*32*32*8, " "*32*32*8)
+#BOAST::MagicFilter(FILTER,8,0,false).run(32, 32, " "*32*32*8, " "*32*32*8)
 1.upto(2) { |i|
-  k = ConvolutionGenerator::MagicFilter(FILTER,8,i,false)
+  k = BOAST::MagicFilter(FILTER,8,i,false)
   stats = k.run(n1, n2*n3, input, output)
   stats = k.run(n1, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -45,12 +45,12 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
 
-k = ConvolutionGenerator::magicfilter_per_ref(true)
+k = BOAST::magicfilter_per_ref(true)
 stats = k.run(n1, n2*n3, input, output_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-#ConvolutionGenerator::MagicFilter(FILTER,8,0,false).run(32, 32, " "*32*32*8, " "*32*32*8)
+#BOAST::MagicFilter(FILTER,8,0,false).run(32, 32, " "*32*32*8, " "*32*32*8)
 1.upto(2) { |i|
-  k = ConvolutionGenerator::MagicFilter(FILTER,8,i,true)
+  k = BOAST::MagicFilter(FILTER,8,i,true)
   stats = k.run(n1, n2*n3, input, output)
   stats = k.run(n1, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -63,11 +63,11 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
 input = NArray.float(n1,n2,n3).random
 output_ref = NArray.float(n2,n3,n1+15)
 output = NArray.float(n2,n3,n1+15)
-k = ConvolutionGenerator::magicfilter_per_ref(false, true)
+k = BOAST::magicfilter_per_ref(false, true)
 stats = k.run(n1, n2*n3, input, output_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 1.upto(2) { |i|
-  k = ConvolutionGenerator::MagicFilter(FILTER,8,i,false,true)
+  k = BOAST::MagicFilter(FILTER,8,i,false,true)
   stats = k.run(n1, n2*n3, input, output)
   stats = k.run(n1, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -80,11 +80,11 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
 input = NArray.float(n1+15,n2,n3).random
 output_ref = NArray.float(n2,n3,n1)
 output = NArray.float(n2,n3,n1)
-k = ConvolutionGenerator::magicfilter_per_ref(true, true)
+k = BOAST::magicfilter_per_ref(true, true)
 stats = k.run(n1, n2*n3, input, output_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 1.upto(2) { |i|
-  k = ConvolutionGenerator::MagicFilter(FILTER,8,i,true,true)
+  k = BOAST::MagicFilter(FILTER,8,i,true,true)
   stats = k.run(n1, n2*n3, input, output)
   stats = k.run(n1, n2*n3, input, output)
   diff = (output_ref - output).abs

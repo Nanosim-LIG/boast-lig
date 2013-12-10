@@ -1,13 +1,13 @@
 require "./BOAST.rb"
 require 'narray'
 
-module ConvolutionGenerator
-  def ConvolutionGenerator::kernel_read_vectorized( unrolled = 1, elem_size = 8, length = 2, machine = "sse3")
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::C)
+module BOAST
+  def BOAST::kernel_read_vectorized( unrolled = 1, elem_size = 8, length = 2, machine = "sse3")
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::C)
     kernel = CKernel::new
-    ConvolutionGenerator::set_output( kernel.code )
-    kernel.lang = ConvolutionGenerator::C
+    BOAST::set_output( kernel.code )
+    kernel.lang = BOAST::C
     function_name = "kernel_read_ref"
     function_name += "_#{unrolled}l_#{elem_size*8}b#{length}v"
     m_start = Variable::new("m_start",Int,{:direction => :in})
@@ -88,12 +88,12 @@ module ConvolutionGenerator
     kernel.procedure = p
     return kernel
   end
-  def ConvolutionGenerator::kernel_read_ref( unrolled = 1, size = 4 )
-    lang = ConvolutionGenerator::get_lang
-    ConvolutionGenerator::set_lang(ConvolutionGenerator::C)
+  def BOAST::kernel_read_ref( unrolled = 1, size = 4 )
+    lang = BOAST::get_lang
+    BOAST::set_lang(BOAST::C)
     kernel = CKernel::new
-    ConvolutionGenerator::set_output( kernel.code )
-    kernel.lang = ConvolutionGenerator::C
+    BOAST::set_output( kernel.code )
+    kernel.lang = BOAST::C
     function_name = "kernel_read_ref"
     function_name += "_#{unrolled}l_#{size*8}b"
     m_start = Variable::new("m_start",Int,{:direction => :in})
