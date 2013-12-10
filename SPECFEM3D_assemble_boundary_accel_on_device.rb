@@ -1,7 +1,6 @@
 module BOAST
   def BOAST::assemble_boundary_accel_on_device
-    old_array_start = @@array_start
-    @@array_start = 0
+    push_env( :array_start => 0 )
     kernel = CKernel::new
     function_name = "assemble_boundary_accel_on_device"
     num_interfaces        = Var("num_interfaces",       Int, {:dir => :in})
@@ -64,7 +63,7 @@ EOF
       raise "Unsupported language!"
     end
     kernel.procedure = p
-    @@array_start = old_array_start
+    pop_env( :array_start )
     return kernel
   end
 end

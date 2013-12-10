@@ -34,10 +34,28 @@ module BOAST
   @@array_start = 1
   @@chain_code = false
 
-  def BOAST::push(vars = {})
-    
+  @@env = Hash.new{|h, k| h[k] = []}
+
+  def BOAST::push_env(vars = {})
+    vars.each { |key,value|
+      var = nil
+      begin
+        var = BOAST::class_variable_get("@@"+key.to_s)
+      rescue
+        raise "Unknown module variable #{key}!"
+      end
+      @@env[key].push(var)
+      BOAST::class_variable_set("@@"+key.to_s, value)
+    }
   end
-  def BOAST::pop()
+
+  def BOAST::pop_env(*vars)
+    vars.each { |key|
+      raise "Unknown module variable #{key}!" unless @@env.has_key?(key)
+      ret = @@env[key].pop
+      raise "No stored value for #{key}!" if ret.nil?
+      BOAST::class_variable_set("@@"+key.to_s, ret)
+    }
   end
 
   def BOAST::print(a)
