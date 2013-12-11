@@ -1,87 +1,66 @@
 module BOAST
   def BOAST::compute_add_sources_kernel
-    old_array_start = @@array_start
-    @@array_start = 0
+    push_env( :array_start => 0 )
     kernel = CKernel::new
     function_name = "compute_add_sources_kernel"
-    accel = Variable::new("accel", Real,{:direction => :out, :dimension => [ Dimension::new ]})
-    ibool = Variable::new("ibool",Int,{:direction => :in, :dimension => [ Dimension::new ]})
-    sourcearrays = Variable::new("sourcearrays", Real,{:direction => :in, :dimension => [ Dimension::new ]})
-    stf_pre_compute = Variable::new("stf_pre_compute", Real,{:size => 8, :direction => :in, :dimension => [ Dimension::new ]})
-    myrank = Variable::new("myrank",Int,{:direction => :in})
-    islice_selected_source = Variable::new("islice_selected_source",Int,{:direction => :in, :dimension => [ Dimension::new ]})
-    ispec_selected_source = Variable::new("ispec_selected_source",Int,{:direction => :in, :dimension => [ Dimension::new ]})
-    nsources = Variable::new("nsources",Int,{:direction => :in})
+    accel =                  Real("accel",                            :dir => :out,:dim => [ Dim() ] )
+    ibool =                  Int("ibool",                             :dir => :in, :dim => [ Dim() ] )
+    sourcearrays =           Real("sourcearrays",                     :dir => :in, :dim => [ Dim() ] )
+    stf_pre_compute =        Real("stf_pre_compute",      :size => 8, :dir => :in, :dim => [ Dim() ] )
+    myrank =                 Int("myrank",                            :dir => :in)
+    islice_selected_source = Int("islice_selected_source",            :dir => :in, :dim => [ Dim() ] )
+    ispec_selected_source =  Int("ispec_selected_source",             :dir => :in, :dim => [ Dim() ] )
+    nsources =               Int("nsources",                          :dir => :in)
 
-    ndim =  Variable::new("NDIM", Int, :constant => 3)
-    ngllx =  Variable::new("NGLLX", Int, :constant => 5)
-    if kernel.lang == BOAST::CL and BOAST::get_default_real_size == 8 then
-      @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
-      @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
-    end
-    p = Procedure::new(function_name, [accel,ibool,sourcearrays,stf_pre_compute,myrank,islice_selected_source,ispec_selected_source,nsources], [ndim,ngllx])
-    if(BOAST::get_lang == BOAST::CUDA) then
+    ndim =                   Int("NDIM",                  :const => 3)
+    ngllx =                  Int("NGLLX",                 :const => 5)
+    p = Procedure(function_name, [accel,ibool,sourcearrays,stf_pre_compute,myrank,islice_selected_source,ispec_selected_source,nsources], [ndim,ngllx])
+    if(get_lang == CUDA) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
-    elsif(BOAST::get_lang == BOAST::CL) then
-      type_f = Real::new.decl
-      if BOAST::get_default_real_size == 8 then
-        type_i = "unsigned long int"
-        cmpx_name = "atom_cmpxchg"
-      else
-        type_i = "unsigned int"
-        cmpx_name = "atomic_cmpxchg"
+    elsif(get_lang == CL) then
+      @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
+      if get_default_real_size == 8 then
+        @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
       end
-      @@output.print <<EOF
-static inline void atomicAdd_f(volatile __global float *source, const float val) {
-  union {
-    #{type_i} iVal;
-    #{type_f} fVal;
-  } res, orig;
-  do {
-    orig.fVal = *source;
-    res.fVal = orig.fVal + val;
-  } while (#{cmpx_name}((volatile __global #{type_i} *)source, orig.iVal, res.iVal) != orig.iVal);
-}
-#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
-#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*(j))))
-EOF
-      p.decl
-      ispec = Variable::new("ispec", Int)
-      iglob = Variable::new("iglob", Int)
-      stf = Variable::new("stf", Real)
-      isource = Variable::new("isource", Int)
-      i = Variable::new("i", Int)
-      j = Variable::new("j", Int)
-      k = Variable::new("k", Int)
-      ispec.decl
-      iglob.decl
-      stf.decl
-      isource.decl
-      i.decl
-      j.decl
-      k.decl
-      (i === FuncCall::new("get_local_id",0)).print
-      (j === FuncCall::new("get_local_id",1)).print
-      (k === FuncCall::new("get_local_id",2)).print
-      (isource === FuncCall::new("get_group_id",0) + FuncCall::new("get_num_groups",0)*FuncCall::new("get_group_id",1)).print
+      load "./atomicAdd_f.rb"
+      load "./INDEX4.rb"
+      load "./INDEX5.rb"
+      decl p
+      ispec =   Int( "ispec")
+      iglob =   Int( "iglob")
+      stf =     Real("stf")
+      isource = Int( "isource")
+      i =       Int( "i")
+      j =       Int( "j")
+      k =       Int( "k")
+      decl ispec
+      decl iglob
+      decl stf
+      decl isource
+      decl i
+      decl j
+      decl k
+      print i === get_local_id(0)
+      print j === get_local_id(1)
+      print k === get_local_id(2)
+      print isource === get_group_id(0) + get_num_groups(0)*get_group_id(1)
 
-      If::new(isource < nsources) {
-        If::new(myrank == islice_selected_source[isource]) {
-          (ispec === ispec_selected_source[isource] - 1).print
-          (stf === stf_pre_compute[isource]).print
-          (iglob === ibool[FuncCall::new("INDEX4",ngllx,ngllx,ngllx,i,j,k,ispec)] - 1).print
+      print If(isource < nsources) {
+        print If(myrank == islice_selected_source[isource]) {
+          print ispec === ispec_selected_source[isource] - 1
+          print stf === stf_pre_compute[isource]
+          print iglob === ibool[INDEX4(ngllx,ngllx,ngllx,i,j,k,ispec)] - 1
           (0..2).each { |indx|
-            (FuncCall::new("atomicAdd_f",accel+iglob*3+indx, sourcearrays[FuncCall::new("INDEX5",ndim,ngllx,ngllx,ngllx,indx,i,j,k,isource)]*stf)).print
+            print atomicAdd_f(accel+iglob*3+indx, sourcearrays[INDEX5(ndim,ngllx,ngllx,ngllx,indx,i,j,k,isource)]*stf)
           }
-        }.print
-      }.print
-
-      p.close
+        }
+      }
+      close p
     else
       raise "Unsupported language!"
     end
+    pop_env(:array_start)
     kernel.procedure = p
-    @@array_start = old_array_start
     return kernel
   end
 end

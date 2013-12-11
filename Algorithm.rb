@@ -36,6 +36,7 @@ module BOAST
 
   @@env = Hash.new{|h, k| h[k] = []}
 
+
   def BOAST::push_env(vars = {})
     vars.each { |key,value|
       var = nil
@@ -151,6 +152,10 @@ module BOAST
   end
 
   class Expression
+    def self.parens(*args,&block)
+      return self::new(*args,&block)
+    end
+
     attr_reader :operator
     attr_reader :operand1
     attr_reader :operand2
@@ -523,6 +528,10 @@ module BOAST
   end
 
   class Real
+    def self.parens(*args,&block)
+      return Variable::new(args[0], self, *args[1..-1], &block)
+    end
+
     attr_reader :size
     def initialize(hash={})
       if hash[:size] then
@@ -796,6 +805,10 @@ module BOAST
   end
  
   class Int
+    def self.parens(*args,&block)
+      return Variable::new(args[0], self, *args[1..-1], &block)
+    end
+
     attr_reader :size
     attr_reader :signed
     def initialize(hash={})
@@ -869,6 +882,11 @@ module BOAST
   end
 
   class Ternary
+
+    def self.parens(*args,&block)
+      return self::new(*args,&block)
+    end
+
     attr_reader :operand1
     attr_reader :operand2
     attr_reader :operand3
@@ -964,6 +982,10 @@ module BOAST
       return Expression::new("*",self,x)
     end
  
+    def /(x)
+      return Expression::new("/",self,x)
+    end
+
     def -(x)
       return Expression::new("-",self,x)
     end

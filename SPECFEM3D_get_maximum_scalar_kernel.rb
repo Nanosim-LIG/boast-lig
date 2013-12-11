@@ -1,54 +1,53 @@
 module BOAST
   def BOAST::get_maximum_scalar_kernel
-    old_array_start = @@array_start
-    @@array_start = 0
+    push_env( :array_start => 0 )
     kernel = CKernel::new
     function_name = "get_maximum_scalar_kernel"
-    size = Variable::new("size",Int,{:direction => :in})
-    array = Variable::new("array", Real,{:direction => :in, :dimension => [ Dimension::new(size)]})
-    d_max = Variable::new("d_max", Real,{:direction => :out, :dimension => [ Dimension::new]})
-    blocksize_transfer =  Variable::new("blocksize_transfer", Int, :constant => 256)
-    if kernel.lang == BOAST::CL and BOAST::get_default_real_size == 8 then
-      @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
-    end
-    p = Procedure::new(function_name, [array, size, d_max], [blocksize_transfer])
-    if(BOAST::get_lang == BOAST::CUDA) then
+    size =               Int("size",               :dir => :in)
+    array =              Real("array",             :dir => :in,  :dim => [ Dim(size)])
+    d_max =              Real("d_max",             :dir => :out, :dim => [ Dim()])
+    blocksize_transfer = Int("blocksize_transfer", :const => 256)
+    p = Procedure(function_name, [array, size, d_max], [blocksize_transfer])
+    if(get_lang == CUDA) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
-    elsif(BOAST::get_lang == BOAST::CL) then
-      p.decl
-      sdata = Variable::new("sdata", Real, { :local => true, :dimension => [Dimension::new(blocksize_transfer)] } )
-      tid = Variable::new("tid", Int)
-      bx = Variable::new("bx", Int)
-      i = Variable::new("i", Int)
-      s = Variable::new("s", Int)
-      sdata.decl
-      tid.decl
-      bx.decl
-      i.decl
-      s.decl
-      (tid === FuncCall::new("get_local_id",0)).print
-      (bx === FuncCall::new("get_group_id",1)*FuncCall::new("get_num_groups",0) + FuncCall::new("get_group_id",0)).print
-      (i === tid + bx*FuncCall::new("get_local_size",0)).print;
-      (sdata[tid] === Ternary::new( i < size, FuncCall::new("fabs", array[i]), 0.0)).print;
-      FuncCall::new( "barrier","CLK_LOCAL_MEM_FENCE").print
-      (s === Expression::new("/",FuncCall::new("get_local_size",0),2)).print
-      While::new(s > 0) {
-        If::new(tid < s) {
-          If::new( sdata[tid] < sdata[tid + s] ) {
-            (sdata[tid] === sdata[tid + s]).print
-          }.print
-        }.print
-        (s === Expression::new(">>",s,1)).print
-      }.print
-      If::new(tid == 0) {
-        (d_max[bx] === sdata[0]).print
-      }.print
-      p.close
+    elsif(get_lang == CL) then
+      if get_default_real_size == 8 then
+        @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
+      end
+      decl p
+      sdata = Real("sdata",  :local => true, :dim => [Dim(blocksize_transfer)] )
+      tid =   Int("tid")
+      bx =    Int("bx")
+      i =     Int("i")
+      s =     Int("s")
+      decl sdata
+      decl tid
+      decl bx
+      decl i
+      decl s
+      print tid === get_local_id(0)
+      print bx === get_group_id(1)*get_num_groups(0) + get_group_id(0)
+      print i === tid + bx*get_local_size(0)
+      print sdata[tid] === Ternary( i < size, fabs(array[i]), 0.0)
+      print barrier("CLK_LOCAL_MEM_FENCE")
+      print s === get_local_size(0)/2
+      print While(s > 0) {
+        print If(tid < s) {
+          print If( sdata[tid] < sdata[tid + s] ) {
+            print sdata[tid] === sdata[tid + s]
+          }
+        }
+        print s === Expression(">>",s,1)
+      }
+      print If(tid == 0) {
+        print d_max[bx] === sdata[0]
+      }
+      close p
     else
       raise "Unsupported language!"
     end
+    pop_env( :array_start )
     kernel.procedure = p
-    @@array_start = old_array_start
     return kernel
   end
 end
