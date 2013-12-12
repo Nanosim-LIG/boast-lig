@@ -204,7 +204,11 @@ module BOAST
     def dereference
       return Expression::new("*",nil,self)
     end
-   
+
+    def struct_reference(x)
+      return Expression::new(".",self,x)
+    end
+ 
     def -(x)
       return Expression::new("-",self,x)
     end
@@ -216,9 +220,9 @@ module BOAST
         s += @operand1.to_s
         s += ")" if (@operator == "*" or @operator == "/") 
       end        
-      s += " " if @operator.to_s != "++"
+      s += " " unless @operator.to_s == "++" or @operator.to_s == "."
       s += @operator.to_s 
-      s += " "
+      s += " " unless @operator.to_s == "."
       if @operand2 then
         s += "(" if (@operator == "*" or @operator == "/" or @operator == "-" or @operator == "+") 
         s += @operand2.to_s

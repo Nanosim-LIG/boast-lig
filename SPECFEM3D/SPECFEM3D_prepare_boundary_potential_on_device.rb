@@ -1,5 +1,5 @@
 module BOAST
-  def BOAST::prepare_boundary_potential_on_device
+  def BOAST::prepare_boundary_potential_on_device(ref = true)
     push_env( :array_start => 0 )
     kernel = CKernel::new
     function_name = "prepare_boundary_potential_on_device"
@@ -10,10 +10,10 @@ module BOAST
     d_nibool_interfaces =             Int( "d_nibool_interfaces",             :dir => :in, :dim => [ Dim(num_interfaces) ] )
     d_ibool_interfaces =              Int( "d_ibool_interfaces",              :dir => :in, :dim => [ Dim(num_interfaces*max_nibool_interfaces) ] )
     p = Procedure(function_name, [d_potential_dot_dot_acoustic,d_send_potential_dot_dot_buffer,num_interfaces,max_nibool_interfaces,d_nibool_interfaces,d_ibool_interfaces])
-    if(get_lang == CUDA) then
+    if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
-    elsif(get_lang == CL) then
-      if get_default_real_size == 8 then
+    elsif(get_lang == CUDA or get_lang == CL) then
+      if(get_lang == CL and get_default_real_size == 8) then
         @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
       end
       decl p

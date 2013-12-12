@@ -1,4 +1,6 @@
+Dir.chdir("..")
 require './BOAST.rb'
+Dir.chdir("SPECFEM3D")
 require 'rubygems'
 require 'narray'
 
@@ -7,10 +9,10 @@ def rndup( val, div)
 end
 
 kernels = [
-:prepare_boundary_potential_on_device,
-:assemble_boundary_potential_on_device,
-:prepare_boundary_accel_on_device,
 :assemble_boundary_accel_on_device,
+:assemble_boundary_potential_on_device,
+:prepare_boundary_potential_on_device,
+:prepare_boundary_accel_on_device,
 :get_maximum_scalar_kernel,
 :get_maximum_vector_kernel,
 :compute_add_sources_adjoint_kernel,
@@ -26,8 +28,10 @@ kernels.each { |kern|
   langs.each { |lang|
     puts lang.to_s
     BOAST::set_lang( BOAST::const_get(lang))
-    k = BOAST::method(kern).call
-    k.print
+    puts "REF" if lang == :CUDA
+    BOAST::method(kern).call.print
+    puts "Generated" if lang == :CUDA
+    BOAST::method(kern).call(false).print if lang == :CUDA
   }
 }
 

@@ -1,5 +1,5 @@
 module BOAST
-  def BOAST::get_maximum_vector_kernel
+  def BOAST::get_maximum_vector_kernel(ref = true)
     push_env( :array_start => 0 )
     kernel = CKernel::new
     function_name = "get_maximum_vector_kernel"
@@ -8,10 +8,10 @@ module BOAST
     d_max =              Real("d_max",              :dir => :out, :dimension => [ Dim()] )
     blocksize_transfer = Int( "blocksize_transfer", :const => 256 )
     p = Procedure::new(function_name, [array, size, d_max], [blocksize_transfer])
-    if(get_lang == CUDA) then
+    if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
-    elsif(get_lang == BOAST::CL) then
-      if get_default_real_size == 8 then
+    elsif(get_lang == CUDA or get_lang == CL) then
+      if( get_lang == CL and get_default_real_size == 8) then
         @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
       end
       decl p
