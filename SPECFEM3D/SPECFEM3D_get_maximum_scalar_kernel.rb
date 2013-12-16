@@ -29,7 +29,7 @@ module BOAST
       print bx === get_group_id(1)*get_num_groups(0) + get_group_id(0)
       print i === tid + bx*get_local_size(0)
       print sdata[tid] === Ternary( i < size, fabs(array[i]), 0.0)
-      print barrier("CLK_LOCAL_MEM_FENCE")
+      print barrier(:local)
       print s === get_local_size(0)/2
       print While(s > 0) {
         print If(tid < s) {
@@ -38,6 +38,7 @@ module BOAST
           }
         }
         print s === Expression(">>",s,1)
+        print barrier(:local)
       }
       print If(tid == 0) {
         print d_max[bx] === sdata[0]

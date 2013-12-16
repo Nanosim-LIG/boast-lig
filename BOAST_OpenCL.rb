@@ -1,6 +1,25 @@
 module BOAST
   @@ocl_cuda_dim_assoc = { 0 => "x", 1 => "y", 2 => "z" }
 
+  def BOAST::barrier(*locality)
+    if @@lang == CL then
+      loc=""
+      if locality.include?(:local) and locality.include?(:global) then
+        return FuncCall::new("barrier","CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE")
+      elsif locality.include?(:local) then
+        return FuncCall::new("barrier","CLK_LOCAL_MEM_FENCE")
+      elsif locality.include?(:global) then
+        return FuncCall::new("barrier","CLK_GLOBAL_MEM_FENCE")
+      else
+        raise "Unsupported locality"
+      end
+    elsif @@lang == CUDA then
+      return FuncCall::new("__syncthreads")
+    else
+      raise "Unsupported language!"
+    end
+  end
+
 
   def BOAST::get_work_dim
     if @@lang == CL then
