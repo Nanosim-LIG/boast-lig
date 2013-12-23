@@ -17,7 +17,8 @@ kernels = [
 :get_maximum_vector_kernel,
 :compute_add_sources_adjoint_kernel,
 :compute_add_sources_kernel,
-:compute_coupling_fluid_CMB_kernel
+:compute_coupling_fluid_CMB_kernel,
+:compute_coupling_fluid_ICB_kernel
 ]
 
 langs = [ :CUDA, :CL]
