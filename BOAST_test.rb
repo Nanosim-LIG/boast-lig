@@ -12,7 +12,7 @@ module BOAST
     i = Int("i",{:signed => false})
     ig = Sizet("ig")
     if get_lang != FORTRAN then
-      ts = CStruct("ts", :type_name => "test_struct", :members => [n,i])
+      ts = CStruct("ts", :type_name => "test_struct", :members => [Real("r"),i])
     end
     if get_lang == CL then
       @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"

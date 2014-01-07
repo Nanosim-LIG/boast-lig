@@ -793,8 +793,8 @@ module BOAST
 
     def decl_c(final=true)
       s = ""
-      s += self.header(BOAST::get_lang,false)
-      s += ";\n"
+#      s += self.header(BOAST::get_lang,false)
+#      s += ";\n"
       if BOAST::get_lang == CL then
         s += "__kernel "
         wgs = @properties[:reqd_work_group_size]
