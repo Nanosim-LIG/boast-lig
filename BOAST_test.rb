@@ -12,12 +12,14 @@ module BOAST
     i = Int("i",{:signed => false})
     ig = Sizet("ig")
     if get_lang != FORTRAN then
-      ts = CStruct("ts", :type_name => "test_struct", :members => [Real("r"),CStruct("rts",:type_name => "recursive_test_struct", :members => [ig,i])])
+      rts = CStruct("rts",:type_name => "recursive_test_struct", :members => [ig,i])
+      ts = CStruct("ts", :type_name => "test_struct", :members => [Real("r"),rts])
     end
     if get_lang == CL then
       @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
     end
     if get_lang != FORTRAN then
+      rts.type.header
       ts.type.header
     end
     print p = Procedure(function_name, [n,a,b,c]) {
