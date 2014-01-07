@@ -4,42 +4,37 @@ require 'narray'
 module BOAST
   def BOAST::vector_add
     kernel = CKernel::new
-    BOAST::set_output( kernel.code )
-    kernel.lang = BOAST::get_lang
     function_name = "vector_add"
-    n = Variable::new("n",Int,{:direction => :in, :signed => false})
-    a = Variable::new("a",Real,{:direction => :in, :dimension => [ Dimension::new(0,n-1)] })
-    b = Variable::new("b",Real,{:direction => :in, :dimension => [ Dimension::new(0,n-1)] })
-    c = Variable::new("c",Real,{:direction => :out, :dimension => [ Dimension::new(0,n-1)] })
-    i = Variable::new("i",Int,{:signed => false})
-    ig = Variable::new("ig", Sizet)
-    if kernel.lang == BOAST::CL then
+    n = Int("n",{:dir => :in, :signed => false})
+    a = Real("a",{:dir => :in, :dim => [ Dim(0,n-1)] })
+    b = Real("b",{:dir => :in, :dim => [ Dim(0,n-1)] })
+    c = Real("c",{:dir => :out, :dim => [ Dim(0,n-1)] })
+    i = Int("i",{:signed => false})
+    ig = Sizet("ig")
+    if get_lang != FORTRAN then
+      ts = CStruct("ts", :type_name => "test_struct", :members => [n,i])
+    end
+    if get_lang == CL then
       @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
     end
-    if(BOAST::get_lang == BOAST::CUDA) then
-      p = Procedure::new(function_name, [n,a,b,c])
-      @@output.print <<EOF
-__global__ void vector_add(unsigned int n, const double *a, const double *b, double *c) {
-   unsigned int ig = blockDim.x * blockIdx.x + threadIdx.x;
-   c[ig] = a[ig] + b[ig];
-}
-EOF
-    else
-      p = Procedure::new(function_name, [n,a,b,c]) {
-        if(BOAST::get_lang == BOAST::CL) then
-          ig.decl
-          (ig === FuncCall::new( "get_global_id", 0)).print
-          (c[ig] === a[ig] + b[ig]).print
-        else
-          i.decl
-          f = For::new(i,0,n-1) {
-            (c[i] === a[i] + b[i]).print
-          }
-          f.print
-        end
-      }
-      p.print
+    if get_lang != FORTRAN then
+      ts.type.header
     end
+    print p = Procedure(function_name, [n,a,b,c]) {
+      if get_lang != FORTRAN then
+        ts.decl
+      end
+      if (get_lang == CL or get_lang == CUDA) then
+        decl ig
+        print ig === get_global_id(0)
+        print c[ig] === a[ig] + b[ig]
+      else
+        decl i
+        print For(i,0,n-1) {
+          print c[i] === a[i] + b[i]
+        }
+      end
+    }
     kernel.procedure = p
     return kernel
   end

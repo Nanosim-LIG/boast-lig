@@ -63,8 +63,10 @@ module BOAST
     a.print
   end
 
-  def BOAST::decl(a)
-    a.decl
+  def BOAST::decl(*a)
+    a.each { |d|
+      d.decl
+    }
   end
 
   def BOAST::close(a)
@@ -77,6 +79,10 @@ module BOAST
 
   def BOAST::get_indent_level
     return @@indent_level
+  end
+
+  def BOAST::get_indent_increment
+    return @@indent_increment
   end
 
   def BOAST::increment_indent_level(increment = @@indent_increment)
@@ -197,7 +203,6 @@ module BOAST
     attr_reader :operator
     attr_reader :operand1
     attr_reader :operand2
-    attr_reader :operand3
     def initialize(operator, operand1, operand2)
       @operator = operator
       @operand1 = operand1
@@ -364,7 +369,65 @@ module BOAST
     end
   end
 
+  class CStruct
+    attr_reader :name, :members, :members_array
+    def self.parens(*args,&block)
+      return Variable::new(args[0], self, *args[1..-1], &block)
+    end
+
+    def initialize(hash={})
+      @name = hash[:type_name]
+      @members = {}
+      @members_array = []
+      hash[:members].each { |m|
+        mc = m.copy
+        @members_array.push(mc)
+        @members[mc.name] = mc
+      }
+    end
+
+    def decl
+      raise "Struct are not supported in fortran..." if BOAST::get_lang == FORTRAN
+      return "struct #{@name}" 
+    end
+
+    def finalize
+       s = ""
+       s += ";" if [C, CL, CUDA].include?( BOAST::get_lang )
+       s+="\n"
+       return s
+    end
+
+    def indent
+       return " "*BOAST::get_indent_level
+    end
+
+    def header(final = true)
+      raise "Struct are not supported in fortran..." if BOAST::get_lang == FORTRAN
+      s = ""
+      s += self.indent if final
+      s += self.decl + " {\n"
+      @members_array.each { |value|
+         s+= self.indent if final
+         s+= " "*BOAST::get_indent_increment + value.decl(false)+";\n"
+      }
+      s += self.indent if final
+      s += "}"
+      s += self.finalize if final
+      BOAST::get_output.print s if final
+      return s
+    end
+
+  end
+
   class Variable
+    alias_method :orig_method_missing, :method_missing
+
+    def method_missing(m, *a, &b)
+      return self.struct_reference(type.members[m.to_s]) if type.members[m.to_s]
+      return self.orig_method_missing(m, *a, &b)
+    end
+
     def self.parens(*args,&block)
       return self::new(*args,&block)
     end
@@ -385,8 +448,8 @@ module BOAST
       @hash = hash
     end
 
-    def copy
-      return Variable::new(@name, @type.class, @hash)
+    def copy(name=@name)
+      return Variable::new(name, @type.class, @hash)
     end
   
     def to_s
@@ -446,6 +509,10 @@ module BOAST
       return Expression::new("*",nil,self)
     end
    
+    def struct_reference(x)
+      return x.copy(self.name+"."+x.name)
+    end
+ 
     def inc
       return Expression::new("++",self,nil)
     end
@@ -568,6 +635,8 @@ module BOAST
       return "#{@name}" if [C, CL, CUDA].include?( BOAST::get_lang )
     end
   end
+
+
 
   class Real
     def self.parens(*args,&block)
@@ -830,6 +899,10 @@ module BOAST
   end
 
   class Sizet
+    def self.parens(*args,&block)
+      return Variable::new(args[0], self, *args[1..-1], &block)
+    end
+
     attr_reader :signed
     def initialize(hash={})
       if hash[:signed] != nil then

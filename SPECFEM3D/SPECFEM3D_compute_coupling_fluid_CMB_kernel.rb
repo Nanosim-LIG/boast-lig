@@ -86,6 +86,7 @@ module BOAST
           print atomicAdd(accel_outer_core+iglob_oc, -weight*displ_n)
         end
       }
+      close p
     else
       raise "Unsupported language!"
     end
