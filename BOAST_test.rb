@@ -12,7 +12,7 @@ module BOAST
     i = Int("i",{:signed => false})
     ig = Sizet("ig")
     if get_lang != FORTRAN then
-      rts = CStruct("rts",:type_name => "recursive_test_struct", :members => [ig,i])
+      rts = CStruct("rts",:type_name => "recursive_test_struct", :members => [Int("ig"),i])
       ts = CStruct("ts", :type_name => "test_struct", :members => [Real("r"),rts])
     end
     if get_lang == CL then
