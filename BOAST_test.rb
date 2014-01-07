@@ -12,7 +12,7 @@ module BOAST
     i = Int("i",{:signed => false})
     ig = Sizet("ig")
     if get_lang != FORTRAN then
-      ts = CStruct("ts", :type_name => "test_struct", :members => [Real("r"),i])
+      ts = CStruct("ts", :type_name => "test_struct", :members => [Real("r"),CStruct("rts",:type_name => "recursive_test_struct", :members => [ig,i])])
     end
     if get_lang == CL then
       @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
@@ -24,6 +24,7 @@ module BOAST
       if get_lang != FORTRAN then
         decl ts
         print ts.r === 0.0
+        print ts.rts.i === 0
       end
       if (get_lang == CL or get_lang == CUDA) then
         decl ig
