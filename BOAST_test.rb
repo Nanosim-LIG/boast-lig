@@ -22,7 +22,8 @@ module BOAST
     end
     print p = Procedure(function_name, [n,a,b,c]) {
       if get_lang != FORTRAN then
-        ts.decl
+        decl ts
+        print ts.r === 0.0
       end
       if (get_lang == CL or get_lang == CUDA) then
         decl ig
