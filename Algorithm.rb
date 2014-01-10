@@ -387,8 +387,8 @@ module BOAST
     end
 
     def decl
-      raise "Struct are not supported in fortran..." if BOAST::get_lang == FORTRAN
-      return "struct #{@name}" 
+      return "struct #{@name}" if [C, CL, CUDA].include?( BOAST::get_lang )
+      return "TYPE(#{@name})" if BOAST::get_lang == FORTRAN
     end
 
     def finalize
@@ -402,8 +402,13 @@ module BOAST
        return " "*BOAST::get_indent_level
     end
 
-    def header(final = true)
-      raise "Struct are not supported in fortran..." if BOAST::get_lang == FORTRAN
+    def header
+      return header_c if [C, CL, CUDA].include?( BOAST::get_lang )
+      return header_fortran if BOAST::get_lang == FORTRAN
+      raise "Unsupported language!"
+    end
+
+    def header_c(final = true)
       s = ""
       s += self.indent if final
       s += self.decl + " {\n"
@@ -413,6 +418,21 @@ module BOAST
       }
       s += self.indent if final
       s += "}"
+      s += self.finalize if final
+      BOAST::get_output.print s if final
+      return s
+    end
+    
+    def header_fortran(final = true)
+      s = ""
+      s += self.indent if final
+      s += "TYPE :: #{@name}\n"
+      members_array.each { |value|
+         s+= self.indent if final
+         s+= " "*BOAST::get_indent_increment + value.decl(false)+"\n"
+      }
+      s += self.indent if final
+      s += "END TYPE #{@name}"
       s += self.finalize if final
       BOAST::get_output.print s if final
       return s
@@ -510,7 +530,8 @@ module BOAST
     end
    
     def struct_reference(x)
-      return x.copy(self.name+"."+x.name)
+      return x.copy(self.name+"."+x.name) if [C, CL, CUDA].include?( BOAST::get_lang )
+      return x.copy(self.name+"%"+x.name) if BOAST::get_lang == FORTRAN
     end
  
     def inc

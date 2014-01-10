@@ -11,10 +11,8 @@ module BOAST
     c = Real("c",{:dir => :out, :dim => [ Dim(0,n-1)] })
     i = Int("i",{:signed => false})
     ig = Sizet("ig")
-    if get_lang != FORTRAN then
-      rts = CStruct("rts",:type_name => "recursive_test_struct", :members => [Int("ig"),i])
-      ts = CStruct("ts", :type_name => "test_struct", :members => [Real("r"),rts])
-    end
+    rts = CStruct("rts",:type_name => "recursive_test_struct", :members => [Int("ig"),i])
+    ts = CStruct("ts", :type_name => "test_struct", :members => [Real("r"),rts])
     if get_lang == CL then
       @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
     end
@@ -23,11 +21,11 @@ module BOAST
       ts.type.header
     end
     print p = Procedure(function_name, [n,a,b,c]) {
-      if get_lang != FORTRAN then
-        decl ts
-        print ts.r === 0.0
-        print ts.rts.i === 0
+      if get_lang == FORTRAN then
+        rts.type.header
+        ts.type.header
       end
+      decl ts
       if (get_lang == CL or get_lang == CUDA) then
         decl ig
         print ig === get_global_id(0)
@@ -38,6 +36,8 @@ module BOAST
           print c[i] === a[i] + b[i]
         }
       end
+      print ts.r === 0.0
+      print ts.rts.i === 0
     }
     kernel.procedure = p
     return kernel
