@@ -18,7 +18,8 @@ kernels = [
 :compute_add_sources_adjoint_kernel,
 :compute_add_sources_kernel,
 :compute_coupling_fluid_CMB_kernel,
-:compute_coupling_fluid_ICB_kernel
+:compute_coupling_fluid_ICB_kernel,
+:compute_coupling_CMB_fluid_kernel
 ]
 
 langs = [ :CUDA, :CL]
