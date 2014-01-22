@@ -1,12 +1,25 @@
 module BOAST
-  def BOAST::get_maximum_scalar_kernel(ref = true)
+  def BOAST::get_maximum_scalar_kernel(ref = true, block_size_transfer = 256)
+    BOAST::get_maximum_kernel(:scalar, ref, block_size_transfer)
+  end
+  def BOAST::get_maximum_kernel(type, ref = true, block_size_transfer = 256)
     push_env( :array_start => 0 )
     kernel = CKernel::new
-    function_name = "get_maximum_scalar_kernel"
-    size =               Int("size",               :dir => :in)
-    array =              Real("array",             :dir => :in,  :dim => [ Dim(size)])
-    d_max =              Real("d_max",             :dir => :out, :dim => [ Dim()])
-    blocksize_transfer = Int("blocksize_transfer", :const => 256)
+
+    size = Int("size", :dir => :in)
+
+    if type == :scalar then
+      function_name = "get_maximum_scalar_kernel"
+      array = Real("array", :dir => :in, :dim => [ Dim(size)])
+    elsif type == :vector then
+      function_name = "get_maximum_vector_kernel"
+      array = Real("array", :dir => :in, :dim => [ Dim(size*3)] )
+    else
+      raise "Unsupported maximum type: #{type}!"
+    end
+    
+    d_max = Real("d_max", :dir => :out, :dim => [ Dim()])
+    blocksize_transfer = Int("blocksize_transfer", :const => block_size_transfer)
     p = Procedure(function_name, [array, size, d_max], [blocksize_transfer])
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
@@ -28,7 +41,11 @@ module BOAST
       print tid === get_local_id(0)
       print bx === get_group_id(1)*get_num_groups(0) + get_group_id(0)
       print i === tid + bx*get_local_size(0)
-      print sdata[tid] === Ternary( i < size, fabs(array[i]), 0.0)
+      if type == :scalar then
+        print sdata[tid] === Ternary( i < size, fabs(array[i]), 0.0)
+      else
+        print sdata[tid] === Ternary( i < size, sqrt(array[i*3+0]*array[i*3+0]+array[i*3+1]*array[i*3+1]+array[i*3+2]*array[i*3+2]), 0.0)
+      end
       print barrier(:local)
       print s === get_local_size(0)/2
       print While(s > 0) {
