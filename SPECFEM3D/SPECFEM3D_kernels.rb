@@ -21,7 +21,9 @@ kernels = [
 :compute_coupling_fluid_ICB_kernel,
 :compute_coupling_CMB_fluid_kernel,
 :compute_coupling_ICB_fluid_kernel,
-:compute_coupling_ocean_kernel
+:compute_coupling_ocean_kernel,
+:write_seismograms_transfer_from_device_kernel,
+:write_seismograms_transfer_scalar_from_device_kernel
 ]
 
 langs = [ :CUDA, :CL]
