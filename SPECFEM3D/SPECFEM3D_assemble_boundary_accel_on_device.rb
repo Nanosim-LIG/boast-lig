@@ -1,15 +1,34 @@
 module BOAST
+
   def BOAST::assemble_boundary_accel_on_device(ref = true)
+    BOAST::assemble_boundary_on_device(:accel, ref)
+  end
+
+  def BOAST::assemble_boundary_on_device(type, ref)
     push_env( :array_start => 0 )
     kernel = CKernel::new
-    function_name = "assemble_boundary_accel_on_device"
+
     num_interfaces        = Int("num_interfaces",        :dir => :in)
     max_nibool_interfaces = Int("max_nibool_interfaces", :dir => :in)
-    d_accel               = Real("d_accel",              :dir => :out,:dim => [ Dim() ])
-    d_send_accel_buffer   = Real("d_send_accel_buffer",  :dir => :in, :dim => [ Dim(num_interfaces*max_nibool_interfaces*3) ])
     d_nibool_interfaces   = Int("d_nibool_interfaces",   :dir => :in, :dim => [ Dim(num_interfaces) ])
     d_ibool_interfaces    = Int("d_ibool_interfaces",    :dir => :in, :dim => [ Dim(num_interfaces*max_nibool_interfaces) ])
-    p = Procedure(function_name, [d_accel,d_send_accel_buffer,num_interfaces,max_nibool_interfaces,d_nibool_interfaces,d_ibool_interfaces])
+
+    if type == :accel then
+      function_name = "assemble_boundary_accel_on_device"
+      d_accel               = Real("d_accel",              :dir => :out,:dim => [ Dim() ])
+      d_send_accel_buffer   = Real("d_send_accel_buffer",  :dir => :in, :dim => [ Dim(num_interfaces*max_nibool_interfaces*3) ])
+      variables = [d_accel,d_send_accel_buffer]
+    elsif type == :potential then
+      function_name = "assemble_boundary_potential_on_device"
+      d_potential_dot_dot_acoustic    = Real("d_potential_dot_dot_acoustic",    :dir => :out,:dim => [ Dim() ])
+      d_send_potential_dot_dot_buffer = Real("d_send_potential_dot_dot_buffer", :dir => :in, :dim => [ Dim(num_interfaces*max_nibool_interfaces) ])
+      variables = [d_potential_dot_dot_acoustic, d_send_potential_dot_dot_buffer]
+    else
+      raise "Unsupported type : #{type}!"
+    end
+    variables += [num_interfaces,max_nibool_interfaces,d_nibool_interfaces,d_ibool_interfaces]
+
+    p = Procedure(function_name, variables)
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CL or get_lang == CUDA) then
@@ -34,9 +53,13 @@ module BOAST
         print If(id<d_nibool_interfaces[iinterface]) {
           print iloc === id + max_nibool_interfaces*iinterface
           print iglob === d_ibool_interfaces[iloc] - 1
-          (0..2).each { |i|
-             print atomicAdd(d_accel + iglob*3  + i, d_send_accel_buffer[iloc*3+i])
-          }
+          if type == :accel then
+            (0..2).each { |i|
+               print atomicAdd(d_accel + iglob*3  + i, d_send_accel_buffer[iloc*3+i])
+            }
+          else
+            print atomicAdd(d_potential_dot_dot_acoustic + iglob, d_send_potential_dot_dot_buffer[iloc])
+          end
         }
       }
       close p
