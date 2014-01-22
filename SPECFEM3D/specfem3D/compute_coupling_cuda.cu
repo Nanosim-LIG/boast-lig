@@ -226,78 +226,6 @@ void FC_FUNC_(compute_coupling_cmb_fluid_cuda,
 }
 
 /* ----------------------------------------------------------------------------------------------- */
-
-__global__ void compute_coupling_ICB_fluid_kernel(realw* displ_inner_core,
-                                                  realw* accel_inner_core,
-                                                  realw* accel_outer_core,
-                                                  int* ibool_inner_core,
-                                                  int* ibelm_top_inner_core,
-                                                  realw* normal_bottom_outer_core,
-                                                  realw* jacobian2D_bottom_outer_core,
-                                                  realw* wgllwgll_xy,
-                                                  int* ibool_outer_core,
-                                                  int* ibelm_bottom_outer_core,
-                                                  realw RHO_BOTTOM_OC,
-                                                  realw minus_g_icb,
-                                                  int GRAVITY,
-                                                  int NSPEC2D_TOP_IC) {
-
-  int i = threadIdx.x;
-  int j = threadIdx.y;
-
-  int iface = blockIdx.x + gridDim.x*blockIdx.y;
-
-  int k,k_corresp,iglob_ic,iglob_oc,ispec,ispec_selected;
-  realw pressure;
-  realw nx,ny,nz;
-  realw weight;
-
-  // for surfaces elements exactly at the top of the inner core (outer core bottom)
-  if( iface < NSPEC2D_TOP_IC ){
-
-    // "-1" from index values to convert from Fortran-> C indexing
-    ispec = ibelm_top_inner_core[iface] - 1;
-    ispec_selected = ibelm_bottom_outer_core[iface] - 1;
-
-    // only for DOFs exactly on the ICB (top of these elements)
-    k = NGLLX - 1;
-    // get velocity potential on the fluid side using pointwise matching
-    k_corresp = 0;
-
-    // get normal on the ICB
-    nx = normal_bottom_outer_core[INDEX4(NDIM,NGLLX,NGLLX,0,i,j,iface)]; // (1,i,j,iface)
-    ny = normal_bottom_outer_core[INDEX4(NDIM,NGLLX,NGLLX,1,i,j,iface)]; // (2,i,j,iface)
-    nz = normal_bottom_outer_core[INDEX4(NDIM,NGLLX,NGLLX,2,i,j,iface)]; // (3,i,j,iface)
-
-    // get global point number
-    // corresponding points are located at the bottom of the outer core
-    iglob_oc = ibool_outer_core[INDEX4(NGLLX,NGLLX,NGLLX,i,j,k_corresp,ispec_selected)] - 1;
-    iglob_ic = ibool_inner_core[INDEX4(NGLLX,NGLLX,NGLLX,i,j,k,ispec)] - 1;
-
-    // compute pressure, taking gravity into account
-    if( GRAVITY ){
-      pressure = RHO_BOTTOM_OC * ( - accel_outer_core[iglob_oc]
-                                   + minus_g_icb * ( displ_inner_core[iglob_ic*3]*nx
-                                                   + displ_inner_core[iglob_ic*3+1]*ny
-                                                   + displ_inner_core[iglob_ic*3+2]*nz) );
-    }else{
-      pressure = - RHO_BOTTOM_OC * accel_outer_core[iglob_oc];
-    }
-
-    // formulation with generalized potential: gets associated, weighted jacobian
-    weight = jacobian2D_bottom_outer_core[INDEX3(NGLLX,NGLLX,i,j,iface)]*wgllwgll_xy[INDEX2(NGLLX,i,j)];
-
-    // update fluid acceleration/pressure
-    // note: sign changes to minus because of normal pointing down into inner core
-    atomicAdd(&accel_inner_core[iglob_ic*3], - weight*nx*pressure);
-    atomicAdd(&accel_inner_core[iglob_ic*3+1], - weight*ny*pressure);
-    atomicAdd(&accel_inner_core[iglob_ic*3+2], - weight*nz*pressure);
-  }
-}
-
-
-/* ----------------------------------------------------------------------------------------------- */
-
 extern "C"
 void FC_FUNC_(compute_coupling_icb_fluid_cuda,
               COMPUTE_COUPLING_ICB_FLUID_CUDA)(long* Mesh_pointer_f,
@@ -363,54 +291,6 @@ void FC_FUNC_(compute_coupling_icb_fluid_cuda,
 /* OCEANS load coupled on free surface */
 
 /* ----------------------------------------------------------------------------------------------- */
-
-__global__ void compute_coupling_ocean_cuda_kernel(realw* accel_crust_mantle,
-                                                   realw* rmassx_crust_mantle,
-                                                   realw* rmassy_crust_mantle,
-                                                   realw* rmassz_crust_mantle,
-                                                   realw* rmass_ocean_load,
-                                                   int npoin_ocean_load,
-                                                   int* ibool_ocean_load,
-                                                   realw* normal_ocean_load) {
-
-  int ipoin = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
-
-  int iglob;
-  realw nx,ny,nz,rmass;
-  realw force_normal_comp;
-  realw additional_term_x,additional_term_y,additional_term_z;
-
-  // for global points exactly at the top of the crust mantle (ocean bottom)
-  if(ipoin < npoin_ocean_load) {
-
-    // get global point number
-    // "-1" from index values to convert from Fortran-> C indexing
-    iglob = ibool_ocean_load[ipoin] - 1;
-
-    // get normal
-    nx = normal_ocean_load[INDEX2(NDIM,0,ipoin)]; // (1,ipoin)
-    ny = normal_ocean_load[INDEX2(NDIM,1,ipoin)]; // (1,ipoin)
-    nz = normal_ocean_load[INDEX2(NDIM,2,ipoin)]; // (1,ipoin)
-
-    // make updated component of right-hand side
-    // we divide by rmass() which is 1 / M
-    // we use the total force which includes the Coriolis term above
-    force_normal_comp = accel_crust_mantle[iglob*3]*nx / rmassx_crust_mantle[iglob]
-                      + accel_crust_mantle[iglob*3+1]*ny / rmassy_crust_mantle[iglob]
-                      + accel_crust_mantle[iglob*3+2]*nz / rmassz_crust_mantle[iglob];
-
-    rmass = rmass_ocean_load[ipoin];
-
-    additional_term_x = (rmass - rmassx_crust_mantle[iglob]) * force_normal_comp;
-    additional_term_y = (rmass - rmassy_crust_mantle[iglob]) * force_normal_comp;
-    additional_term_z = (rmass - rmassz_crust_mantle[iglob]) * force_normal_comp;
-
-    // since we access this global point only once, no need to use atomics ...
-    accel_crust_mantle[iglob*3] += additional_term_x * nx;
-    accel_crust_mantle[iglob*3+1] += additional_term_y * ny;
-    accel_crust_mantle[iglob*3+2] += additional_term_z * nz;
-  }
-}
 
 
 /* ----------------------------------------------------------------------------------------------- */

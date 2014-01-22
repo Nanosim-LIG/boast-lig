@@ -105,7 +105,7 @@ module BOAST
       end
       decl ispec =      Int("ispec")
       decl ispec_selected = Int("ispec_selected")
-      decl *(displ_a = [Real("displ_x"), Real("displ_y"), Real("displ_z")]) unless type == :CMB_fluid
+      decl *(displ_a = [Real("displ_x"), Real("displ_y"), Real("displ_z")]) unless type == :CMB_fluid or type == :ICB_fluid
       decl displ_n = Real("displ_n")
       decl *(n = [Real("nx"), Real("ny"), Real("nz")])
       decl weight = Real("weight")
