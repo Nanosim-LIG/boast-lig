@@ -24,7 +24,8 @@ kernels = [
 :compute_coupling_ocean_kernel,
 :write_seismograms_transfer_from_device_kernel,
 :write_seismograms_transfer_scalar_from_device_kernel,
-:noise_transfer_surface_to_host_kernel
+:noise_transfer_surface_to_host_kernel,
+:noise_add_source_master_rec_kernel
 ]
 
 langs = [ :CUDA, :CL]
