@@ -134,12 +134,11 @@ module BOAST
         elsif type == :fluid_ICB then
           print atomicAdd(accel_out+iglob_2, -weight*displ_n)
         else
-          print If( gravity ) {
+          print If( gravity, lambda {
             print pressure === rho_oc * ( minus_g * ( displ[iglob_2*3]*n[0] + displ[iglob_2*3+1]*n[1] + displ[iglob_2*3+2]*n[2] ) - accel_in[iglob_1] )
-          }
-          print Else() {
+          } , nil, lambda {
             print pressure === -rho_oc * accel_in[iglob_1]
-          }
+          } )
           if type == :CMB_fluid then
             n.each_index { |indx| print atomicAdd(accel_out+iglob_2*3+indx, weight*n[indx]*pressure) }
           else
