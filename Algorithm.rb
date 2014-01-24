@@ -1310,16 +1310,16 @@ module BOAST
       if control.size < 1 then
         raise "No block given!"
       elsif control.size.even? then
-        (0..conditions.size-1).step(2) { |i|
-          @constants_list[i/2] = control[i]
+        (0..control.size-1).step(2) { |i|
+          @constants_list[i/2] = [control[i]].flatten
           @blocks[i/2] = control[i+1]
         }
       else
-        (0..conditions.size-2).step(2) { |i|
-          @constants_list[i/2] = control[i]
+        (0..control.size-2).step(2) { |i|
+          @constants_list[i/2] = [control[i]].flatten
           @blocks[i/2] = control[i+1]
         }
-        @blocks.push_back(conditions.last)
+        @blocks.push_back(control.last)
       end
     end
 
