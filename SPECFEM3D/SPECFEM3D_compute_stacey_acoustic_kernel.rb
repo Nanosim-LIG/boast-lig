@@ -1,17 +1,17 @@
 module BOAST
 
   def BOAST::compute_stacey_acoustic_kernel(ref = true, n_gllx = 5, n_gll2 = 25)
-    BOAST::compute_stacey_kernel(:acoustic_forward, ref, n_gllx, n_gll2)
+    BOAST::compute_stacey_acoustic_k(:acoustic_forward, ref, n_gllx, n_gll2)
   end
 
-  def BOAST::compute_stacey_kernel(type, ref = true, n_gllx = 5, n_gll2 = 25)
+  def BOAST::compute_stacey_acoustic_k(type, ref = true, n_gllx = 5, n_gll2 = 25)
     push_env( :array_start => 0 )
     kernel = CKernel::new
 
-    b_absorb_potential            = Real("b_absorb_potential",         :dir => :in,   :dim => [ Dim() ])
     if type == :acoustic_forward then
       function_name = "compute_stacey_acoustic_kernel"
-      potential_dot_acoustic        = Real("potential_dot_acoustic",     :dir => :out,  :dim => [ Dim() ])
+      b_absorb_potential            = Real("b_absorb_potential",         :dir => :out,  :dim => [ Dim() ])
+      potential_dot_acoustic        = Real("potential_dot_acoustic",     :dir => :in,   :dim => [ Dim() ])
       potential_dot_dot_acoustic    = Real("potential_dot_dot_acoustic", :dir => :inout,:dim => [ Dim() ])
       abs_boundary_jacobian2D       = Real("abs_boundary_jacobian2D",    :dir => :in,   :dim => [ Dim() ])
       wgllwgll                      = Real("wgllwgll",                   :dir => :in,   :dim => [ Dim() ])
@@ -20,7 +20,8 @@ module BOAST
       variables = [potential_dot_acoustic, potential_dot_dot_acoustic]
     elsif type == :acoustic_backward then
       function_name = "compute_stacey_acoustic_backward_kernel"
-      b_potential_dot_dot_acoustic    = Real("b_potential_dot_dot_acoustic", :dir => :inout,:dim => [ Dim() ])
+      b_potential_dot_dot_acoustic  = Real("b_potential_dot_dot_acoustic", :dir => :inout,:dim => [ Dim() ])
+      b_absorb_potential            = Real("b_absorb_potential",           :dir => :in,  :dim => [ Dim() ])
       variables = [b_potential_dot_dot_acoustic, b_absorb_potential]
     else
       raise "Unsupported type : #{type}!"
