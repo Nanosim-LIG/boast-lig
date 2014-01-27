@@ -27,7 +27,8 @@ kernels = [
 :noise_transfer_surface_to_host_kernel,
 :noise_add_source_master_rec_kernel,
 :noise_add_surface_movie_kernel,
-:compute_stacey_acoustic_kernel
+:compute_stacey_acoustic_kernel,
+:compute_stacey_acoustic_backward_kernel
 ]
 
 langs = [ :CUDA, :CL]
