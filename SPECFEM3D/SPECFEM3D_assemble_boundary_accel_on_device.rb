@@ -15,13 +15,13 @@ module BOAST
 
     if type == :accel then
       function_name = "assemble_boundary_accel_on_device"
-      d_accel               = Real("d_accel",              :dir => :out,:dim => [ Dim() ])
-      d_send_accel_buffer   = Real("d_send_accel_buffer",  :dir => :in, :dim => [ Dim(num_interfaces*max_nibool_interfaces*3) ])
+      d_accel               = Real("d_accel",              :dir => :inout,:dim => [ Dim() ])
+      d_send_accel_buffer   = Real("d_send_accel_buffer",  :dir => :in,   :dim => [ Dim(num_interfaces*max_nibool_interfaces*3) ])
       variables = [d_accel,d_send_accel_buffer]
     elsif type == :potential then
       function_name = "assemble_boundary_potential_on_device"
-      d_potential_dot_dot_acoustic    = Real("d_potential_dot_dot_acoustic",    :dir => :out,:dim => [ Dim() ])
-      d_send_potential_dot_dot_buffer = Real("d_send_potential_dot_dot_buffer", :dir => :in, :dim => [ Dim(num_interfaces*max_nibool_interfaces) ])
+      d_potential_dot_dot_acoustic    = Real("d_potential_dot_dot_acoustic",    :dir => :inout,:dim => [ Dim() ])
+      d_send_potential_dot_dot_buffer = Real("d_send_potential_dot_dot_buffer", :dir => :in,   :dim => [ Dim(num_interfaces*max_nibool_interfaces) ])
       variables = [d_potential_dot_dot_acoustic, d_send_potential_dot_dot_buffer]
     else
       raise "Unsupported type : #{type}!"

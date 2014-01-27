@@ -3,13 +3,13 @@ module BOAST
     push_env( :array_start => 0 )
     kernel = CKernel::new
     function_name = "compute_add_sources_kernel"
-    accel =                  Real("accel",                            :dir => :out,:dim => [ Dim() ] )
-    ibool =                  Int("ibool",                             :dir => :in, :dim => [ Dim() ] )
-    sourcearrays =           Real("sourcearrays",                     :dir => :in, :dim => [ Dim() ] )
-    stf_pre_compute =        Real("stf_pre_compute",      :size => 8, :dir => :in, :dim => [ Dim() ] )
+    accel =                  Real("accel",                            :dir => :inout,:dim => [ Dim() ] )
+    ibool =                  Int("ibool",                             :dir => :in,   :dim => [ Dim() ] )
+    sourcearrays =           Real("sourcearrays",                     :dir => :in,   :dim => [ Dim() ] )
+    stf_pre_compute =        Real("stf_pre_compute",      :size => 8, :dir => :in,   :dim => [ Dim() ] )
     myrank =                 Int("myrank",                            :dir => :in)
-    islice_selected_source = Int("islice_selected_source",            :dir => :in, :dim => [ Dim() ] )
-    ispec_selected_source =  Int("ispec_selected_source",             :dir => :in, :dim => [ Dim() ] )
+    islice_selected_source = Int("islice_selected_source",            :dir => :in,   :dim => [ Dim() ] )
+    ispec_selected_source =  Int("ispec_selected_source",             :dir => :in,   :dim => [ Dim() ] )
     nsources =               Int("nsources",                          :dir => :in)
 
     ndim =                   Int("NDIM",                  :const => 3)

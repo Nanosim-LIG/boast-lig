@@ -26,7 +26,8 @@ kernels = [
 :write_seismograms_transfer_scalar_from_device_kernel,
 :noise_transfer_surface_to_host_kernel,
 :noise_add_source_master_rec_kernel,
-:noise_add_surface_movie_kernel
+:noise_add_surface_movie_kernel,
+:compute_stacey_acoustic_kernel
 ]
 
 langs = [ :CUDA, :CL]

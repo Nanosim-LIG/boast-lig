@@ -24,7 +24,6 @@ module BOAST
           @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
           @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
         end
-        load "./atomicAdd_f.rb"
       end
       load "./INDEX2.rb"
       decl p

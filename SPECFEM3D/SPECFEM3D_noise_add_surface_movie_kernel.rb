@@ -6,17 +6,17 @@ module BOAST
 
     function_name = "noise_add_surface_movie_kernel"
  
-    accel =               Real("accel",               :dir => :out,:dim => [Dim()] )
-    ibool =               Int( "ibool",               :dir => :in, :dim => [Dim()] )
-    ibelm_top =           Int( "ibelm_top",           :dir => :in, :dim => [Dim()] )
+    accel =               Real("accel",               :dir => :inout,:dim => [Dim()] )
+    ibool =               Int( "ibool",               :dir => :in,   :dim => [Dim()] )
+    ibelm_top =           Int( "ibelm_top",           :dir => :in,   :dim => [Dim()] )
     nspec_top =           Int( "nspec_top",           :dir => :in)
-    noise_surface_movie = Real("noise_surface_movie", :dir => :in, :dim => [Dim()] )
-    normal_x_noise =      Real("normal_x_noise",      :dir => :in, :dim => [Dim()] )
-    normal_y_noise =      Real("normal_y_noise",      :dir => :in, :dim => [Dim()] )
-    normal_z_noise =      Real("normal_z_noise",      :dir => :in, :dim => [Dim()] )
-    mask_noise =          Real("mask_noise",          :dir => :in, :dim => [Dim()] )
-    jacobian2D =          Real("jacobian2D",          :dir => :in, :dim => [Dim()] )
-    wgllwgll   =          Real("wgllwgll",            :dir => :in, :dim => [Dim()] )
+    noise_surface_movie = Real("noise_surface_movie", :dir => :in,   :dim => [Dim()] )
+    normal_x_noise =      Real("normal_x_noise",      :dir => :in,   :dim => [Dim()] )
+    normal_y_noise =      Real("normal_y_noise",      :dir => :in,   :dim => [Dim()] )
+    normal_z_noise =      Real("normal_z_noise",      :dir => :in,   :dim => [Dim()] )
+    mask_noise =          Real("mask_noise",          :dir => :in,   :dim => [Dim()] )
+    jacobian2D =          Real("jacobian2D",          :dir => :in,   :dim => [Dim()] )
+    wgllwgll   =          Real("wgllwgll",            :dir => :in,   :dim => [Dim()] )
 
     normal_noise = [normal_x_noise, normal_y_noise, normal_z_noise]
     
@@ -33,6 +33,7 @@ module BOAST
           @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
           @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
         end
+        load "atomicAdd_f.rb"
         load "./INDEX3.rb"
         load "./INDEX4.rb"
       end

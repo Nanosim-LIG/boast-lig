@@ -6,11 +6,11 @@ module BOAST
 
     function_name = "noise_add_source_master_rec_kernel"
 
-    ibool =              Int( "ibool",              :dir => :in, :dim => [Dim()] )
-    ispec_selected_rec = Int( "ispec_selected_rec", :dir => :in, :dim => [Dim()] )
+    ibool =              Int( "ibool",              :dir => :in,   :dim => [Dim()] )
+    ispec_selected_rec = Int( "ispec_selected_rec", :dir => :in,   :dim => [Dim()] )
     irec_master_noise  = Int("irec_master_noise",   :dir => :in )
-    accel =             Real("accel",               :dir => :out,:dim => [Dim()] )
-    noise_sourcearray = Real("noise_sourcearray",   :dir => :in, :dim => [Dim()] )
+    accel =             Real("accel",               :dir => :inout,:dim => [Dim()] )
+    noise_sourcearray = Real("noise_sourcearray",   :dir => :in,   :dim => [Dim()] )
     it =                 Int("it",                  :dir => :in )
 
     ngll3 = Int("NGLL3", :const => n_gll3)

@@ -1,0 +1,133 @@
+module BOAST
+
+  def BOAST::compute_stacey_acoustic_kernel(ref = true, n_gllx = 5, n_gll2 = 25)
+    BOAST::compute_stacey_acoustic(:forward, ref, n_gllx, n_gll2)
+  end
+
+  def BOAST::compute_stacey_acoustic(type, ref = true, n_gllx = 5, n_gll2 = 25)
+    push_env( :array_start => 0 )
+    kernel = CKernel::new
+
+    if type == :forward then
+      function_name = "compute_stacey_acoustic_kernel"
+    elsif type == :backward then
+      function_name = "compute_stacey_acoustic_backward_kernel"
+    else
+      raise "Unsupported type : #{type}!"
+    end
+
+    potential_dot_acoustic        = Real("potential_dot_acoustic",     :dir => :out,  :dim => [ Dim() ])
+    potential_dot_dot_acoustic    = Real("potential_dot_dot_acoustic", :dir => :inout,:dim => [ Dim() ])
+    interface_type                = Int( "interface_type",             :dir => :in)
+    num_abs_boundary_faces        = Int( "num_abs_boundary_faces",     :dir => :in)
+    abs_boundary_ispec            = Int( "abs_boundary_ispec",         :dir => :in,   :dim => [ Dim() ])
+    nkmin_xi                      = Int( "nkmin_xi",                   :dir => :in,   :dim => [ Dim() ])
+    nkmin_eta                     = Int( "nkmin_eta",                  :dir => :in,   :dim => [ Dim() ])
+    njmin                         = Int( "njmin",                      :dir => :in,   :dim => [ Dim() ])
+    njmax                         = Int( "njmax",                      :dir => :in,   :dim => [ Dim() ])
+    nimin                         = Int( "nimin",                      :dir => :in,   :dim => [ Dim() ])
+    nimax                         = Int( "nimax",                      :dir => :in,   :dim => [ Dim() ])
+    abs_boundary_jacobian2D       = Real("abs_boundary_jacobian2D",    :dir => :in,   :dim => [ Dim() ])
+    wgllwgll                      = Real("wgllwgll",                   :dir => :in,   :dim => [ Dim() ])
+    ibool                         = Int( "ibool",                      :dir => :in,   :dim => [ Dim() ])
+    vpstore                       = Real("vpstore",                    :dir => :in,   :dim => [ Dim() ])
+    save_forward                  = Int( "SAVE_FORWARD",               :dir => :in)
+    b_absorb_potential            = Real("b_absorb_potential",         :dir => :in,   :dim => [ Dim() ])
+
+    
+    ngllx = Int("NGLLX", :const => n_gllx)
+    ngll2 = Int("NGLL2", :const => n_gll2)
+
+    p = Procedure(function_name, [potential_dot_acoustic, potential_dot_dot_acoustic, interface_type, num_abs_boundary_faces, abs_boundary_ispec, nkmin_xi, nkmin_eta, njmin, njmax, nimin, nimax, abs_boundary_jacobian2D, wgllwgll, ibool, vpstore, save_forward, b_absorb_potential], [ngllx, ngll2])
+    if(get_lang == CUDA and ref) then
+      @@output.print File::read("specfem3D/#{function_name}.cu")
+    elsif(get_lang == CL or get_lang == CUDA) then
+      if (get_lang == CL) then
+        if get_default_real_size == 8 then
+          @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
+          @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
+        end
+        load "./atomicAdd_f.rb"
+        load "./INDEX2.rb"
+        load "./INDEX4.rb"
+      end
+      decl p
+      decl igll = Int("igll")
+      decl iface = Int("iface")
+      decl i = Int("i"), j = Int("j"), k = Int("k")
+      decl iglob = Int("iglob")
+      decl ispec = Int("ispec")
+      decl sn = Real("sn")
+      decl jacobianw = Real("jacobianw")
+      decl fac1 = Real("fac1")
+      
+      print igll === get_local_id(0)
+      print iface === get_group_id(0)+get_group_id(1)*get_num_groups(0)
+
+      print If( iface < num_abs_boundary_faces ) {
+        print ispec === abs_boundary_ispec[iface]-1
+
+        print Case( interface_type,
+          4, lambda {
+            print If( Expression("||", nkmin_xi[INDEX2(2,0,iface)] == 0, njmin[INDEX2(2,0,iface)] == 0) )   { print Return(nil) }
+            print i === 0
+            print k === igll/ngllx
+            prinr j === igll-k*ngllx
+            print If( Expression("||", k < nkmin_xi[INDEX2(2,0,iface)]-1, k > ngllx-1) )                    { print Return(nil) }
+            print If( Expression("||", j <    njmin[INDEX2(2,0,iface)]-1, j > njmax[INDEX2(2,0,iface)]-1) ) { print Return(nil) }
+            print fac1 === wgllwgll[k*ngllx+j]
+          },
+          5, lambda {
+            print If( Expression("||", nkmin_xi[INDEX2(2,1,iface)] == 0, njmin[INDEX2(2,1,iface)] == 0) )   { print Return(nil) }
+            print i === ngllx-1
+            print k === igll/ngllx
+            print j === igll-k*ngllx
+            print If( Expression("||", k < nkmin_xi[INDEX2(2,1,iface)]-1, k > ngllx-1) )                    { print Return(nil) }
+            print If( Expression("||", j <    njmin[INDEX2(2,1,iface)]-1, j > njmax[INDEX2(2,1,iface)]-1) ) { print Return(nil) }
+            print fac1 === wgllwgll[k*ngllx+j]
+          },
+          6, lambda {
+            print If( Expression("||", nkmin_eta[INDEX2(2,0,iface)] == 0, nimin[INDEX2(2,0,iface)] == 0) )  { print Return(nil) }
+            print j === 0
+            print k === igll/ngllx
+            print i === igll-k*ngllx
+            print If( Expression("||", k < nkmin_eta[INDEX2(2,0,iface)]-1, k > ngllx-1) )                   { print Return(nil) }
+            print If( Expression("||", i <     nimin[INDEX2(2,0,iface)]-1, i > nimax[INDEX2(2,0,iface)]-1) ){ print Return(nil) }
+            print fac1 === wgllwgll[k*ngllx+i]
+          },
+          7, lambda {
+            print If( Expression("||", nkmin_eta[INDEX2(2,1,iface)] == 0, nimin[INDEX2(2,1,iface)] == 0) )  { print Return(nil) }
+            print j === ngllx-1
+            print k === igll/ngllx
+            print i === igll-k*ngllx
+            print If( Expression("||", k < nkmin_eta[INDEX2(2,1,iface)]-1, k > ngllx-1) )                   { print Return(nil) }
+            print If( Expression("||", i <     nimin[INDEX2(2,1,iface)]-1, i > nimax[INDEX2(2,1,iface)]-1) ){ print Return(nil) }
+            print fac1 === wgllwgll[k*ngllx+i]
+          },
+          8, lambda {
+            print k === 0
+            print j === igll/ngllx
+            print i === igll - j*ngllx
+            print If( Expression("||", j < 0, j > ngllx-1) )                                                { print Return(nil) }
+            print If( Expression("||", i < 0, i > ngllx-1) )                                                { print Return(nil) }
+            print fac1 === wgllwgll[j*ngllx+i]
+          })
+      }
+      print iglob === ibool[INDEX4(ngllx,ngllx,ngllx,i,j,k,ispec)] - 1
+      print sn === potential_dot_acoustic[iglob] / vpstore[INDEX4(ngllx,ngllx,ngllx,i,j,k,ispec)]
+      print jacobianw === abs_boundary_jacobian2D[INDEX2(ngll2,igll,iface)]*fac1
+      print atomicAdd(potential_dot_dot_acoustic + iglob, -sn*jacobianw)
+      print If( save_forward ) {
+        print b_absorb_potential[INDEX2(ngll2,igll,iface)] === sn*jacobianw
+      }
+
+      close p
+    else
+      raise "Unsupported language!"
+    end
+    pop_env( :array_start )
+    kernel.procedure = p
+    return kernel
+  end
+end
+

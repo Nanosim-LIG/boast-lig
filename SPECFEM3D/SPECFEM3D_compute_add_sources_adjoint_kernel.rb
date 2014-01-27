@@ -4,11 +4,11 @@ module BOAST
     kernel = CKernel::new
     function_name = "compute_add_sources_adjoint_kernel"
     nrec =               Int( "nrec",              :dir => :in)
-    accel =              Real("accel",             :dir => :out,:dim => [ Dim() ])
-    adj_sourcearrays =   Real("adj_sourcearrays",  :dir => :in, :dim => [ Dim() ])
-    ibool =              Int( "ibool",             :dir => :in, :dim => [ Dim() ])
-    ispec_selected_rec = Int( "ispec_selected_rec",:dir => :in, :dim => [ Dim() ])
-    pre_computed_irec =  Int( "pre_computed_irec", :dir => :in, :dim => [ Dim() ])
+    accel =              Real("accel",             :dir => :inout,:dim => [ Dim() ])
+    adj_sourcearrays =   Real("adj_sourcearrays",  :dir => :in,   :dim => [ Dim() ])
+    ibool =              Int( "ibool",             :dir => :in,   :dim => [ Dim() ])
+    ispec_selected_rec = Int( "ispec_selected_rec",:dir => :in,   :dim => [ Dim() ])
+    pre_computed_irec =  Int( "pre_computed_irec", :dir => :in,   :dim => [ Dim() ])
     nadj_rec_local =     Int( "nadj_rec_local",    :dir => :in)
 
     ndim =               Int( "NDIM",              :const => 3)
