@@ -30,7 +30,13 @@ kernels = [
 :compute_stacey_acoustic_kernel,
 :compute_stacey_acoustic_backward_kernel,
 :compute_stacey_elastic_kernel,
-:compute_stacey_elastic_backward_kernel
+:compute_stacey_elastic_backward_kernel,
+:update_disp_veloc_kernel,
+:update_potential_kernel,
+:update_accel_elastic_kernel,
+:update_veloc_elastic_kernel,
+:update_accel_acoustic_kernel,
+:update_veloc_acoustic_kernel
 ]
 
 langs = [ :CUDA, :CL]
