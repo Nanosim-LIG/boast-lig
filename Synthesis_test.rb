@@ -21,6 +21,7 @@ puts "Periodic Boundary Conditions"
 n1 = 124
 n2 = 132
 n3 = 130
+repetition = 10
 out_fortran = File::new("synthesys_kernels.f90","w+");
 out_c = File::new("synthesys_kernels.c","w+");
 
@@ -47,7 +48,7 @@ puts "FORTRAN"
 (0..8).each{ |unroll|
   k = BOAST::synthesis(FILTER,7,unroll,false)
   out_fortran.puts k
-  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-mavx -std=c99 -O3",:LDFLAGS => ""})
   stats = k.run(n1/2, n2*n3, input, output)
   stats = k.run(n1/2, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -61,7 +62,7 @@ BOAST::set_lang( BOAST::C )
 (0..8).each{ |unroll|
   k = BOAST::synthesis(FILTER,7,unroll,false)
   out_c.puts k
-  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+  k.build({:FC => 'gfortran',:CC => 'gcc',:CFLAGS => "-mavx -std=c99 -O3",:LDFLAGS => ""})
   stats = k.run(n1/2, n2*n3, input, output)
   stats = k.run(n1/2, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -82,61 +83,81 @@ BOAST::set_lang( BOAST::FORTRAN )
 k = BOAST::synthesis_free_ref
 out_fortran.puts k
 k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
-stats = k.run(n1/2, n2*n3, input, output_ref)
+durations = []
+repetition.times {
+  stats = k.run(n1/2, n2*n3, input, output_ref)
+  durations.push( stats[:duration] )
+}
+duration = durations.sort.first
 puts "Reference"
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+puts "#{k.procedure.name}: #{duration*1.0e3} #{32*n1*n2*n3 / (duration*1.0e9)} GFlops"
 puts "FORTRAN OpenMP"
 (1..8).each{ |unroll|
+  durations = []
   k = BOAST::synthesis(FILTER,7,unroll,true)
   out_fortran.puts k
   k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
-  stats = k.run(n1/2, n2*n3, input, output)
-  stats = k.run(n1/2, n2*n3, input, output)
+  repetition.times {
+    stats = k.run(n1/2, n2*n3, input, output)
+    durations.push( stats[:duration] )
+  }
   diff = (output_ref - output).abs
   diff.each { |elem|
    raise  "Warning: residue too big: #{elem}" if elem > epsilon
   }
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+  duration = durations.sort.first
+  puts "#{k.procedure.name}: #{duration*1.0e3} #{32*n1*n2*n3 / (duration*1.0e9)} GFlops"
 }
 puts "C OpenMP"
 BOAST::set_lang( BOAST::C )
 (1..8).each{ |unroll|
+  durations = []
   k = BOAST::synthesis(FILTER,7,unroll,true)
   out_c.puts k
 #  k.print if unroll == 0
   k.build({:FC => 'gfortran',:CC => 'gcc',:CFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
-  stats = k.run(n1/2, n2*n3, input, output)
-  stats = k.run(n1/2, n2*n3, input, output)
+  repetition.times {
+    stats = k.run(n1/2, n2*n3, input, output)
+    durations.push( stats[:duration] )
+  }
   diff = (output_ref - output).abs
   diff.each { |elem|
     raise "Warning: residue too big: #{elem}" if elem > epsilon
   }
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+  duration = durations.sort.first
+  puts "#{k.procedure.name}: #{duration*1.0e3} #{32*n1*n2*n3 / (duration*1.0e9)} GFlops"
 }
 puts "FORTRAN"
 BOAST::set_lang( BOAST::FORTRAN )
 (1..8).each{ |unroll|
+  durations = []
   k = BOAST::synthesis(FILTER,7,unroll,true)
-  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2",:LDFLAGS => ""})
-  stats = k.run(n1/2, n2*n3, input, output)
-  stats = k.run(n1/2, n2*n3, input, output)
+  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-mavx -std=c99 -O3",:LDFLAGS => ""})
+  repetition.times {
+    stats = k.run(n1/2, n2*n3, input, output)
+    durations.push( stats[:duration] )
+  }
   diff = (output_ref - output).abs
   diff.each { |elem|
    raise  "Warning: residue too big: #{elem}" if elem > epsilon
   }
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+  duration = durations.sort.first
+  puts "#{k.procedure.name}: #{duration*1.0e3} #{32*n1*n2*n3 / (duration*1.0e9)} GFlops"
 }
 puts "C"
 BOAST::set_lang( BOAST::C )
 (1..8).each{ |unroll|
+  durations = []
   k = BOAST::synthesis(FILTER,7,unroll,true)
-#  k.print if unroll == 0
-  k.build({:FC => 'gfortran',:CC => 'gcc',:CFLAGS => "-O2",:LDFLAGS => ""})
-  stats = k.run(n1/2, n2*n3, input, output)
-  stats = k.run(n1/2, n2*n3, input, output)
+  k.build({:FC => 'gfortran',:CC => 'gcc',:CFLAGS => "-O3 -mavx",:LDFLAGS => ""})
+  repetition.times {
+    stats = k.run(n1/2, n2*n3, input, output)
+    durations.push( stats[:duration] )
+  }
   diff = (output_ref - output).abs
   diff.each { |elem|
     raise "Warning: residue too big: #{elem}" if elem > epsilon
   }
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+  duration = durations.sort.first
+  puts "#{k.procedure.name}: #{duration*1.0e3} #{32*n1*n2*n3 / (duration*1.0e9)} GFlops"
 }

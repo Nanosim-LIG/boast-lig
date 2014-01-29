@@ -195,6 +195,10 @@ module BOAST
     end
   end
 
+  def BOAST::Return(value)
+    return Expression("return",nil, value)
+  end
+
   class Expression
     def self.parens(*args,&block)
       return self::new(*args,&block)
@@ -256,6 +260,10 @@ module BOAST
       return Expression::new("-",self,x)
     end
 
+    def -@
+      return Expression::new("-",nil,self)
+    end
+   
     def to_str
       s = ""
       if @operand1 then
@@ -265,11 +273,11 @@ module BOAST
       end        
       s += " " unless @operator.to_s == "++" or @operator.to_s == "."
       s += @operator.to_s 
-      s += " " unless @operator.to_s == "."
+      s += " " unless @operator.to_s == "." or @operator.to_s == "&"
       if @operand2 then
-        s += "(" if (@operator == "*" or @operator == "/" or @operator == "-" or @operator == "+") 
+        s += "(" if (@operator == "*" or @operator == "/" or @operator == "-") 
         s += @operand2.to_s
-        s += ")" if (@operator == "*" or @operator == "/" or @operator == "-" or @operator == "+") 
+        s += ")" if (@operator == "*" or @operator == "/" or @operator == "-") 
       end
       return s
     end
@@ -520,9 +528,17 @@ module BOAST
     def -(x)
       return Expression::new("-",self,x)
     end
+
+    def !
+      return Expression::new("!",nil,self)
+    end
  
     def -@
       return Expression::new("-",nil,self)
+    end
+
+    def address
+      return Expression::new("&",nil,self)
     end
    
     def dereference
@@ -823,7 +839,11 @@ module BOAST
           s += "__attribute__((reqd_work_group_size(#{wgs[0]},#{wgs[1]},#{wgs[2]}))) "
         end
       elsif BOAST::get_lang == CUDA then
-        s += "__global__ "
+        if @properties[:local] then
+          s += "__device__ "
+        else
+          s += "__global__ "
+        end
       end
       if @properties[:return] then
         s += "#{@properties[:return].type.decl} "
@@ -1070,7 +1090,7 @@ module BOAST
     end
 
     def to_str
-      raise "Ternary operator unsupported in Fortran!" if BOAST::get_lang == FORTRAN
+      raise "Ternary operator unsupported in FORTRAN!" if BOAST::get_lang == FORTRAN
       return self.to_str_c if [C, CL, CUDA].include?( BOAST::get_lang )
     end
     def to_str_c
@@ -1319,7 +1339,7 @@ module BOAST
           @constants_list[i/2] = [control[i]].flatten
           @blocks[i/2] = control[i+1]
         }
-        @blocks.push_back(control.last)
+        @blocks.push(control.last)
       end
     end
 
@@ -1350,10 +1370,10 @@ module BOAST
       return s
     end
 
-    def to_str_c(contants, first)
+    def to_str_c(constants, first)
       s = ""
-      s += " "*BOAST::get_indent_level
       if first then
+      s += " "*BOAST::get_indent_level
         s += "switch(#{@expression}){\n"
         BOAST::increment_indent_level
       else
@@ -1387,10 +1407,12 @@ module BOAST
     end
     def close_c(final=true)
       s = ""
+      s += " "*BOAST::get_indent_level if final
       s += "break;\n"
       BOAST::decrement_indent_level      
-      s += " "*BOAST::get_indent_levels if final
+      s += " "*BOAST::get_indent_level if final
       s += "}"
+      BOAST::decrement_indent_level      
       BOAST::get_output.puts s if final
       return s
     end
@@ -1399,6 +1421,7 @@ module BOAST
       BOAST::decrement_indent_level      
       s += " "*BOAST::get_indent_level if final
       s += "end select"
+      BOAST::decrement_indent_level      
       BOAST::get_output.puts s if final
       return s
     end
@@ -1428,7 +1451,7 @@ module BOAST
           @conditions[i/2] = conditions[i]
           @blocks[i/2] = conditions[i+1]
         }
-        @blocks.push_back(conditions.last)
+        @blocks.push(conditions.last)
       end
     end
     def to_s(*args)
@@ -1551,21 +1574,27 @@ module BOAST
       begin
         if @begin.kind_of?(Variable) then
           start = @begin.constant
+        elsif @begin.kind_of?(Expression) then
+          start = eval "#{@begin}"
         else
           start = @begin.to_i
         end
         if @end.kind_of?(Variable) then
           e = @end.constant
+        elsif @end.kind_of?(Expression) then
+          e = eval "#{@end}"
         else
           e = @end.to_i
         end
         if @step.kind_of?(Variable) then
           step = @step.constant
+        elsif @step.kind_of?(Expression) then
+          step = eval "#{@step}"
         else
           step = @step.to_i
         end
         raise "Invalid bounds (not constants)!" if not ( start and e and step )
-      rescue Exception => e
+      rescue Exception => ex
         return self.print(*args) if not ( start and e and step )
       end
       range = start..e
