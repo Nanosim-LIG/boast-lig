@@ -79,13 +79,31 @@ module BOAST
     v.push d_A_array_rotation      = Real("d_A_array_rotation",      :dir => :inout, :dim => [Dim()] )
     v.push d_B_array_rotation      = Real("d_B_array_rotation",      :dir => :inout, :dim => [Dim()] )
     v.push nspec_outer_core        = Int( "NSPEC_OUTER_CORE",        :dir => :in)
- 
+
     ngllx        = Int("NGLLX", :const => n_gllx)
     ngll2        = Int("NGLL2", :const => n_gll2)
     ngll3        = Int("NGLL3", :const => n_gll3)
     ngll3_padded = Int("NGLL3_PADDED", :const => n_gll3_padded)
 
-    p = Procedure(function_name, v, [ngllx, ngll2, ngll3, ngll3_padded])
+    constants = [ngllx, ngll2, ngll3, ngll3_padded]
+
+    if textures_fields then
+      d_displ_oc_tex = Real("d_displ_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_accel_oc_tex = Real("d_accel_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      if get_lang == CL then
+        v.push(d_displ_oc_tex, d_accel_oc_tex)
+        constants.push( d_displ_oc_tex.sampler, d_accel_oc_tex.sampler )
+      end
+    end
+    if textures_constants then
+      d_hprime_xx_oc_tex = Real("d_hprime_xx_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      if get_lang == CL then
+        v.push(d_hprime_xx_oc_tex)
+        constants.push( d_hprime_xx_oc_tex.sampler )
+      end
+    end
+
+    p = Procedure(function_name, v, constants)
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CL or get_lang == CUDA) then
@@ -96,6 +114,15 @@ module BOAST
         end
       end
       load "./atomicAdd_f.rb"
+      if get_lang == CUDA
+        if textures_fields then
+          decl d_displ_oc_tex
+          decl d_accel_oc_tex
+        end
+        if textures_constants then
+          decl d_hprime_xx_oc_tex
+        end
+      end
       sub_kernel =  compute_element_oc_rotation(ngll3)
       print sub_kernel
       decl p
@@ -158,14 +185,14 @@ module BOAST
         print iglob === d_ibool[working_element*ngll3 + tx]-1
 
         if textures_fields then
-          raise "Unimplemented!"
+          print s_dummy_loc[tx] === d_displ_oc_tex[iglob]
         else
           print s_dummy_loc[tx] === d_potential[iglob]
         end
       }
       print If(tx < ngll2) {
         if textures_constants then
-          raise "Unimplemented!"
+          print sh_hprime_xx[tx] === d_hprime_xx_oc_tex[tx]
         else
           print sh_hprime_xx[tx] === d_hprime_xx[tx]
         end
@@ -264,7 +291,7 @@ module BOAST
         }
         if mesh_coloring then
           if textures_fields then
-            raise "Unimplemented!"
+            print d_potential_dot_dot[iglob] === d_accel_oc_tex[iglob] + sum_terms
           else
             print d_potential_dot_dot[iglob] === d_potential_dot_dot[iglob] + sum_terms
           end
@@ -272,7 +299,7 @@ module BOAST
           print If( use_mesh_coloring_gpu, lambda {
             print If( nspec_outer_core > coloring_min_nspec_outer_core, lambda {
               if textures_fields then
-                raise "Unimplemented!"
+                print d_potential_dot_dot[iglob] === d_accel_oc_tex[iglob] + sum_terms
               else
                 print d_potential_dot_dot[iglob] === d_potential_dot_dot[iglob] + sum_terms
               end

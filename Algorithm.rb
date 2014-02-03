@@ -328,7 +328,53 @@ module BOAST
       s += "#{@source}(#{@indexes.join(", ")})"
       return s
     end
+    def to_str_texture
+      raise "Unsupported language #{BOAST::get_lang} for texture!" if not [CL, CUDA].include?( BOAST::get_lang )
+      raise "Write is unsupported for textures!" if not ( @source.constant or @source.direction == :in )
+      dim_number = 1
+      if @source.dimension then
+        dim_number == @source.dimension.size
+      end
+      raise "Unsupported number of dimension: #{dim_number}!" if dim_number > 3
+      s = ""
+      if BOAST::get_lang == CL then
+        s += "as_#{@source.type.decl}("
+        s += "read_imageui(#{@source}, #{@source.sampler}, "
+        if dim_number == 1 then
+          s += "int2(#{@indexes[0]},0)"
+        else
+          if dim_number == 2 then
+            s += "int2("
+          else
+            s += "int3("
+          end
+          s += "#{@indexes.join(", ")})"
+        end
+        s += ")"
+        if @source.type.size == 4 then
+          s += ".x"
+        elsif @source.type.size == 8 then
+          s += ".xy"
+        end
+        s += ")"
+      else
+        s += "tex#{dim_number}Dfetch(#{@source},"
+        if dim_number == 1 then
+          s += "#{@indexes[0]}"
+        else
+          if dim_number == 2 then
+            s += "int2("
+          else
+            s += "int3("
+          end
+          s += "#{@indexes.join(", ")})"
+        end
+        s += ")"
+      end
+      return s
+    end
     def to_str_c
+      return to_str_texture if @source.texture
       dim = @source.dimension.first
       if dim.val2 then
         start = dim.val1
@@ -447,6 +493,18 @@ module BOAST
     end
 
   end
+  class CustomType
+    attr_reader :size, :name, :vector_length
+    def initialize(hash={})
+      @name = hash[:type_name]
+      @size = hash[:size]
+      @vector_length = hash[:vector_length]
+    end
+    def decl
+      return "#{@name}" if [C, CL, CUDA].include?( BOAST::get_lang )
+    end
+  end
+
 
   class Variable
     alias_method :orig_method_missing, :method_missing
@@ -466,12 +524,27 @@ module BOAST
     attr_reader :type
     attr_reader :dimension
     attr_reader :local
+    attr_reader :texture
+    attr_reader :sampler
+    attr_reader :replace_constant
+
     def initialize(name,type,hash={})
       @name = name
       @direction = hash[:direction] ? hash[:direction] : hash[:dir]
       @constant = hash[:constant] ? hash[:constant]  : hash[:const]
       @dimension = hash[:dimension] ? hash[:dimension] : hash[:dim]
       @local = hash[:local]
+      @texture = hash[:texture]
+      if not hash[:replace_constant].nil? then
+        @replace_constant = hash[:replace_constant]
+      else
+        @replace_constant = true
+      end
+      if @texture and BOAST::get_lang == CL then
+        @sampler = Variable::new("sampler_#{name}", BOAST::CustomType,:type_name => "sampler_t" ,:replace_constant => false, :constant => "CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST")
+      else
+        @sampler = nil
+      end
       @type = type::new(hash)
       @hash = hash
     end
@@ -485,7 +558,7 @@ module BOAST
     end    
 
     def to_str
-      if @constant and BOAST::get_replace_constants and not @dimension then
+      if @replace_constant and @constant and BOAST::get_replace_constants and not @dimension then
         s = @constant.to_s 
         s += "_wp" if BOAST::get_lang == FORTRAN and @type and @type.size == 8
         return s
@@ -569,7 +642,35 @@ module BOAST
        return s
     end
 
+    def decl_c(final=true)
+      return decl_texture(final) if @texture
+      s = ""
+      s += self.indent if final
+      s += "const " if @constant or @direction == :in
+      s += "__global " if @direction and @dimension and BOAST::get_lang == CL
+      s += "__local " if @local and BOAST::get_lang == CL
+      s += "__shared__ " if @local and BOAST::get_lang == CUDA
+      s += @type.decl
+      if(@dimension and not @constant and not @local) then
+        s += " *"
+      end
+      s += " #{@name}"
+      if(@dimension and @constant) then
+        s += "[]"
+      end
+      if(@dimension and @local) then
+         s +="["
+         s += @dimension.reverse.join("*")
+         s +="]"
+      end 
+      s += " = #{@constant}" if @constant
+      s += self.finalize if final
+      BOAST::get_output.print s if final
+      return s
+    end
+
     def header(lang=C,final=true)
+      return decl_texture(final) if @texture
       s = ""
       s += self.indent if final
       s += "const " if @constant or @direction == :in
@@ -603,31 +704,32 @@ module BOAST
       return self.decl_c(final) if [C, CL, CUDA].include?( BOAST::get_lang )
     end
 
-    def decl_c(final=true)
+    def decl_texture(final=true)
+      raise "Unsupported language #{BOAST::get_lang} for texture!" if not [CL, CUDA].include?( BOAST::get_lang )
+      raise "Write is unsupported for textures!" if not (@constant or @direction == :in)
+      dim_number = 1
+      if @dimension then
+        dim_number == @dimension.size
+      end
+      raise "Unsupported number of dimension: #{dim_number}!" if dim_number > 3
       s = ""
       s += self.indent if final
-      s += "const " if @constant or @direction == :in
-      s += "__global " if @direction and @dimension and BOAST::get_lang == CL
-      s += "__local " if @local and BOAST::get_lang == CL
-      s += "__shared__ " if @local and BOAST::get_lang == CUDA
-      s += @type.decl
-      if(@dimension and not @constant and not @local) then
-        s += " *"
+      if BOAST::get_lang == CL then
+        s += "__read_only "
+        if dim_number < 3 then
+          s += "image2d_t " #from OCL 1.2+ image1d_t is defined
+        else
+          s += "image3d_t "
+        end
+      else
+        s += "texture<#{@type.decl}, cudaTextureType#{dim_number}D, cudaReadModeElementType> "
       end
-      s += " #{@name}"
-      if(@dimension and @constant) then
-        s += "[]"
-      end
-      if(@dimension and @local) then
-         s +="["
-         s += @dimension.reverse.join("*")
-         s +="]"
-      end 
-      s += " = #{@constant}" if @constant
+      s += @name
       s += self.finalize if final
       BOAST::get_output.print s if final
       return s
     end
+
 
     def decl_fortran(final=true)
       s = ""
@@ -659,18 +761,6 @@ module BOAST
       return s
     end
 
-  end
-
-  class CustomType
-    attr_reader :size, :name, :vector_length
-    def initialize(hash={})
-      @name = hash[:type_name]
-      @size = hash[:size]
-      @vector_length = hash[:vector_length]
-    end
-    def decl
-      return "#{@name}" if [C, CL, CUDA].include?( BOAST::get_lang )
-    end
   end
 
 
