@@ -385,10 +385,12 @@ module BOAST
       i=1
       ss = ""
       @source.dimension[0..-2].each{ |d|
-        if d.val2 then
+        if d.size then
+          ss += " * (#{d.size})"
+        elsif d.val2 then
           ss += " * (#{d.val2} - (#{d.val1}) + 1)"
         else
-          ss += " * #{d.val1}"
+          raise "Unkwown dimension size!"
         end
         dim = @source.dimension[i]
         if dim.val2 then
@@ -409,8 +411,7 @@ module BOAST
         rescue Exception => e
         end
       end
-      s = "#{@source}["
-      s += sub + "]"
+      s = "#{@source}[" + sub + "]"
       return s
     end
     def print(final=true)
@@ -996,31 +997,34 @@ module BOAST
 
     attr_reader :val1
     attr_reader :val2
-    def initialize(val1=nil,val2=nil)
-      if not val1 then
-        @val1 = nil
-      elsif not val2 then
+    attr_reader :size
+    def initialize(v1=nil,v2=nil)
+      @size = nil
+      @val1 = nil
+      @val2 = nil
+      if v2.nil? and v1 then
         @val1 = BOAST::get_array_start
-        @val2 = val1 + BOAST::get_array_start - 1
+        @val2 = v1 + BOAST::get_array_start - 1
+        @size = v1
       else
-        @val1 = val1
-        @val2 = val2
+        @val1 = v1
+        @val2 = v2
       end
     end
     def to_str
       s = ""
-      if val2 then
+      if @val2 then
         if BOAST::get_lang == FORTRAN then
-          s += val1.to_s
+          s += @val1.to_s
           s += ":"
-          s += val2.to_s
+          s += @val2.to_s
         elsif [C, CL, CUDA].include?( BOAST::get_lang ) then
-          s += (val2 - val1 + 1).to_s
+          s += (@val2 - @val1 + 1).to_s
         end
-      elsif not val1 then
+      elsif @val1.nil? then
         return nil
       else
-        s += val1.to_s
+        s += @val1.to_s
       end
       return s
     end
@@ -1105,7 +1109,7 @@ module BOAST
     end
     def to_str_fortran
       s = ""
-      return s if not self.first
+      return s if self.first.nil?
       s += "(/ &\n"
       s += self.first
       s += "_wp" if @type and @type.size == 8
@@ -1117,7 +1121,7 @@ module BOAST
     end
     def to_str_c
       s = ""
-      return s if not self.first
+      return s if self.first.nil?
       s += "{\n"
       s += self.first 
       self[1..-1].each { |v|

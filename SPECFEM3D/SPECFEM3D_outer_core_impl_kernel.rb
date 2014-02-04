@@ -167,8 +167,8 @@ module BOAST
       print tx === get_local_id(0)
 
       print k === tx/ngll2
-      print j = (tx-k*ngll2)/ngllx
-      print i = tx - k*ngll2 - j*ngllx
+      print j === (tx-k*ngll2)/ngllx
+      print i === tx - k*ngll2 - j*ngllx
 
       print active === Ternary( Expression("&&", tx < ngll3, bx < nb_blocks_to_compute), 1, 0)
       print If( active ) {

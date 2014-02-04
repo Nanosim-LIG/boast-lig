@@ -3,7 +3,7 @@ module BOAST
     push_env( :array_start => 0 )
     kernel = CKernel::new
     function_name = "compute_coupling_ocean_kernel"
-    accel_crust_mantle    = Real("accel_crust_mantle",      :dir => :out, :dim => [ Dim() ])
+    accel_crust_mantle    = Real("accel_crust_mantle",      :dir => :out, :dim => [ Dim(3), Dim() ])
     rmassx_crust_mantle   = Real("rmassx_crust_mantle",     :dir => :in,  :dim => [ Dim() ])
     rmassy_crust_mantle   = Real("rmassy_crust_mantle",     :dir => :in,  :dim => [ Dim() ])
     rmassz_crust_mantle   = Real("rmassz_crust_mantle",     :dir => :in,  :dim => [ Dim() ])
@@ -40,15 +40,15 @@ module BOAST
         print iglob === ibool_ocean_load[ipoin] - 1
         n.each_index { |indx| print n[indx] === normal_ocean_load[INDEX2(ndim,indx,ipoin)] }
 
-        print force_normal_comp === accel_crust_mantle[iglob*3]*n[0]   / rmassx_crust_mantle[iglob] \
-                                  + accel_crust_mantle[iglob*3+1]*n[1] / rmassy_crust_mantle[iglob] \
-                                  + accel_crust_mantle[iglob*3+2]*n[2] / rmassz_crust_mantle[iglob]
+        print force_normal_comp === accel_crust_mantle[0,iglob]*n[0] / rmassx_crust_mantle[iglob] \
+                                  + accel_crust_mantle[1,iglob]*n[1] / rmassy_crust_mantle[iglob] \
+                                  + accel_crust_mantle[2,iglob]*n[2] / rmassz_crust_mantle[iglob]
 
         print rmass === rmass_ocean_load[ipoin]
 
         additional_term.each_index { |indx| print additional_term[indx] === (rmass - rmass_crust_mantle[indx][iglob]) * force_normal_comp }
 
-        additional_term.each_index { |indx| print accel_crust_mantle[iglob*3+indx] === accel_crust_mantle[iglob*3+indx] + additional_term[indx] * n[indx] }
+        additional_term.each_index { |indx| print accel_crust_mantle[indx,iglob] === accel_crust_mantle[indx,iglob] + additional_term[indx] * n[indx] }
 
       }
       close p
