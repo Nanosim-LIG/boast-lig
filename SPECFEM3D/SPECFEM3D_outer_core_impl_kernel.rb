@@ -16,7 +16,7 @@ module BOAST
 
     ngll3 = Int("NGLL3", :const => n_gll3)
 
-    p = Procedure(function_name, v, [n_gll3]) {
+    p = Procedure(function_name, v, [ngll3]) {
       decl two_omega_deltat = Real("two_omega_deltat")
       decl cos_two_omega_t  = Real("cos_two_omega_t")
       decl sin_two_omega_t  = Real("sin_two_omega_t")
@@ -45,7 +45,7 @@ module BOAST
     return p
   end
 
-  def BOAST::outer_core_impl_kernel(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, r_earth_km = 6371.0, coloring_min_nspec_outer_core = 1000)
+  def BOAST::outer_core_impl_kernel(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = true, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, r_earth_km = 6371.0, coloring_min_nspec_outer_core = 1000)
     push_env( :array_start => 0 )
     kernel = CKernel::new
     v = []
@@ -123,7 +123,7 @@ module BOAST
           decl d_hprime_xx_oc_tex
         end
       end
-      sub_kernel =  compute_element_oc_rotation(ngll3)
+      sub_kernel =  compute_element_oc_rotation(n_gll3)
       print sub_kernel
       decl p
       decl bx = Int("bx")
@@ -178,7 +178,7 @@ module BOAST
           print If( use_mesh_coloring_gpu, lambda {
             print working_element === bx
           }, lambda {
-            print working_element = d_phase_ispec_inner[bx + num_phase_ispec*(d_iphase-1)]-1
+            print working_element === d_phase_ispec_inner[bx + num_phase_ispec*(d_iphase-1)]-1
           })
         end
 

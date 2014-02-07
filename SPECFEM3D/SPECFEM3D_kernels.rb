@@ -37,7 +37,8 @@ kernels = [
 :update_veloc_elastic_kernel,
 :update_accel_acoustic_kernel,
 :update_veloc_acoustic_kernel,
-:outer_core_impl_kernel
+:outer_core_impl_kernel,
+:inner_core_impl_kernel
 ]
 
 langs = [ :CUDA, :CL]
