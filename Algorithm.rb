@@ -273,7 +273,7 @@ module BOAST
       end        
       s += " " unless @operator.to_s == "++" or @operator.to_s == "."
       s += @operator.to_s 
-      s += " " unless @operator.to_s == "." or @operator.to_s == "&"
+      s += " " unless @operator.to_s == "." or @operator.to_s == "&" or ( @operator.to_s == "*" and @operand1.nil? )
       if @operand2 then
         s += "(" if (@operator == "*" or @operator == "/" or @operator == "-") 
         s += @operand2.to_s
