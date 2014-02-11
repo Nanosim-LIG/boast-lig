@@ -19,7 +19,7 @@ module BOAST
     ngll3 = Int("NGLL3", :const => n_gll3)
     nsls  = Int("N_SLS", :const => n_sls)
 
-    p = Procedure(function_name, v, [ngll3,nsls]) {
+    p = Procedure(function_name, v, [], :local => true) {
       decl offset = Int("offset")
       decl i_sls  = Int("i_sls")
       decl r_xx_val = Real("R_xx_val")
@@ -70,7 +70,7 @@ module BOAST
     ngll3_padded = Int("NGLL3_PADDED", :const => n_gll3_padded)
     nsls  = Int("N_SLS", :const => n_sls)
 
-    p = Procedure(function_name, v, [ngll3,ngll3_padded, nsls]) {
+    p = Procedure(function_name, v, [], :local => true) {
       decl offset = Int("offset")
       decl i_sls  = Int("i_sls")
       decl mul = Real("mul")
@@ -135,7 +135,7 @@ module BOAST
     }
 
     ngll3 = Int("NGLL3", :const => n_gll3)
-    p = Procedure(function_name, v, [ngll3]) {
+    p = Procedure(function_name, v, [], :local => true) {
       decl radius = Real("radius"), theta = Real("theta"), phi = Real("phi")
       decl cos_theta = Real("cos_theta"), sin_theta = Real("sin_theta"), cos_phi = Real("cos_phi"), sin_phi = Real("sin_phi")
       decl cos_theta_sq = Real("cos_theta_sq"), sin_theta_sq = Real("sin_theta_sq"), cos_phi_sq = Real("cos_phi_sq"), sin_phi_sq = Real("sin_phi_sq")
@@ -221,7 +221,7 @@ module BOAST
     return p
   end
 
-  def BOAST::inner_core_impl_kernel(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11, n_sls = 3)
+  def BOAST::inner_core_impl_kernel(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = true, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11, n_sls = 3)
     push_env( :array_start => 0 )
     kernel = CKernel::new
     v = []
@@ -289,7 +289,7 @@ module BOAST
     ngll3_padded = Int("NGLL3_PADDED", :const => n_gll3_padded)
     iflag_in_fictitious_cube = Int("IFLAG_IN_FICTITIOUS_CUBE", :const => i_flag_in_fictitious_cube)
 
-    constants = [ngllx, ngll2, ngll3, ngll3_padded]
+    constants = []#ngllx, ngll2, ngll3, ngll3_padded]
 
     if textures_fields then
       d_displ_ic_tex = Real("d_displ_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
@@ -311,13 +311,14 @@ module BOAST
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CL or get_lang == CUDA) then
+      make_specfem3d_header(:ngllx => n_gllx, :ngll2 => n_gll2, :ngll3 => n_gll3, :ngll3_padded => n_gll3_padded, :n_sls => n_sls, :r_earth_km => r_earth_km, :coloring_min_nspec_inner_core => coloring_min_nspec_inner_core, :iflag_in_fictitious_cube => i_flag_in_fictitious_cube)
       if (get_lang == CL) then
         if get_default_real_size == 8 then
           @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
           @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
         end
+        load "./atomicAdd_f.rb"
       end
-      load "./atomicAdd_f.rb"
       if get_lang == CUDA
         if textures_fields then
           decl d_displ_oc_tex

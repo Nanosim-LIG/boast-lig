@@ -52,12 +52,7 @@ module BOAST
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CL or get_lang == CUDA) then
-      if (get_lang == CL) then
-        if get_default_real_size == 8 then
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
-        end
-      end
+      make_specfem3d_header
       decl p
       decl id = Int("id")
       print id === get_global_id(0) + get_group_id(1)*get_global_size(0)

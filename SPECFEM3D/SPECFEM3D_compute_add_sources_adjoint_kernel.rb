@@ -1,5 +1,5 @@
 module BOAST
-  def BOAST::compute_add_sources_adjoint_kernel(ref = true)
+  def BOAST::compute_add_sources_adjoint_kernel(ref = true, n_dim = 3, n_gllx = 5)
     push_env( :array_start => 0 )
     kernel = CKernel::new
     function_name = "compute_add_sources_adjoint_kernel"
@@ -11,21 +11,13 @@ module BOAST
     pre_computed_irec =  Int( "pre_computed_irec", :dir => :in,   :dim => [ Dim() ])
     nadj_rec_local =     Int( "nadj_rec_local",    :dir => :in)
 
-    ndim =               Int( "NDIM",              :const => 3)
-    ngllx =              Int( "NGLLX",             :const => 5)
+    ndim =               Int( "NDIM",              :const => n_dim)
+    ngllx =              Int( "NGLLX",             :const => n_gllx)
     p = Procedure(function_name, [nrec,accel,adj_sourcearrays,ibool,ispec_selected_rec,pre_computed_irec,nadj_rec_local], [ndim,ngllx])
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CUDA or get_lang == CL) then
-      if(get_lang == CL) then
-        if  get_default_real_size == 8 then
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
-        end
-        load "./atomicAdd_f.rb"
-      end
-      load "./INDEX4.rb"
-      load "./INDEX5.rb"
+      make_specfem3d_header( :ndim => n_dim, :ngllx => n_gllx )
       decl p
       ispec =      Int("ispec")
       iglob =      Int("iglob")

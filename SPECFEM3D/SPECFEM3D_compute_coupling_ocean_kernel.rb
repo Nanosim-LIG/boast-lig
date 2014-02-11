@@ -15,17 +15,11 @@ module BOAST
 
     ndim =               Int( "NDIM",              :const => n_dim)
 
-    p = Procedure(function_name, [accel_crust_mantle, rmassx_crust_mantle, rmassy_crust_mantle, rmassz_crust_mantle, rmass_ocean_load, npoin_ocean_load, ibool_ocean_load, normal_ocean_load], [ndim])
+    p = Procedure(function_name, [accel_crust_mantle, rmassx_crust_mantle, rmassy_crust_mantle, rmassz_crust_mantle, rmass_ocean_load, npoin_ocean_load, ibool_ocean_load, normal_ocean_load])
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CL or get_lang == CUDA) then
-      if (get_lang == CL) then
-        if get_default_real_size == 8 then
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
-        end
-      end
-      load "./INDEX2.rb"
+      make_specfem3d_header( :ndim => n_dim )
       decl p
       decl ipoin = Int("ipoin")
       decl iglob = Int("iglob")

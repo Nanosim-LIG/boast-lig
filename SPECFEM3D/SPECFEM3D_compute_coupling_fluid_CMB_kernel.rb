@@ -1,9 +1,9 @@
 module BOAST
-  def BOAST::compute_coupling_fluid_CMB_kernel(ref = true)
-    BOAST::compute_coupling_kernel(ref, :fluid_CMB)
+  def BOAST::compute_coupling_fluid_CMB_kernel(ref = true, n_dim = 3, n_gllx = 5)
+    BOAST::compute_coupling_kernel(ref, :fluid_CMB, n_dim, n_gllx)
   end
  
-  def BOAST::compute_coupling_kernel(ref = true, type)
+  def BOAST::compute_coupling_kernel(ref = true, type = :fluid_CMB, n_dim = 3, n_gllx = 5)
     push_env( :array_start => 0 )
     kernel = CKernel::new
     if type == :fluid_CMB then
@@ -63,27 +63,18 @@ module BOAST
     end
     wgllwgll_xy               = Real("wgllwgll_xy",             :dir => :in,    :dim => [ Dim() ])
 
-    ndim =               Int( "NDIM",              :const => 3)
-    ngllx =              Int( "NGLLX",             :const => 5)
+    ndim =               Int( "NDIM",              :const => n_dim)
+    ngllx =              Int( "NGLLX",             :const => n_gllx)
     if type == :fluid_ICB or type == :fluid_CMB then
       variables = [displ, accel_out, ibool_1, ibelm_1, normal_outer_core, jacobian2D_outer_core, wgllwgll_xy, ibool_2, ibelm_2, nspec2D]
     elsif type == :CMB_fluid or type == :ICB_fluid then
       variables = [displ, accel_out, accel_in, ibool_2, ibelm_2, normal_outer_core, jacobian2D_outer_core, wgllwgll_xy, ibool_1, ibelm_1, rho_oc, minus_g, gravity, nspec2D]
     end
-    p = Procedure(function_name, variables, [ndim, ngllx])
+    p = Procedure(function_name, variables)
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CL or get_lang == CUDA) then
-      if (get_lang == CL) then
-        if get_default_real_size == 8 then
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
-        end
-        load "./atomicAdd_f.rb"
-      end
-      load "./INDEX2.rb"
-      load "./INDEX3.rb"
-      load "./INDEX4.rb"
+      make_specfem3d_header( :ndim => n_dim, :ngllx => n_gllx )
       decl p
       decl i = Int("i"), j = Int("j"), k = Int("k")
       decl iface =      Int("iface")

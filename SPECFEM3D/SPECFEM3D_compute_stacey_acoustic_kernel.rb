@@ -47,19 +47,11 @@ module BOAST
     ngllx = Int("NGLLX", :const => n_gllx)
     ngll2 = Int("NGLL2", :const => n_gll2)
 
-    p = Procedure(function_name, variables, [ngllx, ngll2])
+    p = Procedure(function_name, variables)
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CL or get_lang == CUDA) then
-      if (get_lang == CL) then
-        if get_default_real_size == 8 then
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
-        end
-        load "./atomicAdd_f.rb"
-        load "./INDEX2.rb"
-        load "./INDEX4.rb"
-      end
+      make_specfem3d_header( :ngllx => n_gllx, :ngll2 => n_gll2 )
       decl p
       decl igll = Int("igll")
       decl iface = Int("iface")

@@ -14,16 +14,11 @@ module BOAST
 
     ngll3 = Int("NGLL3", :const => n_gll3)
 
-    p = Procedure(function_name, [ibool, accel, b_displ, rho_kl, nspec, deltat],[ngll3])
+    p = Procedure(function_name, [ibool, accel, b_displ, rho_kl, nspec, deltat])
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CL or get_lang == CUDA) then
-      if (get_lang == CL) then
-        if get_default_real_size == 8 then
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
-          @@output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
-        end
-      end
+      make_specfem3d_header( :ngll3 => n_gll3 )
       decl p
         decl ispec = Int("ispec")
         decl ijk_ispec = Int("ijk_ispec")

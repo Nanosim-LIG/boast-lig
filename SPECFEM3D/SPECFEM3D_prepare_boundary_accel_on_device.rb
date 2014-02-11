@@ -25,13 +25,11 @@ module BOAST
     d_ibool_interfaces =    Int( "d_ibool_interfaces",    :dir => :in,  :dim => [ Dim(num_interfaces*max_nibool_interfaces) ] )
 
     variables += [ num_interfaces, max_nibool_interfaces, d_nibool_interfaces, d_ibool_interfaces]
-    p = Procedure::new(function_name, [d_accel,d_send_accel_buffer,num_interfaces,max_nibool_interfaces,d_nibool_interfaces,d_ibool_interfaces])
+    p = Procedure::new(function_name, variables)
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CUDA or get_lang == CL) then
-      if(get_lang == CL and get_default_real_size == 8) then
-        @@output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
-      end
+      make_specfem3d_header
       decl p
       id =         Int("id")
       iglob =      Int("iglob")

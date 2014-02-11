@@ -3,6 +3,7 @@ require './BOAST.rb'
 Dir.chdir("SPECFEM3D")
 require 'rubygems'
 require 'narray'
+require './HEADER.rb'
 
 def rndup( val, div)
   return (val%div) == 0 ? val : val + div - (val%div)
@@ -44,6 +45,7 @@ kernels = [
 
 langs = [ :CUDA, :CL]
 BOAST::set_default_real_size(4)
+BOAST::set_replace_constants(false)
 
 kernels.each { |kern|
   require "./SPECFEM3D_#{kern.to_s}.rb"
