@@ -528,6 +528,7 @@ module BOAST
     attr_reader :texture
     attr_reader :sampler
     attr_reader :replace_constant
+    attr_accessor :force_replace_constant
 
     def initialize(name,type,hash={})
       @name = name
@@ -536,6 +537,7 @@ module BOAST
       @dimension = hash[:dimension] ? hash[:dimension] : hash[:dim]
       @local = hash[:local]
       @texture = hash[:texture]
+      @force_replace_constant = false
       if not hash[:replace_constant].nil? then
         @replace_constant = hash[:replace_constant]
       else
@@ -559,7 +561,7 @@ module BOAST
     end    
 
     def to_str
-      if @replace_constant and @constant and BOAST::get_replace_constants and not @dimension then
+      if @force_replace_constant or ( @replace_constant and @constant and BOAST::get_replace_constants and not @dimension ) then
         s = @constant.to_s 
         s += "_wp" if BOAST::get_lang == FORTRAN and @type and @type.size == 8
         return s
@@ -924,7 +926,9 @@ module BOAST
 #      s += self.header(BOAST::get_lang,false)
 #      s += ";\n"
       if BOAST::get_lang == CL then
-        s += "__kernel "
+        if not @properties[:local] then
+          s += "__kernel "
+        end
         wgs = @properties[:reqd_work_group_size]
         if wgs then
           s += "__attribute__((reqd_work_group_size(#{wgs[0]},#{wgs[1]},#{wgs[2]}))) "
@@ -1665,6 +1669,7 @@ module BOAST
 
     def unroll(*args)
       raise "Block not given!" if not @block
+      BOAST::push_env( :replace_constants => true )
       begin
         if @begin.kind_of?(Variable) then
           start = @begin.constant
@@ -1689,13 +1694,19 @@ module BOAST
         end
         raise "Invalid bounds (not constants)!" if not ( start and e and step )
       rescue Exception => ex
-        return self.print(*args) if not ( start and e and step )
+        if not ( start and e and step ) then
+          BOAST::pop_env( :replace_constants )
+          return self.print(*args) if not ( start and e and step )
+        end
       end
+      BOAST::pop_env( :replace_constants )
       range = start..e
+      @iterator.force_replace_constant = true
       range.step(step) { |i|
         @iterator.constant = i
         @block.call(*args)
       }
+      @iterator.force_replace_constant = false
       @iterator.constant = nil
     end
 
