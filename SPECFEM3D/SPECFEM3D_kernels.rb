@@ -40,7 +40,8 @@ kernels = [
 :update_veloc_acoustic_kernel,
 :outer_core_impl_kernel,
 :inner_core_impl_kernel,
-:compute_rho_kernel
+:compute_rho_kernel,
+:compute_iso_kernel
 ]
 
 langs = [ :CUDA, :CL]

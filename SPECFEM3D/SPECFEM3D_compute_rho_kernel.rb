@@ -8,7 +8,7 @@ module BOAST
     ibool   = Int( "ibool",   :dir => :in, :dim => [Dim()] )
     accel   = Real("accel",   :dir => :in, :dim => [Dim(3), Dim()] )
     b_displ = Real("b_displ", :dir => :in, :dim => [Dim(3), Dim()] )
-    rho_kl  = Real("rho_kl",  :dir => :in, :dim => [Dim()] )
+    rho_kl  = Real("rho_kl",  :dir => :out,:dim => [Dim()] )
     nspec   = Int( "NSPEC",   :dir => :in)
     deltat  = Real("deltat",  :dir => :in)
 
