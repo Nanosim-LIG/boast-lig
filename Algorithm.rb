@@ -650,7 +650,7 @@ module BOAST
       s = ""
       s += self.indent if final
       s += "const " if @constant or @direction == :in
-      s += "__global " if @direction and @dimension and BOAST::get_lang == CL
+      s += "__global " if @direction and @dimension and not @hash[:register]  and BOAST::get_lang == CL
       s += "__local " if @local and BOAST::get_lang == CL
       s += "__shared__ " if @local and BOAST::get_lang == CUDA
       s += @type.decl
