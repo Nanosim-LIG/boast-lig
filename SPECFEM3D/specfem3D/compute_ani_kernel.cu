@@ -1,10 +1,10 @@
 #define NGLL3 125
 
-__device__ void compute_strain_product_cuda(realw* prod,
-                                            realw eps_trace_over_3,
-                                            realw* epsdev,
-                                            realw b_eps_trace_over_3,
-                                            realw* b_epsdev){
+__device__ void compute_strain_product(realw* prod,
+                                       realw eps_trace_over_3,
+                                       realw* epsdev,
+                                       realw b_eps_trace_over_3,
+                                       realw* b_epsdev){
 
   realw eps[6],b_eps[6];
 
@@ -49,21 +49,21 @@ __device__ void compute_strain_product_cuda(realw* prod,
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void compute_kernels_ani_cudakernel(realw* epsilondev_xx,
-                                               realw* epsilondev_yy,
-                                               realw* epsilondev_xy,
-                                               realw* epsilondev_xz,
-                                               realw* epsilondev_yz,
-                                               realw* epsilon_trace_over_3,
-                                               realw* b_epsilondev_xx,
-                                               realw* b_epsilondev_yy,
-                                               realw* b_epsilondev_xy,
-                                               realw* b_epsilondev_xz,
-                                               realw* b_epsilondev_yz,
-                                               realw* b_epsilon_trace_over_3,
-                                               realw* cijkl_kl,
-                                               int NSPEC,
-                                               realw deltat) {
+__global__ void compute_ani_kernel(realw* epsilondev_xx,
+                                   realw* epsilondev_yy,
+                                   realw* epsilondev_xy,
+                                   realw* epsilondev_xz,
+                                   realw* epsilondev_yz,
+                                   realw* epsilon_trace_over_3,
+                                   realw* b_epsilondev_xx,
+                                   realw* b_epsilondev_yy,
+                                   realw* b_epsilondev_xy,
+                                   realw* b_epsilondev_xz,
+                                   realw* b_epsilondev_yz,
+                                   realw* b_epsilon_trace_over_3,
+                                   realw* cijkl_kl,
+                                   int NSPEC,
+                                   realw deltat) {
 
   int ispec = blockIdx.x + blockIdx.y*gridDim.x;
 
@@ -94,7 +94,7 @@ __global__ void compute_kernels_ani_cudakernel(realw* epsilondev_xx,
     b_eps_trace_over_3 = b_epsilon_trace_over_3[ijk_ispec];
 
     // fully anisotropic kernel contributions
-    compute_strain_product_cuda(prod,eps_trace_over_3,epsdev,b_eps_trace_over_3,b_epsdev);
+    compute_strain_product(prod,eps_trace_over_3,epsdev,b_eps_trace_over_3,b_epsdev);
 
     // updates full anisotropic kernel
     for(int i=0;i<21;i++){

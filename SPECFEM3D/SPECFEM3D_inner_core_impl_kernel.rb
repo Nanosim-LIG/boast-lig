@@ -9,12 +9,12 @@ module BOAST
     v.push r_xy            = Real("R_xy",            :dir => :in, :dim => [Dim()] )
     v.push r_xz            = Real("R_xz",            :dir => :in, :dim => [Dim()] )
     v.push r_yz            = Real("R_yz",            :dir => :in, :dim => [Dim()] )
-    v.push sigma_xx        = Real("sigma_xx",        :dir => :inout, :dim => [Dim()] )
-    v.push sigma_yy        = Real("sigma_yy",        :dir => :inout, :dim => [Dim()] )
-    v.push sigma_zz        = Real("sigma_zz",        :dir => :inout, :dim => [Dim()] )
-    v.push sigma_xy        = Real("sigma_xy",        :dir => :inout, :dim => [Dim()] )
-    v.push sigma_xz        = Real("sigma_xz",        :dir => :inout, :dim => [Dim()] )
-    v.push sigma_yz        = Real("sigma_yz",        :dir => :inout, :dim => [Dim()] )
+    v.push sigma_xx        = Real("sigma_xx",        :dir => :inout, :dim => [Dim()], :register => true )
+    v.push sigma_yy        = Real("sigma_yy",        :dir => :inout, :dim => [Dim()], :register => true )
+    v.push sigma_zz        = Real("sigma_zz",        :dir => :inout, :dim => [Dim()], :register => true )
+    v.push sigma_xy        = Real("sigma_xy",        :dir => :inout, :dim => [Dim()], :register => true )
+    v.push sigma_xz        = Real("sigma_xz",        :dir => :inout, :dim => [Dim()], :register => true )
+    v.push sigma_yz        = Real("sigma_yz",        :dir => :inout, :dim => [Dim()], :register => true )
 
     ngll3 = Int("NGLL3", :const => n_gll3)
     nsls  = Int("N_SLS", :const => n_sls)
@@ -39,74 +39,6 @@ module BOAST
     return p
   end
 
-  def BOAST::compute_element_ic_att_memory(n_gll3 = 125, n_gll3_padded = 128, n_sls = 3 )
-    function_name = "compute_element_ic_att_memory"
-    v = []
-    v.push tx                = Int( "tx",                :dir => :in)
-    v.push working_element   = Int( "working_element",   :dir => :in)
-    v.push d_muv             = Real("d_muv",             :dir => :in, :dim => [Dim()] )
-    v.push factor_common     = Real("factor_common",     :dir => :in, :dim => [Dim()] )
-    v.push alphaval          = Real("alphaval",          :dir => :in, :dim => [Dim()] )
-    v.push betaval           = Real("betaval",           :dir => :in, :dim => [Dim()] )
-    v.push gammaval          = Real("gammaval",          :dir => :in, :dim => [Dim()] )
-    v.push r_xx              = Real("R_xx",              :dir => :inout, :dim => [Dim()] )
-    v.push r_yy              = Real("R_yy",              :dir => :inout, :dim => [Dim()] )
-    v.push r_xy              = Real("R_xy",              :dir => :inout, :dim => [Dim()] )
-    v.push r_xz              = Real("R_xz",              :dir => :inout, :dim => [Dim()] )
-    v.push r_yz              = Real("R_yz",              :dir => :inout, :dim => [Dim()] )
-    v.push epsilondev_xx     = Real("epsilondev_xx",     :dir => :in, :dim => [Dim()] )
-    v.push epsilondev_yy     = Real("epsilondev_yy",     :dir => :in, :dim => [Dim()] )
-    v.push epsilondev_xy     = Real("epsilondev_xy",     :dir => :in, :dim => [Dim()] )
-    v.push epsilondev_xz     = Real("epsilondev_xz",     :dir => :in, :dim => [Dim()] )
-    v.push epsilondev_yz     = Real("epsilondev_yz",     :dir => :in, :dim => [Dim()] )
-    v.push epsilondev_xx_loc = Real("epsilondev_xx_loc", :dir => :in)
-    v.push epsilondev_yy_loc = Real("epsilondev_yy_loc", :dir => :in)
-    v.push epsilondev_xy_loc = Real("epsilondev_xy_loc", :dir => :in)
-    v.push epsilondev_xz_loc = Real("epsilondev_xz_loc", :dir => :in)
-    v.push epsilondev_yz_loc = Real("epsilondev_yz_loc", :dir => :in)
-    v.push use_3d_attenuation_arrays = Int( "USE_3D_ATTENUATION_ARRAYS",    :dir => :in)
-
-    ngll3 = Int("NGLL3", :const => n_gll3)
-    ngll3_padded = Int("NGLL3_PADDED", :const => n_gll3_padded)
-    nsls  = Int("N_SLS", :const => n_sls)
-
-    p = Procedure(function_name, v, [], :local => true) {
-      decl offset = Int("offset")
-      decl i_sls  = Int("i_sls")
-      decl mul = Real("mul")
-      decl alphaval_loc = Real("alphaval_loc")
-      decl betaval_loc = Real("betaval_loc")
-      decl gammaval_loc = Real("gammaval_loc")
-      decl factor_loc = Real("factor_loc")
-      decl sn = Real("sn")
-      decl snp1 = Real("snp1")
-
-      print mul === d_muv[tx + ngll3_padded*working_element]
-      print For( i_sls, 0, nsls - 1 ) {
-        print offset === i_sls + nsls*(tx + ngll3*working_element)
-        print If(use_3d_attenuation_arrays, lambda {
-            print factor_loc  === mul * factor_common[offset]
-        }, lambda {
-            print factor_loc  === mul * factor_common[i_sls + nsls*working_element ]
-        })
-        print alphaval_loc === alphaval[i_sls]
-        print  betaval_loc ===  betaval[i_sls]
-        print gammaval_loc === gammaval[i_sls]
-
-        [[r_xx, epsilondev_xx, epsilondev_xx_loc],
-         [r_yy, epsilondev_yy, epsilondev_yy_loc],
-         [r_xy, epsilondev_xy, epsilondev_xy_loc],
-         [r_xz, epsilondev_xz, epsilondev_xz_loc],
-         [r_yz, epsilondev_yz, epsilondev_yz_loc]].each { |r, epsilondev, epsilondev_loc|
-          print sn   === factor_loc * epsilondev[tx + ngll3 * working_element]
-          print snp1 === factor_loc * epsilondev_loc
-          print r[offset] === alphaval_loc*r[offset] + betaval_loc*sn + gammaval_loc*snp1
-        }
-      }
-    }
-    return p
-  end
-
   def BOAST::compute_element_ic_gravity( n_gll3 = 125, r_earth_km = 6371.0)
     function_name = "compute_element_ic_gravity"
     v = []
@@ -120,18 +52,18 @@ module BOAST
     v.push wgll_cube               = Real("wgll_cube",               :dir => :in, :dim => [Dim()] )
     v.push jacobianl               = Real("jacobianl", :dir => :in)
     v.push *s_dummy_loc = ["x", "y", "z"].collect { |a|
-                                     Real("s_dummy#{a}_loc", :dir => :in, :shared => true, :dim => [Dim(ngll3)] )
+                                     Real("s_dummy#{a}_loc", :dir => :in, :shared => true, :dim => [Dim(ngll3)], :register => true )
     }
     sigma = ["x", "y", "z"].collect { |a1|
         ["x", "y", "z"].collect { |a2|
-                                     Real("sigma_#{a1}#{a2}", :dir => :inout, :dim => [Dim()] )
+                                     Real("sigma_#{a1}#{a2}", :dir => :inout, :dim => [Dim()], :register => true )
         }
     }
-    v.push sigma[0][0], sigma[1][1], sigma[2][2],
+    v.push sigma[0][0], sigma[1][1], sigma[2][2],\
            sigma[0][1], sigma[1][0], sigma[0][2],\
            sigma[2][0], sigma[1][2], sigma[2][1]
     v.push *rho_s_H = [1,2,3].collect {|n|
-                                     Real("rho_s_H#{n}", :dir => :inout, :dim => [Dim()] )
+                                     Real("rho_s_H#{n}", :dir => :inout, :dim => [Dim()], :register => true )
     }
 
     ngll3 = Int("NGLL3", :const => n_gll3)
@@ -217,6 +149,74 @@ module BOAST
       print rho_s_H[0][0] === factor * (s_l[0]*hxxl + s_l[1]*hxyl + s_l[2]*hxzl)
       print rho_s_H[1][0] === factor * (s_l[0]*hxyl + s_l[1]*hyyl + s_l[2]*hyzl)
       print rho_s_H[2][0] === factor * (s_l[0]*hxzl + s_l[1]*hyzl + s_l[2]*hzzl)
+    }
+    return p
+  end
+
+  def BOAST::compute_element_ic_att_memory(n_gll3 = 125, n_gll3_padded = 128, n_sls = 3 )
+    function_name = "compute_element_ic_att_memory"
+    v = []
+    v.push tx                = Int( "tx",                :dir => :in)
+    v.push working_element   = Int( "working_element",   :dir => :in)
+    v.push d_muv             = Real("d_muv",             :dir => :in, :dim => [Dim()] )
+    v.push factor_common     = Real("factor_common",     :dir => :in, :dim => [Dim()] )
+    v.push alphaval          = Real("alphaval",          :dir => :in, :dim => [Dim()] )
+    v.push betaval           = Real("betaval",           :dir => :in, :dim => [Dim()] )
+    v.push gammaval          = Real("gammaval",          :dir => :in, :dim => [Dim()] )
+    v.push r_xx              = Real("R_xx",              :dir => :inout, :dim => [Dim()] )
+    v.push r_yy              = Real("R_yy",              :dir => :inout, :dim => [Dim()] )
+    v.push r_xy              = Real("R_xy",              :dir => :inout, :dim => [Dim()] )
+    v.push r_xz              = Real("R_xz",              :dir => :inout, :dim => [Dim()] )
+    v.push r_yz              = Real("R_yz",              :dir => :inout, :dim => [Dim()] )
+    v.push epsilondev_xx     = Real("epsilondev_xx",     :dir => :in, :dim => [Dim()] )
+    v.push epsilondev_yy     = Real("epsilondev_yy",     :dir => :in, :dim => [Dim()] )
+    v.push epsilondev_xy     = Real("epsilondev_xy",     :dir => :in, :dim => [Dim()] )
+    v.push epsilondev_xz     = Real("epsilondev_xz",     :dir => :in, :dim => [Dim()] )
+    v.push epsilondev_yz     = Real("epsilondev_yz",     :dir => :in, :dim => [Dim()] )
+    v.push epsilondev_xx_loc = Real("epsilondev_xx_loc", :dir => :in, :register => true)
+    v.push epsilondev_yy_loc = Real("epsilondev_yy_loc", :dir => :in, :register => true)
+    v.push epsilondev_xy_loc = Real("epsilondev_xy_loc", :dir => :in, :register => true)
+    v.push epsilondev_xz_loc = Real("epsilondev_xz_loc", :dir => :in, :register => true)
+    v.push epsilondev_yz_loc = Real("epsilondev_yz_loc", :dir => :in, :register => true)
+    v.push use_3d_attenuation_arrays = Int( "USE_3D_ATTENUATION_ARRAYS",    :dir => :in)
+
+    ngll3 = Int("NGLL3", :const => n_gll3)
+    ngll3_padded = Int("NGLL3_PADDED", :const => n_gll3_padded)
+    nsls  = Int("N_SLS", :const => n_sls)
+
+    p = Procedure(function_name, v, [], :local => true) {
+      decl offset = Int("offset")
+      decl i_sls  = Int("i_sls")
+      decl mul = Real("mul")
+      decl alphaval_loc = Real("alphaval_loc")
+      decl betaval_loc = Real("betaval_loc")
+      decl gammaval_loc = Real("gammaval_loc")
+      decl factor_loc = Real("factor_loc")
+      decl sn = Real("sn")
+      decl snp1 = Real("snp1")
+
+      print mul === d_muv[tx + ngll3_padded*working_element]
+      print For( i_sls, 0, nsls - 1 ) {
+        print offset === i_sls + nsls*(tx + ngll3*working_element)
+        print If(use_3d_attenuation_arrays, lambda {
+            print factor_loc  === mul * factor_common[offset]
+        }, lambda {
+            print factor_loc  === mul * factor_common[i_sls + nsls*working_element ]
+        })
+        print alphaval_loc === alphaval[i_sls]
+        print  betaval_loc ===  betaval[i_sls]
+        print gammaval_loc === gammaval[i_sls]
+
+        [[r_xx, epsilondev_xx, epsilondev_xx_loc],
+         [r_yy, epsilondev_yy, epsilondev_yy_loc],
+         [r_xy, epsilondev_xy, epsilondev_xy_loc],
+         [r_xz, epsilondev_xz, epsilondev_xz_loc],
+         [r_yz, epsilondev_yz, epsilondev_yz_loc]].each { |r, epsilondev, epsilondev_loc|
+          print sn   === factor_loc * epsilondev[tx + ngll3 * working_element]
+          print snp1 === factor_loc * epsilondev_loc
+          print r[offset] === alphaval_loc*r[offset] + betaval_loc*sn + gammaval_loc*snp1
+        }
+      }
     }
     return p
   end
@@ -328,12 +328,12 @@ module BOAST
           decl d_hprime_xx_oc_tex
         end
       end
-      sub_kernel1 =  compute_element_ic_att_stress(n_gll3, n_sls)
-      print sub_kernel1
-      sub_kernel2 =  compute_element_ic_att_memory(n_gll3, n_gll3_padded, n_sls)
-      print sub_kernel2
-      sub_kernel3 =  compute_element_ic_gravity(n_gll3, r_earth_km)
-      print sub_kernel3
+      sub_compute_element_ic_att_stress =  compute_element_ic_att_stress(n_gll3, n_sls)
+      print sub_compute_element_ic_att_stress
+      sub_compute_element_ic_gravity =  compute_element_ic_gravity(n_gll3, r_earth_km)
+      print sub_compute_element_ic_gravity
+      sub_compute_element_ic_att_memory =  compute_element_ic_att_memory(n_gll3, n_gll3_padded, n_sls)
+      print sub_compute_element_ic_att_memory
       decl p
       decl bx = Int("bx")
       decl tx = Int("tx")
@@ -565,7 +565,7 @@ module BOAST
         })
 
         print If(Expression("&&", attenuation, !partial_phys_dispersion_only)) {
-          print sub_kernel1.call(tx, working_element,\
+          print sub_compute_element_ic_att_stress.call(tx, working_element,\
                                  r_xx, r_yy, r_xy, r_xz, r_yz,\
                                  sigma[0][0].address, sigma[1][1].address, sigma[2][2].address,\
                                  sigma[0][1].address, sigma[0][2].address, sigma[1][2].address)
@@ -578,7 +578,7 @@ module BOAST
                                                - xil[1]*(etal[0]*gammal[2] - etal[2]*gammal[0])\
                                                + xil[2]*(etal[0]*gammal[1] - etal[1]*gammal[0]))
         print If( gravity ) {
-          print sub_kernel2.call(tx, working_element,\
+          print sub_compute_element_ic_gravity.call(tx, working_element,\
                                  d_ibool, d_store[0], d_store[1], d_store[2],\
                                  d_minus_gravity_table, d_minus_deriv_gravity_table, d_density_table,\
                                  wgll_cube, jacobianl,\
@@ -673,7 +673,7 @@ module BOAST
           })
         end
         print If( Expression("&&", attenuation, !partial_phys_dispersion_only ) ) {
-          print sub_kernel3.call( tx, working_element,\
+          print sub_compute_element_ic_att_memory.call( tx, working_element,\
                                   d_muv, factor_common,\
                                   alphaval, betaval, gammaval,\
                                   r_xx, r_yy, r_xy, r_xz, r_yz,\

@@ -11,8 +11,8 @@ module BOAST
     v.push d_B_array_rotation    = Real("d_B_array_rotation",    :dir => :inout, :dim => [Dim()] )
     v.push dpotentialdxl         = Real("dpotentialdxl",         :dir => :in)
     v.push dpotentialdyl         = Real("dpotentialdyl",         :dir => :in)
-    v.push dpotentialdx_with_rot = Real("dpotentialdx_with_rot", :dir => :out, :dim => [Dim()] )
-    v.push dpotentialdy_with_rot = Real("dpotentialdy_with_rot", :dir => :out, :dim => [Dim()] )
+    v.push dpotentialdx_with_rot = Real("dpotentialdx_with_rot", :dir => :out, :dim => [Dim(1)], :register => true)
+    v.push dpotentialdy_with_rot = Real("dpotentialdy_with_rot", :dir => :out, :dim => [Dim(1)], :register => true)
 
     ngll3 = Int("NGLL3", :const => n_gll3)
 

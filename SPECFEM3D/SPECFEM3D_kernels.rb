@@ -42,7 +42,8 @@ kernels = [
 :inner_core_impl_kernel,
 :compute_rho_kernel,
 :compute_iso_kernel,
-:compute_ani_kernel
+:compute_ani_kernel,
+:compute_hess_kernel
 ]
 
 langs = [ :CUDA, :CL]

@@ -1,11 +1,11 @@
 #define NGLL3 125
 
-__global__ void compute_kernels_rho_cudakernel(int* ibool,
-                                               realw* accel,
-                                               realw* b_displ,
-                                               realw* rho_kl,
-                                               int NSPEC,
-                                               realw deltat) {
+__global__ void compute_rho_kernel(int* ibool,
+                                   realw* accel,
+                                   realw* b_displ,
+                                   realw* rho_kl,
+                                   int NSPEC,
+                                   realw deltat) {
 
   int ispec = blockIdx.x + blockIdx.y*gridDim.x;
 
