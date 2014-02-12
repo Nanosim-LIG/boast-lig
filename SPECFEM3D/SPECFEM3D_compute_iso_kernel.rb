@@ -18,8 +18,8 @@ module BOAST
     v.push b_epsilondev_xz        = Real("b_epsilondev_xz",        :dir => :in, :dim => [Dim()] )
     v.push b_epsilondev_yz        = Real("b_epsilondev_yz",        :dir => :in, :dim => [Dim()] )
     v.push b_epsilon_trace_over_3 = Real("b_epsilon_trace_over_3", :dir => :in, :dim => [Dim()] )
-    v.push mu_kl                  = Real("mu_kl",                  :dir => :out,:dim => [Dim()] )
-    v.push kappa_kl               = Real("kappa_kl",               :dir => :out,:dim => [Dim()] )
+    v.push mu_kl                  = Real("mu_kl",                  :dir => :inout,:dim => [Dim()] )
+    v.push kappa_kl               = Real("kappa_kl",               :dir => :inout,:dim => [Dim()] )
     v.push nspec                  = Int( "NSPEC",                  :dir => :in)
     v.push deltat                 = Real("deltat",                 :dir => :in)
 
