@@ -9,12 +9,12 @@ module BOAST
     v.push r_xy            = Real("R_xy",            :dir => :in, :dim => [Dim()] )
     v.push r_xz            = Real("R_xz",            :dir => :in, :dim => [Dim()] )
     v.push r_yz            = Real("R_yz",            :dir => :in, :dim => [Dim()] )
-    v.push sigma_xx        = Real("sigma_xx",        :dir => :inout, :dim => [Dim()], :register => true )
-    v.push sigma_yy        = Real("sigma_yy",        :dir => :inout, :dim => [Dim()], :register => true )
-    v.push sigma_zz        = Real("sigma_zz",        :dir => :inout, :dim => [Dim()], :register => true )
-    v.push sigma_xy        = Real("sigma_xy",        :dir => :inout, :dim => [Dim()], :register => true )
-    v.push sigma_xz        = Real("sigma_xz",        :dir => :inout, :dim => [Dim()], :register => true )
-    v.push sigma_yz        = Real("sigma_yz",        :dir => :inout, :dim => [Dim()], :register => true )
+    v.push sigma_xx        = Real("sigma_xx",        :dir => :inout, :dim => [Dim()], :private => true )
+    v.push sigma_yy        = Real("sigma_yy",        :dir => :inout, :dim => [Dim()], :private => true )
+    v.push sigma_zz        = Real("sigma_zz",        :dir => :inout, :dim => [Dim()], :private => true )
+    v.push sigma_xy        = Real("sigma_xy",        :dir => :inout, :dim => [Dim()], :private => true )
+    v.push sigma_xz        = Real("sigma_xz",        :dir => :inout, :dim => [Dim()], :private => true )
+    v.push sigma_yz        = Real("sigma_yz",        :dir => :inout, :dim => [Dim()], :private => true )
 
     ngll3 = Int("NGLL3", :const => n_gll3)
     nsls  = Int("N_SLS", :const => n_sls)
@@ -41,6 +41,7 @@ module BOAST
 
   def BOAST::compute_element_ic_gravity( n_gll3 = 125, r_earth_km = 6371.0)
     function_name = "compute_element_ic_gravity"
+    ngll3 = Int("NGLL3", :const => n_gll3)
     v = []
     v.push tx                = Int( "tx",                :dir => :in)
     v.push working_element   = Int( "working_element",   :dir => :in)
@@ -52,21 +53,20 @@ module BOAST
     v.push wgll_cube               = Real("wgll_cube",               :dir => :in, :dim => [Dim()] )
     v.push jacobianl               = Real("jacobianl", :dir => :in)
     v.push *s_dummy_loc = ["x", "y", "z"].collect { |a|
-                                     Real("s_dummy#{a}_loc", :dir => :in, :shared => true, :dim => [Dim(ngll3)], :register => true )
+                                     Real("s_dummy#{a}_loc", :dir => :in, :dim => [Dim(ngll3)], :local => true )
     }
     sigma = ["x", "y", "z"].collect { |a1|
         ["x", "y", "z"].collect { |a2|
-                                     Real("sigma_#{a1}#{a2}", :dir => :inout, :dim => [Dim()], :register => true )
+                                     Real("sigma_#{a1}#{a2}", :dir => :inout, :dim => [Dim()], :private => true )
         }
     }
     v.push sigma[0][0], sigma[1][1], sigma[2][2],\
            sigma[0][1], sigma[1][0], sigma[0][2],\
            sigma[2][0], sigma[1][2], sigma[2][1]
     v.push *rho_s_H = [1,2,3].collect {|n|
-                                     Real("rho_s_H#{n}", :dir => :inout, :dim => [Dim()], :register => true )
+                                     Real("rho_s_H#{n}", :dir => :inout, :dim => [Dim()], :private => true )
     }
 
-    ngll3 = Int("NGLL3", :const => n_gll3)
     p = Procedure(function_name, v, [], :local => true) {
       decl radius = Real("radius"), theta = Real("theta"), phi = Real("phi")
       decl cos_theta = Real("cos_theta"), sin_theta = Real("sin_theta"), cos_phi = Real("cos_phi"), sin_phi = Real("sin_phi")
@@ -173,11 +173,11 @@ module BOAST
     v.push epsilondev_xy     = Real("epsilondev_xy",     :dir => :in, :dim => [Dim()] )
     v.push epsilondev_xz     = Real("epsilondev_xz",     :dir => :in, :dim => [Dim()] )
     v.push epsilondev_yz     = Real("epsilondev_yz",     :dir => :in, :dim => [Dim()] )
-    v.push epsilondev_xx_loc = Real("epsilondev_xx_loc", :dir => :in, :register => true)
-    v.push epsilondev_yy_loc = Real("epsilondev_yy_loc", :dir => :in, :register => true)
-    v.push epsilondev_xy_loc = Real("epsilondev_xy_loc", :dir => :in, :register => true)
-    v.push epsilondev_xz_loc = Real("epsilondev_xz_loc", :dir => :in, :register => true)
-    v.push epsilondev_yz_loc = Real("epsilondev_yz_loc", :dir => :in, :register => true)
+    v.push epsilondev_xx_loc = Real("epsilondev_xx_loc", :dir => :in, :private => true)
+    v.push epsilondev_yy_loc = Real("epsilondev_yy_loc", :dir => :in, :private => true)
+    v.push epsilondev_xy_loc = Real("epsilondev_xy_loc", :dir => :in, :private => true)
+    v.push epsilondev_xz_loc = Real("epsilondev_xz_loc", :dir => :in, :private => true)
+    v.push epsilondev_yz_loc = Real("epsilondev_yz_loc", :dir => :in, :private => true)
     v.push use_3d_attenuation_arrays = Int( "USE_3D_ATTENUATION_ARRAYS",    :dir => :in)
 
     ngll3 = Int("NGLL3", :const => n_gll3)
@@ -225,7 +225,7 @@ module BOAST
     push_env( :array_start => 0 )
     kernel = CKernel::new
     v = []
-    function_name = "outer_core_impl_kernel"
+    function_name = "inner_core_impl_kernel"
     v.push nb_blocks_to_compute    = Int("nb_blocks_to_compute",     :dir => :in)
     v.push nglob                   = Int("NGLOB",                    :dir => :in)
     v.push d_ibool                 = Int("d_ibool",                  :dir => :in, :dim => [Dim()] )
@@ -398,18 +398,18 @@ module BOAST
       }
 
       decl *s_dummy_loc = ["x", "y", "z"].collect { |a|
-        Real("s_dummy#{a}_loc", :shared => true, :dim => [Dim(ngll3)] )
+        Real("s_dummy#{a}_loc", :local => true, :dim => [Dim(ngll3)] )
       }
 
       s_temp = ["x", "y", "z"].collect { |a|
         [ 1, 2, 3 ].collect { |n|
-          Real("s_temp#{a}#{n}", :shared => true, :dim => [Dim(ngll3)] )
+          Real("s_temp#{a}#{n}", :local => true, :dim => [Dim(ngll3)] )
         }
       }
       decl *(s_temp.flatten)
 
-      decl sh_hprime_xx     = Real("sh_hprime_xx",     :shared => true, :dim => [Dim(ngll2)] )
-      decl sh_hprimewgll_xx = Real("sh_hprimewgll_xx", :shared => true, :dim => [Dim(ngll2)] )
+      decl sh_hprime_xx     = Real("sh_hprime_xx",     :local => true, :dim => [Dim(ngll2)] )
+      decl sh_hprimewgll_xx = Real("sh_hprimewgll_xx", :local => true, :dim => [Dim(ngll2)] )
 
       print bx === get_group_id(1)*get_num_groups(0)+get_group_id(0)
       print tx === get_local_id(0)

@@ -535,7 +535,7 @@ module BOAST
       @direction = hash[:direction] ? hash[:direction] : hash[:dir]
       @constant = hash[:constant] ? hash[:constant]  : hash[:const]
       @dimension = hash[:dimension] ? hash[:dimension] : hash[:dim]
-      @local = hash[:local]
+      @local = hash[:local] ? hash[:local] : hash[:shared]
       @texture = hash[:texture]
       @force_replace_constant = false
       if not hash[:replace_constant].nil? then
@@ -645,23 +645,23 @@ module BOAST
        return s
     end
 
-    def decl_c(final=true)
+    def decl_c(final=true, device=false)
       return decl_texture(final) if @texture
       s = ""
       s += self.indent if final
       s += "const " if @constant or @direction == :in
-      s += "__global " if @direction and @dimension and not @hash[:register]  and BOAST::get_lang == CL
+      s += "__global " if @direction and @dimension and not (@hash[:register] or @hash[:private] or @local) and BOAST::get_lang == CL
       s += "__local " if @local and BOAST::get_lang == CL
-      s += "__shared__ " if @local and BOAST::get_lang == CUDA
+      s += "__shared__ " if @local and not device and BOAST::get_lang == CUDA
       s += @type.decl
-      if(@dimension and not @constant and not @local) then
+      if(@dimension and not @constant and (not @local or (@local and device))) then
         s += " *"
       end
       s += " #{@name}"
       if(@dimension and @constant) then
         s += "[]"
       end
-      if(@dimension and @local) then
+      if(@dimension and (@local and not device)) then
          s +="["
          s += @dimension.reverse.join("*")
          s +="]"
@@ -702,9 +702,9 @@ module BOAST
       return s
     end
 
-    def decl(final=true)
+    def decl(final=true,device=false)
       return self.decl_fortran(final) if BOAST::get_lang == FORTRAN
-      return self.decl_c(final) if [C, CL, CUDA].include?( BOAST::get_lang )
+      return self.decl_c(final, device) if [C, CL, CUDA].include?( BOAST::get_lang )
     end
 
     def decl_texture(final=true)
@@ -947,9 +947,9 @@ module BOAST
       end
       s += "#{@name}("
       if parameters.first then
-        s += parameters.first.decl(false)
+        s += parameters.first.decl(false, @properties[:local])
         parameters[1..-1].each { |p|
-          s += ", "+p.decl(false)
+          s += ", "+p.decl(false, @properties[:local])
         }
       end
       s += "){\n"

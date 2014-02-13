@@ -11,8 +11,8 @@ module BOAST
     v.push d_B_array_rotation    = Real("d_B_array_rotation",    :dir => :inout, :dim => [Dim()] )
     v.push dpotentialdxl         = Real("dpotentialdxl",         :dir => :in)
     v.push dpotentialdyl         = Real("dpotentialdyl",         :dir => :in)
-    v.push dpotentialdx_with_rot = Real("dpotentialdx_with_rot", :dir => :out, :dim => [Dim(1)], :register => true)
-    v.push dpotentialdy_with_rot = Real("dpotentialdy_with_rot", :dir => :out, :dim => [Dim(1)], :register => true)
+    v.push dpotentialdx_with_rot = Real("dpotentialdx_with_rot", :dir => :out, :dim => [Dim(1)], :private => true)
+    v.push dpotentialdy_with_rot = Real("dpotentialdy_with_rot", :dir => :out, :dim => [Dim(1)], :private => true)
 
     ngll3 = Int("NGLL3", :const => n_gll3)
 
@@ -148,14 +148,14 @@ module BOAST
 
       decl int_radius = Int("int_radius")
 
-      decl s_dummy_loc = Real("s_dummy_loc", :shared => true, :dim => [Dim(ngll3)] )
+      decl s_dummy_loc = Real("s_dummy_loc", :local => true, :dim => [Dim(ngll3)] )
 
-      decl s_temp1 = Real("s_temp1", :shared => true, :dim => [Dim(ngll3)])
-      decl s_temp2 = Real("s_temp2", :shared => true, :dim => [Dim(ngll3)])
-      decl s_temp3 = Real("s_temp3", :shared => true, :dim => [Dim(ngll3)])
+      decl s_temp1 = Real("s_temp1", :local => true, :dim => [Dim(ngll3)])
+      decl s_temp2 = Real("s_temp2", :local => true, :dim => [Dim(ngll3)])
+      decl s_temp3 = Real("s_temp3", :local => true, :dim => [Dim(ngll3)])
 
-      decl sh_hprime_xx     = Real("sh_hprime_xx",     :shared => true, :dim => [Dim(ngll2)] )
-      decl sh_hprimewgll_xx = Real("sh_hprimewgll_xx", :shared => true, :dim => [Dim(ngll2)] )
+      decl sh_hprime_xx     = Real("sh_hprime_xx",     :local => true, :dim => [Dim(ngll2)] )
+      decl sh_hprimewgll_xx = Real("sh_hprimewgll_xx", :local => true, :dim => [Dim(ngll2)] )
 
       print bx === get_group_id(1)*get_num_groups(0)+get_group_id(0)
       print tx === get_local_id(0)
@@ -220,7 +220,14 @@ module BOAST
         }
 
         print If( rotation , lambda {
-          print sub_kernel.call(tx,working_element,time,two_omega_earth,deltat,d_A_array_rotation,d_B_array_rotation,dpotentialdl[0],dpotentialdl[1],dpotentialdx_with_rot.address, dpotentialdy_with_rot.address)
+          print sub_kernel.call(tx,working_element,\
+                                time,two_omega_earth,deltat,\
+                                d_A_array_rotation,\
+                                d_B_array_rotation,\
+                                dpotentialdl[0],\
+                                dpotentialdl[1],\
+                                dpotentialdx_with_rot.address,\
+                                dpotentialdy_with_rot.address)
         }, lambda {
           print dpotentialdx_with_rot === dpotentialdl[0]
           print dpotentialdy_with_rot === dpotentialdl[1]
