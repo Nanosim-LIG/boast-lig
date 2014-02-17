@@ -125,8 +125,8 @@ module BOAST
           print n[indx] === abs_boundary_normal[INDEX3(ndim,ngll2,indx,igll,iface)]
         }
         print vn === v[0]*n[0] + v[1]*n[1] + v[2]*n[2]
-        print rho_vp_temp = rho_vp[INDEX4(ngllx,ngllx,ngllx,i,j,k,ispec)]
-        print rho_vs_temp = rho_vs[INDEX4(ngllx,ngllx,ngllx,i,j,k,ispec)]
+        print rho_vp_temp === rho_vp[INDEX4(ngllx,ngllx,ngllx,i,j,k,ispec)]
+        print rho_vs_temp === rho_vs[INDEX4(ngllx,ngllx,ngllx,i,j,k,ispec)]
         (0..2).each { |indx|
           print t[indx] === rho_vp_temp*vn*n[indx] + rho_vs_temp*(v[indx] - vn*n[indx])
         }

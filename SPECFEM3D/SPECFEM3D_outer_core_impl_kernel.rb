@@ -33,8 +33,8 @@ module BOAST
       print source_euler_A === two_omega_deltat * (cos_two_omega_t * dpotentialdyl + sin_two_omega_t * dpotentialdxl)
       print source_euler_B === two_omega_deltat * (sin_two_omega_t * dpotentialdyl - cos_two_omega_t * dpotentialdxl)
 
-      print a_rotation = d_A_array_rotation[tx + working_element*ngll3]
-      print b_rotation = d_B_array_rotation[tx + working_element*ngll3]
+      print a_rotation === d_A_array_rotation[tx + working_element*ngll3]
+      print b_rotation === d_B_array_rotation[tx + working_element*ngll3]
 
       print dpotentialdx_with_rot[0] === dpotentialdxl + ( a_rotation*cos_two_omega_t + b_rotation*sin_two_omega_t)
       print dpotentialdy_with_rot[0] === dpotentialdyl + (-a_rotation*sin_two_omega_t + b_rotation*cos_two_omega_t)
