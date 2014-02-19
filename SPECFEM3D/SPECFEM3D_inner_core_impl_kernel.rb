@@ -39,7 +39,7 @@ module BOAST
                   end
                 }
               }
-    v.push *(d_store.flatten.reject { |e| e.nil? })
+    v.push *(d_cstore.flatten.reject { |e| e.nil? })
     v.push attenuation = Int( "ATTENUATION", :dir => :in)
     v.push one_minus_sum_beta_use = Real("one_minus_sum_beta_use", :dir => :in )
     dudl = ["x", "y", "z"].collect { |a1|
@@ -116,9 +116,12 @@ module BOAST
     v.push d_muvstore             = Real("d_muvstore",             :dir => :in, :dim => [Dim()])
     v.push attenuation            = Int( "ATTENUATION",            :dir => :in)
     v.push one_minus_sum_beta_use = Real("one_minus_sum_beta_use", :dir => :in )
-    iv.push *dudl = ["x", "y", "z"].collect { |a1|
+    v.push *dudl = ["x", "y", "z"].collect { |a1|
       Real("du#{a1}d#{a1}l", :dir => :in)
     }
+    v.push duxdxl_plus_duydyl     = Real("duxdxl_plus_duydyl", :dir => :in)
+    v.push duxdxl_plus_duzdzl     = Real("duxdxl_plus_duzdzl", :dir => :in)
+    v.push duydyl_plus_duzdzl     = Real("duydyl_plus_duzdzl", :dir => :in)
     v.push duxdyl_plus_duydxl     = Real("duxdyl_plus_duydxl", :dir => :in)
     v.push duzdxl_plus_duxdzl     = Real("duzdxl_plus_duxdzl", :dir => :in)
     v.push duzdyl_plus_duydzl     = Real("duzdyl_plus_duydzl", :dir => :in)
@@ -174,6 +177,8 @@ module BOAST
     v.push duzdyl_plus_duydzl     = Real("duzdyl_plus_duydzl", :dir => :in)
     v.push iglob                  = Int( "iglob",              :dir => :in)
     v.push nglob                  = Int( "NGLOB",              :dir => :in)
+    v.push d_ystore               = Real("d_ystore",           :dir => :in,  :dim => [Dim()])
+    v.push d_zstore               = Real("d_zstore",           :dir => :in,  :dim => [Dim()])
     v.push sigma_xx               = Real("sigma_xx",           :dir => :out, :dim => [Dim()], :private => true )
     v.push sigma_yy               = Real("sigma_yy",           :dir => :out, :dim => [Dim()], :private => true )
     v.push sigma_zz               = Real("sigma_zz",           :dir => :out, :dim => [Dim()], :private => true )
@@ -283,13 +288,13 @@ module BOAST
       print four_rhovsvsq === rhovsvsq * 4.0
       print four_rhovshsq === rhovshsq * 4.0
 
-      print c11 === rhovphsq*sinphifour + cosphisq*sinphisq*
+      print c[0][0] === rhovphsq*sinphifour + cosphisq*sinphisq*
                     (rhovphsq*costhetasq + (eta_aniso*rhovphsq + two_rhovsvsq - two_eta_aniso*rhovsvsq)*
                     sinthetasq)*2.0 + cosphifour*
                     (rhovphsq*costhetafour + (eta_aniso*rhovphsq + two_rhovsvsq - two_eta_aniso*rhovsvsq)*
                     costhetasq*sinthetasq*2.0 + rhovpvsq*sinthetafour)
 
-      print c12 === ((rhovphsq - two_rhovshsq)*(cosfourphi + 3.0)*costhetasq)*0.25 -
+      print c[0][1] === ((rhovphsq - two_rhovshsq)*(cosfourphi + 3.0)*costhetasq)*0.25 -
                     four_rhovshsq*cosphisq*costhetasq*sinphisq +
                     (rhovphsq*(costwotheta*4.0 + cosfourtheta + 11.0)*sintwophisq)*0.03125 +
                     eta_aniso*(rhovphsq - two_rhovsvsq)*(cosphifour +
@@ -297,90 +302,90 @@ module BOAST
                     rhovpvsq*cosphisq*sinphisq*sinthetafour -
                     rhovsvsq*sintwophisq*sinthetafour
 
-      print c13 === (cosphisq*(rhovphsq + six_eta_aniso*rhovphsq + rhovpvsq - four_rhovsvsq -
+      print c[0][2] === (cosphisq*(rhovphsq + six_eta_aniso*rhovphsq + rhovpvsq - four_rhovsvsq -
                     eta_aniso*rhovsvsq*12.0 + (twoetaminone*rhovphsq - rhovpvsq + four_rhovsvsq -
                     four_eta_aniso*rhovsvsq)*cosfourtheta))*0.125 +
                     sinphisq*(eta_aniso*(rhovphsq - two_rhovsvsq)*costhetasq +
                     (rhovphsq - two_rhovshsq)*sinthetasq)
 
-      print c14 === costheta*sinphi*((cosphisq*
+      print c[0][3] === costheta*sinphi*((cosphisq*
                     (-rhovphsq + rhovpvsq + four_rhovshsq - four_rhovsvsq +
                     (-rhovphsq + two_eta_aniso*rhovphsq - rhovpvsq + four_rhovsvsq -
                     four_eta_aniso*rhovsvsq)*costwotheta))*0.5 +
                     (etaminone*rhovphsq + (rhovshsq - eta_aniso*rhovsvsq)*2.0)*sinphisq)* sintheta
 
-      print c15 === cosphi*costheta*((cosphisq* (-rhovphsq + rhovpvsq +
+      print c[0][4] === cosphi*costheta*((cosphisq* (-rhovphsq + rhovpvsq +
                     (twoetaminone*rhovphsq - rhovpvsq + four_rhovsvsq - four_eta_aniso*rhovsvsq)*
                     costwotheta))*0.5 + etaminone*(rhovphsq - two_rhovsvsq)*sinphisq)*sintheta
 
-      print c16 === (cosphi*sinphi*(cosphisq* (-rhovphsq + rhovpvsq +
+      print c[0][5] === (cosphi*sinphi*(cosphisq* (-rhovphsq + rhovpvsq +
                     (-rhovphsq + two_eta_aniso*rhovphsq - rhovpvsq + four_rhovsvsq -
                     four_eta_aniso*rhovsvsq)*costwotheta) +
                     etaminone*(rhovphsq - two_rhovsvsq)*sinphisq*2.0)*sinthetasq)*0.5
 
-      print c22 === rhovphsq*cosphifour + cosphisq*sinphisq*
+      print c[1][1] === rhovphsq*cosphifour + cosphisq*sinphisq*
                     (rhovphsq*costhetasq + (eta_aniso*rhovphsq + two_rhovsvsq - two_eta_aniso*rhovsvsq)*
                     sinthetasq)*2.0 + sinphifour*
                     (rhovphsq*costhetafour + (eta_aniso*rhovphsq + two_rhovsvsq - two_eta_aniso*rhovsvsq)*
                     costhetasq*sinthetasq*2.0 + rhovpvsq*sinthetafour)
 
-      print c23 === ((rhovphsq + six_eta_aniso*rhovphsq + rhovpvsq - four_rhovsvsq - eta_aniso*rhovsvsq*12.0 +
+      print c[1][2] === ((rhovphsq + six_eta_aniso*rhovphsq + rhovpvsq - four_rhovsvsq - eta_aniso*rhovsvsq*12.0 +
                     (twoetaminone*rhovphsq - rhovpvsq + four_rhovsvsq - four_eta_aniso*rhovsvsq)*
                     cosfourtheta)*sinphisq)*0.125 +
                     cosphisq*(eta_aniso*(rhovphsq - two_rhovsvsq)*costhetasq +
                     (rhovphsq - two_rhovshsq)*sinthetasq)
 
-      print c24 === costheta*sinphi*(etaminone*(rhovphsq - two_rhovsvsq)*cosphisq +
+      print c[1][3] === costheta*sinphi*(etaminone*(rhovphsq - two_rhovsvsq)*cosphisq +
                     ((-rhovphsq + rhovpvsq + (twoetaminone*rhovphsq - rhovpvsq +
                     four_rhovsvsq - four_eta_aniso*rhovsvsq)*costwotheta)*sinphisq)*0.5)*sintheta
 
-      print c25 === cosphi*costheta*((etaminone*rhovphsq + (rhovshsq - eta_aniso*rhovsvsq)*2.0)*
+      print c[1][4] === cosphi*costheta*((etaminone*rhovphsq + (rhovshsq - eta_aniso*rhovsvsq)*2.0)*
                     cosphisq + ((-rhovphsq + rhovpvsq + four_rhovshsq - four_rhovsvsq +
                     (-rhovphsq + two_eta_aniso*rhovphsq - rhovpvsq + four_rhovsvsq -
                     four_eta_aniso*rhovsvsq)*costwotheta)*sinphisq)*0.5)*sintheta
 
-      print c26 === (cosphi*sinphi*(etaminone*(rhovphsq - two_rhovsvsq)*cosphisq*2.0 +
+      print c[1][5] === (cosphi*sinphi*(etaminone*(rhovphsq - two_rhovsvsq)*cosphisq*2.0 +
                     (-rhovphsq + rhovpvsq + (-rhovphsq + two_eta_aniso*rhovphsq - rhovpvsq + four_rhovsvsq -
                     four_eta_aniso*rhovsvsq)*costwotheta)*sinphisq)*sinthetasq)*0.5
 
-      print c33 === rhovpvsq*costhetafour + (eta_aniso*(rhovphsq - two_rhovsvsq) + two_rhovsvsq)*
+      print c[2][2] === rhovpvsq*costhetafour + (eta_aniso*(rhovphsq - two_rhovsvsq) + two_rhovsvsq)*
                     costhetasq*sinthetasq*2.0 + rhovphsq*sinthetafour
 
-      print c34 === -((rhovphsq - rhovpvsq + (twoetaminone*rhovphsq - rhovpvsq + four_rhovsvsq -
+      print c[2][3] === -((rhovphsq - rhovpvsq + (twoetaminone*rhovphsq - rhovpvsq + four_rhovsvsq -
                     four_eta_aniso*rhovsvsq)*costwotheta)*sinphi*sintwotheta)*0.25
 
-      print c35 === -(cosphi*(rhovphsq - rhovpvsq +
+      print c[2][4] === -(cosphi*(rhovphsq - rhovpvsq +
                     (twoetaminone*rhovphsq - rhovpvsq + four_rhovsvsq - four_eta_aniso*rhovsvsq)*
                     costwotheta)*sintwotheta)*0.25
 
-      print c36 === -((rhovphsq - rhovpvsq - four_rhovshsq + four_rhovsvsq +
+      print c[2][5] === -((rhovphsq - rhovpvsq - four_rhovshsq + four_rhovsvsq +
                     (twoetaminone*rhovphsq - rhovpvsq + four_rhovsvsq - four_eta_aniso*rhovsvsq)*
                     costwotheta)*sintwophi*sinthetasq)*0.25
 
-      print c44 === cosphisq*(rhovsvsq*costhetasq + rhovshsq*sinthetasq) +
+      print c[3][3] === cosphisq*(rhovsvsq*costhetasq + rhovshsq*sinthetasq) +
                     sinphisq*(rhovsvsq*costwothetasq +
                     (rhovphsq - two_eta_aniso*rhovphsq + rhovpvsq + four_eta_aniso*rhovsvsq)*costhetasq* sinthetasq)
 
-      print c45 === ((rhovphsq - two_eta_aniso*rhovphsq + rhovpvsq - two_rhovshsq - two_rhovsvsq +
+      print c[3][4] === ((rhovphsq - two_eta_aniso*rhovphsq + rhovpvsq - two_rhovshsq - two_rhovsvsq +
                     four_eta_aniso*rhovsvsq + (rhovphsq - two_eta_aniso*rhovphsq + rhovpvsq +
                     etaminone*rhovsvsq*4.0)*costwotheta)*sintwophi*sinthetasq)*0.25
 
-      print c46 === -(cosphi*costheta*((rhovshsq - rhovsvsq)*cosphisq -
+      print c[3][5] === -(cosphi*costheta*((rhovshsq - rhovsvsq)*cosphisq -
                     ((rhovphsq - two_eta_aniso*rhovphsq + rhovpvsq - two_rhovshsq - two_rhovsvsq +
                     four_eta_aniso*rhovsvsq + (-rhovphsq + two_eta_aniso*rhovphsq - rhovpvsq +
                     four_rhovsvsq - four_eta_aniso*rhovsvsq)*costwotheta)*sinphisq)*0.5)* sintheta)
 
-      print c55 === sinphisq*(rhovsvsq*costhetasq + rhovshsq*sinthetasq) +
+      print c[4][4] === sinphisq*(rhovsvsq*costhetasq + rhovshsq*sinthetasq) +
                     cosphisq*(rhovsvsq*costwothetasq +
                     (rhovphsq - two_eta_aniso*rhovphsq + rhovpvsq + four_eta_aniso*rhovsvsq)*costhetasq* sinthetasq)
 
-      print c56 === costheta*sinphi*((cosphisq*
+      print c[4][5] === costheta*sinphi*((cosphisq*
                     (rhovphsq - two_eta_aniso*rhovphsq + rhovpvsq - two_rhovshsq - two_rhovsvsq +
                     four_eta_aniso*rhovsvsq + (-rhovphsq + two_eta_aniso*rhovphsq - rhovpvsq +
                     four_rhovsvsq - four_eta_aniso*rhovsvsq)*costwotheta))*0.5 +
                     (-rhovshsq + rhovsvsq)*sinphisq)*sintheta
 
-      print c66 === rhovshsq*costwophisq*costhetasq -
+      print c[5][5] === rhovshsq*costwophisq*costhetasq -
                     (rhovphsq - two_rhovshsq)*cosphisq*costhetasq*sinphisq*2.0 +
                     (rhovphsq*(costwotheta*4.0 + cosfourtheta + 11.0)*sintwophisq)*0.03125 -
                     (rhovsvsq*(cosfourphi*-2.0 + cos(phi*4.0 - theta*2.0) - costwotheta*2.0 +
@@ -405,10 +410,10 @@ module BOAST
   end
 
   def BOAST::inner_core_impl_kernel(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = true, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11)
-    return BOAST::impl_kernel(:inner_core, ref, mesh_coloring, textures_fields, textures_constants, unroll_loops, n_gllx, n_gll2, n_gll3, n_gll3_padded, n_sls, r_earth_km, coloring_min_nspec_inner_core, i_flag_in_fictitious_cube, n_sls)
+    return BOAST::impl_kernel(:inner_core, ref, mesh_coloring, textures_fields, textures_constants, unroll_loops, n_gllx, n_gll2, n_gll3, n_gll3_padded, n_sls, r_earth_km, coloring_min_nspec_inner_core, i_flag_in_fictitious_cube)
   end
 
-  def BOAST::impl_kernel(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = true, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11)
+  def BOAST::impl_kernel(type, ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = true, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11)
     push_env( :array_start => 0 )
     kernel = CKernel::new
     v = []
@@ -443,12 +448,9 @@ module BOAST
     v.push d_wgllwgll_xy           = Real("d_wgllwgll_xy",           :dir => :in, :dim => [Dim()] )
     v.push d_wgllwgll_xz           = Real("d_wgllwgll_xz",           :dir => :in, :dim => [Dim()] )
     v.push d_wgllwgll_yz           = Real("d_wgllwgll_yz",           :dir => :in, :dim => [Dim()] )
-    if type == :inner_core then
-      v.push d_kappav                = Real("d_kappav",                :dir => :in, :dim => [Dim()] )
-      v.push d_muv                   = Real("d_muv",                   :dir => :in, :dim => [Dim()] )
-    elsif type == :crust_mantle then
-      v.push d_kappavstore           = Real("d_kappavstore",           :dir => :in, :dim => [Dim()])
-      v.push d_muvstore              = Real("d_muvstore",              :dir => :in, :dim => [Dim()])
+    v.push d_kappavstore           = Real("d_kappavstore",           :dir => :in, :dim => [Dim()])
+    v.push d_muvstore              = Real("d_muvstore",              :dir => :in, :dim => [Dim()])
+    if type == :crust_mantle then
       v.push d_kappahstore           = Real("d_kappahstore",           :dir => :in, :dim => [Dim()])
       v.push d_muhstore              = Real("d_muhstore",              :dir => :in, :dim => [Dim()])
       v.push d_eta_anisostore        = Real("d_eta_anisostore",        :dir => :in, :dim => [Dim()])
@@ -676,12 +678,9 @@ module BOAST
               print working_element === d_phase_ispec_inner[bx + num_phase_ispec*(d_iphase-1)]-1
             })
           end
-  
-          print If( d_idoubling[working_element] == iflag_in_fictitious_cube, lambda {
-            print active === 0
-          }, lambda {
+          __texture_fetch = lambda {
             print iglob === d_ibool[working_element*ngll3 + tx]-1
-  
+
             if textures_fields then
               (0..2).each { |indx|
                 print s_dummy_loc[indx][tx] === d_displ_tex[iglob*3+indx]
@@ -691,7 +690,14 @@ module BOAST
                 print s_dummy_loc[indx][tx] === d_displ[indx, iglob]
               }
             end
-          })
+          }
+          if type == :inner_core then
+            print If( d_idoubling[working_element] == iflag_in_fictitious_cube, lambda {
+              print active === 0
+            }, __texture_fetch )
+          elsif type == :crust_mantle then
+            __texture_fetch.call
+          end
         }
         #inner core and crust mantle differ here, but crust mantle implementation though more reccent seems odd...
         print If(tx < ngll2) {
@@ -765,10 +771,10 @@ module BOAST
               print epsilon_trace_over_3[tx + working_element*ngll3] === templ
             })
           }
-          print kappal === d_kappav[offset]
-          print mul === d_muv[offset]
   
           if type == :inner_core then
+            print kappal === d_kappavstore[offset]
+            print mul === d_muvstore[offset]
             print If(attenuation, lambda {
               print If(use_3d_attenuation_arrays, lambda {
                 print mul_iso  === mul * one_minus_sum_beta[tx+working_element*ngll3]
@@ -828,7 +834,7 @@ module BOAST
                                                 sigma[0][0].address, sigma[1][1].address, sigma[2][2].address,
                                                 sigma[0][1].address, sigma[0][2].address, sigma[1][2].address )
             }, lambda {
-              print If( not d_ispec_is_tiso[working_element], lambda {
+              print If(  !d_ispec_is_tiso[working_element], lambda {
                 sub_compute_element_cm_iso.call( offset,
                                                  d_kappavstore,d_muvstore,
                                                  attenuation,
@@ -942,8 +948,26 @@ module BOAST
               }
             end
           else
-            print If( use_mesh_coloring_gpu, lambda {
-              print If( nspec_inner_core > coloring_min_nspec_inner_core, lambda {
+            if type == :inner_core then
+              __accel_update = lambda {
+                print If( nspec_inner_core > coloring_min_nspec_inner_core, lambda {
+                  if textures_fields then
+                    (0..2).each { |indx|
+                      print d_accel[indx,iglob] === d_accel_tex[iglob*3+indx] + sum_terms[indx]
+                    }
+                  else
+                    (0..2).each { |indx|
+                      print d_accel[indx,iglob] === d_accel[indx,iglob] + sum_terms[indx]
+                    }
+                  end
+                }, lambda{
+                  (0..2).each { |indx|
+                    print atomicAdd(d_accel+ iglob*3 +indx, sum_terms[indx])
+                  }
+                })
+              }
+            elsif type == :crust_mantle then
+              __accel_update = lambda {
                 if textures_fields then
                   (0..2).each { |indx|
                     print d_accel[indx,iglob] === d_accel_tex[iglob*3+indx] + sum_terms[indx]
@@ -953,36 +977,26 @@ module BOAST
                     print d_accel[indx,iglob] === d_accel[indx,iglob] + sum_terms[indx]
                   }
                 end
-              }, lambda{
-                (0..2).each { |indx|
-                  print atomicAdd(d_accel+ iglob*3 +indx, sum_terms[indx])
-                }
-              })
-            }, lambda {
+              }
+            end
+            print If( use_mesh_coloring_gpu, __accel_update, lambda {
               (0..2).each { |indx|
                 print atomicAdd(d_accel + iglob*3 + indx, sum_terms[indx])
               }
             })
           end
           print If( Expression("&&", attenuation, !partial_phys_dispersion_only ) ) {
-            if type == :inner_core then
-              print sub_compute_element_att_memory.call( tx, working_element,\
-                                      d_muv, factor_common,\
-                                      alphaval, betaval, gammaval,\
-                                      r_xx, r_yy, r_xy, r_xz, r_yz,\
-                                      epsilondev_xx, epsilondev_yy, epsilondev_xy, epsilondev_xz, epsilondev_yz,\
-                                      epsilondev_xx_loc, epsilondev_yy_loc, epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc,\
-                                      use_3d_attenuation_arrays)
-            elsif type == :crust_mantle then
-              print sub_compute_element_att_memory.call( tx, working_element,\
-                                      d_muvstore, factor_common,\
-                                      alphaval, betaval, gammaval,\
-                                      r_xx, r_yy, r_xy, r_xz, r_yz,\
-                                      epsilondev_xx, epsilondev_yy, epsilondev_xy, epsilondev_xz, epsilondev_yz,\
-                                      epsilondev_xx_loc, epsilondev_yy_loc, epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc,\
-                                      d_cstore[3][3], anisotropy,\
-                                      use_3d_attenuation_arrays)
+            __params = [tx, working_element,\
+                        d_muvstore, factor_common,\
+                        alphaval, betaval, gammaval,\
+                        r_xx, r_yy, r_xy, r_xz, r_yz,\
+                        epsilondev_xx, epsilondev_yy, epsilondev_xy, epsilondev_xz, epsilondev_yz,\
+                        epsilondev_xx_loc, epsilondev_yy_loc, epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc]
+            if type == :crust_mantle then
+              __params += [d_cstore[3][3], anisotropy]
             end
+            __params.push use_3d_attenuation_arrays
+            print sub_compute_element_att_memory.call( *__params )
           }
           print If( compute_and_store_strain ) {
             print epsilondev_xx[tx + working_element*ngll3] === epsilondev_xx_loc

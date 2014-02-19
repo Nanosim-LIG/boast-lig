@@ -1,3 +1,4 @@
+#define NDIM 3
 #define NGLLX 5
 #define NGLL2 25
 #define NGLL3 125

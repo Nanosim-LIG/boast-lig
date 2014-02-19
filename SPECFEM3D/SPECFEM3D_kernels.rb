@@ -45,7 +45,8 @@ kernels = [
 :compute_ani_kernel,
 :compute_hess_kernel,
 :compute_acoustic_kernel,
-:compute_strength_noise_kernel
+:compute_strength_noise_kernel,
+:crust_mantle_impl_kernel
 ]
 
 langs = [ :CUDA, :CL]
