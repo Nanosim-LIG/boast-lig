@@ -48,13 +48,13 @@ module BOAST
 
       print offset === ispec*ngll3_padded + ijk
       (0..2).each { |indx|
-        print xil[indx] === d_xi[indx]
+        print xil[indx] === d_xi[indx][offset]
       }
       (0..2).each { |indx|
-        print etal[indx] === d_eta[indx]
+        print etal[indx] === d_eta[indx][offset]
       }
       (0..2).each { |indx|
-        print gammal[indx] === d_gamma[indx]
+        print gammal[indx] === d_gamma[indx][offset]
       }
 
       (0..2).each { |indx|

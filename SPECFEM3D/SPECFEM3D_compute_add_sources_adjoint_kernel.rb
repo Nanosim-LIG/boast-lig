@@ -13,7 +13,7 @@ module BOAST
 
     ndim =               Int( "NDIM",              :const => n_dim)
     ngllx =              Int( "NGLLX",             :const => n_gllx)
-    p = Procedure(function_name, [nrec,accel,adj_sourcearrays,ibool,ispec_selected_rec,pre_computed_irec,nadj_rec_local], [ndim,ngllx])
+    p = Procedure(function_name, [nrec,accel,adj_sourcearrays,ibool,ispec_selected_rec,pre_computed_irec,nadj_rec_local])
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CUDA or get_lang == CL) then

@@ -89,6 +89,7 @@ kernels.each { |kern|
       }
       res += "\";"
       f.print res
+      k.build
     end
     f.close
   }

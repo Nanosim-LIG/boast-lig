@@ -25,7 +25,7 @@ module BOAST
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CL or get_lang == CUDA) then
-      make_specfem3d_header( :ndim => n_dim, :ngllx => ngllx, :ngll2 => n_gll2 )
+      make_specfem3d_header( :ndim => n_dim, :ngllx => n_gllx, :ngll2 => n_gll2 )
       decl p
         decl iface = Int("iface")
         decl ispec = Int("ispec")

@@ -9,9 +9,9 @@ module BOAST
     kernel = CKernel::new
 
     size = Int("size", :dir => :in)
-    deltat         = Real("deltat",       :dir => :in,    :dim => [Dim()] )
-    deltatsqover2  = Real("deltatsqover2",:dir => :in,    :dim => [Dim()] )
-    deltatover2    = Real("deltatover2",  :dir => :in,    :dim => [Dim()] )
+    deltat         = Real("deltat",       :dir => :in )
+    deltatsqover2  = Real("deltatsqover2",:dir => :in )
+    deltatover2    = Real("deltatover2",  :dir => :in )
     case type
     when :disp_veloc
       function_name = "update_disp_veloc_kernel"

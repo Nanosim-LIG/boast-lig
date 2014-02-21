@@ -1,7 +1,7 @@
 module BOAST
   def BOAST::make_specfem3d_header(opts = {})
     if BOAST::get_lang == CL then
-      if BOAST::get_default_real_size == 8 then
+      if BOAST::get_default_real_size == 8 or opts[:double] then
         BOAST::get_output.puts "#pragma OPENCL EXTENSION cl_khr_fp64: enable"
         BOAST::get_output.puts "#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable"
       end
@@ -16,7 +16,7 @@ module BOAST
     ngll2 = opts[:ngll2].nil? ? 25 : opts[:ngll2]
     ngll3 = opts[:ngll3].nil? ? 125 : opts[:ngll3]
     ngll3_padded = opts[:ngll3_padded].nil? ? 128 : opts[:ngll3_padded]
-    n_sls = opts[:n_sls].nil? ? 3 : opts[:nsls]
+    n_sls = opts[:n_sls].nil? ? 3 : opts[:n_sls]
     iregion_crust_mantle = opts[:iregion_crust_mantle].nil? ? 1 : opts[:iregion_crust_mantle]
     iregion_inner_core = opts[:iregion_inner_core].nil? ? 3 : opts[:iregion_inner_core]
     iflag_in_fictitious_cube = opts[:iflag_in_fictitious_cube].nil? ? 11 : opts[:iflag_in_fictitious_cube]

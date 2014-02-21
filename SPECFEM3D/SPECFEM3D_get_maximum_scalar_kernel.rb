@@ -19,7 +19,7 @@ module BOAST
     end
     
     d_max = Real("d_max", :dir => :out, :dim => [ Dim()])
-    blocksize_transfer = Int("blocksize_transfer", :const => block_size_transfer)
+    blocksize_transfer = Int("BLOCKSIZE_TRANSFER", :const => block_size_transfer)
     p = Procedure(function_name, [array, size, d_max])
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")

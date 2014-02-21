@@ -456,12 +456,12 @@ module BOAST
       v.push d_eta_anisostore        = Real("d_eta_anisostore",        :dir => :in, :dim => [Dim()])
     end
     v.push compute_and_store_strain= Int( "COMPUTE_AND_STORE_STRAIN",:dir => :in)
-    v.push epsilondev_xx           = Real("epsilondev_xx",           :dir => :in, :dim => [Dim()] )
-    v.push epsilondev_yy           = Real("epsilondev_yy",           :dir => :in, :dim => [Dim()] )
-    v.push epsilondev_xy           = Real("epsilondev_xy",           :dir => :in, :dim => [Dim()] )
-    v.push epsilondev_xz           = Real("epsilondev_xz",           :dir => :in, :dim => [Dim()] )
-    v.push epsilondev_yz           = Real("epsilondev_yz",           :dir => :in, :dim => [Dim()] )
-    v.push epsilon_trace_over_3    = Real("epsilon_trace_over_3",    :dir => :in, :dim => [Dim()] )
+    v.push epsilondev_xx           = Real("epsilondev_xx",           :dir => :inout, :dim => [Dim()] )
+    v.push epsilondev_yy           = Real("epsilondev_yy",           :dir => :inout, :dim => [Dim()] )
+    v.push epsilondev_xy           = Real("epsilondev_xy",           :dir => :inout, :dim => [Dim()] )
+    v.push epsilondev_xz           = Real("epsilondev_xz",           :dir => :inout, :dim => [Dim()] )
+    v.push epsilondev_yz           = Real("epsilondev_yz",           :dir => :inout, :dim => [Dim()] )
+    v.push epsilon_trace_over_3    = Real("epsilon_trace_over_3",    :dir => :out, :dim => [Dim()] )
     v.push attenuation             = Int( "ATTENUATION",             :dir => :in)
     v.push partial_phys_dispersion_only = Int( "PARTIAL_PHYS_DISPERSION_ONLY", :dir => :in)
     v.push use_3d_attenuation_arrays    = Int( "USE_3D_ATTENUATION_ARRAYS",    :dir => :in)
@@ -887,13 +887,13 @@ module BOAST
                                    rho_s_H[0].address, rho_s_H[1].address, rho_s_H[2].address)
           }
           (0..2).each { |indx|
-            print s_temp[indx][0] === jacobianl * (sigma[0][indx]*xil[0] + sigma[1][indx]*xil[1] + sigma[2][indx]*xil[2])
+            print s_temp[indx][0][tx] === jacobianl * (sigma[0][indx]*xil[0] + sigma[1][indx]*xil[1] + sigma[2][indx]*xil[2])
           }
           (0..2).each { |indx|
-            print s_temp[indx][1] === jacobianl * (sigma[0][indx]*etal[0] + sigma[1][indx]*etal[1] + sigma[2][indx]*etal[2])
+            print s_temp[indx][1][tx] === jacobianl * (sigma[0][indx]*etal[0] + sigma[1][indx]*etal[1] + sigma[2][indx]*etal[2])
           }
           (0..2).each { |indx|
-            print s_temp[indx][2] === jacobianl * (sigma[0][indx]*gammal[0] + sigma[1][indx]*gammal[1] + sigma[2][indx]*gammal[2])
+            print s_temp[indx][2][tx] === jacobianl * (sigma[0][indx]*gammal[0] + sigma[1][indx]*gammal[1] + sigma[2][indx]*gammal[2])
           }
         }
         print barrier(:local)

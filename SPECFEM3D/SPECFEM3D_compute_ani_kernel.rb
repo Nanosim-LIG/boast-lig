@@ -3,11 +3,11 @@ module BOAST
   def BOAST::compute_strain_product
     function_name = "compute_strain_product"
 
-    prod               = Real("prod",             :dir => :out,:dim => [Dim(21)], :register => true )
-    eps_trace_over_3   = Real("eps_trace_over_3", :dir => :in)
-    epsdev             = Real("epsdev",           :dir => :in, :dim => [Dim(5)], :register => true )
-    b_eps_trace_over_3 = Real("eps_trace_over_3", :dir => :in)
-    b_epsdev           = Real("b_epsdev",         :dir => :in, :dim => [Dim(5)], :register => true )
+    prod               = Real("prod",              :dir => :out,:dim => [Dim(21)], :register => true )
+    eps_trace_over_3   = Real("eps_trace_over_3",  :dir => :in)
+    epsdev             = Real("epsdev",            :dir => :in, :dim => [Dim(5)], :register => true )
+    b_eps_trace_over_3 = Real("b_eps_trace_over_3",:dir => :in)
+    b_epsdev           = Real("b_epsdev",          :dir => :in, :dim => [Dim(5)], :register => true )
 
     sub = Procedure(function_name, [prod, eps_trace_over_3, epsdev, b_eps_trace_over_3, b_epsdev], [], :local => true) {
       decl eps   = Real("eps", :dim => [Dim(6)] )
