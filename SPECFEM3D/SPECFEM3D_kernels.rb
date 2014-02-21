@@ -52,6 +52,14 @@ kernels = [
 langs = [ :CUDA, :CL]
 BOAST::set_default_real_size(4)
 BOAST::set_replace_constants(false)
+class Float
+  alias_method :old_to_s, :to_s
+  def to_s
+    s = ""+old_to_s
+    s += "f" if BOAST::get_default_real_size == 4
+    return s
+  end
+end
 
 kernels.each { |kern|
   require "./SPECFEM3D_#{kern.to_s}.rb"
@@ -60,9 +68,29 @@ kernels.each { |kern|
     puts lang.to_s
     BOAST::set_lang( BOAST::const_get(lang))
     puts "REF" if lang == :CUDA
-    BOAST::method(kern).call.print
-    puts "Generated" if lang == :CUDA
-    BOAST::method(kern).call(false).print if lang == :CUDA
+    k = BOAST::method(kern).call
+    k.print
+    if lang == :CUDA then
+      puts "Generated"
+      k = BOAST::method(kern).call(false)
+      k.print
+      filename = "#{kern}_cuda.c"
+    elsif lang == :CL
+      filename = "#{kern}_cl.c"
+    end
+    f = File::new("./specfem3D_output/"+filename, "w+")
+    if lang == :CUDA then
+      f.puts k
+    elsif lang == :CL then
+      s = k.to_s
+      res = "char * #{kern}_program = \"\\\n"
+      s.each_line { |line|
+        res += line.sub("\n","\\n\\\n")
+      }
+      res += "\";"
+      f.print res
+    end
+    f.close
   }
 }
 

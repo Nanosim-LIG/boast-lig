@@ -45,7 +45,7 @@ module BOAST
     return p
   end
 
-  def BOAST::outer_core_impl_kernel(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = true, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, r_earth_km = 6371.0, coloring_min_nspec_outer_core = 1000)
+  def BOAST::outer_core_impl_kernel(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, r_earth_km = 6371.0, coloring_min_nspec_outer_core = 1000)
     push_env( :array_start => 0 )
     kernel = CKernel::new
     v = []
