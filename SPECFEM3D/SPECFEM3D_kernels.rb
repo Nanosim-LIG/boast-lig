@@ -83,11 +83,11 @@ kernels.each { |kern|
       f.puts k
     elsif lang == :CL then
       s = k.to_s
-      res = "char * #{kern}_program = \"\\\n"
+      res = "const char * #{kern}_program = \"\\\n"
       s.each_line { |line|
         res += line.sub("\n","\\n\\\n")
       }
-      res += "\";"
+      res += "\";\n"
       f.print res
       k.build
     end
