@@ -1,4 +1,4 @@
-char * compute_add_sources_kernel_program = "\
+const char * compute_add_sources_kernel_program = "\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable\n\
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable\n\
 static inline void atomicAdd(volatile __global float *source, const float val) {\n\
