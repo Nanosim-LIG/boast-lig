@@ -261,7 +261,7 @@ module BOAST
             end
           end
           print int_radius === rint(radius * r_earth_km * 10.0) - 1
-          If( !gravity , lambda {
+          print If( !gravity , lambda {
             print grad_ln_rho[0] === sin_theta * cos_phi * d_d_ln_density_dr_table[int_radius]
             print grad_ln_rho[1] === sin_theta * sin_phi * d_d_ln_density_dr_table[int_radius]
             print grad_ln_rho[2] ===           cos_theta * d_d_ln_density_dr_table[int_radius]

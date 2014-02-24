@@ -212,6 +212,19 @@ __global__ void outer_core_impl_kernel(const int nb_blocks_to_compute, const int
     sincosf(theta,  &sin_theta,  &cos_theta);
     sincosf(phi,  &sin_phi,  &cos_phi);
     int_radius = rint(((radius) * (6371.0f)) * (10.0f)) - (1);
+    if( ! GRAVITY){
+      grad_x_ln_rho = ((sin_theta) * (cos_phi)) * (d_d_ln_density_dr_table[int_radius - 0]);
+      grad_y_ln_rho = ((sin_theta) * (sin_phi)) * (d_d_ln_density_dr_table[int_radius - 0]);
+      grad_z_ln_rho = (cos_theta) * (d_d_ln_density_dr_table[int_radius - 0]);
+      dpotentialdx_with_rot = dpotentialdx_with_rot + (s_dummy_loc[tx - 0]) * (grad_x_ln_rho);
+      dpotentialdy_with_rot = dpotentialdy_with_rot + (s_dummy_loc[tx - 0]) * (grad_y_ln_rho);
+      dpotentialdzl = dpotentialdzl + (s_dummy_loc[tx - 0]) * (grad_z_ln_rho);
+    } else {
+      gxl = (sin_theta) * (cos_phi);
+      gyl = (sin_theta) * (sin_phi);
+      gzl = cos_theta;
+      gravity_term = (((d_minus_rho_g_over_kappa_fluid[int_radius - 0]) * (jacobianl)) * (wgll_cube[tx - 0])) * ((dpotentialdx_with_rot) * (gxl) + (dpotentialdy_with_rot) * (gyl) + (dpotentialdzl) * (gzl));
+    }
     s_temp1[tx - 0] = (jacobianl) * ((xixl) * (dpotentialdx_with_rot) + (xiyl) * (dpotentialdy_with_rot) + (xizl) * (dpotentialdzl));
     s_temp1[tx - 0] = (jacobianl) * ((etaxl) * (dpotentialdx_with_rot) + (etayl) * (dpotentialdy_with_rot) + (etazl) * (dpotentialdzl));
     s_temp1[tx - 0] = (jacobianl) * ((gammaxl) * (dpotentialdx_with_rot) + (gammayl) * (dpotentialdy_with_rot) + (gammazl) * (dpotentialdzl));

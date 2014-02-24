@@ -311,16 +311,16 @@ extern "C" {
   #{@procedure.header(BOAST::CUDA,false)}{
     dim3 dimBlock(block_size[0], block_size[1], block_size[2]);
     dim3 dimGrid(block_number[0], block_number[1], block_number[2]);
-    cudaEvent_t start, stop;
-    float time;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, 0);
+    cudaEvent_t __start, __stop;
+    float __time;
+    cudaEventCreate(&__start);
+    cudaEventCreate(&__stop);
+    cudaEventRecord(__start, 0);
     #{@procedure.name}<<<dimGrid,dimBlock>>>(#{@procedure.parameters.join(", ")});
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&time, start, stop);
-    return (unsigned long long int)((double)time*(double)1e6);
+    cudaEventRecord(__stop, 0);
+    cudaEventSynchronize(__stop);
+    cudaEventElapsedTime(&__time, __start, __stop);
+    return (unsigned long long int)((double)__time*(double)1e6);
   }
 }
 EOF
