@@ -50,7 +50,6 @@
 #define BLOCKSIZE_TRANSFER 256
 #endif
 __global__ void assemble_boundary_accel_on_device(float * d_accel, const float * d_send_accel_buffer, const int num_interfaces, const int max_nibool_interfaces, const int * d_nibool_interfaces, const int * d_ibool_interfaces){
-  int id;
   int iglob;
   int iloc;
   int iinterface;

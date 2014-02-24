@@ -61,7 +61,6 @@ static inline void atomicAdd(volatile __global float *source, const float val) {
 #define BLOCKSIZE_TRANSFER 256\n\
 #endif\n\
 __kernel void assemble_boundary_accel_on_device(__global float * d_accel, const __global float * d_send_accel_buffer, const int num_interfaces, const int max_nibool_interfaces, const __global int * d_nibool_interfaces, const __global int * d_ibool_interfaces){\n\
-  int id;\n\
   int iglob;\n\
   int iloc;\n\
   int iinterface;\n\
