@@ -1,4 +1,4 @@
-char * compute_ani_kernel_program = "\
+const char * compute_ani_kernel_program = "\
 static inline void atomicAdd(volatile __global float *source, const float val) {\n\
   union {\n\
     unsigned int iVal;\n\

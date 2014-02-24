@@ -1,4 +1,4 @@
-char * assemble_boundary_potential_on_device_program = "\
+const char * assemble_boundary_potential_on_device_program = "\
 static inline void atomicAdd(volatile __global float *source, const float val) {\n\
   union {\n\
     unsigned int iVal;\n\
