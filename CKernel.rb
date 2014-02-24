@@ -171,6 +171,9 @@ module BOAST
       program = OpenCL::Program::create_with_source(@context, [@code.string])
       opts = options[:CLFLAGS]
       program.build(:options => options[:CLFLAGS])
+      if options[:verbose] then
+        STDERR.puts program.get_build_info(device, OpenCL::Program::BUILD_LOG)
+      end
       @queue = OpenCL::CommandQueue::new(@context, device, OpenCL::CommandQueue::PROFILING_ENABLE)
       @kernel = OpenCL::Kernel::new( program, @procedure.name)
       run_method = <<EOF

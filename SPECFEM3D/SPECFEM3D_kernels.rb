@@ -90,7 +90,7 @@ kernels.each { |kern|
       }
       res += "\";\n"
       f.print res
-      k.build( :verbose => true )
+      k.build
     end
     f.close
   }
