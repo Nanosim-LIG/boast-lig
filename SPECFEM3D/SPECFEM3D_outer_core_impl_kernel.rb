@@ -85,22 +85,23 @@ module BOAST
     ngll3        = Int("NGLL3", :const => n_gll3)
     ngll3_padded = Int("NGLL3_PADDED", :const => n_gll3_padded)
 
+    use_mesh_coloring       = Int("USE_MESH_COLORING_GPU",   :const => mesh_coloring)
+    use_textures_constants  = Int("USE_TEXTURES_CONSTANTS",  :const => textures_constants)
+    use_textures_fields     = Int("USE_TEXTURES_FIELDS",     :const => textures_fields)
+    manually_unrolled_loops = Int("MANUALLY_UNROLLED_LOOPS", :const => unroll_loops)
+
     constants = [] #ngllx, ngll2, ngll3, ngll3_padded]
 
-    if textures_fields then
-      d_displ_oc_tex = Real("d_displ_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-      d_accel_oc_tex = Real("d_accel_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-      if get_lang == CL then
-        v.push(d_displ_oc_tex, d_accel_oc_tex)
-        constants.push( d_displ_oc_tex.sampler, d_accel_oc_tex.sampler )
-      end
+    d_displ_oc_tex = Real("d_displ_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+    d_accel_oc_tex = Real("d_accel_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+    if get_lang == CL then
+      v.push(d_displ_oc_tex, d_accel_oc_tex)
+      #constants.push( d_displ_oc_tex.sampler, d_accel_oc_tex.sampler )
     end
-    if textures_constants then
-      d_hprime_xx_oc_tex = Real("d_hprime_xx_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-      if get_lang == CL then
-        v.push(d_hprime_xx_oc_tex)
-        constants.push( d_hprime_xx_oc_tex.sampler )
-      end
+    d_hprime_xx_oc_tex = Real("d_hprime_xx_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+    if get_lang == CL then
+      v.push(d_hprime_xx_oc_tex)
+      #constants.push( d_hprime_xx_oc_tex.sampler )
     end
 
     p = Procedure(function_name, v, constants)
@@ -109,209 +110,218 @@ module BOAST
     elsif(get_lang == CL or get_lang == CUDA) then
       make_specfem3d_header(:ngllx => n_gllx, :ngll2 => n_gll2, :ngll3 => n_gll3, :ngll3_padded => n_gll3_padded, :r_earth_km => r_earth_km, :coloring_min_nspec_outer_core => coloring_min_nspec_outer_core)
       if get_lang == CUDA
-        if textures_fields then
+        @@output.puts "#ifdef #{use_textures_fields}"
           decl d_displ_oc_tex
           decl d_accel_oc_tex
-        end
-        if textures_constants then
+        @@output.puts "#endif"
+        @@output.puts "#ifdef #{use_textures_constants}"
           decl d_hprime_xx_oc_tex
-        end
+        @@output.puts "#endif"
       end
       sub_kernel =  compute_element_oc_rotation(n_gll3)
       print sub_kernel
       decl p
-      decl bx = Int("bx")
-      decl tx = Int("tx")
-      decl k  = Int("K"), j = Int("J"), i = Int("I")
-      decl active = Int("active"), offset = Int("offset")
-      decl iglob  = Int("iglob")
-      decl working_element = Int("working_element")
-      decl l = Int("l")
-
-      decl *templ = [ Real("temp1l"), Real("temp2l"), Real("temp3l") ]
-      decl *xil   = [ Real("xixl"),   Real("xiyl"),   Real("xizl")   ]
-      decl *etal  = [ Real("etaxl"),  Real("etayl"),  Real("etazl")  ]
-      decl *gammal= [ Real("gammaxl"),Real("gammayl"),Real("gammazl")]
-      decl jacobianl= Real("jacobianl")
-      decl *dpotentialdl = [ Real("dpotentialdxl"), Real("dpotentialdyl"), Real("dpotentialdzl") ]
-      decl dpotentialdx_with_rot = Real("dpotentialdx_with_rot")
-      decl dpotentialdy_with_rot = Real("dpotentialdy_with_rot")
-
-      decl sum_terms = Real("sum_terms")
-      decl gravity_term = Real("gravity_term")
-      decl *gl   = [ Real("gxl"),   Real("gyl"),   Real("gzl")   ]
-      
-      decl radius = Real("radius"), theta = Real("theta"), phi = Real("phi")
-      decl cos_theta = Real("cos_theta"), sin_theta = Real("sin_theta")
-      decl cos_phi   = Real("cos_phi"),   sin_phi   = Real("sin_phi")
-      decl *grad_ln_rho = [ Real("grad_x_ln_rho"), Real("grad_y_ln_rho"), Real("grad_z_ln_rho") ]
-
-      decl int_radius = Int("int_radius")
-
-      decl s_dummy_loc = Real("s_dummy_loc", :local => true, :dim => [Dim(ngll3)] )
-
-      decl s_temp1 = Real("s_temp1", :local => true, :dim => [Dim(ngll3)])
-      decl s_temp2 = Real("s_temp2", :local => true, :dim => [Dim(ngll3)])
-      decl s_temp3 = Real("s_temp3", :local => true, :dim => [Dim(ngll3)])
-
-      decl sh_hprime_xx     = Real("sh_hprime_xx",     :local => true, :dim => [Dim(ngll2)] )
-      decl sh_hprimewgll_xx = Real("sh_hprimewgll_xx", :local => true, :dim => [Dim(ngll2)] )
-
-      print bx === get_group_id(1)*get_num_groups(0)+get_group_id(0)
-      print tx === get_local_id(0)
-
-      print k === tx/ngll2
-      print j === (tx-k*ngll2)/ngllx
-      print i === tx - k*ngll2 - j*ngllx
-
-      print active === Ternary( Expression("&&", tx < ngll3, bx < nb_blocks_to_compute), 1, 0)
-      print If( active ) {
-        if mesh_coloring then
-          print working_element === bx
-        else
-          print If( use_mesh_coloring_gpu, lambda {
+        if get_lang == CL then
+          @@output.puts "#ifdef #{use_textures_fields}"
+            decl d_displ_oc_tex.sampler
+            decl d_accel_oc_tex.sampler
+          @@output.puts "#endif"
+          @@output.puts "#ifdef #{use_textures_constants}"
+            decl d_hprime_xx_oc_tex.sampler
+          @@output.puts "#endif"
+        end
+        decl bx = Int("bx")
+        decl tx = Int("tx")
+        decl k  = Int("K"), j = Int("J"), i = Int("I")
+        decl active = Int("active"), offset = Int("offset")
+        decl iglob  = Int("iglob")
+        decl working_element = Int("working_element")
+        decl l = Int("l")
+  
+        decl *templ = [ Real("temp1l"), Real("temp2l"), Real("temp3l") ]
+        decl *xil   = [ Real("xixl"),   Real("xiyl"),   Real("xizl")   ]
+        decl *etal  = [ Real("etaxl"),  Real("etayl"),  Real("etazl")  ]
+        decl *gammal= [ Real("gammaxl"),Real("gammayl"),Real("gammazl")]
+        decl jacobianl= Real("jacobianl")
+        decl *dpotentialdl = [ Real("dpotentialdxl"), Real("dpotentialdyl"), Real("dpotentialdzl") ]
+        decl dpotentialdx_with_rot = Real("dpotentialdx_with_rot")
+        decl dpotentialdy_with_rot = Real("dpotentialdy_with_rot")
+  
+        decl sum_terms = Real("sum_terms")
+        decl gravity_term = Real("gravity_term")
+        decl *gl   = [ Real("gxl"),   Real("gyl"),   Real("gzl")   ]
+        
+        decl radius = Real("radius"), theta = Real("theta"), phi = Real("phi")
+        decl cos_theta = Real("cos_theta"), sin_theta = Real("sin_theta")
+        decl cos_phi   = Real("cos_phi"),   sin_phi   = Real("sin_phi")
+        decl *grad_ln_rho = [ Real("grad_x_ln_rho"), Real("grad_y_ln_rho"), Real("grad_z_ln_rho") ]
+  
+        decl int_radius = Int("int_radius")
+  
+        decl s_dummy_loc = Real("s_dummy_loc", :local => true, :dim => [Dim(ngll3)] )
+  
+        decl s_temp1 = Real("s_temp1", :local => true, :dim => [Dim(ngll3)])
+        decl s_temp2 = Real("s_temp2", :local => true, :dim => [Dim(ngll3)])
+        decl s_temp3 = Real("s_temp3", :local => true, :dim => [Dim(ngll3)])
+  
+        decl sh_hprime_xx     = Real("sh_hprime_xx",     :local => true, :dim => [Dim(ngll2)] )
+        decl sh_hprimewgll_xx = Real("sh_hprimewgll_xx", :local => true, :dim => [Dim(ngll2)] )
+  
+        print bx === get_group_id(1)*get_num_groups(0)+get_group_id(0)
+        print tx === get_local_id(0)
+  
+        print k === tx/ngll2
+        print j === (tx-k*ngll2)/ngllx
+        print i === tx - k*ngll2 - j*ngllx
+  
+        print active === Ternary( Expression("&&", tx < ngll3, bx < nb_blocks_to_compute), 1, 0)
+        print If( active ) {
+          @@output.puts "#ifdef #{use_mesh_coloring}"
             print working_element === bx
+          @@output.puts "#else"
+            print If( use_mesh_coloring_gpu, lambda {
+              print working_element === bx
+            }, lambda {
+              print working_element === d_phase_ispec_inner[bx + num_phase_ispec*(d_iphase-1)]-1
+            })
+          @@output.puts "#endif"
+  
+          print iglob === d_ibool[working_element*ngll3 + tx]-1
+  
+          @@output.puts "#ifdef #{use_textures_fields}"
+            print s_dummy_loc[tx] === d_displ_oc_tex[iglob]
+          @@output.puts "#else"
+            print s_dummy_loc[tx] === d_potential[iglob]
+          @@output.puts "#endif"
+        }
+        print If(tx < ngll2) {
+          @@output.puts "#ifdef #{use_textures_constants}"
+            print sh_hprime_xx[tx] === d_hprime_xx_oc_tex[tx]
+          @@output.puts "#else"
+            print sh_hprime_xx[tx] === d_hprime_xx[tx]
+          @@output.puts "#endif"
+  
+          print sh_hprimewgll_xx[tx] === d_hprimewgll_xx[tx]
+        }
+        print barrier(:local)
+  
+        print If( active ) {
+          (0..2).each { |indx| print templ[indx] === 0.0 }
+          for_loop = For(l, 0, ngllx-1) {
+             print templ[0] === templ[0] + s_dummy_loc[k*ngll2+j*ngllx+l]*sh_hprime_xx[l*ngllx+i]
+             print templ[1] === templ[1] + s_dummy_loc[k*ngll2+l*ngllx+i]*sh_hprime_xx[l*ngllx+j]
+             print templ[2] === templ[2] + s_dummy_loc[l*ngll2+j*ngllx+i]*sh_hprime_xx[l*ngllx+k]
+          }
+          @@output.puts "#ifdef #{manually_unrolled_loops}"
+            for_loop.unroll
+          @@output.puts "#else"
+            print for_loop
+          @@output.puts "#endif"
+          print offset === working_element*ngll3_padded + tx
+          (0..2).each { |indx|
+            print xil[indx]    === d_xi[indx][offset]
+            print etal[indx]   === d_eta[indx][offset]
+            print gammal[indx] === d_gamma[indx][offset]
+          }
+  
+          print jacobianl === Expression("/", 1.0, xil[0]*(etal[1]*gammal[2] - etal[2]*gammal[1]) - xil[1]*(etal[0]*gammal[2] - etal[2]*gammal[0]) + xil[2]*(etal[0]*gammal[1] - etal[1]*gammal[0]))
+          (0..2).each { |indx|
+            print dpotentialdl[indx] === xil[indx]*templ[0] + etal[indx]*templ[1] + gammal[indx]*templ[2]
+          }
+  
+          print If( rotation , lambda {
+            print sub_kernel.call(tx,working_element,\
+                                  time,two_omega_earth,deltat,\
+                                  d_A_array_rotation,\
+                                  d_B_array_rotation,\
+                                  dpotentialdl[0],\
+                                  dpotentialdl[1],\
+                                  dpotentialdx_with_rot.address,\
+                                  dpotentialdy_with_rot.address)
           }, lambda {
-            print working_element === d_phase_ispec_inner[bx + num_phase_ispec*(d_iphase-1)]-1
+            print dpotentialdx_with_rot === dpotentialdl[0]
+            print dpotentialdy_with_rot === dpotentialdl[1]
           })
-        end
-
-        print iglob === d_ibool[working_element*ngll3 + tx]-1
-
-        if textures_fields then
-          print s_dummy_loc[tx] === d_displ_oc_tex[iglob]
-        else
-          print s_dummy_loc[tx] === d_potential[iglob]
-        end
-      }
-      print If(tx < ngll2) {
-        if textures_constants then
-          print sh_hprime_xx[tx] === d_hprime_xx_oc_tex[tx]
-        else
-          print sh_hprime_xx[tx] === d_hprime_xx[tx]
-        end
-
-        print sh_hprimewgll_xx[tx] === d_hprimewgll_xx[tx]
-      }
-      print barrier(:local)
-
-      print If( active ) {
-        (0..2).each { |indx| print templ[indx] === 0.0 }
-        for_loop = For(l, 0, ngllx-1) {
-           print templ[0] === templ[0] + s_dummy_loc[k*ngll2+j*ngllx+l]*sh_hprime_xx[l*ngllx+i]
-           print templ[1] === templ[1] + s_dummy_loc[k*ngll2+l*ngllx+i]*sh_hprime_xx[l*ngllx+j]
-           print templ[2] === templ[2] + s_dummy_loc[l*ngll2+j*ngllx+i]*sh_hprime_xx[l*ngllx+k]
-        }
-        if unroll_loops then
-          for_loop.unroll
-        else
-          print for_loop
-        end
-        print offset === working_element*ngll3_padded + tx
-        (0..2).each { |indx|
-          print xil[indx]    === d_xi[indx][offset]
-          print etal[indx]   === d_eta[indx][offset]
-          print gammal[indx] === d_gamma[indx][offset]
-        }
-
-        print jacobianl === Expression("/", 1.0, xil[0]*(etal[1]*gammal[2] - etal[2]*gammal[1]) - xil[1]*(etal[0]*gammal[2] - etal[2]*gammal[0]) + xil[2]*(etal[0]*gammal[1] - etal[1]*gammal[0]))
-        (0..2).each { |indx|
-          print dpotentialdl[indx] === xil[indx]*templ[0] + etal[indx]*templ[1] + gammal[indx]*templ[2]
-        }
-
-        print If( rotation , lambda {
-          print sub_kernel.call(tx,working_element,\
-                                time,two_omega_earth,deltat,\
-                                d_A_array_rotation,\
-                                d_B_array_rotation,\
-                                dpotentialdl[0],\
-                                dpotentialdl[1],\
-                                dpotentialdx_with_rot.address,\
-                                dpotentialdy_with_rot.address)
-        }, lambda {
-          print dpotentialdx_with_rot === dpotentialdl[0]
-          print dpotentialdy_with_rot === dpotentialdl[1]
-        })
-
-        print radius === d_store[0][iglob]
-        print theta  === d_store[1][iglob]
-        print phi    === d_store[2][iglob]
-        if(get_lang == CL) then
-          print sin_theta === sincos(theta, cos_theta.address)
-          print sin_phi   === sincos(phi,   cos_phi.address)
-        else
-          if(get_default_real_size == 4) then
-            print sincosf(theta, sin_theta.address, cos_theta.address)
-            print sincosf(phi,   sin_phi.address,   cos_phi.address)
+  
+          print radius === d_store[0][iglob]
+          print theta  === d_store[1][iglob]
+          print phi    === d_store[2][iglob]
+          if(get_lang == CL) then
+            print sin_theta === sincos(theta, cos_theta.address)
+            print sin_phi   === sincos(phi,   cos_phi.address)
           else
-            print cos_theta === cos(theta)
-            print sin_theta === sin(theta)
-            print cos_phi   === cos(phi)
-            print sin_phi   === sin(phi)
+            if(get_default_real_size == 4) then
+              print sincosf(theta, sin_theta.address, cos_theta.address)
+              print sincosf(phi,   sin_phi.address,   cos_phi.address)
+            else
+              print cos_theta === cos(theta)
+              print sin_theta === sin(theta)
+              print cos_phi   === cos(phi)
+              print sin_phi   === sin(phi)
+            end
           end
-        end
-        print int_radius === rint(radius * r_earth_km * 10.0) - 1
-        If( !gravity , lambda {
-          print grad_ln_rho[0] === sin_theta * cos_phi * d_d_ln_density_dr_table[int_radius]
-          print grad_ln_rho[1] === sin_theta * sin_phi * d_d_ln_density_dr_table[int_radius]
-          print grad_ln_rho[2] ===           cos_theta * d_d_ln_density_dr_table[int_radius]
-
-          print dpotentialdx_with_rot === dpotentialdx_with_rot + s_dummy_loc[tx] * grad_ln_rho[0]
-          print dpotentialdy_with_rot === dpotentialdy_with_rot + s_dummy_loc[tx] * grad_ln_rho[1]
-          print dpotentialdl[2]       === dpotentialdl[2] +       s_dummy_loc[tx] * grad_ln_rho[2]
-        }, lambda {
-          print gl[0] === sin_theta*cos_phi
-          print gl[1] === sin_theta*sin_phi
-          print gl[2] === cos_theta
-
-          print gravity_term === d_minus_rho_g_over_kappa_fluid[int_radius] * jacobianl * wgll_cube[tx] * \
-                                 (dpotentialdx_with_rot*gl[0] + dpotentialdy_with_rot*gl[1] + dpotentialdl[2]*gl[2])
-        })
-
-        print s_temp1[tx] === jacobianl*(   xil[0]*dpotentialdx_with_rot +    xil[1]*dpotentialdy_with_rot +    xil[2]*dpotentialdl[2])
-        print s_temp1[tx] === jacobianl*(  etal[0]*dpotentialdx_with_rot +   etal[1]*dpotentialdy_with_rot +   etal[2]*dpotentialdl[2])
-        print s_temp1[tx] === jacobianl*(gammal[0]*dpotentialdx_with_rot + gammal[1]*dpotentialdy_with_rot + gammal[2]*dpotentialdl[2])
-      }
-      print barrier(:local)
-      print If( active ){
-        (0..2).each { |indx| print templ[indx] === 0.0 }
-        for_loop = For(l, 0, ngllx-1) {
-           print templ[0] === templ[0] + s_temp1[k*ngll2+j*ngllx+l]*sh_hprimewgll_xx[i*ngllx+l]
-           print templ[1] === templ[1] + s_temp2[k*ngll2+l*ngllx+i]*sh_hprimewgll_xx[j*ngllx+l]
-           print templ[2] === templ[2] + s_temp3[l*ngll2+j*ngllx+i]*sh_hprimewgll_xx[k*ngllx+l]
+          print int_radius === rint(radius * r_earth_km * 10.0) - 1
+          If( !gravity , lambda {
+            print grad_ln_rho[0] === sin_theta * cos_phi * d_d_ln_density_dr_table[int_radius]
+            print grad_ln_rho[1] === sin_theta * sin_phi * d_d_ln_density_dr_table[int_radius]
+            print grad_ln_rho[2] ===           cos_theta * d_d_ln_density_dr_table[int_radius]
+  
+            print dpotentialdx_with_rot === dpotentialdx_with_rot + s_dummy_loc[tx] * grad_ln_rho[0]
+            print dpotentialdy_with_rot === dpotentialdy_with_rot + s_dummy_loc[tx] * grad_ln_rho[1]
+            print dpotentialdl[2]       === dpotentialdl[2] +       s_dummy_loc[tx] * grad_ln_rho[2]
+          }, lambda {
+            print gl[0] === sin_theta*cos_phi
+            print gl[1] === sin_theta*sin_phi
+            print gl[2] === cos_theta
+  
+            print gravity_term === d_minus_rho_g_over_kappa_fluid[int_radius] * jacobianl * wgll_cube[tx] * \
+                                   (dpotentialdx_with_rot*gl[0] + dpotentialdy_with_rot*gl[1] + dpotentialdl[2]*gl[2])
+          })
+  
+          print s_temp1[tx] === jacobianl*(   xil[0]*dpotentialdx_with_rot +    xil[1]*dpotentialdy_with_rot +    xil[2]*dpotentialdl[2])
+          print s_temp1[tx] === jacobianl*(  etal[0]*dpotentialdx_with_rot +   etal[1]*dpotentialdy_with_rot +   etal[2]*dpotentialdl[2])
+          print s_temp1[tx] === jacobianl*(gammal[0]*dpotentialdx_with_rot + gammal[1]*dpotentialdy_with_rot + gammal[2]*dpotentialdl[2])
         }
-        if unroll_loops then
-          for_loop.unroll
-        else
-          print for_loop
-        end
-        print sum_terms === -(wgllwgll_yz[k*ngllx+j]*templ[0] + wgllwgll_xz[k*ngllx+i]*templ[1] + wgllwgll_xy[j*ngllx+i]*templ[2])
-
-        print If( gravity ) {
-          print  sum_terms === sum_terms + gravity_term
-        }
-        if mesh_coloring then
-          if textures_fields then
-            print d_potential_dot_dot[iglob] === d_accel_oc_tex[iglob] + sum_terms
-          else
-            print d_potential_dot_dot[iglob] === d_potential_dot_dot[iglob] + sum_terms
-          end
-        else
-          print If( use_mesh_coloring_gpu, lambda {
-            print If( nspec_outer_core > coloring_min_nspec_outer_core, lambda {
-              if textures_fields then
-                print d_potential_dot_dot[iglob] === d_accel_oc_tex[iglob] + sum_terms
-              else
-                print d_potential_dot_dot[iglob] === d_potential_dot_dot[iglob] + sum_terms
-              end
-            }, lambda{
+        print barrier(:local)
+        print If( active ){
+          (0..2).each { |indx| print templ[indx] === 0.0 }
+          for_loop = For(l, 0, ngllx-1) {
+             print templ[0] === templ[0] + s_temp1[k*ngll2+j*ngllx+l]*sh_hprimewgll_xx[i*ngllx+l]
+             print templ[1] === templ[1] + s_temp2[k*ngll2+l*ngllx+i]*sh_hprimewgll_xx[j*ngllx+l]
+             print templ[2] === templ[2] + s_temp3[l*ngll2+j*ngllx+i]*sh_hprimewgll_xx[k*ngllx+l]
+          }
+          @@output.puts "#ifdef #{manually_unrolled_loops}"
+            for_loop.unroll
+          @@output.puts "#else"
+            print for_loop
+          @@output.puts "#endif"
+          print sum_terms === -(wgllwgll_yz[k*ngllx+j]*templ[0] + wgllwgll_xz[k*ngllx+i]*templ[1] + wgllwgll_xy[j*ngllx+i]*templ[2])
+  
+          print If( gravity ) {
+            print  sum_terms === sum_terms + gravity_term
+          }
+          @@output.puts "#ifdef #{use_mesh_coloring}"
+            @@output.puts "#ifdef #{use_textures_fields}"
+              print d_potential_dot_dot[iglob] === d_accel_oc_tex[iglob] + sum_terms
+            @@output.puts "#else"
+              print d_potential_dot_dot[iglob] === d_potential_dot_dot[iglob] + sum_terms
+            @@output.puts "#endif"
+          @@output.puts "#else"
+            print If( use_mesh_coloring_gpu, lambda {
+              print If( nspec_outer_core > coloring_min_nspec_outer_core, lambda {
+                @@output.puts "#ifdef #{use_textures_fields}"
+                  print d_potential_dot_dot[iglob] === d_accel_oc_tex[iglob] + sum_terms
+                @@output.puts "#else"
+                  print d_potential_dot_dot[iglob] === d_potential_dot_dot[iglob] + sum_terms
+                @@output.puts "#endif"
+              }, lambda{
+                print atomicAdd(d_potential_dot_dot+iglob,sum_terms)
+              })
+            }, lambda {
               print atomicAdd(d_potential_dot_dot+iglob,sum_terms)
             })
-          }, lambda {
-            print atomicAdd(d_potential_dot_dot+iglob,sum_terms)
-          })
-        end
-      }
+          @@output.puts "#endif"
+        }
       close p
     else
       raise "Unsupported language!"
