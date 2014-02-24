@@ -1,4 +1,9 @@
 module BOAST
+  def BOAST::protect(name,val)
+    BOAST::get_output.puts "#ifndef #{name}"
+    BOAST::get_output.puts "#define #{name} #{val}"
+    BOAST::get_output.puts "#endif"
+  end
   def BOAST::make_specfem3d_header(opts = {})
     if BOAST::get_lang == CL then
       if BOAST::get_default_real_size == 8 or opts[:double] then
@@ -24,18 +29,19 @@ module BOAST
     coloring_min_nspec_inner_core = opts[:coloring_min_nspec_inner_core].nil? ? 1000 : opts[:coloring_min_nspec_inner_core]
     coloring_min_nspec_outer_core = opts[:coloring_min_nspec_outer_core].nil? ? 1000 : opts[:coloring_min_nspec_outer_core]
     blocksize_transfer = opts[:blocksize_transfer].nil? ? 256 : opts[:blocksize_transfer]
-    BOAST::get_output.puts "#define NDIM #{ndim}"
-    BOAST::get_output.puts "#define NGLLX #{ngllx}"
-    BOAST::get_output.puts "#define NGLL2 #{ngll2}"
-    BOAST::get_output.puts "#define NGLL3 #{ngll3}"
-    BOAST::get_output.puts "#define NGLL3_PADDED #{ngll3_padded}"
-    BOAST::get_output.puts "#define N_SLS #{n_sls}"
-    BOAST::get_output.puts "#define IREGION_CRUST_MANTLE #{iregion_crust_mantle}"
-    BOAST::get_output.puts "#define IREGION_INNER_CORE #{iregion_inner_core}"
-    BOAST::get_output.puts "#define IFLAG_IN_FICTITIOUS_CUBE #{iflag_in_fictitious_cube}"
-    BOAST::get_output.puts "#define R_EARTH_KM #{r_earth_km}"
-    BOAST::get_output.puts "#define COLORING_MIN_NSPEC_INNER_CORE #{coloring_min_nspec_inner_core}"
-    BOAST::get_output.puts "#define COLORING_MIN_NSPEC_OUTER_CORE #{coloring_min_nspec_outer_core}"
-    BOAST::get_output.puts "#define BLOCKSIZE_TRANSFER #{blocksize_transfer}"
+    
+    protect("NDIM", ndim)
+    protect("NGLLX", ngllx)
+    protect("NGLL2", ngll2)
+    protect("NGLL3", ngll3)
+    protect("NGLL3_PADDED", ngll3_padded)
+    protect("N_SLS", n_sls)
+    protect("IREGION_CRUST_MANTLE", iregion_crust_mantle)
+    protect("IREGION_INNER_CORE", iregion_inner_core)
+    protect("IFLAG_IN_FICTITIOUS_CUBE", iflag_in_fictitious_cube)
+    protect("R_EARTH_KM", r_earth_km)
+    protect("COLORING_MIN_NSPEC_INNER_CORE", coloring_min_nspec_inner_core)
+    protect("COLORING_MIN_NSPEC_OUTER_CORE", coloring_min_nspec_outer_core)
+    protect("BLOCKSIZE_TRANSFER", blocksize_transfer)
   end
 end
