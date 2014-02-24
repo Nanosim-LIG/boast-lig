@@ -260,6 +260,10 @@ module BOAST
       return Expression::new("-",self,x)
     end
 
+    def !
+      return Expression::new("!",nil,self)
+    end
+ 
     def -@
       return Expression::new("-",nil,self)
     end
@@ -522,6 +526,7 @@ module BOAST
     attr_reader :name
     attr_accessor :direction
     attr_accessor :constant
+    attr_reader :allocate
     attr_reader :type
     attr_reader :dimension
     attr_reader :local
@@ -537,6 +542,7 @@ module BOAST
       @dimension = hash[:dimension] ? hash[:dimension] : hash[:dim]
       @local = hash[:local] ? hash[:local] : hash[:shared]
       @texture = hash[:texture]
+      @allocate = hash[:allocate]
       @force_replace_constant = false
       if not hash[:replace_constant].nil? then
         @replace_constant = hash[:replace_constant]
@@ -654,14 +660,14 @@ module BOAST
       s += "__local " if @local and BOAST::get_lang == CL
       s += "__shared__ " if @local and not device and BOAST::get_lang == CUDA
       s += @type.decl
-      if(@dimension and not @constant and (not @local or (@local and device))) then
+      if(@dimension and not @constant and not @allocate and (not @local or (@local and device))) then
         s += " *"
       end
       s += " #{@name}"
-      if(@dimension and @constant) then
+      if @dimension and @constant then
         s += "[]"
       end
-      if(@dimension and (@local and not device)) then
+      if @dimension and ((@local and not device) or (@allocate and not @constant)) then
          s +="["
          s += @dimension.reverse.join("*")
          s +="]"

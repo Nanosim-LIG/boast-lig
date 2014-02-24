@@ -50,8 +50,8 @@
 #define BLOCKSIZE_TRANSFER 256
 #endif
 __device__ void compute_strain_product(float * prod, const float eps_trace_over_3, const float * epsdev, const float b_eps_trace_over_3, const float * b_epsdev){
-  float * eps;
-  float * b_eps;
+  float eps[6];
+  float b_eps[6];
   int p;
   int i;
   int j;
@@ -86,9 +86,9 @@ __global__ void compute_ani_kernel(const float * epsilondev_xx, const float * ep
   int ijk_ispec;
   float eps_trace_over_3;
   float b_eps_trace_over_3;
-  float * prod;
-  float * epsdev;
-  float * b_epsdev;
+  float prod[21];
+  float epsdev[5];
+  float b_epsdev[5];
   ispec = blockIdx.x + (blockIdx.y) * (gridDim.x);
   if(ispec < NSPEC){
     ijk_ispec = threadIdx.x + (NGLL3) * (ispec);

@@ -66,6 +66,7 @@ __kernel void compute_coupling_fluid_ICB_kernel(const __global float * displ_inn
   int k;\n\
   int iface;\n\
   int k_corresp;\n\
+  float displ_n;\n\
   int iglob_ic;\n\
   int iglob_oc;\n\
   int ispec;\n\
@@ -73,7 +74,6 @@ __kernel void compute_coupling_fluid_ICB_kernel(const __global float * displ_inn
   float displ_x;\n\
   float displ_y;\n\
   float displ_z;\n\
-  float displ_n;\n\
   float nx;\n\
   float ny;\n\
   float nz;\n\

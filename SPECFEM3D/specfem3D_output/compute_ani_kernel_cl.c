@@ -61,8 +61,8 @@ static inline void atomicAdd(volatile __global float *source, const float val) {
 #define BLOCKSIZE_TRANSFER 256\n\
 #endif\n\
 void compute_strain_product(float * prod, const float eps_trace_over_3, const float * epsdev, const float b_eps_trace_over_3, const float * b_epsdev){\n\
-  float * eps;\n\
-  float * b_eps;\n\
+  float eps[6];\n\
+  float b_eps[6];\n\
   int p;\n\
   int i;\n\
   int j;\n\
@@ -97,9 +97,9 @@ __kernel void compute_ani_kernel(const __global float * epsilondev_xx, const __g
   int ijk_ispec;\n\
   float eps_trace_over_3;\n\
   float b_eps_trace_over_3;\n\
-  float * prod;\n\
-  float * epsdev;\n\
-  float * b_epsdev;\n\
+  float prod[21];\n\
+  float epsdev[5];\n\
+  float b_epsdev[5];\n\
   ispec = get_group_id(0) + (get_group_id(1)) * (get_num_groups(0));\n\
   if(ispec < NSPEC){\n\
     ijk_ispec = get_local_id(0) + (NGLL3) * (ispec);\n\

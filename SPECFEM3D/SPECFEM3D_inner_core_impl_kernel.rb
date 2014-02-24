@@ -836,37 +836,37 @@ module BOAST
             })
 
             print If(anisotropy, lambda {
-             sub_compute_element_cm_aniso.call( offset,
-                                                *(d_cstore.flatten),
-                                                attenuation,
-                                                one_minus_sum_beta_use,
-                                                *(dudl.flatten),
-                                                duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,
-                                                sigma[0][0].address, sigma[1][1].address, sigma[2][2].address,
-                                                sigma[0][1].address, sigma[0][2].address, sigma[1][2].address )
+              print sub_compute_element_cm_aniso.call( offset,
+                                                      *(d_cstore.flatten.reject { |e| e.nil?}),
+                                                      attenuation,
+                                                      one_minus_sum_beta_use,
+                                                      *(dudl.flatten),
+                                                      duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,
+                                                      sigma[0][0].address, sigma[1][1].address, sigma[2][2].address,
+                                                      sigma[0][1].address, sigma[0][2].address, sigma[1][2].address )
             }, lambda {
-              print If(  !d_ispec_is_tiso[working_element], lambda {
-                sub_compute_element_cm_iso.call( offset,
-                                                 d_kappavstore,d_muvstore,
-                                                 attenuation,
-                                                 one_minus_sum_beta_use,
-                                                 dudl[0][0], dudl[1][1], dudl[2][2],
-                                                 duxdxl_plus_duydyl, duxdxl_plus_duzdzl, duydyl_plus_duzdzl,
-                                                 duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,
-                                                 sigma[0][0].address, sigma[1][1].address, sigma[2][2].address,
-                                                 sigma[0][1].address, sigma[0][2].address, sigma[1][2].address )
+              print If(  ! d_ispec_is_tiso[working_element], lambda {
+                print sub_compute_element_cm_iso.call( offset,
+                                                       d_kappavstore,d_muvstore,
+                                                       attenuation,
+                                                       one_minus_sum_beta_use,
+                                                       dudl[0][0], dudl[1][1], dudl[2][2],
+                                                       duxdxl_plus_duydyl, duxdxl_plus_duzdzl, duydyl_plus_duzdzl,
+                                                       duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,
+                                                       sigma[0][0].address, sigma[1][1].address, sigma[2][2].address,
+                                                       sigma[0][1].address, sigma[0][2].address, sigma[1][2].address )
               }, lambda {
-                sub_compute_element_cm_tiso( offset,
-                                             d_kappavstore, d_muvstore,
-                                             d_kappahstore, d_muhstore, d_eta_anisostore,
-                                             attenuation,
-                                             one_minus_sum_beta_use,
-                                             *(dudl.flatten),
-                                             duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,
-                                             iglob, nglob,
-                                             d_store[1], d_store[2],
-                                             sigma[0][0].address, sigma[1][1].address, sigma[2][2].address,
-                                             sigma[0][1].address, sigma[0][2].address, sigma[1][2].address )
+                print sub_compute_element_cm_tiso.call( offset,
+                                                   d_kappavstore, d_muvstore,
+                                                   d_kappahstore, d_muhstore, d_eta_anisostore,
+                                                   attenuation,
+                                                   one_minus_sum_beta_use,
+                                                   *(dudl.flatten),
+                                                   duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,
+                                                   iglob, nglob,
+                                                   d_store[1], d_store[2],
+                                                   sigma[0][0].address, sigma[1][1].address, sigma[2][2].address,
+                                                   sigma[0][1].address, sigma[0][2].address, sigma[1][2].address )
               })
             })
           end

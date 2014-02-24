@@ -65,6 +65,12 @@ __device__ void compute_element_ic_att_stress(const int tx, const int working_el
     offset = i_sls + (N_SLS) * (tx + (NGLL3) * (working_element));
     R_xx_val = R_xx[offset - 0];
     R_yy_val = R_yy[offset - 0];
+    sigma_xx[0 - 0] = sigma_xx[0 - 0] - (R_xx_val);
+    sigma_yy[0 - 0] = sigma_yy[0 - 0] - (R_yy_val);
+    sigma_zz[0 - 0] = sigma_zz[0 - 0] + R_xx_val + R_yy_val;
+    sigma_xy[0 - 0] = sigma_xy[0 - 0] - (R_xy[offset - 0]);
+    sigma_xz[0 - 0] = sigma_xz[0 - 0] - (R_xz[offset - 0]);
+    sigma_yz[0 - 0] = sigma_yz[0 - 0] - (R_yz[offset - 0]);
   }
 }
 __device__ void compute_element_ic_gravity(const int tx, const int working_element, const int * d_ibool, const float * d_xstore, const float * d_ystore, const float * d_zstore, const float * d_minus_gravity_table, const float * d_minus_deriv_gravity_table, const float * d_density_table, const float * wgll_cube, const float jacobianl, const float * s_dummyx_loc, const float * s_dummyy_loc, const float * s_dummyz_loc, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_yx, float * sigma_xz, float * sigma_zx, float * sigma_yz, float * sigma_zy, float * rho_s_H1, float * rho_s_H2, float * rho_s_H3){

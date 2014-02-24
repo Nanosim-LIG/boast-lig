@@ -60,7 +60,6 @@ __global__ void compute_coupling_ICB_fluid_kernel(const float * displ_inner_core
   float pressure;
   int ispec;
   int ispec_selected;
-  float displ_n;
   float nx;
   float ny;
   float nz;

@@ -121,8 +121,8 @@ __kernel void compute_acoustic_kernel(const __global int * ibool, const __global
   int ijk_ispec;\n\
   int ijk_ispec_padded;\n\
   int iglob;\n\
-  float * accel_elm;\n\
-  float * b_displ_elm;\n\
+  float accel_elm[3];\n\
+  float b_displ_elm[3];\n\
   float rhol;\n\
   float kappal;\n\
   float div_displ;\n\

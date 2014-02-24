@@ -60,7 +60,6 @@ __global__ void compute_coupling_CMB_fluid_kernel(const float * displ_crust_mant
   float pressure;
   int ispec;
   int ispec_selected;
-  float displ_n;
   float nx;
   float ny;
   float nz;

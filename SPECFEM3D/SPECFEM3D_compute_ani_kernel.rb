@@ -10,8 +10,8 @@ module BOAST
     b_epsdev           = Real("b_epsdev",          :dir => :in, :dim => [Dim(5)], :register => true )
 
     sub = Procedure(function_name, [prod, eps_trace_over_3, epsdev, b_eps_trace_over_3, b_epsdev], [], :local => true) {
-      decl eps   = Real("eps", :dim => [Dim(6)] )
-      decl b_eps = Real("b_eps", :dim => [Dim(6)] )
+      decl eps   = Real("eps", :dim => [Dim(6)], :allocate => true )
+      decl b_eps = Real("b_eps", :dim => [Dim(6)], :allocate => true )
       decl p = Int("p")
       decl i = Int("i")
       decl j = Int("j")
@@ -85,9 +85,9 @@ module BOAST
         decl ijk_ispec = Int("ijk_ispec")
         decl eps_trace_over_3 = Real("eps_trace_over_3")
         decl b_eps_trace_over_3 = Real("b_eps_trace_over_3")
-        decl prod = Real("prod", :dim => [Dim(21)])
-        decl epsdev = Real("epsdev", :dim => [Dim(5)])
-        decl b_epsdev = Real("b_epsdev", :dim => [Dim(5)])
+        decl prod = Real("prod", :dim => [Dim(21)], :allocate => true)
+        decl epsdev = Real("epsdev", :dim => [Dim(5)], :allocate => true)
+        decl b_epsdev = Real("b_epsdev", :dim => [Dim(5)], :allocate => true)
 
 
         print ispec === get_group_id(0) + get_group_id(1)*get_num_groups(0)

@@ -65,6 +65,12 @@ __device__ void compute_element_cm_att_stress(const int tx, const int working_el
     offset = i_sls + (N_SLS) * (tx + (NGLL3) * (working_element));
     R_xx_val = R_xx[offset - 0];
     R_yy_val = R_yy[offset - 0];
+    sigma_xx[0 - 0] = sigma_xx[0 - 0] - (R_xx_val);
+    sigma_yy[0 - 0] = sigma_yy[0 - 0] - (R_yy_val);
+    sigma_zz[0 - 0] = sigma_zz[0 - 0] + R_xx_val + R_yy_val;
+    sigma_xy[0 - 0] = sigma_xy[0 - 0] - (R_xy[offset - 0]);
+    sigma_xz[0 - 0] = sigma_xz[0 - 0] - (R_xz[offset - 0]);
+    sigma_yz[0 - 0] = sigma_yz[0 - 0] - (R_yz[offset - 0]);
   }
 }
 __device__ void compute_element_cm_gravity(const int tx, const int working_element, const int * d_ibool, const float * d_xstore, const float * d_ystore, const float * d_zstore, const float * d_minus_gravity_table, const float * d_minus_deriv_gravity_table, const float * d_density_table, const float * wgll_cube, const float jacobianl, const float * s_dummyx_loc, const float * s_dummyy_loc, const float * s_dummyz_loc, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_yx, float * sigma_xz, float * sigma_zx, float * sigma_yz, float * sigma_zy, float * rho_s_H1, float * rho_s_H2, float * rho_s_H3){
@@ -674,9 +680,12 @@ __global__ void crust_mantle_impl_kernel(const int nb_blocks_to_compute, const i
       one_minus_sum_beta_use = one_minus_sum_beta[working_element - 0];
     }
     if(ANISOTROPY){
+      compute_element_cm_aniso(offset, d_c11store, d_c12store, d_c13store, d_c14store, d_c15store, d_c16store, d_c22store, d_c23store, d_c24store, d_c25store, d_c26store, d_c33store, d_c34store, d_c35store, d_c36store, d_c44store, d_c45store, d_c46store, d_c55store, d_c56store, d_c66store, ATTENUATION, one_minus_sum_beta_use, duxdxl, duxdyl, duxdzl, duydxl, duydyl, duydzl, duzdxl, duzdyl, duzdzl, duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,  &sigma_xx,  &sigma_yy,  &sigma_zz,  &sigma_xy,  &sigma_xz,  &sigma_yz);
     } else {
-      if(false){
+      if( ! d_ispec_is_tiso[working_element - 0]){
+        compute_element_cm_iso(offset, d_kappavstore, d_muvstore, ATTENUATION, one_minus_sum_beta_use, duxdxl, duydyl, duzdzl, duxdxl_plus_duydyl, duxdxl_plus_duzdzl, duydyl_plus_duzdzl, duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,  &sigma_xx,  &sigma_yy,  &sigma_zz,  &sigma_xy,  &sigma_xz,  &sigma_yz);
       } else {
+        compute_element_cm_tiso(offset, d_kappavstore, d_muvstore, d_kappahstore, d_muhstore, d_eta_anisostore, ATTENUATION, one_minus_sum_beta_use, duxdxl, duxdyl, duxdzl, duydxl, duydyl, duydzl, duzdxl, duzdyl, duzdzl, duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl, iglob, NGLOB, d_ystore, d_zstore,  &sigma_xx,  &sigma_yy,  &sigma_zz,  &sigma_xy,  &sigma_xz,  &sigma_yz);
       }
     }
     if(ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY){

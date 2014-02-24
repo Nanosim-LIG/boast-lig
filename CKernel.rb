@@ -495,13 +495,13 @@ EOF
             (rb_ptr === argv[i]).print
             module_file.print <<EOF
   if ( IsNArray(rb_ptr) ) {
+EOF
+            if param.direction == :out then
+            module_file.print <<EOF
     struct NARRAY *n_ary;
     size_t array_size;
     Data_Get_Struct(rb_ptr, struct NARRAY, n_ary);
     array_size = n_ary->total * na_sizeof[n_ary->type];
-EOF
-            if param.direction == :out then
-            module_file.print <<EOF
     cudaMemcpy(#{param.name}, (void *) n_ary->ptr, array_size, cudaMemcpyDeviceToHost);
 EOF
             end

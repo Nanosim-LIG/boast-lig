@@ -34,12 +34,12 @@ module BOAST
         print offset === i_sls + nsls*(tx + ngll3*working_element)
         print r_xx_val === r_xx[offset]
         print r_yy_val === r_yy[offset]
-        sigma_xx[0] === sigma_xx[0] - r_xx_val
-        sigma_yy[0] === sigma_yy[0] - r_yy_val
-        sigma_zz[0] === sigma_zz[0] + r_xx_val + r_yy_val
-        sigma_xy[0] === sigma_xy[0] - r_xy[offset]
-        sigma_xz[0] === sigma_xz[0] - r_xz[offset]
-        sigma_yz[0] === sigma_yz[0] - r_yz[offset]
+        print sigma_xx[0] === sigma_xx[0] - r_xx_val
+        print sigma_yy[0] === sigma_yy[0] - r_yy_val
+        print sigma_zz[0] === sigma_zz[0] + r_xx_val + r_yy_val
+        print sigma_xy[0] === sigma_xy[0] - r_xy[offset]
+        print sigma_xz[0] === sigma_xz[0] - r_xz[offset]
+        print sigma_yz[0] === sigma_yz[0] - r_yz[offset]
       }
     }
     return p

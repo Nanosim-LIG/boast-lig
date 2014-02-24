@@ -88,16 +88,17 @@ module BOAST
         decl iglob_2 =  Int("iglob_ic")
         decl pressure = Real("pressure")
       elsif type == :fluid_CMB then
+        decl displ_n = Real("displ_n")
         decl iglob_1 =  Int("iglob_cm")
         decl iglob_2 =  Int("iglob_oc")
       elsif type == :fluid_ICB then
+        decl displ_n = Real("displ_n")
         decl iglob_1 =  Int("iglob_ic")
         decl iglob_2 =  Int("iglob_oc")
       end
       decl ispec =      Int("ispec")
       decl ispec_selected = Int("ispec_selected")
       decl *(displ_a = [Real("displ_x"), Real("displ_y"), Real("displ_z")]) unless type == :CMB_fluid or type == :ICB_fluid
-      decl displ_n = Real("displ_n")
       decl *(n = [Real("nx"), Real("ny"), Real("nz")])
       decl weight = Real("weight")
 
