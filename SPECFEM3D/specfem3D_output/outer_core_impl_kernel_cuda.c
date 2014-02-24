@@ -1,20 +1,61 @@
+#ifndef INDEX2
 #define INDEX2(xsize,x,y) x + (y)*xsize
+#endif
+#ifndef INDEX3
 #define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
+#endif
+#ifndef INDEX4
 #define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
+#endif
+#ifndef INDEX5
 #define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*(j))))
+#endif
+#ifndef NDIM
 #define NDIM 3
+#endif
+#ifndef NGLLX
 #define NGLLX 5
+#endif
+#ifndef NGLL2
 #define NGLL2 25
+#endif
+#ifndef NGLL3
 #define NGLL3 125
+#endif
+#ifndef NGLL3_PADDED
 #define NGLL3_PADDED 128
+#endif
+#ifndef N_SLS
 #define N_SLS 3
+#endif
+#ifndef IREGION_CRUST_MANTLE
 #define IREGION_CRUST_MANTLE 1
+#endif
+#ifndef IREGION_INNER_CORE
 #define IREGION_INNER_CORE 3
+#endif
+#ifndef IFLAG_IN_FICTITIOUS_CUBE
 #define IFLAG_IN_FICTITIOUS_CUBE 11
+#endif
+#ifndef R_EARTH_KM
 #define R_EARTH_KM 6371.0f
+#endif
+#ifndef COLORING_MIN_NSPEC_INNER_CORE
 #define COLORING_MIN_NSPEC_INNER_CORE 1000
+#endif
+#ifndef COLORING_MIN_NSPEC_OUTER_CORE
 #define COLORING_MIN_NSPEC_OUTER_CORE 1000
+#endif
+#ifndef BLOCKSIZE_TRANSFER
 #define BLOCKSIZE_TRANSFER 256
+#endif
+#ifdef USE_TEXTURES_FIELDS
+texture<float, cudaTextureType1D, cudaReadModeElementType> d_displ_oc_tex;
+texture<float, cudaTextureType1D, cudaReadModeElementType> d_accel_oc_tex;
+#endif
+#ifdef USE_TEXTURES_CONSTANTS
+texture<float, cudaTextureType1D, cudaReadModeElementType> d_hprime_xx_oc_tex;
+#endif
 __device__ void compute_element_oc_rotation(const int tx, const int working_element, const float time, const float two_omega_earth, const float deltat, float * d_A_array_rotation, float * d_B_array_rotation, const float dpotentialdxl, const float dpotentialdyl, float * dpotentialdx_with_rot, float * dpotentialdy_with_rot){
   float two_omega_deltat;
   float cos_two_omega_t;
@@ -93,16 +134,28 @@ __global__ void outer_core_impl_kernel(const int nb_blocks_to_compute, const int
   I = tx - ((K) * (NGLL2)) - ((J) * (NGLLX));
   active = (tx < NGLL3 && bx < nb_blocks_to_compute ? 1 : 0);
   if(active){
+#ifdef USE_MESH_COLORING_GPU
+    working_element = bx;
+#else
     if(use_mesh_coloring_gpu){
       working_element = bx;
     } else {
       working_element = phase_ispec_inner[bx + (num_phase_ispec) * (d_iphase - (1)) - 0] - (1);
     }
+#endif
     iglob = d_ibool[(working_element) * (NGLL3) + tx - 0] - (1);
+#ifdef USE_TEXTURES_FIELDS
+    s_dummy_loc[tx - 0] = tex1Dfetch(d_displ_oc_tex,iglob);
+#else
     s_dummy_loc[tx - 0] = d_potential[iglob - 0];
+#endif
   }
   if(tx < NGLL2){
+#ifdef USE_TEXTURES_CONSTANTS
+    sh_hprime_xx[tx - 0] = tex1Dfetch(d_hprime_xx_oc_tex,tx);
+#else
     sh_hprime_xx[tx - 0] = d_hprime_xx[tx - 0];
+#endif
     sh_hprimewgll_xx[tx - 0] = d_hprimewgll_xx[tx - 0];
   }
   __syncthreads();
@@ -110,11 +163,29 @@ __global__ void outer_core_impl_kernel(const int nb_blocks_to_compute, const int
     temp1l = 0.0f;
     temp2l = 0.0f;
     temp3l = 0.0f;
+#ifdef MANUALLY_UNROLLED_LOOPS
+    temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + 0 - 0]) * (sh_hprime_xx[(0) * (NGLLX) + I - 0]);
+    temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (0) * (NGLLX) + I - 0]) * (sh_hprime_xx[(0) * (NGLLX) + J - 0]);
+    temp3l = temp3l + (s_dummy_loc[(0) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(0) * (NGLLX) + K - 0]);
+    temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + 1 - 0]) * (sh_hprime_xx[(1) * (NGLLX) + I - 0]);
+    temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (1) * (NGLLX) + I - 0]) * (sh_hprime_xx[(1) * (NGLLX) + J - 0]);
+    temp3l = temp3l + (s_dummy_loc[(1) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(1) * (NGLLX) + K - 0]);
+    temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + 2 - 0]) * (sh_hprime_xx[(2) * (NGLLX) + I - 0]);
+    temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (2) * (NGLLX) + I - 0]) * (sh_hprime_xx[(2) * (NGLLX) + J - 0]);
+    temp3l = temp3l + (s_dummy_loc[(2) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(2) * (NGLLX) + K - 0]);
+    temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + 3 - 0]) * (sh_hprime_xx[(3) * (NGLLX) + I - 0]);
+    temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (3) * (NGLLX) + I - 0]) * (sh_hprime_xx[(3) * (NGLLX) + J - 0]);
+    temp3l = temp3l + (s_dummy_loc[(3) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(3) * (NGLLX) + K - 0]);
+    temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + 4 - 0]) * (sh_hprime_xx[(4) * (NGLLX) + I - 0]);
+    temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (4) * (NGLLX) + I - 0]) * (sh_hprime_xx[(4) * (NGLLX) + J - 0]);
+    temp3l = temp3l + (s_dummy_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(4) * (NGLLX) + K - 0]);
+#else
     for(l=0; l<=NGLLX - (1); l+=1){
       temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - 0]) * (sh_hprime_xx[(l) * (NGLLX) + I - 0]);
       temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (l) * (NGLLX) + I - 0]) * (sh_hprime_xx[(l) * (NGLLX) + J - 0]);
       temp3l = temp3l + (s_dummy_loc[(l) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(l) * (NGLLX) + K - 0]);
     }
+#endif
     offset = (working_element) * (NGLL3_PADDED) + tx;
     xixl = d_xix[offset - 0];
     etaxl = d_etax[offset - 0];
@@ -150,23 +221,53 @@ __global__ void outer_core_impl_kernel(const int nb_blocks_to_compute, const int
     temp1l = 0.0f;
     temp2l = 0.0f;
     temp3l = 0.0f;
+#ifdef MANUALLY_UNROLLED_LOOPS
+    temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + 0 - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + 0 - 0]);
+    temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (0) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + 0 - 0]);
+    temp3l = temp3l + (s_temp3[(0) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + 0 - 0]);
+    temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + 1 - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + 1 - 0]);
+    temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (1) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + 1 - 0]);
+    temp3l = temp3l + (s_temp3[(1) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + 1 - 0]);
+    temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + 2 - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + 2 - 0]);
+    temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (2) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + 2 - 0]);
+    temp3l = temp3l + (s_temp3[(2) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + 2 - 0]);
+    temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + 3 - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + 3 - 0]);
+    temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (3) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + 3 - 0]);
+    temp3l = temp3l + (s_temp3[(3) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + 3 - 0]);
+    temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + 4 - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + 4 - 0]);
+    temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (4) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + 4 - 0]);
+    temp3l = temp3l + (s_temp3[(4) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + 4 - 0]);
+#else
     for(l=0; l<=NGLLX - (1); l+=1){
       temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + l - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + l - 0]);
       temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (l) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + l - 0]);
       temp3l = temp3l + (s_temp3[(l) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + l - 0]);
     }
+#endif
     sum_terms =  - ((wgllwgll_yz[(K) * (NGLLX) + J - 0]) * (temp1l) + (wgllwgll_xz[(K) * (NGLLX) + I - 0]) * (temp2l) + (wgllwgll_xy[(J) * (NGLLX) + I - 0]) * (temp3l));
     if(GRAVITY){
       sum_terms = sum_terms + gravity_term;
     }
+#ifdef USE_MESH_COLORING_GPU
+#ifdef USE_TEXTURES_FIELDS
+    d_potential_dot_dot[iglob - 0] = tex1Dfetch(d_accel_oc_tex,iglob) + sum_terms;
+#else
+    d_potential_dot_dot[iglob - 0] = d_potential_dot_dot[iglob - 0] + sum_terms;
+#endif
+#else
     if(use_mesh_coloring_gpu){
       if(NSPEC_OUTER_CORE > 1000){
+#ifdef USE_TEXTURES_FIELDS
+        d_potential_dot_dot[iglob - 0] = tex1Dfetch(d_accel_oc_tex,iglob) + sum_terms;
+#else
         d_potential_dot_dot[iglob - 0] = d_potential_dot_dot[iglob - 0] + sum_terms;
+#endif
       } else {
         atomicAdd(d_potential_dot_dot + iglob, sum_terms);
       }
     } else {
       atomicAdd(d_potential_dot_dot + iglob, sum_terms);
     }
+#endif
   }
 }

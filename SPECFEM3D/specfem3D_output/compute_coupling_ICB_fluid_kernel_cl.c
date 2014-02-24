@@ -9,23 +9,57 @@ static inline void atomicAdd(volatile __global float *source, const float val) {
     res.fVal = orig.fVal + val;\n\
   } while (atomic_cmpxchg((volatile __global unsigned int *)source, orig.iVal, res.iVal) != orig.iVal);\n\
 }\n\
+#ifndef INDEX2\n\
 #define INDEX2(xsize,x,y) x + (y)*xsize\n\
+#endif\n\
+#ifndef INDEX3\n\
 #define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)\n\
+#endif\n\
+#ifndef INDEX4\n\
 #define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))\n\
+#endif\n\
+#ifndef INDEX5\n\
 #define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*(j))))\n\
+#endif\n\
+#ifndef NDIM\n\
 #define NDIM 3\n\
+#endif\n\
+#ifndef NGLLX\n\
 #define NGLLX 5\n\
+#endif\n\
+#ifndef NGLL2\n\
 #define NGLL2 25\n\
+#endif\n\
+#ifndef NGLL3\n\
 #define NGLL3 125\n\
+#endif\n\
+#ifndef NGLL3_PADDED\n\
 #define NGLL3_PADDED 128\n\
+#endif\n\
+#ifndef N_SLS\n\
 #define N_SLS 3\n\
+#endif\n\
+#ifndef IREGION_CRUST_MANTLE\n\
 #define IREGION_CRUST_MANTLE 1\n\
+#endif\n\
+#ifndef IREGION_INNER_CORE\n\
 #define IREGION_INNER_CORE 3\n\
+#endif\n\
+#ifndef IFLAG_IN_FICTITIOUS_CUBE\n\
 #define IFLAG_IN_FICTITIOUS_CUBE 11\n\
+#endif\n\
+#ifndef R_EARTH_KM\n\
 #define R_EARTH_KM 6371.0f\n\
+#endif\n\
+#ifndef COLORING_MIN_NSPEC_INNER_CORE\n\
 #define COLORING_MIN_NSPEC_INNER_CORE 1000\n\
+#endif\n\
+#ifndef COLORING_MIN_NSPEC_OUTER_CORE\n\
 #define COLORING_MIN_NSPEC_OUTER_CORE 1000\n\
+#endif\n\
+#ifndef BLOCKSIZE_TRANSFER\n\
 #define BLOCKSIZE_TRANSFER 256\n\
+#endif\n\
 __kernel void compute_coupling_ICB_fluid_kernel(const __global float * displ_inner_core, __global float * accel_inner_core, const __global float * accel_outer_core, const __global int * ibool_inner_core, const __global int * ibelm_top_inner_core, const __global float * normal_bottom_outer_core, const __global float * jacobian2D_bottom_outer_core, const __global float * wgllwgll_xy, const __global int * ibool_outer_core, const __global int * ibelm_bottom_outer_core, const float RHO_BOTTOM_OC, const float minus_g_icb, int GRAVITY, const int NSPEC2D_TOP_IC){\n\
   int i;\n\
   int j;\n\

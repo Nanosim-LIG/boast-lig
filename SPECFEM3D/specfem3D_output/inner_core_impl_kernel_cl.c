@@ -9,23 +9,57 @@ static inline void atomicAdd(volatile __global float *source, const float val) {
     res.fVal = orig.fVal + val;\n\
   } while (atomic_cmpxchg((volatile __global unsigned int *)source, orig.iVal, res.iVal) != orig.iVal);\n\
 }\n\
+#ifndef INDEX2\n\
 #define INDEX2(xsize,x,y) x + (y)*xsize\n\
+#endif\n\
+#ifndef INDEX3\n\
 #define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)\n\
+#endif\n\
+#ifndef INDEX4\n\
 #define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))\n\
+#endif\n\
+#ifndef INDEX5\n\
 #define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*(j))))\n\
+#endif\n\
+#ifndef NDIM\n\
 #define NDIM 3\n\
+#endif\n\
+#ifndef NGLLX\n\
 #define NGLLX 5\n\
+#endif\n\
+#ifndef NGLL2\n\
 #define NGLL2 25\n\
+#endif\n\
+#ifndef NGLL3\n\
 #define NGLL3 125\n\
+#endif\n\
+#ifndef NGLL3_PADDED\n\
 #define NGLL3_PADDED 128\n\
+#endif\n\
+#ifndef N_SLS\n\
 #define N_SLS 3\n\
+#endif\n\
+#ifndef IREGION_CRUST_MANTLE\n\
 #define IREGION_CRUST_MANTLE 1\n\
+#endif\n\
+#ifndef IREGION_INNER_CORE\n\
 #define IREGION_INNER_CORE 3\n\
+#endif\n\
+#ifndef IFLAG_IN_FICTITIOUS_CUBE\n\
 #define IFLAG_IN_FICTITIOUS_CUBE 11\n\
+#endif\n\
+#ifndef R_EARTH_KM\n\
 #define R_EARTH_KM 6371.0f\n\
+#endif\n\
+#ifndef COLORING_MIN_NSPEC_INNER_CORE\n\
 #define COLORING_MIN_NSPEC_INNER_CORE 1000\n\
+#endif\n\
+#ifndef COLORING_MIN_NSPEC_OUTER_CORE\n\
 #define COLORING_MIN_NSPEC_OUTER_CORE 1000\n\
+#endif\n\
+#ifndef BLOCKSIZE_TRANSFER\n\
 #define BLOCKSIZE_TRANSFER 256\n\
+#endif\n\
 void compute_element_ic_att_stress(const int tx, const int working_element, const __global float * R_xx, const __global float * R_yy, const __global float * R_xy, const __global float * R_xz, const __global float * R_yz, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){\n\
   int offset;\n\
   int i_sls;\n\
@@ -155,7 +189,14 @@ void compute_element_ic_att_memory(const int tx, const int working_element, cons
     R_yz[offset - 0] = (alphaval_loc) * (R_yz[offset - 0]) + (betaval_loc) * (sn) + (gammaval_loc) * (snp1);\n\
   }\n\
 }\n\
-__kernel void inner_core_impl_kernel(const int nb_blocks_to_compute, const int NGLOB, const __global int * d_ibool, const __global int * d_idoubling, const __global int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const float deltat, const int use_mesh_coloring_gpu, const __global float * d_displ, const __global float * d_veloc, __global float * d_accel, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx, const __global float * d_hprimewgll_xx, const __global float * d_wgllwgll_xy, const __global float * d_wgllwgll_xz, const __global float * d_wgllwgll_yz, const __global float * d_kappavstore, const __global float * d_muvstore, const int COMPUTE_AND_STORE_STRAIN, __global float * epsilondev_xx, __global float * epsilondev_yy, __global float * epsilondev_xy, __global float * epsilondev_xz, __global float * epsilondev_yz, __global float * epsilon_trace_over_3, const int ATTENUATION, const int PARTIAL_PHYS_DISPERSION_ONLY, const int USE_3D_ATTENUATION_ARRAYS, const __global float * one_minus_sum_beta, const __global float * factor_common, __global float * R_xx, __global float * R_yy, __global float * R_xy, __global float * R_xz, __global float * R_yz, const __global float * alphaval, const __global float * betaval, const __global float * gammaval, const int ANISOTROPY, const __global float * d_c11store, const __global float * d_c12store, const __global float * d_c13store, const __global float * d_c33store, const __global float * d_c44store, const int GRAVITY, const __global float * d_xstore, const __global float * d_ystore, const __global float * d_zstore, const __global float * d_minus_gravity_table, const __global float * d_minus_deriv_gravity_table, const __global float * d_density_table, const __global float * wgll_cube, const int NSPEC_INNER_CORE_STRAIN_ONLY, const int NSPEC_INNER_CORE){\n\
+__kernel void inner_core_impl_kernel(const int nb_blocks_to_compute, const int NGLOB, const __global int * d_ibool, const __global int * d_idoubling, const __global int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const float deltat, const int use_mesh_coloring_gpu, const __global float * d_displ, const __global float * d_veloc, __global float * d_accel, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx, const __global float * d_hprimewgll_xx, const __global float * d_wgllwgll_xy, const __global float * d_wgllwgll_xz, const __global float * d_wgllwgll_yz, const __global float * d_kappavstore, const __global float * d_muvstore, const int COMPUTE_AND_STORE_STRAIN, __global float * epsilondev_xx, __global float * epsilondev_yy, __global float * epsilondev_xy, __global float * epsilondev_xz, __global float * epsilondev_yz, __global float * epsilon_trace_over_3, const int ATTENUATION, const int PARTIAL_PHYS_DISPERSION_ONLY, const int USE_3D_ATTENUATION_ARRAYS, const __global float * one_minus_sum_beta, const __global float * factor_common, __global float * R_xx, __global float * R_yy, __global float * R_xy, __global float * R_xz, __global float * R_yz, const __global float * alphaval, const __global float * betaval, const __global float * gammaval, const int ANISOTROPY, const __global float * d_c11store, const __global float * d_c12store, const __global float * d_c13store, const __global float * d_c33store, const __global float * d_c44store, const int GRAVITY, const __global float * d_xstore, const __global float * d_ystore, const __global float * d_zstore, const __global float * d_minus_gravity_table, const __global float * d_minus_deriv_gravity_table, const __global float * d_density_table, const __global float * wgll_cube, const int NSPEC_INNER_CORE_STRAIN_ONLY, const int NSPEC_INNER_CORE, __read_only image2d_t d_displ_ic_tex, __read_only image2d_t d_accel_ic_tex, __read_only image2d_t d_hprime_xx_ic_tex){\n\
+#ifdef USE_TEXTURES_FIELDS\n\
+  const sampler_t sampler_d_displ_ic_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
+  const sampler_t sampler_d_accel_ic_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
+#endif\n\
+#ifdef USE_TEXTURES_CONSTANTS\n\
+  const sampler_t sampler_d_hprime_xx_ic_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
+#endif\n\
   int bx;\n\
   int tx;\n\
   int K;\n\
@@ -256,22 +297,36 @@ __kernel void inner_core_impl_kernel(const int nb_blocks_to_compute, const int N
   I = tx - ((K) * (NGLL2)) - ((J) * (NGLLX));\n\
   active = (tx < NGLL3 && bx < nb_blocks_to_compute ? 1 : 0);\n\
   if(active){\n\
+#ifdef USE_MESH_COLORING_GPU\n\
+    working_element = bx;\n\
+#else\n\
     if(use_mesh_coloring_gpu){\n\
       working_element = bx;\n\
     } else {\n\
       working_element = d_phase_ispec_inner[bx + (num_phase_ispec) * (d_iphase - (1)) - 0] - (1);\n\
     }\n\
+#endif\n\
     if(d_idoubling[working_element - 0] == IFLAG_IN_FICTITIOUS_CUBE){\n\
       active = 0;\n\
     } else {\n\
       iglob = d_ibool[(working_element) * (NGLL3) + tx - 0] - (1);\n\
+#ifdef USE_TEXTURES_FIELDS\n\
+      s_dummyx_loc[tx - 0] = as_float(read_imageui(d_displ_ic_tex, sampler_d_displ_ic_tex, int2((iglob) * (3) + 0,0)).x);\n\
+      s_dummyy_loc[tx - 0] = as_float(read_imageui(d_displ_ic_tex, sampler_d_displ_ic_tex, int2((iglob) * (3) + 1,0)).x);\n\
+      s_dummyz_loc[tx - 0] = as_float(read_imageui(d_displ_ic_tex, sampler_d_displ_ic_tex, int2((iglob) * (3) + 2,0)).x);\n\
+#else\n\
       s_dummyx_loc[tx - 0] = d_displ[0 - 0 + (iglob - (0)) * (3)];\n\
       s_dummyy_loc[tx - 0] = d_displ[1 - 0 + (iglob - (0)) * (3)];\n\
       s_dummyz_loc[tx - 0] = d_displ[2 - 0 + (iglob - (0)) * (3)];\n\
+#endif\n\
     }\n\
   }\n\
   if(tx < NGLL2){\n\
+#ifdef USE_TEXTURES_CONSTANTS\n\
+    sh_hprime_xx[tx - 0] = as_float(read_imageui(d_hprime_xx_ic_tex, sampler_d_hprime_xx_ic_tex, int2(tx,0)).x);\n\
+#else\n\
     sh_hprime_xx[tx - 0] = d_hprime_xx[tx - 0];\n\
+#endif\n\
     sh_hprimewgll_xx[tx - 0] = d_hprimewgll_xx[tx - 0];\n\
   }\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -285,6 +340,7 @@ __kernel void inner_core_impl_kernel(const int nb_blocks_to_compute, const int N
     tempz1l = 0.0f;\n\
     tempz2l = 0.0f;\n\
     tempz3l = 0.0f;\n\
+#ifdef MANUALLY_UNROLLED_LOOPS\n\
     fac1 = sh_hprime_xx[(0) * (NGLLX) + I - 0];\n\
     offset = (K) * (NGLL2) + (J) * (NGLLX) + 0;\n\
     tempx1l = tempx1l + (s_dummyx_loc[offset - 0]) * (fac1);\n\
@@ -360,6 +416,25 @@ __kernel void inner_core_impl_kernel(const int nb_blocks_to_compute, const int N
     tempx3l = tempx3l + (s_dummyx_loc[offset - 0]) * (fac3);\n\
     tempy3l = tempy3l + (s_dummyy_loc[offset - 0]) * (fac3);\n\
     tempz3l = tempz3l + (s_dummyz_loc[offset - 0]) * (fac3);\n\
+#else\n\
+    for(l=0; l<=NGLLX - (1); l+=1){\n\
+      fac1 = sh_hprime_xx[(l) * (NGLLX) + I - 0];\n\
+      offset = (K) * (NGLL2) + (J) * (NGLLX) + l;\n\
+      tempx1l = tempx1l + (s_dummyx_loc[offset - 0]) * (fac1);\n\
+      tempy1l = tempy1l + (s_dummyy_loc[offset - 0]) * (fac1);\n\
+      tempz1l = tempz1l + (s_dummyz_loc[offset - 0]) * (fac1);\n\
+      fac2 = sh_hprime_xx[(l) * (NGLLX) + J - 0];\n\
+      offset = (K) * (NGLL2) + (l) * (NGLLX) + I;\n\
+      tempx2l = tempx2l + (s_dummyx_loc[offset - 0]) * (fac2);\n\
+      tempy2l = tempy2l + (s_dummyy_loc[offset - 0]) * (fac2);\n\
+      tempz2l = tempz2l + (s_dummyz_loc[offset - 0]) * (fac2);\n\
+      fac3 = sh_hprime_xx[(l) * (NGLLX) + K - 0];\n\
+      offset = (l) * (NGLL2) + (J) * (NGLLX) + I;\n\
+      tempx3l = tempx3l + (s_dummyx_loc[offset - 0]) * (fac3);\n\
+      tempy3l = tempy3l + (s_dummyy_loc[offset - 0]) * (fac3);\n\
+      tempz3l = tempz3l + (s_dummyz_loc[offset - 0]) * (fac3);\n\
+    }\n\
+#endif\n\
     offset = (working_element) * (NGLL3_PADDED) + tx;\n\
     xixl = d_xix[offset - 0];\n\
     etaxl = d_etax[offset - 0];\n\
@@ -471,6 +546,7 @@ __kernel void inner_core_impl_kernel(const int nb_blocks_to_compute, const int N
     tempz1l = 0.0f;\n\
     tempz2l = 0.0f;\n\
     tempz3l = 0.0f;\n\
+#ifdef MANUALLY_UNROLLED_LOOPS\n\
     fac1 = sh_hprimewgll_xx[(I) * (NGLLX) + 0 - 0];\n\
     offset = (K) * (NGLL2) + (J) * (NGLLX) + 0;\n\
     tempx1l = tempx1l + (s_tempx1[offset - 0]) * (fac1);\n\
@@ -546,6 +622,25 @@ __kernel void inner_core_impl_kernel(const int nb_blocks_to_compute, const int N
     tempx3l = tempx3l + (s_tempx3[offset - 0]) * (fac3);\n\
     tempy3l = tempy3l + (s_tempy3[offset - 0]) * (fac3);\n\
     tempz3l = tempz3l + (s_tempz3[offset - 0]) * (fac3);\n\
+#else\n\
+    for(l=0; l<=NGLLX - (1); l+=1){\n\
+      fac1 = sh_hprimewgll_xx[(I) * (NGLLX) + l - 0];\n\
+      offset = (K) * (NGLL2) + (J) * (NGLLX) + l;\n\
+      tempx1l = tempx1l + (s_tempx1[offset - 0]) * (fac1);\n\
+      tempy1l = tempy1l + (s_tempy1[offset - 0]) * (fac1);\n\
+      tempz1l = tempz1l + (s_tempz1[offset - 0]) * (fac1);\n\
+      fac2 = sh_hprimewgll_xx[(J) * (NGLLX) + l - 0];\n\
+      offset = (K) * (NGLL2) + (l) * (NGLLX) + I;\n\
+      tempx2l = tempx2l + (s_tempx2[offset - 0]) * (fac2);\n\
+      tempy2l = tempy2l + (s_tempy2[offset - 0]) * (fac2);\n\
+      tempz2l = tempz2l + (s_tempz2[offset - 0]) * (fac2);\n\
+      fac3 = sh_hprimewgll_xx[(K) * (NGLLX) + l - 0];\n\
+      offset = (l) * (NGLL2) + (J) * (NGLLX) + I;\n\
+      tempx3l = tempx3l + (s_tempx3[offset - 0]) * (fac3);\n\
+      tempy3l = tempy3l + (s_tempy3[offset - 0]) * (fac3);\n\
+      tempz3l = tempz3l + (s_tempz3[offset - 0]) * (fac3);\n\
+    }\n\
+#endif\n\
     fac1 = d_wgllwgll_yz[(K) * (NGLLX) + J - 0];\n\
     fac2 = d_wgllwgll_xz[(K) * (NGLLX) + I - 0];\n\
     fac3 = d_wgllwgll_xy[(J) * (NGLLX) + I - 0];\n\
@@ -557,11 +652,28 @@ __kernel void inner_core_impl_kernel(const int nb_blocks_to_compute, const int N
       sum_terms2 = sum_terms2 + rho_s_H2;\n\
       sum_terms3 = sum_terms3 + rho_s_H3;\n\
     }\n\
+#ifdef USE_MESH_COLORING_GPU\n\
+#ifdef USE_TEXTURES_FIELDS\n\
+    d_accel[0 - 0 + (iglob - (0)) * (3)] = as_float(read_imageui(d_accel_ic_tex, sampler_d_accel_ic_tex, int2((iglob) * (3) + 0,0)).x) + sum_terms1;\n\
+    d_accel[1 - 0 + (iglob - (0)) * (3)] = as_float(read_imageui(d_accel_ic_tex, sampler_d_accel_ic_tex, int2((iglob) * (3) + 1,0)).x) + sum_terms2;\n\
+    d_accel[2 - 0 + (iglob - (0)) * (3)] = as_float(read_imageui(d_accel_ic_tex, sampler_d_accel_ic_tex, int2((iglob) * (3) + 2,0)).x) + sum_terms3;\n\
+#else\n\
+    d_accel[0 - 0 + (iglob - (0)) * (3)] = d_accel[0 - 0 + (iglob - (0)) * (3)] + sum_terms1;\n\
+    d_accel[1 - 0 + (iglob - (0)) * (3)] = d_accel[1 - 0 + (iglob - (0)) * (3)] + sum_terms2;\n\
+    d_accel[2 - 0 + (iglob - (0)) * (3)] = d_accel[2 - 0 + (iglob - (0)) * (3)] + sum_terms3;\n\
+#endif\n\
+#else\n\
     if(use_mesh_coloring_gpu){\n\
       if(NSPEC_INNER_CORE > 1000){\n\
+#ifdef USE_TEXTURES_FIELDS\n\
+        d_accel[0 - 0 + (iglob - (0)) * (3)] = as_float(read_imageui(d_accel_ic_tex, sampler_d_accel_ic_tex, int2((iglob) * (3) + 0,0)).x) + sum_terms1;\n\
+        d_accel[1 - 0 + (iglob - (0)) * (3)] = as_float(read_imageui(d_accel_ic_tex, sampler_d_accel_ic_tex, int2((iglob) * (3) + 1,0)).x) + sum_terms2;\n\
+        d_accel[2 - 0 + (iglob - (0)) * (3)] = as_float(read_imageui(d_accel_ic_tex, sampler_d_accel_ic_tex, int2((iglob) * (3) + 2,0)).x) + sum_terms3;\n\
+#else\n\
         d_accel[0 - 0 + (iglob - (0)) * (3)] = d_accel[0 - 0 + (iglob - (0)) * (3)] + sum_terms1;\n\
         d_accel[1 - 0 + (iglob - (0)) * (3)] = d_accel[1 - 0 + (iglob - (0)) * (3)] + sum_terms2;\n\
         d_accel[2 - 0 + (iglob - (0)) * (3)] = d_accel[2 - 0 + (iglob - (0)) * (3)] + sum_terms3;\n\
+#endif\n\
       } else {\n\
         atomicAdd(d_accel + (iglob) * (3) + 0, sum_terms1);\n\
         atomicAdd(d_accel + (iglob) * (3) + 1, sum_terms2);\n\
@@ -572,6 +684,7 @@ __kernel void inner_core_impl_kernel(const int nb_blocks_to_compute, const int N
       atomicAdd(d_accel + (iglob) * (3) + 1, sum_terms2);\n\
       atomicAdd(d_accel + (iglob) * (3) + 2, sum_terms3);\n\
     }\n\
+#endif\n\
     if(ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY){\n\
       compute_element_ic_att_memory(tx, working_element, d_muvstore, factor_common, alphaval, betaval, gammaval, R_xx, R_yy, R_xy, R_xz, R_yz, epsilondev_xx, epsilondev_yy, epsilondev_xy, epsilondev_xz, epsilondev_yz, epsilondev_xx_loc, epsilondev_yy_loc, epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc, USE_3D_ATTENUATION_ARRAYS);\n\
     }\n\

@@ -9,23 +9,57 @@ static inline void atomicAdd(volatile __global float *source, const float val) {
     res.fVal = orig.fVal + val;\n\
   } while (atomic_cmpxchg((volatile __global unsigned int *)source, orig.iVal, res.iVal) != orig.iVal);\n\
 }\n\
+#ifndef INDEX2\n\
 #define INDEX2(xsize,x,y) x + (y)*xsize\n\
+#endif\n\
+#ifndef INDEX3\n\
 #define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)\n\
+#endif\n\
+#ifndef INDEX4\n\
 #define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))\n\
+#endif\n\
+#ifndef INDEX5\n\
 #define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*(j))))\n\
+#endif\n\
+#ifndef NDIM\n\
 #define NDIM 3\n\
+#endif\n\
+#ifndef NGLLX\n\
 #define NGLLX 5\n\
+#endif\n\
+#ifndef NGLL2\n\
 #define NGLL2 25\n\
+#endif\n\
+#ifndef NGLL3\n\
 #define NGLL3 125\n\
+#endif\n\
+#ifndef NGLL3_PADDED\n\
 #define NGLL3_PADDED 128\n\
+#endif\n\
+#ifndef N_SLS\n\
 #define N_SLS 3\n\
+#endif\n\
+#ifndef IREGION_CRUST_MANTLE\n\
 #define IREGION_CRUST_MANTLE 1\n\
+#endif\n\
+#ifndef IREGION_INNER_CORE\n\
 #define IREGION_INNER_CORE 3\n\
+#endif\n\
+#ifndef IFLAG_IN_FICTITIOUS_CUBE\n\
 #define IFLAG_IN_FICTITIOUS_CUBE 11\n\
+#endif\n\
+#ifndef R_EARTH_KM\n\
 #define R_EARTH_KM 6371.0f\n\
+#endif\n\
+#ifndef COLORING_MIN_NSPEC_INNER_CORE\n\
 #define COLORING_MIN_NSPEC_INNER_CORE 1000\n\
+#endif\n\
+#ifndef COLORING_MIN_NSPEC_OUTER_CORE\n\
 #define COLORING_MIN_NSPEC_OUTER_CORE 1000\n\
+#endif\n\
+#ifndef BLOCKSIZE_TRANSFER\n\
 #define BLOCKSIZE_TRANSFER 256\n\
+#endif\n\
 void compute_element_oc_rotation(const int tx, const int working_element, const float time, const float two_omega_earth, const float deltat, __global float * d_A_array_rotation, __global float * d_B_array_rotation, const float dpotentialdxl, const float dpotentialdyl, float * dpotentialdx_with_rot, float * dpotentialdy_with_rot){\n\
   float two_omega_deltat;\n\
   float cos_two_omega_t;\n\
@@ -46,7 +80,14 @@ void compute_element_oc_rotation(const int tx, const int working_element, const 
   d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_A;\n\
   d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_B;\n\
 }\n\
-__kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int NGLOB, const __global int * d_ibool, const __global int * phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const __global float * d_potential, __global float * d_potential_dot_dot, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx, const __global float * d_hprimewgll_xx, const __global float * wgllwgll_xy, const __global float * wgllwgll_xz, const __global float * wgllwgll_yz, const int GRAVITY, const __global float * d_xstore, const __global float * d_ystore, const __global float * d_zstore, const __global float * d_d_ln_density_dr_table, const __global float * d_minus_rho_g_over_kappa_fluid, const __global float * wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, __global float * d_A_array_rotation, __global float * d_B_array_rotation, const int NSPEC_OUTER_CORE){\n\
+__kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int NGLOB, const __global int * d_ibool, const __global int * phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const __global float * d_potential, __global float * d_potential_dot_dot, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx, const __global float * d_hprimewgll_xx, const __global float * wgllwgll_xy, const __global float * wgllwgll_xz, const __global float * wgllwgll_yz, const int GRAVITY, const __global float * d_xstore, const __global float * d_ystore, const __global float * d_zstore, const __global float * d_d_ln_density_dr_table, const __global float * d_minus_rho_g_over_kappa_fluid, const __global float * wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, __global float * d_A_array_rotation, __global float * d_B_array_rotation, const int NSPEC_OUTER_CORE, __read_only image2d_t d_displ_oc_tex, __read_only image2d_t d_accel_oc_tex, __read_only image2d_t d_hprime_xx_oc_tex){\n\
+#ifdef USE_TEXTURES_FIELDS\n\
+  const sampler_t sampler_d_displ_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
+  const sampler_t sampler_d_accel_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
+#endif\n\
+#ifdef USE_TEXTURES_CONSTANTS\n\
+  const sampler_t sampler_d_hprime_xx_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
+#endif\n\
   int bx;\n\
   int tx;\n\
   int K;\n\
@@ -104,16 +145,28 @@ __kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int N
   I = tx - ((K) * (NGLL2)) - ((J) * (NGLLX));\n\
   active = (tx < NGLL3 && bx < nb_blocks_to_compute ? 1 : 0);\n\
   if(active){\n\
+#ifdef USE_MESH_COLORING_GPU\n\
+    working_element = bx;\n\
+#else\n\
     if(use_mesh_coloring_gpu){\n\
       working_element = bx;\n\
     } else {\n\
       working_element = phase_ispec_inner[bx + (num_phase_ispec) * (d_iphase - (1)) - 0] - (1);\n\
     }\n\
+#endif\n\
     iglob = d_ibool[(working_element) * (NGLL3) + tx - 0] - (1);\n\
+#ifdef USE_TEXTURES_FIELDS\n\
+    s_dummy_loc[tx - 0] = as_float(read_imageui(d_displ_oc_tex, sampler_d_displ_oc_tex, int2(iglob,0)).x);\n\
+#else\n\
     s_dummy_loc[tx - 0] = d_potential[iglob - 0];\n\
+#endif\n\
   }\n\
   if(tx < NGLL2){\n\
+#ifdef USE_TEXTURES_CONSTANTS\n\
+    sh_hprime_xx[tx - 0] = as_float(read_imageui(d_hprime_xx_oc_tex, sampler_d_hprime_xx_oc_tex, int2(tx,0)).x);\n\
+#else\n\
     sh_hprime_xx[tx - 0] = d_hprime_xx[tx - 0];\n\
+#endif\n\
     sh_hprimewgll_xx[tx - 0] = d_hprimewgll_xx[tx - 0];\n\
   }\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -121,11 +174,29 @@ __kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int N
     temp1l = 0.0f;\n\
     temp2l = 0.0f;\n\
     temp3l = 0.0f;\n\
+#ifdef MANUALLY_UNROLLED_LOOPS\n\
+    temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + 0 - 0]) * (sh_hprime_xx[(0) * (NGLLX) + I - 0]);\n\
+    temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (0) * (NGLLX) + I - 0]) * (sh_hprime_xx[(0) * (NGLLX) + J - 0]);\n\
+    temp3l = temp3l + (s_dummy_loc[(0) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(0) * (NGLLX) + K - 0]);\n\
+    temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + 1 - 0]) * (sh_hprime_xx[(1) * (NGLLX) + I - 0]);\n\
+    temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (1) * (NGLLX) + I - 0]) * (sh_hprime_xx[(1) * (NGLLX) + J - 0]);\n\
+    temp3l = temp3l + (s_dummy_loc[(1) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(1) * (NGLLX) + K - 0]);\n\
+    temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + 2 - 0]) * (sh_hprime_xx[(2) * (NGLLX) + I - 0]);\n\
+    temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (2) * (NGLLX) + I - 0]) * (sh_hprime_xx[(2) * (NGLLX) + J - 0]);\n\
+    temp3l = temp3l + (s_dummy_loc[(2) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(2) * (NGLLX) + K - 0]);\n\
+    temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + 3 - 0]) * (sh_hprime_xx[(3) * (NGLLX) + I - 0]);\n\
+    temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (3) * (NGLLX) + I - 0]) * (sh_hprime_xx[(3) * (NGLLX) + J - 0]);\n\
+    temp3l = temp3l + (s_dummy_loc[(3) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(3) * (NGLLX) + K - 0]);\n\
+    temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + 4 - 0]) * (sh_hprime_xx[(4) * (NGLLX) + I - 0]);\n\
+    temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (4) * (NGLLX) + I - 0]) * (sh_hprime_xx[(4) * (NGLLX) + J - 0]);\n\
+    temp3l = temp3l + (s_dummy_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(4) * (NGLLX) + K - 0]);\n\
+#else\n\
     for(l=0; l<=NGLLX - (1); l+=1){\n\
       temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - 0]) * (sh_hprime_xx[(l) * (NGLLX) + I - 0]);\n\
       temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (l) * (NGLLX) + I - 0]) * (sh_hprime_xx[(l) * (NGLLX) + J - 0]);\n\
       temp3l = temp3l + (s_dummy_loc[(l) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(l) * (NGLLX) + K - 0]);\n\
     }\n\
+#endif\n\
     offset = (working_element) * (NGLL3_PADDED) + tx;\n\
     xixl = d_xix[offset - 0];\n\
     etaxl = d_etax[offset - 0];\n\
@@ -161,24 +232,54 @@ __kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int N
     temp1l = 0.0f;\n\
     temp2l = 0.0f;\n\
     temp3l = 0.0f;\n\
+#ifdef MANUALLY_UNROLLED_LOOPS\n\
+    temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + 0 - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + 0 - 0]);\n\
+    temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (0) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + 0 - 0]);\n\
+    temp3l = temp3l + (s_temp3[(0) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + 0 - 0]);\n\
+    temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + 1 - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + 1 - 0]);\n\
+    temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (1) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + 1 - 0]);\n\
+    temp3l = temp3l + (s_temp3[(1) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + 1 - 0]);\n\
+    temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + 2 - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + 2 - 0]);\n\
+    temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (2) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + 2 - 0]);\n\
+    temp3l = temp3l + (s_temp3[(2) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + 2 - 0]);\n\
+    temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + 3 - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + 3 - 0]);\n\
+    temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (3) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + 3 - 0]);\n\
+    temp3l = temp3l + (s_temp3[(3) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + 3 - 0]);\n\
+    temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + 4 - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + 4 - 0]);\n\
+    temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (4) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + 4 - 0]);\n\
+    temp3l = temp3l + (s_temp3[(4) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + 4 - 0]);\n\
+#else\n\
     for(l=0; l<=NGLLX - (1); l+=1){\n\
       temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + l - 0]) * (sh_hprimewgll_xx[(I) * (NGLLX) + l - 0]);\n\
       temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (l) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(J) * (NGLLX) + l - 0]);\n\
       temp3l = temp3l + (s_temp3[(l) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + l - 0]);\n\
     }\n\
+#endif\n\
     sum_terms =  - ((wgllwgll_yz[(K) * (NGLLX) + J - 0]) * (temp1l) + (wgllwgll_xz[(K) * (NGLLX) + I - 0]) * (temp2l) + (wgllwgll_xy[(J) * (NGLLX) + I - 0]) * (temp3l));\n\
     if(GRAVITY){\n\
       sum_terms = sum_terms + gravity_term;\n\
     }\n\
+#ifdef USE_MESH_COLORING_GPU\n\
+#ifdef USE_TEXTURES_FIELDS\n\
+    d_potential_dot_dot[iglob - 0] = as_float(read_imageui(d_accel_oc_tex, sampler_d_accel_oc_tex, int2(iglob,0)).x) + sum_terms;\n\
+#else\n\
+    d_potential_dot_dot[iglob - 0] = d_potential_dot_dot[iglob - 0] + sum_terms;\n\
+#endif\n\
+#else\n\
     if(use_mesh_coloring_gpu){\n\
       if(NSPEC_OUTER_CORE > 1000){\n\
+#ifdef USE_TEXTURES_FIELDS\n\
+        d_potential_dot_dot[iglob - 0] = as_float(read_imageui(d_accel_oc_tex, sampler_d_accel_oc_tex, int2(iglob,0)).x) + sum_terms;\n\
+#else\n\
         d_potential_dot_dot[iglob - 0] = d_potential_dot_dot[iglob - 0] + sum_terms;\n\
+#endif\n\
       } else {\n\
         atomicAdd(d_potential_dot_dot + iglob, sum_terms);\n\
       }\n\
     } else {\n\
       atomicAdd(d_potential_dot_dot + iglob, sum_terms);\n\
     }\n\
+#endif\n\
   }\n\
 }\n\
 ";

@@ -1,20 +1,61 @@
+#ifndef INDEX2
 #define INDEX2(xsize,x,y) x + (y)*xsize
+#endif
+#ifndef INDEX3
 #define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
+#endif
+#ifndef INDEX4
 #define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
+#endif
+#ifndef INDEX5
 #define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*(j))))
+#endif
+#ifndef NDIM
 #define NDIM 3
+#endif
+#ifndef NGLLX
 #define NGLLX 5
+#endif
+#ifndef NGLL2
 #define NGLL2 25
+#endif
+#ifndef NGLL3
 #define NGLL3 125
+#endif
+#ifndef NGLL3_PADDED
 #define NGLL3_PADDED 128
+#endif
+#ifndef N_SLS
 #define N_SLS 3
+#endif
+#ifndef IREGION_CRUST_MANTLE
 #define IREGION_CRUST_MANTLE 1
+#endif
+#ifndef IREGION_INNER_CORE
 #define IREGION_INNER_CORE 3
+#endif
+#ifndef IFLAG_IN_FICTITIOUS_CUBE
 #define IFLAG_IN_FICTITIOUS_CUBE 11
+#endif
+#ifndef R_EARTH_KM
 #define R_EARTH_KM 6371.0f
+#endif
+#ifndef COLORING_MIN_NSPEC_INNER_CORE
 #define COLORING_MIN_NSPEC_INNER_CORE 1000
+#endif
+#ifndef COLORING_MIN_NSPEC_OUTER_CORE
 #define COLORING_MIN_NSPEC_OUTER_CORE 1000
+#endif
+#ifndef BLOCKSIZE_TRANSFER
 #define BLOCKSIZE_TRANSFER 256
+#endif
+#ifdef USE_TEXTURES_FIELDS
+texture<float, cudaTextureType1D, cudaReadModeElementType> d_displ_ic_tex;
+texture<float, cudaTextureType1D, cudaReadModeElementType> d_accel_ic_tex;
+#endif
+#ifdef USE_TEXTURES_CONSTANTS
+texture<float, cudaTextureType1D, cudaReadModeElementType> d_hprime_xx_ic_tex;
+#endif
 __device__ void compute_element_ic_att_stress(const int tx, const int working_element, const float * R_xx, const float * R_yy, const float * R_xy, const float * R_xz, const float * R_yz, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
   int offset;
   int i_sls;
@@ -245,22 +286,36 @@ __global__ void inner_core_impl_kernel(const int nb_blocks_to_compute, const int
   I = tx - ((K) * (NGLL2)) - ((J) * (NGLLX));
   active = (tx < NGLL3 && bx < nb_blocks_to_compute ? 1 : 0);
   if(active){
+#ifdef USE_MESH_COLORING_GPU
+    working_element = bx;
+#else
     if(use_mesh_coloring_gpu){
       working_element = bx;
     } else {
       working_element = d_phase_ispec_inner[bx + (num_phase_ispec) * (d_iphase - (1)) - 0] - (1);
     }
+#endif
     if(d_idoubling[working_element - 0] == IFLAG_IN_FICTITIOUS_CUBE){
       active = 0;
     } else {
       iglob = d_ibool[(working_element) * (NGLL3) + tx - 0] - (1);
+#ifdef USE_TEXTURES_FIELDS
+      s_dummyx_loc[tx - 0] = tex1Dfetch(d_displ_ic_tex,(iglob) * (3) + 0);
+      s_dummyy_loc[tx - 0] = tex1Dfetch(d_displ_ic_tex,(iglob) * (3) + 1);
+      s_dummyz_loc[tx - 0] = tex1Dfetch(d_displ_ic_tex,(iglob) * (3) + 2);
+#else
       s_dummyx_loc[tx - 0] = d_displ[0 - 0 + (iglob - (0)) * (3)];
       s_dummyy_loc[tx - 0] = d_displ[1 - 0 + (iglob - (0)) * (3)];
       s_dummyz_loc[tx - 0] = d_displ[2 - 0 + (iglob - (0)) * (3)];
+#endif
     }
   }
   if(tx < NGLL2){
+#ifdef USE_TEXTURES_CONSTANTS
+    sh_hprime_xx[tx - 0] = tex1Dfetch(d_hprime_xx_ic_tex,tx);
+#else
     sh_hprime_xx[tx - 0] = d_hprime_xx[tx - 0];
+#endif
     sh_hprimewgll_xx[tx - 0] = d_hprimewgll_xx[tx - 0];
   }
   __syncthreads();
@@ -274,6 +329,7 @@ __global__ void inner_core_impl_kernel(const int nb_blocks_to_compute, const int
     tempz1l = 0.0f;
     tempz2l = 0.0f;
     tempz3l = 0.0f;
+#ifdef MANUALLY_UNROLLED_LOOPS
     fac1 = sh_hprime_xx[(0) * (NGLLX) + I - 0];
     offset = (K) * (NGLL2) + (J) * (NGLLX) + 0;
     tempx1l = tempx1l + (s_dummyx_loc[offset - 0]) * (fac1);
@@ -349,6 +405,25 @@ __global__ void inner_core_impl_kernel(const int nb_blocks_to_compute, const int
     tempx3l = tempx3l + (s_dummyx_loc[offset - 0]) * (fac3);
     tempy3l = tempy3l + (s_dummyy_loc[offset - 0]) * (fac3);
     tempz3l = tempz3l + (s_dummyz_loc[offset - 0]) * (fac3);
+#else
+    for(l=0; l<=NGLLX - (1); l+=1){
+      fac1 = sh_hprime_xx[(l) * (NGLLX) + I - 0];
+      offset = (K) * (NGLL2) + (J) * (NGLLX) + l;
+      tempx1l = tempx1l + (s_dummyx_loc[offset - 0]) * (fac1);
+      tempy1l = tempy1l + (s_dummyy_loc[offset - 0]) * (fac1);
+      tempz1l = tempz1l + (s_dummyz_loc[offset - 0]) * (fac1);
+      fac2 = sh_hprime_xx[(l) * (NGLLX) + J - 0];
+      offset = (K) * (NGLL2) + (l) * (NGLLX) + I;
+      tempx2l = tempx2l + (s_dummyx_loc[offset - 0]) * (fac2);
+      tempy2l = tempy2l + (s_dummyy_loc[offset - 0]) * (fac2);
+      tempz2l = tempz2l + (s_dummyz_loc[offset - 0]) * (fac2);
+      fac3 = sh_hprime_xx[(l) * (NGLLX) + K - 0];
+      offset = (l) * (NGLL2) + (J) * (NGLLX) + I;
+      tempx3l = tempx3l + (s_dummyx_loc[offset - 0]) * (fac3);
+      tempy3l = tempy3l + (s_dummyy_loc[offset - 0]) * (fac3);
+      tempz3l = tempz3l + (s_dummyz_loc[offset - 0]) * (fac3);
+    }
+#endif
     offset = (working_element) * (NGLL3_PADDED) + tx;
     xixl = d_xix[offset - 0];
     etaxl = d_etax[offset - 0];
@@ -460,6 +535,7 @@ __global__ void inner_core_impl_kernel(const int nb_blocks_to_compute, const int
     tempz1l = 0.0f;
     tempz2l = 0.0f;
     tempz3l = 0.0f;
+#ifdef MANUALLY_UNROLLED_LOOPS
     fac1 = sh_hprimewgll_xx[(I) * (NGLLX) + 0 - 0];
     offset = (K) * (NGLL2) + (J) * (NGLLX) + 0;
     tempx1l = tempx1l + (s_tempx1[offset - 0]) * (fac1);
@@ -535,6 +611,25 @@ __global__ void inner_core_impl_kernel(const int nb_blocks_to_compute, const int
     tempx3l = tempx3l + (s_tempx3[offset - 0]) * (fac3);
     tempy3l = tempy3l + (s_tempy3[offset - 0]) * (fac3);
     tempz3l = tempz3l + (s_tempz3[offset - 0]) * (fac3);
+#else
+    for(l=0; l<=NGLLX - (1); l+=1){
+      fac1 = sh_hprimewgll_xx[(I) * (NGLLX) + l - 0];
+      offset = (K) * (NGLL2) + (J) * (NGLLX) + l;
+      tempx1l = tempx1l + (s_tempx1[offset - 0]) * (fac1);
+      tempy1l = tempy1l + (s_tempy1[offset - 0]) * (fac1);
+      tempz1l = tempz1l + (s_tempz1[offset - 0]) * (fac1);
+      fac2 = sh_hprimewgll_xx[(J) * (NGLLX) + l - 0];
+      offset = (K) * (NGLL2) + (l) * (NGLLX) + I;
+      tempx2l = tempx2l + (s_tempx2[offset - 0]) * (fac2);
+      tempy2l = tempy2l + (s_tempy2[offset - 0]) * (fac2);
+      tempz2l = tempz2l + (s_tempz2[offset - 0]) * (fac2);
+      fac3 = sh_hprimewgll_xx[(K) * (NGLLX) + l - 0];
+      offset = (l) * (NGLL2) + (J) * (NGLLX) + I;
+      tempx3l = tempx3l + (s_tempx3[offset - 0]) * (fac3);
+      tempy3l = tempy3l + (s_tempy3[offset - 0]) * (fac3);
+      tempz3l = tempz3l + (s_tempz3[offset - 0]) * (fac3);
+    }
+#endif
     fac1 = d_wgllwgll_yz[(K) * (NGLLX) + J - 0];
     fac2 = d_wgllwgll_xz[(K) * (NGLLX) + I - 0];
     fac3 = d_wgllwgll_xy[(J) * (NGLLX) + I - 0];
@@ -546,11 +641,28 @@ __global__ void inner_core_impl_kernel(const int nb_blocks_to_compute, const int
       sum_terms2 = sum_terms2 + rho_s_H2;
       sum_terms3 = sum_terms3 + rho_s_H3;
     }
+#ifdef USE_MESH_COLORING_GPU
+#ifdef USE_TEXTURES_FIELDS
+    d_accel[0 - 0 + (iglob - (0)) * (3)] = tex1Dfetch(d_accel_ic_tex,(iglob) * (3) + 0) + sum_terms1;
+    d_accel[1 - 0 + (iglob - (0)) * (3)] = tex1Dfetch(d_accel_ic_tex,(iglob) * (3) + 1) + sum_terms2;
+    d_accel[2 - 0 + (iglob - (0)) * (3)] = tex1Dfetch(d_accel_ic_tex,(iglob) * (3) + 2) + sum_terms3;
+#else
+    d_accel[0 - 0 + (iglob - (0)) * (3)] = d_accel[0 - 0 + (iglob - (0)) * (3)] + sum_terms1;
+    d_accel[1 - 0 + (iglob - (0)) * (3)] = d_accel[1 - 0 + (iglob - (0)) * (3)] + sum_terms2;
+    d_accel[2 - 0 + (iglob - (0)) * (3)] = d_accel[2 - 0 + (iglob - (0)) * (3)] + sum_terms3;
+#endif
+#else
     if(use_mesh_coloring_gpu){
       if(NSPEC_INNER_CORE > 1000){
+#ifdef USE_TEXTURES_FIELDS
+        d_accel[0 - 0 + (iglob - (0)) * (3)] = tex1Dfetch(d_accel_ic_tex,(iglob) * (3) + 0) + sum_terms1;
+        d_accel[1 - 0 + (iglob - (0)) * (3)] = tex1Dfetch(d_accel_ic_tex,(iglob) * (3) + 1) + sum_terms2;
+        d_accel[2 - 0 + (iglob - (0)) * (3)] = tex1Dfetch(d_accel_ic_tex,(iglob) * (3) + 2) + sum_terms3;
+#else
         d_accel[0 - 0 + (iglob - (0)) * (3)] = d_accel[0 - 0 + (iglob - (0)) * (3)] + sum_terms1;
         d_accel[1 - 0 + (iglob - (0)) * (3)] = d_accel[1 - 0 + (iglob - (0)) * (3)] + sum_terms2;
         d_accel[2 - 0 + (iglob - (0)) * (3)] = d_accel[2 - 0 + (iglob - (0)) * (3)] + sum_terms3;
+#endif
       } else {
         atomicAdd(d_accel + (iglob) * (3) + 0, sum_terms1);
         atomicAdd(d_accel + (iglob) * (3) + 1, sum_terms2);
@@ -561,6 +673,7 @@ __global__ void inner_core_impl_kernel(const int nb_blocks_to_compute, const int
       atomicAdd(d_accel + (iglob) * (3) + 1, sum_terms2);
       atomicAdd(d_accel + (iglob) * (3) + 2, sum_terms3);
     }
+#endif
     if(ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY){
       compute_element_ic_att_memory(tx, working_element, d_muvstore, factor_common, alphaval, betaval, gammaval, R_xx, R_yy, R_xy, R_xz, R_yz, epsilondev_xx, epsilondev_yy, epsilondev_xy, epsilondev_xz, epsilondev_yz, epsilondev_xx_loc, epsilondev_yy_loc, epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc, USE_3D_ATTENUATION_ARRAYS);
     }
