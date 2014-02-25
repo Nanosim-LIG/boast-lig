@@ -9,6 +9,15 @@ def rndup( val, div)
   return (val%div) == 0 ? val : val + div - (val%div)
 end
 
+$options = {}
+
+$parser = OptionParser::new do |opts|
+  opts.on("-c","--check","Check kernels by building them") {
+    $options[:check] = true
+  }
+  opts.parse!
+end
+
 kernels = [
 :assemble_boundary_accel_on_device,
 :assemble_boundary_potential_on_device,
@@ -81,7 +90,7 @@ kernels.each { |kern|
     f = File::new("./specfem3D_output/"+filename, "w+")
     if lang == :CUDA then
       f.puts k
-#      k.build( :LDFLAGS => " -L/usr/local/cuda-5.5.22/lib64", :NVCCFLAGS => "-arch sm_20 -O2" )
+      k.build( :LDFLAGS => " -L/usr/local/cuda-5.5.22/lib64", :NVCCFLAGS => "-arch sm_20 -O2 --compiler-options -Wall" ) if $options[:check]
     elsif lang == :CL then
       s = k.to_s
       res = "const char * #{kern}_program = \"\\\n"
@@ -90,7 +99,7 @@ kernels.each { |kern|
       }
       res += "\";\n"
       f.print res
-#      k.build
+      k.build if $options[:check]
     end
     f.close
   }
