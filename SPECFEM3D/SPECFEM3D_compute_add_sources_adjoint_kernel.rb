@@ -3,8 +3,8 @@ module BOAST
     push_env( :array_start => 0 )
     kernel = CKernel::new
     function_name = "compute_add_sources_adjoint_kernel"
-    nrec =               Int( "nrec",              :dir => :in)
     accel =              Real("accel",             :dir => :inout,:dim => [ Dim() ])
+    nrec =               Int( "nrec",              :dir => :in)
     adj_sourcearrays =   Real("adj_sourcearrays",  :dir => :in,   :dim => [ Dim() ])
     ibool =              Int( "ibool",             :dir => :in,   :dim => [ Dim() ])
     ispec_selected_rec = Int( "ispec_selected_rec",:dir => :in,   :dim => [ Dim() ])
@@ -13,7 +13,7 @@ module BOAST
 
     ndim =               Int( "NDIM",              :const => n_dim)
     ngllx =              Int( "NGLLX",             :const => n_gllx)
-    p = Procedure(function_name, [nrec,accel,adj_sourcearrays,ibool,ispec_selected_rec,pre_computed_irec,nadj_rec_local])
+    p = Procedure(function_name, [accel,nrec,adj_sourcearrays,ibool,ispec_selected_rec,pre_computed_irec,nadj_rec_local])
     if(get_lang == CUDA and ref) then
       @@output.print File::read("specfem3D/#{function_name}.cu")
     elsif(get_lang == CUDA or get_lang == CL) then

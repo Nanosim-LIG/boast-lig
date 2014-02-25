@@ -60,7 +60,7 @@ static inline void atomicAdd(volatile __global float *source, const float val) {
 #ifndef BLOCKSIZE_TRANSFER\n\
 #define BLOCKSIZE_TRANSFER 256\n\
 #endif\n\
-__kernel void compute_add_sources_adjoint_kernel(const int nrec, __global float * accel, const __global float * adj_sourcearrays, const __global int * ibool, const __global int * ispec_selected_rec, const __global int * pre_computed_irec, const int nadj_rec_local){\n\
+__kernel void compute_add_sources_adjoint_kernel(__global float * accel, const int nrec, const __global float * adj_sourcearrays, const __global int * ibool, const __global int * ispec_selected_rec, const __global int * pre_computed_irec, const int nadj_rec_local){\n\
   int ispec;\n\
   int iglob;\n\
   int irec_local;\n\
