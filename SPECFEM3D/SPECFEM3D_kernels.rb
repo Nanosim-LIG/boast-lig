@@ -81,7 +81,7 @@ kernels.each { |kern|
     f = File::new("./specfem3D_output/"+filename, "w+")
     if lang == :CUDA then
       f.puts k
-      k.build( :LDFLAGS => " -L/usr/local/cuda-5.5.22/lib64", :NVCCFLAGS => "-arch sm_20 -O2" )
+#      k.build( :LDFLAGS => " -L/usr/local/cuda-5.5.22/lib64", :NVCCFLAGS => "-arch sm_20 -O2" )
     elsif lang == :CL then
       s = k.to_s
       res = "const char * #{kern}_program = \"\\\n"
@@ -90,7 +90,7 @@ kernels.each { |kern|
       }
       res += "\";\n"
       f.print res
-      k.build
+#      k.build
     end
     f.close
   }
