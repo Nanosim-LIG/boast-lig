@@ -35,7 +35,7 @@ module BOAST
       rmassz          = Real("rmassz",          :dir => :in,    :dim => [Dim()] )
       variables = [ accel, veloc, size, two_omega_earth, rmassx, rmassy, rmassz ]
     when :veloc_elastic, :veloc_acoustic
-      function_name = "update_veloc_elastic_kernel"
+      function_name = "update_#{type}_kernel"
       veloc = Real("veloc", :dir => :inout, :dim => [Dim()] )
       accel = Real("accel", :dir => :in,    :dim => [Dim()] )
       variables = [ veloc, accel, size, deltatover2 ]
