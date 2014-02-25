@@ -172,7 +172,9 @@ module BOAST
       opts = options[:CLFLAGS]
       program.build(:options => options[:CLFLAGS])
       if options[:verbose] then
-        STDERR.puts program.get_build_info(device, OpenCL::Program::BUILD_LOG)
+        program.build_log.each {|dev,log|
+          STDERR.puts "#{device.name}: #{log}"
+        }
       end
       @queue = OpenCL::CommandQueue::new(@context, device, OpenCL::CommandQueue::PROFILING_ENABLE)
       @kernel = OpenCL::Kernel::new( program, @procedure.name)

@@ -15,6 +15,12 @@ $parser = OptionParser::new do |opts|
   opts.on("-c","--check","Check kernels by building them") {
     $options[:check] = true
   }
+  opts.on("-d","--display","Display kernels") {
+    $options[:display] = true
+  }
+  opts.on("-v","--verbose","Vorbosity") {
+    $options[:verbose] = true
+  }
   opts.parse!
 end
 
@@ -78,11 +84,11 @@ kernels.each { |kern|
     BOAST::set_lang( BOAST::const_get(lang))
     puts "REF" if lang == :CUDA
     k = BOAST::method(kern).call
-    k.print
+    k.print if $options[:display]
     if lang == :CUDA then
       puts "Generated"
       k = BOAST::method(kern).call(false)
-      k.print
+      k.print if $options[:display]
       filename = "#{kern}_cuda.c"
     elsif lang == :CL
       filename = "#{kern}_cl.c"
@@ -90,7 +96,7 @@ kernels.each { |kern|
     f = File::new("./specfem3D_output/"+filename, "w+")
     if lang == :CUDA then
       f.puts k
-      k.build( :LDFLAGS => " -L/usr/local/cuda-5.5.22/lib64", :NVCCFLAGS => "-arch sm_20 -O2 --compiler-options -Wall" ) if $options[:check]
+      k.build( :LDFLAGS => " -L/usr/local/cuda-5.5.22/lib64", :NVCCFLAGS => "-arch sm_20 -O2 --compiler-options -Wall", :verbose => $options[:verbose] ) if $options[:check]
     elsif lang == :CL then
       s = k.to_s
       res = "const char * #{kern}_program = \"\\\n"
@@ -99,7 +105,7 @@ kernels.each { |kern|
       }
       res += "\";\n"
       f.print res
-      k.build if $options[:check]
+      k.build(:verbose => $options[:verbose] ) if $options[:check]
     end
     f.close
   }
