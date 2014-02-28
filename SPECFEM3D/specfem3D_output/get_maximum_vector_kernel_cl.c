@@ -1,5 +1,5 @@
 const char * get_maximum_vector_kernel_program = "\
-static inline void atomicAdd(volatile __global float *source, const float val) {\n\
+inline void atomicAdd(volatile __global float *source, const float val) {\n\
   union {\n\
     unsigned int iVal;\n\
     float fVal;\n\

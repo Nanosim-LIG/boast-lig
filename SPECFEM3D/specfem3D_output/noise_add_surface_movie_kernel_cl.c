@@ -1,5 +1,5 @@
 const char * noise_add_surface_movie_kernel_program = "\
-static inline void atomicAdd(volatile __global float *source, const float val) {\n\
+inline void atomicAdd(volatile __global float *source, const float val) {\n\
   union {\n\
     unsigned int iVal;\n\
     float fVal;\n\

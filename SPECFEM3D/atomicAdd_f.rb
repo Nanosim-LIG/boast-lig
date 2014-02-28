@@ -7,7 +7,7 @@
         cmpx_name = "atomic_cmpxchg"
       end
       BOAST::get_output.print <<EOF
-static inline void atomicAdd(volatile __global float *source, const float val) {
+inline void atomicAdd(volatile __global float *source, const float val) {
   union {
     #{type_i} iVal;
     #{type_f} fVal;

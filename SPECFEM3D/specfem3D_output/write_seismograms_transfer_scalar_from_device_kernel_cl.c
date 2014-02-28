@@ -1,5 +1,5 @@
 const char * write_seismograms_transfer_scalar_from_device_kernel_program = "\
-static inline void atomicAdd(volatile __global float *source, const float val) {\n\
+inline void atomicAdd(volatile __global float *source, const float val) {\n\
   union {\n\
     unsigned int iVal;\n\
     float fVal;\n\
