@@ -49,7 +49,7 @@
 #ifndef BLOCKSIZE_TRANSFER
 #define BLOCKSIZE_TRANSFER 256
 #endif
-__global__ void compute_add_sources_adjoint_kernel(const int nrec, float * accel, const float * adj_sourcearrays, const int * ibool, const int * ispec_selected_rec, const int * pre_computed_irec, const int nadj_rec_local){
+__global__ void compute_add_sources_adjoint_kernel(float * accel, const int nrec, const float * adj_sourcearrays, const int * ibool, const int * ispec_selected_rec, const int * pre_computed_irec, const int nadj_rec_local){
   int ispec;
   int iglob;
   int irec_local;
