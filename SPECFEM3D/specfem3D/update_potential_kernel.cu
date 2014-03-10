@@ -1,4 +1,4 @@
-__global__ void UpdatePotential_kernel(realw* potential_acoustic,
+__global__ void update_potential_kernel(realw* potential_acoustic,
                                        realw* potential_dot_acoustic,
                                        realw* potential_dot_dot_acoustic,
                                        int size,

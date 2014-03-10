@@ -1,4 +1,4 @@
-__global__ void UpdateDispVeloc_kernel(realw* displ,
+__global__ void update_disp_veloc_kernel(realw* displ,
                                        realw* veloc,
                                        realw* accel,
                                        int size,

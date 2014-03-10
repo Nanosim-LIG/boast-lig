@@ -1,4 +1,4 @@
-__global__ void multiply_accel_elastic_kernel(realw* accel,
+__global__ void update_accel_elastic_kernel(realw* accel,
                                               realw* veloc,
                                               int size,
                                               realw two_omega_earth,

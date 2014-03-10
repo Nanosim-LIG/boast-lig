@@ -657,7 +657,7 @@ __device__ void compute_element_cm_tiso(int offset,
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void Kernel_2_crust_mantle_impl(int nb_blocks_to_compute,
+__global__ void crust_mantle_impl_kernel(int nb_blocks_to_compute,
                                           int NGLOB,
                                           int* d_ibool,
                                           int* d_ispec_is_tiso,
