@@ -89,7 +89,7 @@ kernels.each { |kern|
       puts "Generated"
       k = BOAST::method(kern).call(false)
       k.print if $options[:display]
-      filename = "#{kern}_cuda.c"
+      filename = "#{kern}.cu"
     elsif lang == :CL
       filename = "#{kern}_cl.c"
     end
