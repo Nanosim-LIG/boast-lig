@@ -21,12 +21,20 @@ module BOAST
       decl cos_two_omega_t  = Real("cos_two_omega_t")
       decl sin_two_omega_t  = Real("sin_two_omega_t")
       decl a_rotation = Real("A_rotation")
-      decl b_rotation = Real("b_rotation")
+      decl b_rotation = Real("B_rotation")
       decl source_euler_A = Real("source_euler_A")
       decl source_euler_B = Real("source_euler_B")
 
-      print cos_two_omega_t === cos(two_omega_earth*time)
-      print sin_two_omega_t === sin(two_omega_earth*time)
+      if(get_lang == CL) then
+        print sin_two_omega_t === sincos(two_omega_earth*time, cos_two_omega_t.address)
+      else
+        if(get_default_real_size == 4) then
+          print sincosf(two_omega_earth*time, sin_two_omega_t.address, cos_two_omega_t.address)
+        else
+          print cos_two_omega_t === cos(two_omega_earth*time)
+          print sin_two_omega_t === sin(two_omega_earth*time)
+        end
+      end
 
       print two_omega_deltat === deltat * two_omega_earth
 
@@ -53,7 +61,7 @@ module BOAST
     v.push nb_blocks_to_compute    = Int("nb_blocks_to_compute",     :dir => :in)
     v.push nglob                   = Int("NGLOB",                    :dir => :in)
     v.push d_ibool                 = Int("d_ibool",                  :dir => :in, :dim => [Dim()] )
-    v.push d_phase_ispec_inner     = Int("phase_ispec_inner",        :dir => :in, :dim => [Dim()] )
+    v.push d_phase_ispec_inner     = Int("d_phase_ispec_inner",      :dir => :in, :dim => [Dim()] )
     v.push num_phase_ispec         = Int("num_phase_ispec",          :dir => :in)
     v.push d_iphase                = Int("d_iphase",                 :dir => :in)
     v.push use_mesh_coloring_gpu   = Int("use_mesh_coloring_gpu",    :dir => :in)
@@ -84,6 +92,7 @@ module BOAST
     ngll2        = Int("NGLL2", :const => n_gll2)
     ngll3        = Int("NGLL3", :const => n_gll3)
     ngll3_padded = Int("NGLL3_PADDED", :const => n_gll3_padded)
+    rearth_km    = Int("R_EARTH_KM", :const => r_earth_km)
 
     use_mesh_coloring       = Int("USE_MESH_COLORING_GPU",   :const => mesh_coloring)
     use_textures_constants  = Int("USE_TEXTURES_CONSTANTS",  :const => textures_constants)
@@ -160,9 +169,7 @@ module BOAST
   
         decl s_dummy_loc = Real("s_dummy_loc", :local => true, :dim => [Dim(ngll3)] )
   
-        decl s_temp1 = Real("s_temp1", :local => true, :dim => [Dim(ngll3)])
-        decl s_temp2 = Real("s_temp2", :local => true, :dim => [Dim(ngll3)])
-        decl s_temp3 = Real("s_temp3", :local => true, :dim => [Dim(ngll3)])
+        decl *s_temp = [ Real("s_temp1", :local => true, :dim => [Dim(ngll3)]), Real("s_temp2", :local => true, :dim => [Dim(ngll3)]), Real("s_temp3", :local => true, :dim => [Dim(ngll3)])]
   
         decl sh_hprime_xx     = Real("sh_hprime_xx",     :local => true, :dim => [Dim(ngll2)] )
         decl sh_hprimewgll_xx = Real("sh_hprimewgll_xx", :local => true, :dim => [Dim(ngll2)] )
@@ -260,7 +267,7 @@ module BOAST
               print sin_phi   === sin(phi)
             end
           end
-          print int_radius === rint(radius * r_earth_km * 10.0) - 1
+          print int_radius === rint(radius * rearth_km * 10.0) - 1
           print If( !gravity , lambda {
             print grad_ln_rho[0] === sin_theta * cos_phi * d_d_ln_density_dr_table[int_radius]
             print grad_ln_rho[1] === sin_theta * sin_phi * d_d_ln_density_dr_table[int_radius]
@@ -278,17 +285,17 @@ module BOAST
                                    (dpotentialdx_with_rot*gl[0] + dpotentialdy_with_rot*gl[1] + dpotentialdl[2]*gl[2])
           })
   
-          print s_temp1[tx] === jacobianl*(   xil[0]*dpotentialdx_with_rot +    xil[1]*dpotentialdy_with_rot +    xil[2]*dpotentialdl[2])
-          print s_temp1[tx] === jacobianl*(  etal[0]*dpotentialdx_with_rot +   etal[1]*dpotentialdy_with_rot +   etal[2]*dpotentialdl[2])
-          print s_temp1[tx] === jacobianl*(gammal[0]*dpotentialdx_with_rot + gammal[1]*dpotentialdy_with_rot + gammal[2]*dpotentialdl[2])
+          print s_temp[0][tx] === jacobianl*(   xil[0]*dpotentialdx_with_rot +    xil[1]*dpotentialdy_with_rot +    xil[2]*dpotentialdl[2])
+          print s_temp[1][tx] === jacobianl*(  etal[0]*dpotentialdx_with_rot +   etal[1]*dpotentialdy_with_rot +   etal[2]*dpotentialdl[2])
+          print s_temp[2][tx] === jacobianl*(gammal[0]*dpotentialdx_with_rot + gammal[1]*dpotentialdy_with_rot + gammal[2]*dpotentialdl[2])
         }
         print barrier(:local)
         print If( active ){
           (0..2).each { |indx| print templ[indx] === 0.0 }
           for_loop = For(l, 0, ngllx-1) {
-             print templ[0] === templ[0] + s_temp1[k*ngll2+j*ngllx+l]*sh_hprimewgll_xx[i*ngllx+l]
-             print templ[1] === templ[1] + s_temp2[k*ngll2+l*ngllx+i]*sh_hprimewgll_xx[j*ngllx+l]
-             print templ[2] === templ[2] + s_temp3[l*ngll2+j*ngllx+i]*sh_hprimewgll_xx[k*ngllx+l]
+             print templ[0] === templ[0] + s_temp[0][k*ngll2+j*ngllx+l]*sh_hprimewgll_xx[i*ngllx+l]
+             print templ[1] === templ[1] + s_temp[1][k*ngll2+l*ngllx+i]*sh_hprimewgll_xx[j*ngllx+l]
+             print templ[2] === templ[2] + s_temp[2][l*ngll2+j*ngllx+i]*sh_hprimewgll_xx[k*ngllx+l]
           }
           @@output.puts "#ifdef #{manually_unrolled_loops}"
             for_loop.unroll

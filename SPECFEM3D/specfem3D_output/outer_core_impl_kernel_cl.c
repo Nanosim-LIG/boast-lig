@@ -65,22 +65,21 @@ void compute_element_oc_rotation(const int tx, const int working_element, const 
   float cos_two_omega_t;\n\
   float sin_two_omega_t;\n\
   float A_rotation;\n\
-  float b_rotation;\n\
+  float B_rotation;\n\
   float source_euler_A;\n\
   float source_euler_B;\n\
-  cos_two_omega_t = cos((two_omega_earth) * (time));\n\
-  sin_two_omega_t = sin((two_omega_earth) * (time));\n\
+  sin_two_omega_t = sincos((two_omega_earth) * (time),  &cos_two_omega_t);\n\
   two_omega_deltat = (deltat) * (two_omega_earth);\n\
   source_euler_A = (two_omega_deltat) * ((cos_two_omega_t) * (dpotentialdyl) + (sin_two_omega_t) * (dpotentialdxl));\n\
   source_euler_B = (two_omega_deltat) * ((sin_two_omega_t) * (dpotentialdyl) - ((cos_two_omega_t) * (dpotentialdxl)));\n\
   A_rotation = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0];\n\
-  b_rotation = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0];\n\
-  dpotentialdx_with_rot[0 - 0] = dpotentialdxl + (A_rotation) * (cos_two_omega_t) + (b_rotation) * (sin_two_omega_t);\n\
-  dpotentialdy_with_rot[0 - 0] = dpotentialdyl + ( - (A_rotation)) * (sin_two_omega_t) + (b_rotation) * (cos_two_omega_t);\n\
+  B_rotation = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0];\n\
+  dpotentialdx_with_rot[0 - 0] = dpotentialdxl + (A_rotation) * (cos_two_omega_t) + (B_rotation) * (sin_two_omega_t);\n\
+  dpotentialdy_with_rot[0 - 0] = dpotentialdyl + ( - (A_rotation)) * (sin_two_omega_t) + (B_rotation) * (cos_two_omega_t);\n\
   d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_A;\n\
   d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_B;\n\
 }\n\
-__kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int NGLOB, const __global int * d_ibool, const __global int * phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const __global float * d_potential, __global float * d_potential_dot_dot, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx, const __global float * d_hprimewgll_xx, const __global float * wgllwgll_xy, const __global float * wgllwgll_xz, const __global float * wgllwgll_yz, const int GRAVITY, const __global float * d_xstore, const __global float * d_ystore, const __global float * d_zstore, const __global float * d_d_ln_density_dr_table, const __global float * d_minus_rho_g_over_kappa_fluid, const __global float * wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, __global float * d_A_array_rotation, __global float * d_B_array_rotation, const int NSPEC_OUTER_CORE, __read_only image2d_t d_displ_oc_tex, __read_only image2d_t d_accel_oc_tex, __read_only image2d_t d_hprime_xx_oc_tex){\n\
+__kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int NGLOB, const __global int * d_ibool, const __global int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const __global float * d_potential, __global float * d_potential_dot_dot, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx, const __global float * d_hprimewgll_xx, const __global float * wgllwgll_xy, const __global float * wgllwgll_xz, const __global float * wgllwgll_yz, const int GRAVITY, const __global float * d_xstore, const __global float * d_ystore, const __global float * d_zstore, const __global float * d_d_ln_density_dr_table, const __global float * d_minus_rho_g_over_kappa_fluid, const __global float * wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, __global float * d_A_array_rotation, __global float * d_B_array_rotation, const int NSPEC_OUTER_CORE, __read_only image2d_t d_displ_oc_tex, __read_only image2d_t d_accel_oc_tex, __read_only image2d_t d_hprime_xx_oc_tex){\n\
 #ifdef USE_TEXTURES_FIELDS\n\
   const sampler_t sampler_d_displ_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
   const sampler_t sampler_d_accel_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
@@ -151,7 +150,7 @@ __kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int N
     if(use_mesh_coloring_gpu){\n\
       working_element = bx;\n\
     } else {\n\
-      working_element = phase_ispec_inner[bx + (num_phase_ispec) * (d_iphase - (1)) - 0] - (1);\n\
+      working_element = d_phase_ispec_inner[bx + (num_phase_ispec) * (d_iphase - (1)) - 0] - (1);\n\
     }\n\
 #endif\n\
     iglob = d_ibool[(working_element) * (NGLL3) + tx - 0] - (1);\n\
@@ -222,7 +221,7 @@ __kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int N
     phi = d_zstore[iglob - 0];\n\
     sin_theta = sincos(theta,  &cos_theta);\n\
     sin_phi = sincos(phi,  &cos_phi);\n\
-    int_radius = rint(((radius) * (6371.0f)) * (10.0f)) - (1);\n\
+    int_radius = rint(((radius) * (R_EARTH_KM)) * (10.0f)) - (1);\n\
     if( ! GRAVITY){\n\
       grad_x_ln_rho = ((sin_theta) * (cos_phi)) * (d_d_ln_density_dr_table[int_radius - 0]);\n\
       grad_y_ln_rho = ((sin_theta) * (sin_phi)) * (d_d_ln_density_dr_table[int_radius - 0]);\n\
@@ -237,8 +236,8 @@ __kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int N
       gravity_term = (((d_minus_rho_g_over_kappa_fluid[int_radius - 0]) * (jacobianl)) * (wgll_cube[tx - 0])) * ((dpotentialdx_with_rot) * (gxl) + (dpotentialdy_with_rot) * (gyl) + (dpotentialdzl) * (gzl));\n\
     }\n\
     s_temp1[tx - 0] = (jacobianl) * ((xixl) * (dpotentialdx_with_rot) + (xiyl) * (dpotentialdy_with_rot) + (xizl) * (dpotentialdzl));\n\
-    s_temp1[tx - 0] = (jacobianl) * ((etaxl) * (dpotentialdx_with_rot) + (etayl) * (dpotentialdy_with_rot) + (etazl) * (dpotentialdzl));\n\
-    s_temp1[tx - 0] = (jacobianl) * ((gammaxl) * (dpotentialdx_with_rot) + (gammayl) * (dpotentialdy_with_rot) + (gammazl) * (dpotentialdzl));\n\
+    s_temp2[tx - 0] = (jacobianl) * ((etaxl) * (dpotentialdx_with_rot) + (etayl) * (dpotentialdy_with_rot) + (etazl) * (dpotentialdzl));\n\
+    s_temp3[tx - 0] = (jacobianl) * ((gammaxl) * (dpotentialdx_with_rot) + (gammayl) * (dpotentialdy_with_rot) + (gammazl) * (dpotentialdzl));\n\
   }\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
   if(active){\n\
