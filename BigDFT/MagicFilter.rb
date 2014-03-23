@@ -1,4 +1,6 @@
+Dir.chdir("..")
 require "./BOAST.rb"
+Dir.chdir("BigDFT")
 require 'narray'
 module BOAST
   def BOAST::magicfilter_per_ref( invert = false, free = false )

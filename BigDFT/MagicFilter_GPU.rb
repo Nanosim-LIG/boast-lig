@@ -1,4 +1,6 @@
+Dir.chdir("..")
 require './BOAST.rb'
+Dir.chdir("BigDFT")
 
 module BOAST
   def BOAST::magicfilter_GPU_per_ref
