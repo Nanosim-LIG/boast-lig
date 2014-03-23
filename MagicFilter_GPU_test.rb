@@ -21,7 +21,8 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 require 'opencl_ruby_ffi'
 #require 'statsample'
 platform = OpenCL::get_platforms.pop
-device = platform.devices(OpenCL::Device::Type::ALL).pop
+device = platform.devices(OpenCL::Device::Type::ALL).first
+puts device.name
 
 def bench (k, name,n1,n2,n3,input,output,ref=nil)
 #  puts "#{n1} #{n2} #{n3} #{[rndup(n3,16), rndup(n1*n2,16),1]}"
