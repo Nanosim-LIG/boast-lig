@@ -147,9 +147,9 @@ module BOAST
     end
 
     def build_opencl(options)
-      require 'opencl'
+      require 'opencl_ruby_ffi'
       platform = nil
-      platforms = OpenCL::Platform::get_platforms
+      platforms = OpenCL::get_platforms
       if options[:platform_vendor] then
         platforms.each{ |p|
           platform = p if p.vendor.match(options[:platform_vendor])
@@ -158,7 +158,7 @@ module BOAST
         platform = platforms.first
       end
       device = nil
-      type = options[:device_type] ? options[:device_type] : OpenCL::Device::TYPE_ALL
+      type = options[:device_type] ? options[:device_type] : OpenCL::Device::Type::ALL
       devices = platform.devices(type)
       if options[:device_name] then
         devices.each{ |d|
@@ -167,8 +167,8 @@ module BOAST
       else
         device = devices.first
       end
-      @context = OpenCL::Context::new(nil,[device])
-      program = OpenCL::Program::create_with_source(@context, [@code.string])
+      @context = OpenCL::create_context([device])
+      program = @context.create_program_with_source([@code.string])
       opts = options[:CLFLAGS]
       program.build(:options => options[:CLFLAGS])
       if options[:verbose] then
@@ -176,8 +176,8 @@ module BOAST
           STDERR.puts "#{device.name}: #{log}"
         }
       end
-      @queue = OpenCL::CommandQueue::new(@context, device, OpenCL::CommandQueue::PROFILING_ENABLE)
-      @kernel = OpenCL::Kernel::new( program, @procedure.name)
+      @queue = @context.create_command_queue(device, :properties => OpenCL::CommandQueue::PROFILING_ENABLE)
+      @kernel = program.create_kernel(@procedure.name)
       run_method = <<EOF
 def self.run(*args)
   raise "Wrong number of arguments \#{args.length} for #{@procedure.parameters.length}" if args.length > #{@procedure.parameters.length+1} or args.length < #{@procedure.parameters.length}
@@ -187,15 +187,15 @@ def self.run(*args)
   @procedure.parameters.each_index { |i|
     if @procedure.parameters[i].dimension then
       if @procedure.parameters[i].direction == :in and @procedure.parameters[i].direction == :out then
-        params[i] = OpenCL::Buffer::new(@context, OpenCL::Mem::READ_WRITE, :size => args[i].size * args[i].element_size )
-        @queue.enqueue_write_buffer(params[i], OpenCL::TRUE, args[i], :cb => args[i].size * args[i].element_size )
+        params[i] = @context.create_buffer( args[i].size * args[i].element_size )
+        @queue.enqueue_write_buffer( params[i], args[i], :blocking => true )
       elsif @procedure.parameters[i].direction == :in then
-        params[i] = OpenCL::Buffer::new(@context, OpenCL::Mem::READ_ONLY, :size => args[i].size * args[i].element_size )
-        @queue.enqueue_write_buffer(params[i], OpenCL::TRUE, args[i], :cb => args[i].size * args[i].element_size )
+        params[i] = @context.create_buffer( args[i].size * args[i].element_size, :flags => OpenCL::Mem::Flags::READ_ONLY )
+        @queue.enqueue_write_buffer( params[i], args[i], :blocking => true )
       elsif @procedure.parameters[i].direction == :out then
-        params[i] = OpenCL::Buffer::new(@context, OpenCL::Mem::WRITE_ONLY, :size => args[i].size * args[i].element_size )
+        params[i] = @context.create_buffer( args[i].size * args[i].element_size, :flags => OpenCL::Mem::Flags::WRITE_ONLY )
       else
-        params[i] = OpenCL::Buffer::new(@context, OpenCL::Mem::READ_WRITE, :size => args[i].size * args[i].element_size )
+        params[i] = @context.create_buffer( args[i].size * args[i].element_size )
       end
     else
       if @procedure.parameters[i].type.is_a?(Real) then
@@ -222,19 +222,19 @@ def self.run(*args)
   params.each_index{ |i|
     @kernel.set_arg(i, params[i])
   }
-  event = @queue.enqueue_NDrange_kernel(@kernel, opts[:global_work_size], opts[:local_work_size])
+  event = @queue.enqueue_NDrange_kernel(@kernel, opts[:global_work_size], :local_work_size => opts[:local_work_size])
   @procedure.parameters.each_index { |i|
     if @procedure.parameters[i].dimension then
       if @procedure.parameters[i].direction == :in and @procedure.parameters[i].direction == :out then
-        @queue.enqueue_read_buffer(params[i], OpenCL::TRUE, :ptr => args[i], :cb => args[i].size * args[i].element_size )
+        @queue.enqueue_read_buffer( params[i], args[i], :blocking => true )
       elsif @procedure.parameters[i].direction == :out then
-        @queue.enqueue_read_buffer(params[i], OpenCL::TRUE, :ptr => args[i], :cb => args[i].size * args[i].element_size )
+        @queue.enqueue_read_buffer( params[i], args[i], :blocking => true )
       end
     end
   }
   result = {}
-  result[:start] = event.get_profiling_info(OpenCL::PROFILING_COMMAND_START).unpack("L").first
-  result[:end] = event.get_profiling_info(OpenCL::PROFILING_COMMAND_END).unpack("L").first
+  result[:start] = event.profiling_command_start
+  result[:end] = event.profiling_command_end
   result[:duration] = (result[:end] - result[:start])/1000000000.0
   return result
 end
