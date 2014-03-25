@@ -1,4 +1,4 @@
-require './BOAST.rb'
+require 'BOAST'
 require 'rubygems'
 require 'narray'
 

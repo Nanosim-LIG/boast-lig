@@ -1,6 +1,4 @@
-Dir.chdir("..")
-require './BOAST.rb'
-Dir.chdir("BigDFT")
+require 'BOAST'
 module BOAST
 #subroutine syn_rot_per_temp(n,ndat,x,y)
 #  use module_base

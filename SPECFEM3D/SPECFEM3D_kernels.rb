@@ -1,7 +1,5 @@
-Dir.chdir("..")
-require './BOAST.rb'
-Dir.chdir("SPECFEM3D")
 require 'rubygems'
+require 'BOAST'
 require 'narray'
 require './HEADER.rb'
 

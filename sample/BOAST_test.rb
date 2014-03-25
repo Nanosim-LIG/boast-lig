@@ -1,6 +1,6 @@
-require './BOAST.rb'
 require 'rubygems'
 require 'narray'
+require 'BOAST'
 module BOAST
   def BOAST::vector_add
     kernel = CKernel::new

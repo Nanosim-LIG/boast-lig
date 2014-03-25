@@ -1,4 +1,4 @@
-require "./BOAST.rb"
+require "BOAST"
 require 'narray'
 
 module BOAST

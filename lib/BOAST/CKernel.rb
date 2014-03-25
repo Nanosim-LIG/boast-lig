@@ -1,4 +1,3 @@
-require './Algorithm.rb'
 require 'stringio'
 require 'rubygems'
 require 'rake'

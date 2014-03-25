@@ -1,4 +1,4 @@
-require './Algorithm.rb'
+require 'BOAST'
 module BOAST
   def BOAST::SimpleLoop(unroll)
     i = Variable::new('i', Int)

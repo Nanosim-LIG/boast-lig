@@ -1,6 +1,4 @@
-Dir.chdir("..")
-require './BOAST.rb'
-Dir.chdir("BigDFT")
+require 'BOAST'
 require 'rubygems'
 require 'narray'
 module BOAST
