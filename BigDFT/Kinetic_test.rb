@@ -55,7 +55,7 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:d
 k = BOAST::kinetic_per_ref_optim
 #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -ftree-vectorize -fopenmp",:LDFLAGS => "-fopenmp"})
 k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -axSSE4.2 -openmp",:LDFLAGS => "-openmp"})
-stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output_ref, 0.5)
+stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
@@ -63,11 +63,11 @@ diff = (output_ref - output).abs
 diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
-
-(1..0).each{ |unroll|
-  k = BOAST::kinetic(filt,14,[12,8,12],false,[false]*3,[true]*3)
-  #k.print
+output = NArray.float(n1,n2,n3).random
+(10..14).each{ |unroll|
+  k = BOAST::kinetic(filt,14,[3,1,12],false,[false]*3,[true]*3)
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
+  #k.print
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
   k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
   begin
@@ -83,7 +83,7 @@ diff.each { |elem|
   }
 }
 
-(1..12).each{ |unroll|
+(1..0).each{ |unroll|
   k = BOAST::kinetic_1d(filt,14,unroll,false,false,true)
   input_y = 0.5*input
   #k.print
