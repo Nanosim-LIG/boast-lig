@@ -48,7 +48,7 @@ puts "FORTRAN"
 (0..8).each{ |unroll|
   k = BOAST::synthesis(FILTER,7,unroll,false)
   out_fortran.puts k
-  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-mavx -std=c99 -O3",:LDFLAGS => ""})
+  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2",:LDFLAGS => ""})
   stats = k.run(n1/2, n2*n3, input, output)
   stats = k.run(n1/2, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -62,7 +62,7 @@ BOAST::set_lang( BOAST::C )
 (0..8).each{ |unroll|
   k = BOAST::synthesis(FILTER,7,unroll,false)
   out_c.puts k
-  k.build({:FC => 'gfortran',:CC => 'gcc',:CFLAGS => "-mavx -std=c99 -O3",:LDFLAGS => ""})
+  k.build({:FC => 'gfortran',:CC => 'gcc',:CFLAGS => "-O2",:LDFLAGS => ""})
   stats = k.run(n1/2, n2*n3, input, output)
   stats = k.run(n1/2, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -132,7 +132,7 @@ BOAST::set_lang( BOAST::FORTRAN )
 (1..8).each{ |unroll|
   durations = []
   k = BOAST::synthesis(FILTER,7,unroll,true)
-  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-mavx -std=c99 -O3",:LDFLAGS => ""})
+  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2",:LDFLAGS => ""})
   repetition.times {
     stats = k.run(n1/2, n2*n3, input, output)
     durations.push( stats[:duration] )
@@ -149,7 +149,7 @@ BOAST::set_lang( BOAST::C )
 (1..8).each{ |unroll|
   durations = []
   k = BOAST::synthesis(FILTER,7,unroll,true)
-  k.build({:FC => 'gfortran',:CC => 'gcc',:CFLAGS => "-O3 -mavx",:LDFLAGS => ""})
+  k.build({:FC => 'gfortran',:CC => 'gcc',:CFLAGS => "-O2",:LDFLAGS => ""})
   repetition.times {
     stats = k.run(n1/2, n2*n3, input, output)
     durations.push( stats[:duration] )
