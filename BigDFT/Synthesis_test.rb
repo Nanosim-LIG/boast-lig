@@ -36,12 +36,14 @@ epsilon = 10e-15
 BOAST::set_lang( BOAST::FORTRAN )
 k = BOAST::synthesis_per_ref
 out_fortran.puts k
+k.build( :verbose => true )
 stats = k.run(n1/2, n2*n3, input, output_ref)
 puts "Reference"
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 puts "Reference 3D"
 k3D = BOAST::synthesis3D_per(k)
 out_fortran.puts k3D
+k3D.build(:verbose => true)
 stats = k3D.run(n1,n2,n3, input3D, output3D, temp3D)
 puts "#{k3D.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3*3 / (stats[:duration]*1.0e9)} GFlops"
 puts "FORTRAN"
