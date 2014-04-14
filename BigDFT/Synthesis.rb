@@ -337,7 +337,7 @@ EOF
 
 
       if unroll>1 then
-        @@output.print("#pragma omp do\n") if BOAST::get_lang == BOAST::C
+        @@output.print("#pragma omp for\n") if BOAST::get_lang == BOAST::C
         @@output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
         For::new(j,ndat-FuncCall::new("modulo",ndat,unroll)+1,ndat) {
           ind=0
