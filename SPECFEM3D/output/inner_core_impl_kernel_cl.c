@@ -650,9 +650,9 @@ __kernel void inner_core_impl_kernel(const int nb_blocks_to_compute, const int N
     fac1 = d_wgllwgll_yz[(K) * (NGLLX) + J - 0];\n\
     fac2 = d_wgllwgll_xz[(K) * (NGLLX) + I - 0];\n\
     fac3 = d_wgllwgll_xy[(J) * (NGLLX) + I - 0];\n\
-    sum_terms1 =  - ((fac1) * (tempx1l) + (fac2) * (tempx2l) + (fac3) * (tempx3l));\n\
-    sum_terms2 =  - ((fac1) * (tempy1l) + (fac2) * (tempy2l) + (fac3) * (tempy3l));\n\
-    sum_terms3 =  - ((fac1) * (tempz1l) + (fac2) * (tempz2l) + (fac3) * (tempz3l));\n\
+    sum_terms1 =  -((fac1) * (tempx1l) + (fac2) * (tempx2l) + (fac3) * (tempx3l));\n\
+    sum_terms2 =  -((fac1) * (tempy1l) + (fac2) * (tempy2l) + (fac3) * (tempy3l));\n\
+    sum_terms3 =  -((fac1) * (tempz1l) + (fac2) * (tempz2l) + (fac3) * (tempz3l));\n\
     if(GRAVITY){\n\
       sum_terms1 = sum_terms1 + rho_s_H1;\n\
       sum_terms2 = sum_terms2 + rho_s_H2;\n\

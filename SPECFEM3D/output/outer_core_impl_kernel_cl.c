@@ -75,7 +75,7 @@ void compute_element_oc_rotation(const int tx, const int working_element, const 
   A_rotation = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0];\n\
   B_rotation = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0];\n\
   dpotentialdx_with_rot[0 - 0] = dpotentialdxl + (A_rotation) * (cos_two_omega_t) + (B_rotation) * (sin_two_omega_t);\n\
-  dpotentialdy_with_rot[0 - 0] = dpotentialdyl + ( - (A_rotation)) * (sin_two_omega_t) + (B_rotation) * (cos_two_omega_t);\n\
+  dpotentialdy_with_rot[0 - 0] = dpotentialdyl + ( -(A_rotation)) * (sin_two_omega_t) + (B_rotation) * (cos_two_omega_t);\n\
   d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_A;\n\
   d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_B;\n\
 }\n\
@@ -267,7 +267,7 @@ __kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int N
       temp3l = temp3l + (s_temp3[(l) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + l - 0]);\n\
     }\n\
 #endif\n\
-    sum_terms =  - ((wgllwgll_yz[(K) * (NGLLX) + J - 0]) * (temp1l) + (wgllwgll_xz[(K) * (NGLLX) + I - 0]) * (temp2l) + (wgllwgll_xy[(J) * (NGLLX) + I - 0]) * (temp3l));\n\
+    sum_terms =  -((wgllwgll_yz[(K) * (NGLLX) + J - 0]) * (temp1l) + (wgllwgll_xz[(K) * (NGLLX) + I - 0]) * (temp2l) + (wgllwgll_xy[(J) * (NGLLX) + I - 0]) * (temp3l));\n\
     if(GRAVITY){\n\
       sum_terms = sum_terms + gravity_term;\n\
     }\n\
