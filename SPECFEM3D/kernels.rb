@@ -19,7 +19,7 @@ $parser = OptionParser::new do |opts|
   opts.on("-v","--verbose","Verbosity") {
     $options[:verbose] = true
   }
-  opts.on("-o","--outout-dir DIR","Output directory") { |dir|
+  opts.on("-o","--output-dir DIR","Output directory") { |dir|
     $options[:output_dir] = dir
   }
   opts.parse!
