@@ -1,4 +1,5 @@
 require'./KernelRead.rb'
+require'./KernelRead2.rb'
 #puts k.print
 
 m_start = 0
@@ -10,6 +11,9 @@ output = NArray.int(1024*12).random(1000)
 
 k = BOAST::kernel_read_vectorized
 puts k.print
+k = BOAST::kernel_read_vectorized2
+puts k.print
+
 #k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 #(1..10).each { |page|
 #  stats = k.run(m_start, m_cycle, m_stride, buffer_size*page, output)
