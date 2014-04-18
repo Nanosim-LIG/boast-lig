@@ -37,6 +37,7 @@ module BOAST
     buffer = Variable::new("buffer", CustomType, {:type_name => type_name, :direction => :in, :size => elem_size*length, :dimension => [ Dimension::new(0,buffer_size-1) ]})
     i = Variable::new("i",Int)
     j = Variable::new("j",Int)
+    @@output.print "#include <#{header}>\n"
     @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
     p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum , :headers => [header]}) {
       i.decl

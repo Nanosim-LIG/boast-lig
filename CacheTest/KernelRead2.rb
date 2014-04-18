@@ -13,9 +13,10 @@ module BOAST
     m_cycles = Int("m_cycles", {:direction => :in})
     m_stride = Int("m_stride", {:direction => :in})
     buffer_size = Int("buffer_size", {:direction => :in})
-    header="immintrin.h"
 
     buffer = Int("buffer", { :direction => :in, :size => elem_size, :vector_length => length, :dimension => [ Dim(buffer_size) ]})
+    header="immintrin.h"
+    @@output.print "#include <immintrin.h>\n"
     @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
     sum = Int("sum")
     print p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum , :headers => [header]}) {
@@ -23,14 +24,14 @@ module BOAST
       resultV = Int("resultV", {:size => elem_size, :dimension => [Dim(length)], :local => true})
       sumV = Int("sumV", {:size => elem_size, :vector_length => length})
       vec = Int("vec", {:size => elem_size, :vector_length => length})
-      i = Int("i")
-      j = Int("j")
-      i.decl
-      j.decl
-      resultV.decl
-      sumV.decl
-      sum.decl
+      decl i = Int("i")
+      decl j = Int("j")
+      decl elem_n = Int("elem_n")
+      decl resultV
+      decl sumV
+      decl sum
 
+      print elem_n === buffer_size / (elem_size*length)
       (0...length).each { |indx|
         print resultV[indx] === 0
       }
@@ -38,12 +39,12 @@ module BOAST
       print sumV === resultV.dereference
 
       print For(i, 1, m_cycles*m_stride) {
-        print For(j, m_start, buffer_size + m_start - m_stride*unrolled, m_stride*unrolled) {
+        print For(j, m_start, elem_n + m_start - m_stride*unrolled, m_stride*unrolled) {
           unrolled.times { |k|
             print sumV === sumV + buffer[j+m_stride*k]
           }
         }
-        print For(j, buffer_size + m_start - modulo(buffer_size+m_start, m_stride*unrolled),  buffer_size + m_start - 1, m_stride) {
+        print For(j, elem_n + m_start - modulo(elem_n+m_start, m_stride*unrolled),  elem_n + m_start - 1, m_stride) {
           print sumV === sumV + buffer[j]
         }
       }
