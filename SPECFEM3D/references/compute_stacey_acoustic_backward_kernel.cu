@@ -6,30 +6,20 @@
 
 typedef float realw;
 
-__global__ void compute_stacey_acoustic_kernel(realw* potential_dot_acoustic,
-                                               realw* potential_dot_dot_acoustic,
-                                               int interface_type,
-                                               int num_abs_boundary_faces,
-                                               int* abs_boundary_ispec,
-                                               int* nkmin_xi,
-                                               int* nkmin_eta,
-                                               int* njmin,
-                                               int* njmax,
-                                               int* nimin,
-                                               int* nimax,
-                                               realw* abs_boundary_jacobian2D,
-                                               realw* wgllwgll,
-                                               int* ibool,
-                                               realw* vpstore,
-                                               int SAVE_FORWARD,
-                                               realw* b_absorb_potential) {
+__global__ void compute_stacey_acoustic_backward_kernel(realw* b_potential_dot_dot_acoustic,
+                                                        realw* b_absorb_potential,
+                                                        int interface_type,
+                                                        int num_abs_boundary_faces,
+                                                        int* abs_boundary_ispec,
+                                                        int* nkmin_xi, int* nkmin_eta,
+                                                        int* njmin, int* njmax,
+                                                        int* nimin, int* nimax,
+                                                        int* ibool) {
 
   int igll = threadIdx.x;
   int iface = blockIdx.x + gridDim.x*blockIdx.y;
 
   int i,j,k,iglob,ispec;
-  realw sn;
-  realw jacobianw,fac1;
 
   // don't compute points outside NGLLSQUARE==NGLL2==25
   // way 2: no further check needed since blocksize = 25
@@ -53,7 +43,6 @@ __global__ void compute_stacey_acoustic_kernel(realw* potential_dot_acoustic,
         if( k < nkmin_xi[INDEX2(2,0,iface)]-1 || k > NGLLX-1 ) return;
         if( j < njmin[INDEX2(2,0,iface)]-1 || j > njmax[INDEX2(2,0,iface)]-1 ) return;
 
-        fac1 = wgllwgll[k*NGLLX+j];
         break;
 
       case 5:
@@ -67,7 +56,6 @@ __global__ void compute_stacey_acoustic_kernel(realw* potential_dot_acoustic,
         if( k < nkmin_xi[INDEX2(2,1,iface)]-1 || k > NGLLX-1 ) return;
         if( j < njmin[INDEX2(2,1,iface)]-1 || j > njmax[INDEX2(2,1,iface)]-1 ) return;
 
-        fac1 = wgllwgll[k*NGLLX+j];
         break;
 
       case 6:
@@ -81,7 +69,6 @@ __global__ void compute_stacey_acoustic_kernel(realw* potential_dot_acoustic,
         if( k < nkmin_eta[INDEX2(2,0,iface)]-1 || k > NGLLX-1 ) return;
         if( i < nimin[INDEX2(2,0,iface)]-1 || i > nimax[INDEX2(2,0,iface)]-1 ) return;
 
-        fac1 = wgllwgll[k*NGLLX+i];
         break;
 
       case 7:
@@ -95,7 +82,6 @@ __global__ void compute_stacey_acoustic_kernel(realw* potential_dot_acoustic,
         if( k < nkmin_eta[INDEX2(2,1,iface)]-1 || k > NGLLX-1 ) return;
         if( i < nimin[INDEX2(2,1,iface)]-1 || i > nimax[INDEX2(2,1,iface)]-1 ) return;
 
-        fac1 = wgllwgll[k*NGLLX+i];
         break;
 
       case 8:
@@ -107,29 +93,13 @@ __global__ void compute_stacey_acoustic_kernel(realw* potential_dot_acoustic,
         if( j < 0 || j > NGLLX-1 ) return;
         if( i < 0 || i > NGLLX-1 ) return;
 
-        fac1 = wgllwgll[j*NGLLX+i];
         break;
 
     }
 
     iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)]-1;
 
-    // determines bulk sound speed
-    // velocity
-    sn = potential_dot_acoustic[iglob] / vpstore[INDEX4(NGLLX,NGLLX,NGLLX,i,j,k,ispec)] ;
-
-    // gets associated, weighted jacobian
-    jacobianw = abs_boundary_jacobian2D[INDEX2(NGLL2,igll,iface)]*fac1;
-
     // Sommerfeld condition
-    atomicAdd(&potential_dot_dot_acoustic[iglob],-sn*jacobianw);
-
-    // adjoint simulations
-    if( SAVE_FORWARD ){
-      // saves boundary values
-      b_absorb_potential[INDEX2(NGLL2,igll,iface)] = sn*jacobianw;
-    }
-
+    atomicAdd(&b_potential_dot_dot_acoustic[iglob],-b_absorb_potential[INDEX2(NGLL2,igll,iface)]);
   }
 }
-
