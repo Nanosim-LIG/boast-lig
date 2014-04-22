@@ -10,8 +10,9 @@ module BOAST
     ngll3 = Int("NGLL3", :const => n_gll3)
     v = []
     v.push tx                = Int( "tx",                :dir => :in)
-    v.push working_element   = Int( "working_element",   :dir => :in)
-    v.push d_ibool                 = Int("d_ibool",                  :dir => :in, :dim => [Dim()] )
+    v.push iglob             = Int( "iglob",             :dir => :in)
+    #v.push working_element   = Int( "working_element",   :dir => :in)
+    #v.push d_ibool                 = Int("d_ibool",                  :dir => :in, :dim => [Dim()] )
     v.push *d_store = [d_xstore    = Real("d_xstore",                :dir => :in, :dim => [Dim()] ), d_ystore = Real("d_ystore",:dir => :in, :dim => [Dim()] ), d_zstore = Real("d_zstore",:dir => :in, :dim => [Dim()] ) ]
     v.push d_minus_gravity_table   = Real("d_minus_gravity_table",   :dir => :in, :dim => [Dim()] )
     v.push d_minus_deriv_gravity_table = Real("d_minus_deriv_gravity_table", :dir => :in, :dim => [Dim()] )
@@ -44,10 +45,8 @@ module BOAST
       decl hxxl = Real("Hxxl"), hyyl = Real("Hyyl"), hzzl = Real("Hzzl"), hxyl = Real("Hxyl"), hxzl = Real("Hxzl"), hyzl = Real("Hyzl")
       decl *s_l = [ Real("sx_l"), Real("sy_l"), Real("sz_l") ]
       decl factor = Real("factor")
-      decl iglob = Int("iglob")
       decl int_radius = Int("int_radius")
 
-      print iglob === d_ibool[working_element*ngll3 + tx]-1
       print radius === d_xstore[iglob]
       print If(radius < ( 100.0 / (r_earth_km*1000.0))) {
         print radius ===  100.0 / (r_earth_km*1000.0)

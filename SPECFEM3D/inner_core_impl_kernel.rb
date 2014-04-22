@@ -176,7 +176,7 @@ module BOAST
     v.push duzdxl_plus_duxdzl     = Real("duzdxl_plus_duxdzl", :dir => :in)
     v.push duzdyl_plus_duydzl     = Real("duzdyl_plus_duydzl", :dir => :in)
     v.push iglob                  = Int( "iglob",              :dir => :in)
-    v.push nglob                  = Int( "NGLOB",              :dir => :in)
+#    v.push nglob                  = Int( "NGLOB",              :dir => :in)
     v.push d_ystore               = Real("d_ystore",           :dir => :in,  :dim => [Dim()])
     v.push d_zstore               = Real("d_zstore",           :dir => :in,  :dim => [Dim()])
     v.push sigma_xx               = Real("sigma_xx",           :dir => :out, :dim => [Dim()], :private => true )
@@ -409,11 +409,16 @@ module BOAST
     return p
   end
 
-  def BOAST::inner_core_impl_kernel(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = true, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11)
-    return BOAST::impl_kernel(:inner_core, ref, mesh_coloring, textures_fields, textures_constants, unroll_loops, n_gllx, n_gll2, n_gll3, n_gll3_padded, n_sls, r_earth_km, coloring_min_nspec_inner_core, i_flag_in_fictitious_cube)
+  def BOAST::inner_core_impl_kernel_forward(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = true, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11)
+    return BOAST::impl_kernel(:inner_core, true, ref, mesh_coloring, textures_fields, textures_constants, unroll_loops, n_gllx, n_gll2, n_gll3, n_gll3_padded, n_sls, r_earth_km, coloring_min_nspec_inner_core, i_flag_in_fictitious_cube)
   end
 
-  def BOAST::impl_kernel(type, ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11)
+  def BOAST::inner_core_impl_kernel_adjoint(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = true, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11)
+    return BOAST::impl_kernel(:inner_core, false, ref, mesh_coloring, textures_fields, textures_constants, unroll_loops, n_gllx, n_gll2, n_gll3, n_gll3_padded, n_sls, r_earth_km, coloring_min_nspec_inner_core, i_flag_in_fictitious_cube)
+  end
+
+
+  def BOAST::impl_kernel(type, forward, ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11)
     push_env( :array_start => 0 )
     kernel = CKernel::new
     v = []
@@ -424,8 +429,13 @@ module BOAST
     else
       raise "Unsupported_type : #{type}!"
     end
+    if forward then
+      function_name += "forward"
+    else
+      function_name += "adjoint"
+    end
     v.push nb_blocks_to_compute    = Int("nb_blocks_to_compute",     :dir => :in)
-    v.push nglob                   = Int("NGLOB",                    :dir => :in)
+    #v.push nglob                   = Int("NGLOB",                    :dir => :in)
     v.push d_ibool                 = Int("d_ibool",                  :dir => :in, :dim => [Dim()] )
     if type == :inner_core then
       v.push d_idoubling           = Int("d_idoubling",              :dir => :in, :dim => [Dim()] )
@@ -438,7 +448,6 @@ module BOAST
     v.push deltat                  = Real("deltat",                  :dir => :in)
     v.push use_mesh_coloring_gpu   = Int("use_mesh_coloring_gpu",    :dir => :in)
     v.push d_displ                 = Real("d_displ",                 :dir => :in, :dim => [Dim(3), Dim()] )
-    v.push d_veloc                 = Real("d_veloc",                 :dir => :in, :dim => [Dim(3), Dim()] ) #unused in original code, to remove
     v.push d_accel                 = Real("d_accel",                 :dir => :inout, :dim => [Dim(3), Dim()] )
     v.push *d_xi = [d_xix          = Real("d_xix",                   :dir => :in, :dim => [Dim()] ), d_xiy = Real("d_xiy",:dir => :in, :dim => [Dim()] ), d_xiz = Real("d_xiz",:dir => :in, :dim => [Dim()] ) ]
     v.push *d_eta = [d_etax        = Real("d_etax",                  :dir => :in, :dim => [Dim()] ), d_etay = Real("d_etay",:dir => :in, :dim => [Dim()] ), d_etaz = Real("d_etaz",:dir => :in, :dim => [Dim()] ) ]
@@ -523,11 +532,11 @@ module BOAST
     constants = []
 
     if type == :inner_core then
-      d_displ_tex = Real("d_displ_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-      d_accel_tex = Real("d_accel_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_displ_tex = Real("d_#{forward?"":"_b"}displ_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_accel_tex = Real("d_#{forward?"":"_b"}accel_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
     elsif type == :crust_mantle then
-      d_displ_tex = Real("d_displ_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-      d_accel_tex = Real("d_accel_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_displ_tex = Real("d_#{forward?"":"_b"}displ_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_accel_tex = Real("d_#{forward?"":"_b"}accel_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
     end
     if get_lang == CL then
       v.push(d_displ_tex, d_accel_tex)
@@ -590,8 +599,8 @@ module BOAST
         decl bx = Int("bx")
         decl tx = Int("tx")
         decl k  = Int("K"), j = Int("J"), i = Int("I")
-        decl active = Int("active"), offset = Int("offset")
-        decl iglob  = Int("iglob")
+        decl active = Int("active", :size => 2, :signed => false)
+        decl offset = Int("offset"), iglob = Int("iglob")
         decl working_element = Int("working_element")
         decl l = Int("l")
         tempanl = ["x", "y", "z"].collect { |a|
@@ -713,11 +722,11 @@ module BOAST
         print If(tx < ngll2) {
           @@output.puts "#ifdef #{use_textures_constants}"
             print sh_hprime_xx[tx] === d_hprime_xx_tex[tx]
+            print sh_hprimewgll_xx[tx] === d_hprimewgll_xx_tex[tx]
           @@output.puts "#else"
             print sh_hprime_xx[tx] === d_hprime_xx[tx]
+            print sh_hprimewgll_xx[tx] === d_hprimewgll_xx[tx]
           @@output.puts "#endif"
-  
-          print sh_hprimewgll_xx[tx] === d_hprimewgll_xx[tx]
         }
         print barrier(:local)
   
@@ -729,19 +738,19 @@ module BOAST
           }
           for_loop = For(l, 0, ngllx-1) {
             print fac[0] === sh_hprime_xx[l*ngllx + i]
-            print offset === k*ngll2 + j*ngllx + l
+            #print offset === k*ngll2 + j*ngllx + l
             (0..2).each { |indx1|
-              print tempanl[indx1][0] === tempanl[indx1][0] + s_dummy_loc[indx1][offset]*fac[0]
+              print tempanl[indx1][0] === tempanl[indx1][0] + s_dummy_loc[indx1][k*ngll2 + j*ngllx + l]*fac[0]
             }
             print fac[1] === sh_hprime_xx[l*ngllx + j]
-            print offset === k*ngll2 + l*ngllx + i
+            #print offset === k*ngll2 + l*ngllx + i
             (0..2).each { |indx1|
-              print tempanl[indx1][1] === tempanl[indx1][1] + s_dummy_loc[indx1][offset]*fac[1]
+              print tempanl[indx1][1] === tempanl[indx1][1] + s_dummy_loc[indx1][k*ngll2 + l*ngllx + i]*fac[1]
             }
             print fac[2] === sh_hprime_xx[l*ngllx + k]
-            print offset === l*ngll2 + j*ngllx + i
+            #print offset === l*ngll2 + j*ngllx + i
             (0..2).each { |indx1|
-              print tempanl[indx1][2] === tempanl[indx1][2] + s_dummy_loc[indx1][offset]*fac[2]
+              print tempanl[indx1][2] === tempanl[indx1][2] + s_dummy_loc[indx1][l*ngll2 + j*ngllx + i]*fac[2]
             }
           }
           @@output.puts "#ifdef #{manually_unrolled_loops}"
@@ -863,7 +872,7 @@ module BOAST
                                                    one_minus_sum_beta_use,
                                                    *(dudl.flatten),
                                                    duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,
-                                                   iglob, nglob,
+                                                   iglob, #nglob,
                                                    d_store[1], d_store[2],
                                                    sigma[0][0].address, sigma[1][1].address, sigma[2][2].address,
                                                    sigma[0][1].address, sigma[0][2].address, sigma[1][2].address )
@@ -887,8 +896,8 @@ module BOAST
                                                  - xil[1]*(etal[0]*gammal[2] - etal[2]*gammal[0])\
                                                  + xil[2]*(etal[0]*gammal[1] - etal[1]*gammal[0]))
           print If( gravity ) {
-            print sub_compute_element_gravity.call(tx, working_element,\
-                                   d_ibool, d_store[0], d_store[1], d_store[2],\
+            print sub_compute_element_gravity.call(tx, iglob,\
+                                   d_store[0], d_store[1], d_store[2],\
                                    d_minus_gravity_table, d_minus_deriv_gravity_table, d_density_table,\
                                    wgll_cube, jacobianl,\
                                    s_dummy_loc[0], s_dummy_loc[1], s_dummy_loc[2],\

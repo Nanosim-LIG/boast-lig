@@ -55,14 +55,16 @@ kernels = [
 :update_accel_acoustic_kernel,
 :update_veloc_acoustic_kernel,
 :outer_core_impl_kernel,
-:inner_core_impl_kernel,
+:inner_core_impl_kernel_forward,
+:inner_core_impl_kernel_adjoint,
 :compute_rho_kernel,
 :compute_iso_kernel,
 :compute_ani_kernel,
 :compute_hess_kernel,
 :compute_acoustic_kernel,
 :compute_strength_noise_kernel,
-:crust_mantle_impl_kernel
+:crust_mantle_impl_kernel_forward,
+:crust_mantle_impl_kernel_adjoint
 ]
 
 langs = [ :CUDA, :CL]
