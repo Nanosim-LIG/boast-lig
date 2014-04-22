@@ -1,5 +1,17 @@
 // from compute_coupling_cuda.cu
-__global__ void compute_coupling_ocean_kernel(realw* accel_crust_mantle,realw* rmassx_crust_mantle,realw* rmassy_crust_mantle,realw* rmassz_crust_mantle,realw* rmass_ocean_load,int npoin_ocean_load,int* ibool_ocean_load,realw* normal_ocean_load) {
+#define NDIM 3
+#define INDEX2(xsize,x,y) x + (y)*xsize
+
+typedef float realw;
+
+__global__ void compute_coupling_ocean_kernel(realw* accel_crust_mantle,
+                                              realw* rmassx_crust_mantle,
+                                              realw* rmassy_crust_mantle,
+                                              realw* rmassz_crust_mantle,
+                                              realw* rmass_ocean_load,
+                                              int npoin_ocean_load,
+                                              int* ibool_ocean_load,
+                                              realw* normal_ocean_load) {
 
   int ipoin = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
 
