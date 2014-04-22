@@ -1,5 +1,24 @@
 // from compute_kernels_cuda.cu
-__global__ void compute_iso_kernel(realw* epsilondev_xx,realw* epsilondev_yy,realw* epsilondev_xy,realw* epsilondev_xz,realw* epsilondev_yz,realw* epsilon_trace_over_3,realw* b_epsilondev_xx,realw* b_epsilondev_yy,realw* b_epsilondev_xy,realw* b_epsilondev_xz,realw* b_epsilondev_yz,realw* b_epsilon_trace_over_3,realw* mu_kl,realw* kappa_kl,int NSPEC,realw deltat) {
+#define NGLL3 125
+
+typedef float realw;
+
+__global__ void compute_iso_kernel(realw* epsilondev_xx,
+                                   realw* epsilondev_yy,
+                                   realw* epsilondev_xy,
+                                   realw* epsilondev_xz,
+                                   realw* epsilondev_yz,
+                                   realw* epsilon_trace_over_3,
+                                   realw* b_epsilondev_xx,
+                                   realw* b_epsilondev_yy,
+                                   realw* b_epsilondev_xy,
+                                   realw* b_epsilondev_xz,
+                                   realw* b_epsilondev_yz,
+                                   realw* b_epsilon_trace_over_3,
+                                   realw* mu_kl,
+                                   realw* kappa_kl,
+                                   int NSPEC,
+                                   realw deltat) {
 
   int ispec = blockIdx.x + blockIdx.y*gridDim.x;
 
