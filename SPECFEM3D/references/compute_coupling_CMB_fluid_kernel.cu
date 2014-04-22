@@ -1,5 +1,27 @@
 // from compute_coupling_cuda.cu
-__global__ void compute_coupling_CMB_fluid_kernel(realw* displ_crust_mantle,realw* accel_crust_mantle,realw* accel_outer_core,int* ibool_crust_mantle,int* ibelm_bottom_crust_mantle,realw* normal_top_outer_core,realw* jacobian2D_top_outer_core,realw* wgllwgll_xy,int* ibool_outer_core,int* ibelm_top_outer_core,realw RHO_TOP_OC,realw minus_g_cmb,int GRAVITY,int NSPEC2D_BOTTOM_CM) {
+#define NDIM 3
+#define NGLLX 5
+#define INDEX2(xsize,x,y) x + (y)*xsize
+#define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
+#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
+#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*(j))))
+
+typedef float realw;
+
+__global__ void compute_coupling_CMB_fluid_kernel(realw* displ_crust_mantle,
+                                                  realw* accel_crust_mantle,
+                                                  realw* accel_outer_core,
+                                                  int* ibool_crust_mantle,
+                                                  int* ibelm_bottom_crust_mantle,
+                                                  realw* normal_top_outer_core,
+                                                  realw* jacobian2D_top_outer_core,
+                                                  realw* wgllwgll_xy,
+                                                  int* ibool_outer_core,
+                                                  int* ibelm_top_outer_core,
+                                                  realw RHO_TOP_OC,
+                                                  realw minus_g_cmb,
+                                                  int GRAVITY,
+                                                  int NSPEC2D_BOTTOM_CM) {
 
   int i = threadIdx.x;
   int j = threadIdx.y;
