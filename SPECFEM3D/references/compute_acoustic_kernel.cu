@@ -4,6 +4,8 @@
 #define NGLL3 125
 #define NGLL3_PADDED 128
 
+typedef float realw;
+
 __device__ void compute_gradient_kernel(int ijk,
                                         int ispec,
                                         realw* scalar_field,
