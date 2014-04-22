@@ -10,7 +10,7 @@ module BOAST
     myrank =                 Int("myrank",                            :dir => :in)
     islice_selected_source = Int("islice_selected_source",            :dir => :in,   :dim => [ Dim() ] )
     ispec_selected_source =  Int("ispec_selected_source",             :dir => :in,   :dim => [ Dim() ] )
-    nsources =               Int("nsources",                          :dir => :in)
+    nsources =               Int("NSOURCES",                          :dir => :in)
 
     ndim =                   Int("NDIM",                  :const => n_dim)
     ngllx =                  Int("NGLLX",                 :const => n_gllx)

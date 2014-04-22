@@ -1,5 +1,19 @@
 // from compute_add_sources_elastic_cuda.cu
-__global__ void compute_add_sources_kernel(realw* accel,int* ibool,realw* sourcearrays,double* stf_pre_compute,int myrank,int* islice_selected_source,int* ispec_selected_source,int NSOURCES) {
+#define NDIM 3
+#define NGLLX 5
+#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
+#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*(j))))
+
+typedef float realw;
+
+__global__ void compute_add_sources_kernel(realw* accel,
+                                           int* ibool,
+                                           realw* sourcearrays,
+                                           double* stf_pre_compute,
+                                           int myrank,
+                                           int* islice_selected_source,
+                                           int* ispec_selected_source,
+                                           int NSOURCES) {
   int ispec,iglob;
   realw stf;
 
