@@ -1,5 +1,14 @@
 // from compute_kernels_cuda.cu
-__global__ void compute_hess_kernel(int* ibool,realw* accel,realw* b_accel,realw* hess_kl,realw deltat,int NSPEC_AB) {
+#define NGLL3 125
+
+typedef float realw;
+
+__global__ void compute_hess_kernel(int* ibool,
+                                    realw* accel,
+                                    realw* b_accel,
+                                    realw* hess_kl,
+                                    realw deltat,
+                                    int NSPEC_AB) {
 
   int ispec = blockIdx.x + blockIdx.y*gridDim.x;
 
