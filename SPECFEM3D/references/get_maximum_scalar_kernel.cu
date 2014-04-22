@@ -1,6 +1,18 @@
-typedef float realw;
-#define BLOCKSIZE_TRANSFER 256 
+// from check_fields_cuda.cu
 __global__ void get_maximum_scalar_kernel(realw* array, int size, realw* d_max){
+
+  /* simplest version: uses only 1 thread
+   realw max;
+   max = 0;
+   // finds maximum value in array
+   if( size > 0 ){
+   max = abs(array[0]);
+   for( int i=1; i < size; i++){
+   if( abs(array[i]) > max ) max = abs(array[i]);
+   }
+   }
+   *d_max = max;
+   */
 
   // reduction example:
   __shared__ realw sdata[BLOCKSIZE_TRANSFER] ;
@@ -31,4 +43,3 @@ __global__ void get_maximum_scalar_kernel(realw* array, int size, realw* d_max){
   if (tid == 0) d_max[bx] = sdata[0];
 
 }
-

@@ -1,7 +1,5 @@
-__global__ void update_veloc_acoustic_kernel(realw* veloc,
-                                             realw* accel,
-                                             int size,
-                                             realw deltatover2) {
+// from update_displacement_cuda.cu
+__global__ void update_veloc_acoustic_kernel(realw* veloc,realw* accel,int size,realw deltatover2) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
 

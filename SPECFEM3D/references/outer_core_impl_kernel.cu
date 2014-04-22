@@ -1,122 +1,17 @@
-#define NGLLX 5
-#define NGLL2 25
-#define NGLL3 125
-#define NGLL3_PADDED 128
-
-#define R_EARTH_KM 6371.0f
-#define COLORING_MIN_NSPEC_OUTER_CORE 1000
-
-#ifdef USE_TEXTURES_FIELDS
-texture<realw, cudaTextureType1D, cudaReadModeElementType> d_displ_oc_tex;
-texture<realw, cudaTextureType1D, cudaReadModeElementType> d_accel_oc_tex;
-#endif
-
-#ifdef USE_TEXTURES_CONSTANTS
-texture<realw, cudaTextureType1D, cudaReadModeElementType> d_hprime_xx_oc_tex;
-#endif
-
-/* ----------------------------------------------------------------------------------------------- */
-
-// elemental routines
-
-/* ----------------------------------------------------------------------------------------------- */
-
-// fluid rotation
-
-__device__ void compute_element_oc_rotation(int tx,int working_element,
-                                            realw time,
-                                            realw two_omega_earth,
-                                            realw deltat,
-                                            realw* d_A_array_rotation,
-                                            realw* d_B_array_rotation,
-                                            realw dpotentialdxl,
-                                            realw dpotentialdyl,
-                                            realw* dpotentialdx_with_rot,
-                                            realw* dpotentialdy_with_rot) {
-
-  realw two_omega_deltat,cos_two_omega_t,sin_two_omega_t;
-  realw A_rotation,B_rotation;
-  realw source_euler_A,source_euler_B;
-
-  // store the source for the Euler scheme for A_rotation and B_rotation
-  if( sizeof( sin_two_omega_t ) == sizeof( float ) ){
-    // float operations
-    // sincos function return sinus and cosine for given value
-    sincosf(two_omega_earth*time, &sin_two_omega_t, &cos_two_omega_t);
-  }else{
-    cos_two_omega_t = cos(two_omega_earth*time);
-    sin_two_omega_t = sin(two_omega_earth*time);
-  }
-
-  // time step deltat of Euler scheme is included in the source
-  two_omega_deltat = deltat * two_omega_earth;
-
-  source_euler_A = two_omega_deltat * (cos_two_omega_t * dpotentialdyl + sin_two_omega_t * dpotentialdxl);
-  source_euler_B = two_omega_deltat * (sin_two_omega_t * dpotentialdyl - cos_two_omega_t * dpotentialdxl);
-
-  A_rotation = d_A_array_rotation[tx + working_element*NGLL3]; // (non-padded offset)
-  B_rotation = d_B_array_rotation[tx + working_element*NGLL3];
-
-  *dpotentialdx_with_rot = dpotentialdxl + (  A_rotation*cos_two_omega_t + B_rotation*sin_two_omega_t);
-  *dpotentialdy_with_rot = dpotentialdyl + (- A_rotation*sin_two_omega_t + B_rotation*cos_two_omega_t);
-
-  // updates rotation term with Euler scheme (non-padded offset)
-  d_A_array_rotation[tx + working_element*NGLL3] += source_euler_A;
-  d_B_array_rotation[tx + working_element*NGLL3] += source_euler_B;
-}
-
-
-/* ----------------------------------------------------------------------------------------------- */
-
-// KERNEL 2
-//
-// for outer core ( acoustic domain )
-/* ----------------------------------------------------------------------------------------------- */
-
-
-__global__ void outer_core_impl_kernel(int nb_blocks_to_compute,
-                                       int NGLOB,
-                                       int* d_ibool,
-                                       int* d_phase_ispec_inner,
-                                       int num_phase_ispec,
-                                       int d_iphase,
-                                       int use_mesh_coloring_gpu,
-                                       realw* d_potential, realw* d_potential_dot_dot,
-                                       realw* d_xix, realw* d_xiy, realw* d_xiz,
-                                       realw* d_etax, realw* d_etay, realw* d_etaz,
-                                       realw* d_gammax, realw* d_gammay, realw* d_gammaz,
-                                       realw* d_hprime_xx,
-                                       realw* d_hprimewgll_xx,
-                                       realw* wgllwgll_xy,realw* wgllwgll_xz,realw* wgllwgll_yz,
-                                       int GRAVITY,
-                                       realw* d_xstore, realw* d_ystore, realw* d_zstore,
-                                       realw* d_d_ln_density_dr_table,
-                                       realw* d_minus_rho_g_over_kappa_fluid,
-                                       realw* wgll_cube,
-                                       int ROTATION,
-                                       realw time,
-                                       realw two_omega_earth,
-                                       realw deltat,
-                                       realw* d_A_array_rotation,
-                                       realw* d_B_array_rotation,
-                                       int NSPEC_OUTER_CORE){
+// from compute_forces_outer_core_cuda.cu
+template<int FORWARD_OR_ADJOINT> __global__ void outer_core_impl_kernel(int nb_blocks_to_compute,const int* d_ibool,const int* d_phase_ispec_inner,const int num_phase_ispec,const int d_iphase,const int use_mesh_coloring_gpu,realw_const_p d_potential,realw_p d_potential_dot_dot,realw_const_p d_xix, realw_const_p d_xiy, realw_const_p d_xiz,realw_const_p d_etax, realw_const_p d_etay, realw_const_p d_etaz,realw_const_p d_gammax, realw_const_p d_gammay, realw_const_p d_gammaz,realw_const_p d_hprime_xx,realw_const_p d_hprimewgll_xx,realw_const_p wgllwgll_xy,realw_const_p wgllwgll_xz,realw_const_p wgllwgll_yz,const int GRAVITY,realw_const_p d_xstore, realw_const_p d_ystore, realw_const_p d_zstore,realw_const_p d_d_ln_density_dr_table,realw_const_p d_minus_rho_g_over_kappa_fluid,realw_const_p wgll_cube,const int ROTATION,realw time,realw two_omega_earth,realw deltat,realw_p d_A_array_rotation,realw_p d_B_array_rotation,const int NSPEC_OUTER_CORE){
 
   // block id == spectral-element id
   int bx = blockIdx.y*gridDim.x+blockIdx.x;
   // thread id == GLL point id
   int tx = threadIdx.x;
 
-  // R_EARTH_KM is the radius of the bottom of the oceans (radius of Earth in km)
-  //const realw R_EARTH_KM = 6371.0f;
-  // uncomment line below for PREM with oceans
-  //const realw R_EARTH_KM = 6368.0f;
-
   int K = (tx/NGLL2);
   int J = ((tx-K*NGLL2)/NGLLX);
   int I = (tx-K*NGLL2-J*NGLLX);
 
-  int active,offset;
-  int iglob;
+  unsigned short int active;
+  int iglob,offset;
   int working_element;
 
   realw temp1l,temp2l,temp3l;
@@ -170,7 +65,7 @@ __global__ void outer_core_impl_kernel(int nb_blocks_to_compute,
     iglob = d_ibool[working_element*NGLL3 + tx]-1;
 
 #ifdef USE_TEXTURES_FIELDS
-    s_dummy_loc[tx] = tex1Dfetch(d_displ_oc_tex, iglob);
+    s_dummy_loc[tx] = texfetch_displ_oc<FORWARD_OR_ADJOINT>(iglob);
 #else
     // changing iglob indexing to match fortran row changes fast style
     s_dummy_loc[tx] = d_potential[iglob];
@@ -179,11 +74,7 @@ __global__ void outer_core_impl_kernel(int nb_blocks_to_compute,
 
   if (tx < NGLL2) {
     // hprime
-#ifdef USE_TEXTURES_CONSTANTS
-    sh_hprime_xx[tx] = tex1Dfetch(d_hprime_xx_oc_tex,tx);
-#else
     sh_hprime_xx[tx] = d_hprime_xx[tx];
-#endif
     // weighted hprime
     sh_hprimewgll_xx[tx] = d_hprimewgll_xx[tx];
   }
@@ -392,7 +283,7 @@ __global__ void outer_core_impl_kernel(int nb_blocks_to_compute,
     // no atomic operation needed, colors don't share global points between elements
 
 #ifdef USE_TEXTURES_FIELDS
-    d_potential_dot_dot[iglob] = tex1Dfetch(d_accel_oc_tex, iglob) + sum_terms;
+    d_potential_dot_dot[iglob] = texfetch_accel_oc<FORWARD_OR_ADJOINT>(iglob) + sum_terms;
 #else
     d_potential_dot_dot[iglob] += sum_terms;
 #endif // USE_TEXTURES_FIELDS
@@ -405,7 +296,7 @@ __global__ void outer_core_impl_kernel(int nb_blocks_to_compute,
       if( NSPEC_OUTER_CORE > COLORING_MIN_NSPEC_OUTER_CORE ){
         // no atomic operation needed, colors don't share global points between elements
 #ifdef USE_TEXTURES_FIELDS
-        d_potential_dot_dot[iglob] = tex1Dfetch(d_accel_oc_tex, iglob) + sum_terms;
+    d_potential_dot_dot[iglob] = texfetch_accel_oc<FORWARD_OR_ADJOINT>(iglob) + sum_terms;
 #else
         d_potential_dot_dot[iglob] += sum_terms;
 #endif // USE_TEXTURES_FIELDS

@@ -1,11 +1,5 @@
-#define NGLL3 125
-
-__global__ void noise_add_source_master_rec_kernel(int* ibool,
-                                                   int* ispec_selected_rec,
-                                                   int irec_master_noise,
-                                                   realw* accel,
-                                                   realw* noise_sourcearray,
-                                                   int it) {
+// from noise_tomography_cuda.cu
+__global__ void noise_add_source_master_rec_kernel(int* ibool,int* ispec_selected_rec,int irec_master_noise,realw* accel,realw* noise_sourcearray,int it) {
   int tx = threadIdx.x;
   int ispec = ispec_selected_rec[irec_master_noise]-1;
   int iglob = ibool[tx + NGLL3*ispec]-1;

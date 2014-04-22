@@ -1,319 +1,5 @@
-#define NDIM 3
-#define NGLLX 5
-#define NGLL2 25
-#define NGLL3 125
-#define NGLL3_PADDED 128
-#define N_SLS 3
-
-#define R_EARTH_KM 6371.0f
-#define COLORING_MIN_NSPEC_INNER_CORE 1000
-
-#ifdef USE_TEXTURES_FIELDS
-texture<realw, cudaTextureType1D, cudaReadModeElementType> d_displ_ic_tex;
-texture<realw, cudaTextureType1D, cudaReadModeElementType> d_accel_ic_tex;
-#endif
-
-#ifdef USE_TEXTURES_CONSTANTS
-texture<realw, cudaTextureType1D, cudaReadModeElementType> d_hprime_xx_ic_tex;
-#endif
-
-
-/* ----------------------------------------------------------------------------------------------- */
-
-// elemental routines
-
-/* ----------------------------------------------------------------------------------------------- */
-
-// updates stress
-
-__device__ void compute_element_ic_att_stress(int tx,int working_element,
-                                             realw* R_xx,
-                                             realw* R_yy,
-                                             realw* R_xy,
-                                             realw* R_xz,
-                                             realw* R_yz,
-                                             realw* sigma_xx,
-                                             realw* sigma_yy,
-                                             realw* sigma_zz,
-                                             realw* sigma_xy,
-                                             realw* sigma_xz,
-                                             realw* sigma_yz) {
-
-  int offset;
-  realw R_xx_val,R_yy_val;
-
-  for(int i_sls = 0; i_sls < N_SLS; i_sls++){
-    // index
-    // note: index for R_xx,.. here is (i_sls,i,j,k,ispec) and not (i,j,k,ispec,i_sls) as in local version
-    //          local version: offset_sls = tx + NGLL3*(working_element + NSPEC*i_sls);
-    offset = i_sls + N_SLS*(tx + NGLL3*working_element);
-
-    R_xx_val = R_xx[offset];
-    R_yy_val = R_yy[offset];
-
-    *sigma_xx = *sigma_xx - R_xx_val;
-    *sigma_yy = *sigma_yy - R_yy_val;
-    *sigma_zz = *sigma_zz + R_xx_val + R_yy_val;
-    *sigma_xy = *sigma_xy - R_xy[offset];
-    *sigma_xz = *sigma_xz - R_xz[offset];
-    *sigma_yz = *sigma_yz - R_yz[offset];
-  }
-}
-
-/* ----------------------------------------------------------------------------------------------- */
-
-// updates R_memory
-
-__device__ void compute_element_ic_att_memory(int tx,int working_element,
-                                              realw* d_muv,
-                                              realw* factor_common,
-                                              realw* alphaval,realw* betaval,realw* gammaval,
-                                              realw* R_xx,realw* R_yy,realw* R_xy,realw* R_xz,realw* R_yz,
-                                              realw* epsilondev_xx,realw* epsilondev_yy,realw* epsilondev_xy,
-                                              realw* epsilondev_xz,realw* epsilondev_yz,
-                                              realw epsilondev_xx_loc,realw epsilondev_yy_loc,realw epsilondev_xy_loc,
-                                              realw epsilondev_xz_loc,realw epsilondev_yz_loc,
-                                              int USE_3D_ATTENUATION_ARRAYS
-                                              ){
-
-  int offset;
-  realw mul;
-  realw alphaval_loc,betaval_loc,gammaval_loc;
-  realw factor_loc,Sn,Snp1;
-
-  mul = d_muv[tx + NGLL3_PADDED * working_element];
-
-  // use Runge-Kutta scheme to march in time
-  for(int i_sls = 0; i_sls < N_SLS; i_sls++){
-
-    // indices
-    // note: index for R_xx,... here is (i_sls,i,j,k,ispec) and not (i,j,k,ispec,i_sls) as in local version
-    //          local version: offset_sls = tx + NGLL3*(working_element + NSPEC*i_sls);
-    // index for (i_sls,i,j,k,ispec)
-    offset = i_sls + N_SLS*(tx + NGLL3*working_element);
-
-    if( USE_3D_ATTENUATION_ARRAYS ){
-      factor_loc = mul * factor_common[offset]; //mustore(i,j,k,ispec) * factor_common(i_sls,i,j,k,ispec)
-    }else{
-      factor_loc = mul * factor_common[i_sls + N_SLS*working_element]; //mustore(i,j,k,ispec) * factor_common(i_sls,1,1,1,ispec)
-    }
-    alphaval_loc = alphaval[i_sls]; // (i_sls)
-    betaval_loc = betaval[i_sls];
-    gammaval_loc = gammaval[i_sls];
-
-    // term in xx
-    Sn   = factor_loc * epsilondev_xx[tx + NGLL3 * working_element]; //(i,j,k,ispec)
-    Snp1   = factor_loc * epsilondev_xx_loc; //(i,j,k)
-    R_xx[offset] = alphaval_loc * R_xx[offset] + betaval_loc * Sn + gammaval_loc * Snp1;
-
-    // term in yy
-    Sn   = factor_loc * epsilondev_yy[tx + NGLL3 * working_element];
-    Snp1   = factor_loc * epsilondev_yy_loc;
-    R_yy[offset] = alphaval_loc * R_yy[offset] + betaval_loc * Sn + gammaval_loc * Snp1;
-    // term in zz not computed since zero trace
-
-    // term in xy
-    Sn   = factor_loc * epsilondev_xy[tx + NGLL3 * working_element];
-    Snp1   = factor_loc * epsilondev_xy_loc;
-    R_xy[offset] = alphaval_loc * R_xy[offset] + betaval_loc * Sn + gammaval_loc * Snp1;
-
-    // term in xz
-    Sn   = factor_loc * epsilondev_xz[tx + NGLL3 * working_element];
-    Snp1   = factor_loc * epsilondev_xz_loc;
-    R_xz[offset] = alphaval_loc * R_xz[offset] + betaval_loc * Sn + gammaval_loc * Snp1;
-
-    // term in yz
-    Sn   = factor_loc * epsilondev_yz[tx + NGLL3 * working_element];
-    Snp1   = factor_loc * epsilondev_yz_loc;
-    R_yz[offset] = alphaval_loc * R_yz[offset] + betaval_loc * Sn + gammaval_loc * Snp1;
-  }
-}
-
-/* ----------------------------------------------------------------------------------------------- */
-
-// pre-computes gravity term
-
-__device__ void compute_element_ic_gravity(int tx,int working_element,
-                                           int* d_ibool,
-                                           realw* d_xstore,realw* d_ystore,realw* d_zstore,
-                                           realw* d_minus_gravity_table,
-                                           realw* d_minus_deriv_gravity_table,
-                                           realw* d_density_table,
-                                           realw* wgll_cube,
-                                           realw jacobianl,
-                                           realw* s_dummyx_loc,
-                                           realw* s_dummyy_loc,
-                                           realw* s_dummyz_loc,
-                                           realw* sigma_xx,
-                                           realw* sigma_yy,
-                                           realw* sigma_zz,
-                                           realw* sigma_xy,
-                                           realw* sigma_yx,
-                                           realw* sigma_xz,
-                                           realw* sigma_zx,
-                                           realw* sigma_yz,
-                                           realw* sigma_zy,
-                                           realw* rho_s_H1,
-                                           realw* rho_s_H2,
-                                           realw* rho_s_H3){
-
-  realw radius,theta,phi;
-  realw cos_theta,sin_theta,cos_phi,sin_phi;
-  realw minus_g,minus_dg;
-  realw rho;
-  realw gxl,gyl,gzl;
-  realw minus_g_over_radius,minus_dg_plus_g_over_radius;
-  realw cos_theta_sq,sin_theta_sq,cos_phi_sq,sin_phi_sq;
-  realw Hxxl,Hyyl,Hzzl,Hxyl,Hxzl,Hyzl;
-  realw sx_l,sy_l,sz_l;
-  realw factor;
-
-  // R_EARTH_KM is the radius of the bottom of the oceans
-  //const realw R_EARTH = 6371000.0f; // in m
-  //const realw R_EARTH_KM = 6371.0f; // in km
-  // uncomment line below for PREM with oceans
-  //const realw R_EARTH = 6368000.0f;
-  //const realw R_EARTH_KM = 6368.0f;
-
-  // compute non-symmetric terms for gravity
-
-  // use mesh coordinates to get theta and phi
-  // x y z contain r theta phi
-  int iglob = d_ibool[working_element*NGLL3 + tx]-1;
-
-  radius = d_xstore[iglob];
-  // make sure radius is never zero even for points at center of cube
-  // because we later divide by radius
-  if(radius < 100.f / (R_EARTH_KM*1000.0f)){ radius = 100.f / (R_EARTH_KM*1000.0f); }
-
-  theta = d_ystore[iglob];
-  phi = d_zstore[iglob];
-
-  if( sizeof( theta ) == sizeof( float ) ){
-    // float operations
-    // sincos function return sinus and cosine for given value
-    sincosf(theta, &sin_theta, &cos_theta);
-    sincosf(phi, &sin_phi, &cos_phi);
-  }else{
-    cos_theta = cos(theta);
-    sin_theta = sin(theta);
-    cos_phi = cos(phi);
-    sin_phi = sin(phi);
-  }
-
-  // for efficiency replace with lookup table every 100 m in radial direction
-  // note: radius in crust mantle should never be zero,
-  //          and arrays in C start from 0, thus we need to subtract -1
-  int int_radius = rint(radius * R_EARTH_KM * 10.0f ) - 1;
-  //make sure we never use below zero for point exactly at the center of the Earth
-  if( int_radius < 0 ){int_radius = 0;}
-
-  // get g, rho and dg/dr=dg
-  // spherical components of the gravitational acceleration
-  // for efficiency replace with lookup table every 100 m in radial direction
-  minus_g = d_minus_gravity_table[int_radius];
-  minus_dg = d_minus_deriv_gravity_table[int_radius];
-  rho = d_density_table[int_radius];
-
-  // Cartesian components of the gravitational acceleration
-  gxl = minus_g*sin_theta*cos_phi;
-  gyl = minus_g*sin_theta*sin_phi;
-  gzl = minus_g*cos_theta;
-
-  // Cartesian components of gradient of gravitational acceleration
-  // obtained from spherical components
-
-  minus_g_over_radius = minus_g / radius;
-  minus_dg_plus_g_over_radius = minus_dg - minus_g_over_radius;
-
-  cos_theta_sq = cos_theta*cos_theta;
-  sin_theta_sq = sin_theta*sin_theta;
-  cos_phi_sq = cos_phi*cos_phi;
-  sin_phi_sq = sin_phi*sin_phi;
-
-  Hxxl = minus_g_over_radius*(cos_phi_sq*cos_theta_sq + sin_phi_sq) + cos_phi_sq*minus_dg*sin_theta_sq;
-  Hyyl = minus_g_over_radius*(cos_phi_sq + cos_theta_sq*sin_phi_sq) + minus_dg*sin_phi_sq*sin_theta_sq;
-  Hzzl = cos_theta_sq*minus_dg + minus_g_over_radius*sin_theta_sq;
-  Hxyl = cos_phi*minus_dg_plus_g_over_radius*sin_phi*sin_theta_sq;
-  Hxzl = cos_phi*cos_theta*minus_dg_plus_g_over_radius*sin_theta;
-  Hyzl = cos_theta*minus_dg_plus_g_over_radius*sin_phi*sin_theta;
-
-  // get displacement and multiply by density to compute G tensor
-  sx_l = rho * s_dummyx_loc[tx];
-  sy_l = rho * s_dummyy_loc[tx];
-  sz_l = rho * s_dummyz_loc[tx];
-
-  // compute G tensor from s . g and add to sigma (not symmetric)
-  *sigma_xx = *sigma_xx + sy_l*gyl + sz_l*gzl;
-  *sigma_yy = *sigma_yy + sx_l*gxl + sz_l*gzl;
-  *sigma_zz = *sigma_zz + sx_l*gxl + sy_l*gyl;
-
-  *sigma_xy = *sigma_xy - sx_l * gyl;
-  *sigma_yx = *sigma_yx - sy_l * gxl;
-
-  *sigma_xz = *sigma_xz - sx_l * gzl;
-  *sigma_zx = *sigma_zx - sz_l * gxl;
-
-  *sigma_yz = *sigma_yz - sy_l * gzl;
-  *sigma_zy = *sigma_zy - sz_l * gyl;
-
-  // precompute vector
-  factor = jacobianl * wgll_cube[tx];
-  *rho_s_H1 = factor * (sx_l * Hxxl + sy_l * Hxyl + sz_l * Hxzl);
-  *rho_s_H2 = factor * (sx_l * Hxyl + sy_l * Hyyl + sz_l * Hyzl);
-  *rho_s_H3 = factor * (sx_l * Hxzl + sy_l * Hyzl + sz_l * Hzzl);
-}
-
-
-/* ----------------------------------------------------------------------------------------------- */
-
-// KERNEL 2
-//
-// for inner_core
-
-/* ----------------------------------------------------------------------------------------------- */
-
-__global__ void inner_core_impl_kernel(int nb_blocks_to_compute,
-                                       int NGLOB,
-                                       int* d_ibool,
-                                       int* d_idoubling,
-                                       int* d_phase_ispec_inner,
-                                       int num_phase_ispec,
-                                       int d_iphase,
-                                       realw deltat,
-                                       int use_mesh_coloring_gpu,
-                                       realw* d_displ,
-                                       realw* d_veloc,
-                                       realw* d_accel,
-                                       realw* d_xix, realw* d_xiy, realw* d_xiz,
-                                       realw* d_etax, realw* d_etay, realw* d_etaz,
-                                       realw* d_gammax, realw* d_gammay, realw* d_gammaz,
-                                       realw* d_hprime_xx,
-                                       realw* d_hprimewgll_xx,
-                                       realw* d_wgllwgll_xy,realw* d_wgllwgll_xz,realw* d_wgllwgll_yz,
-                                       realw* d_kappav,
-                                       realw* d_muv,
-                                       int COMPUTE_AND_STORE_STRAIN,
-                                       realw* epsilondev_xx,realw* epsilondev_yy,realw* epsilondev_xy,
-                                       realw* epsilondev_xz,realw* epsilondev_yz,
-                                       realw* epsilon_trace_over_3,
-                                       int ATTENUATION,
-                                       int PARTIAL_PHYS_DISPERSION_ONLY,
-                                       int USE_3D_ATTENUATION_ARRAYS,
-                                       realw* one_minus_sum_beta,realw* factor_common,
-                                       realw* R_xx, realw* R_yy, realw* R_xy, realw* R_xz, realw* R_yz,
-                                       realw* alphaval,realw* betaval,realw* gammaval,
-                                       int ANISOTROPY,
-                                       realw* d_c11store,realw* d_c12store,realw* d_c13store,
-                                       realw* d_c33store,realw* d_c44store,
-                                       int GRAVITY,
-                                       realw* d_xstore,realw* d_ystore,realw* d_zstore,
-                                       realw* d_minus_gravity_table,
-                                       realw* d_minus_deriv_gravity_table,
-                                       realw* d_density_table,
-                                       realw* wgll_cube,
-                                       int NSPEC_INNER_CORE_STRAIN_ONLY,
-                                       int NSPEC_INNER_CORE){
+// from compute_forces_inner_core_cuda.cu
+template<int FORWARD_OR_ADJOINT> __global__ void#ifdef USE_LAUNCH_BOUNDS__launch_bounds__(NGLL3_PADDED,LAUNCH_MIN_BLOCKS)#endifinner_core_impl_kernel(int nb_blocks_to_compute,const int* d_ibool,const int* d_idoubling,const int* d_phase_ispec_inner,const int num_phase_ispec,const int d_iphase,realw deltat,const int use_mesh_coloring_gpu,realw_const_p d_displ,realw_p d_accel,realw_const_p d_xix, realw_const_p d_xiy, realw_const_p d_xiz,realw_const_p d_etax, realw_const_p d_etay, realw_const_p d_etaz,realw_const_p d_gammax, realw_const_p d_gammay, realw_const_p d_gammaz,realw_const_p d_hprime_xx,realw_const_p d_hprimewgll_xx,realw_const_p d_wgllwgll_xy,realw_const_p d_wgllwgll_xz,realw_const_p d_wgllwgll_yz,realw_const_p d_kappav,realw_const_p d_muv,const int COMPUTE_AND_STORE_STRAIN,realw_p epsilondev_xx,realw_p epsilondev_yy,realw_p epsilondev_xy,realw_p epsilondev_xz,realw_p epsilondev_yz,realw_p epsilon_trace_over_3,const int ATTENUATION,const int PARTIAL_PHYS_DISPERSION_ONLY,const int USE_3D_ATTENUATION_ARRAYS,realw_const_p one_minus_sum_beta,realw_const_p factor_common,realw_p R_xx, realw_p R_yy, realw_p R_xy, realw_p R_xz, realw_p R_yz,realw_const_p alphaval,realw_const_p betaval,realw_const_p gammaval,const int ANISOTROPY,realw_const_p d_c11store,realw_const_p d_c12store,realw_const_p d_c13store,realw_const_p d_c33store,realw_const_p d_c44store,const int GRAVITY,realw_const_p d_xstore,realw_const_p d_ystore,realw_const_p d_zstore,realw_const_p d_minus_gravity_table,realw_const_p d_minus_deriv_gravity_table,realw_const_p d_density_table,realw_const_p wgll_cube,const int NSPEC_INNER_CORE_STRAIN_ONLY,const int NSPEC_INNER_CORE){
 
   // block id
   int bx = blockIdx.y*gridDim.x+blockIdx.x;
@@ -324,8 +10,8 @@ __global__ void inner_core_impl_kernel(int nb_blocks_to_compute,
   int J = ((tx-K*NGLL2)/NGLLX);
   int I = (tx-K*NGLL2-J*NGLLX);
 
-  int active,offset;
-  int iglob;
+  unsigned short int active;
+  int iglob,offset;
   int working_element;
 
   realw tempx1l,tempx2l,tempx3l,tempy1l,tempy2l,tempy3l,tempz1l,tempz2l,tempz3l;
@@ -399,9 +85,9 @@ __global__ void inner_core_impl_kernel(int nb_blocks_to_compute,
       iglob = d_ibool[working_element*NGLL3 + tx]-1;
 
 #ifdef USE_TEXTURES_FIELDS
-      s_dummyx_loc[tx] = tex1Dfetch(d_displ_ic_tex, iglob*3);
-      s_dummyy_loc[tx] = tex1Dfetch(d_displ_ic_tex, iglob*3 + 1);
-      s_dummyz_loc[tx] = tex1Dfetch(d_displ_ic_tex, iglob*3 + 2);
+      s_dummyx_loc[tx] = texfetch_displ_ic<FORWARD_OR_ADJOINT>(iglob*3);
+      s_dummyy_loc[tx] = texfetch_displ_ic<FORWARD_OR_ADJOINT>(iglob*3 + 1);
+      s_dummyz_loc[tx] = texfetch_displ_ic<FORWARD_OR_ADJOINT>(iglob*3 + 2);
 #else
       // changing iglob indexing to match fortran row changes fast style
       s_dummyx_loc[tx] = d_displ[iglob*3];
@@ -413,11 +99,7 @@ __global__ void inner_core_impl_kernel(int nb_blocks_to_compute,
 
   if (tx < NGLL2) {
     // hprime
-#ifdef USE_TEXTURES_CONSTANTS
-    sh_hprime_xx[tx] = tex1Dfetch(d_hprime_xx_ic_tex,tx);
-#else
     sh_hprime_xx[tx] = d_hprime_xx[tx];
-#endif
     // weighted hprime
     sh_hprimewgll_xx[tx] = d_hprimewgll_xx[tx];
   }
@@ -813,9 +495,9 @@ __global__ void inner_core_impl_kernel(int nb_blocks_to_compute,
     // no atomic operation needed, colors don't share global points between elements
 
 #ifdef USE_TEXTURES_FIELDS
-    d_accel[iglob*3]     = tex1Dfetch(d_accel_ic_tex, iglob*3) + sum_terms1;
-    d_accel[iglob*3 + 1] = tex1Dfetch(d_accel_ic_tex, iglob*3 + 1) + sum_terms2;
-    d_accel[iglob*3 + 2] = tex1Dfetch(d_accel_ic_tex, iglob*3 + 2) + sum_terms3;
+    d_accel[iglob*3]     = texfetch_accel_ic<FORWARD_OR_ADJOINT>(iglob*3) + sum_terms1;
+    d_accel[iglob*3 + 1] = texfetch_accel_ic<FORWARD_OR_ADJOINT>(iglob*3 + 1) + sum_terms2;
+    d_accel[iglob*3 + 2] = texfetch_accel_ic<FORWARD_OR_ADJOINT>(iglob*3 + 2) + sum_terms3;
 #else
     d_accel[iglob*3]     += sum_terms1;
     d_accel[iglob*3 + 1] += sum_terms2;
@@ -830,9 +512,9 @@ __global__ void inner_core_impl_kernel(int nb_blocks_to_compute,
       if( NSPEC_INNER_CORE > COLORING_MIN_NSPEC_INNER_CORE ){
         // no atomic operation needed, colors don't share global points between elements
 #ifdef USE_TEXTURES_FIELDS
-        d_accel[iglob*3]     = tex1Dfetch(d_accel_ic_tex, iglob*3) + sum_terms1;
-        d_accel[iglob*3 + 1] = tex1Dfetch(d_accel_ic_tex, iglob*3 + 1) + sum_terms2;
-        d_accel[iglob*3 + 2] = tex1Dfetch(d_accel_ic_tex, iglob*3 + 2) + sum_terms3;
+        d_accel[iglob*3]     = texfetch_accel_ic<FORWARD_OR_ADJOINT>(iglob*3) + sum_terms1;
+        d_accel[iglob*3 + 1] = texfetch_accel_ic<FORWARD_OR_ADJOINT>(iglob*3 + 1) + sum_terms2;
+        d_accel[iglob*3 + 2] = texfetch_accel_ic<FORWARD_OR_ADJOINT>(iglob*3 + 2) + sum_terms3;
 #else
         d_accel[iglob*3]     += sum_terms1;
         d_accel[iglob*3 + 1] += sum_terms2;
@@ -882,4 +564,3 @@ __global__ void inner_core_impl_kernel(int nb_blocks_to_compute,
     }
   }
 }
-

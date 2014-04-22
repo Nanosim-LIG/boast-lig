@@ -1,10 +1,5 @@
-__global__ void update_potential_kernel(realw* potential_acoustic,
-                                       realw* potential_dot_acoustic,
-                                       realw* potential_dot_dot_acoustic,
-                                       int size,
-                                       realw deltat,
-                                       realw deltatsqover2,
-                                       realw deltatover2) {
+// from update_displacement_cuda.cu
+__global__ void update_potential_kernel(realw* potential_acoustic,realw* potential_dot_acoustic,realw* potential_dot_dot_acoustic,int size,realw deltat,realw deltatsqover2,realw deltatover2) {
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
 
   /* because of block and grid sizing problems, there is a small */

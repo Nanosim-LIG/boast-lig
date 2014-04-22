@@ -1,19 +1,5 @@
-#define NDIM 3
-
-#define NGLLX 5
-
-#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
-#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*(j))))
-
-typedef float realw;
-
-__global__ void compute_add_sources_adjoint_kernel(realw* accel,
-                                                        int nrec,
-                                                        realw* adj_sourcearrays,
-                                                        int* ibool,
-                                                        int* ispec_selected_rec,
-                                                        int* pre_computed_irec,
-                                                        int nadj_rec_local) {
+// from compute_add_sources_elastic_cuda.cu
+__global__ void compute_add_sources_adjoint_kernel(realw* accel,int nrec,realw* adj_sourcearrays,int* ibool,int* ispec_selected_rec,int* pre_computed_irec,int nadj_rec_local) {
 
   int ispec,iglob;
   int irec,i,j,k;
@@ -31,13 +17,8 @@ __global__ void compute_add_sources_adjoint_kernel(realw* accel,
     iglob = ibool[INDEX4(NGLLX,NGLLX,NGLLX,i,j,k,ispec)]-1;
 
     // atomic operations are absolutely necessary for correctness!
-    atomicAdd(&accel[3*iglob], adj_sourcearrays[INDEX5(NDIM,NGLLX,NGLLX,NGLLX,
-                                                       0,i,j,k,irec_local)]);
-
-    atomicAdd(&accel[3*iglob+1], adj_sourcearrays[INDEX5(NDIM,NGLLX,NGLLX,NGLLX,
-                                                         1,i,j,k,irec_local)]);
-
-    atomicAdd(&accel[3*iglob+2], adj_sourcearrays[INDEX5(NDIM,NGLLX,NGLLX,NGLLX,
-                                                         2,i,j,k,irec_local)]);
+    atomicAdd(&accel[3*iglob], adj_sourcearrays[INDEX5(NDIM,NGLLX,NGLLX,NGLLX,0,i,j,k,irec_local)]);
+    atomicAdd(&accel[3*iglob+1], adj_sourcearrays[INDEX5(NDIM,NGLLX,NGLLX,NGLLX,1,i,j,k,irec_local)]);
+    atomicAdd(&accel[3*iglob+2], adj_sourcearrays[INDEX5(NDIM,NGLLX,NGLLX,NGLLX,2,i,j,k,irec_local)]);
   }
 }
