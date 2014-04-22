@@ -1,5 +1,22 @@
 // from compute_kernels_cuda.cu
-__global__ void compute_strength_noise_kernel(realw* displ,int* ibelm_top,int* ibool,realw* noise_surface_movie,realw* normal_x_noise,realw* normal_y_noise,realw* normal_z_noise,realw* Sigma_kl,realw deltat,int nspec_top) {
+#define NDIM 3
+#define NGLLX 5
+#define NGLL2 25
+#define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
+#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
+
+typedef float realw;
+
+__global__ void compute_strength_noise_kernel(realw* displ,
+                                              int* ibelm_top,
+                                              int* ibool,
+                                              realw* noise_surface_movie,
+                                              realw* normal_x_noise,
+                                              realw* normal_y_noise,
+                                              realw* normal_z_noise,
+                                              realw* Sigma_kl,
+                                              realw deltat,
+                                              int nspec_top) {
   int iface = blockIdx.x + blockIdx.y*gridDim.x;
 
   if(iface < nspec_top) {
