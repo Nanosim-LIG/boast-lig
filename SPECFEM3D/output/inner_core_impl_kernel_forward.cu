@@ -57,7 +57,7 @@ texture<float, cudaTextureType1D, cudaReadModeElementType> d_accel_ic_tex;
 texture<float, cudaTextureType1D, cudaReadModeElementType> d_hprime_xx_ic_tex;
 texture<float, cudaTextureType1D, cudaReadModeElementType> d_hprimewgll_xx_ic_tex;
 #endif
-__device__ void compute_element_ic_att_stress(const int tx, const int working_element, const float * R_xx, const float * R_yy, const float * R_xy, const float * R_xz, const float * R_yz, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
+static __device__ void compute_element_ic_att_stress(const int tx, const int working_element, const float * R_xx, const float * R_yy, const float * R_xy, const float * R_xz, const float * R_yz, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
   int offset;
   int i_sls;
   float R_xx_val;
@@ -74,7 +74,7 @@ __device__ void compute_element_ic_att_stress(const int tx, const int working_el
     sigma_yz[0 - 0] = sigma_yz[0 - 0] - (R_yz[offset - 0]);
   }
 }
-__device__ void compute_element_ic_gravity(const int tx, const int iglob, const float * d_xstore, const float * d_ystore, const float * d_zstore, const float * d_minus_gravity_table, const float * d_minus_deriv_gravity_table, const float * d_density_table, const float * wgll_cube, const float jacobianl, const float * s_dummyx_loc, const float * s_dummyy_loc, const float * s_dummyz_loc, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_yx, float * sigma_xz, float * sigma_zx, float * sigma_yz, float * sigma_zy, float * rho_s_H1, float * rho_s_H2, float * rho_s_H3){
+static __device__ void compute_element_ic_gravity(const int tx, const int iglob, const float * d_xstore, const float * d_ystore, const float * d_zstore, const float * d_minus_gravity_table, const float * d_minus_deriv_gravity_table, const float * d_density_table, const float * wgll_cube, const float jacobianl, const float * s_dummyx_loc, const float * s_dummyy_loc, const float * s_dummyz_loc, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_yx, float * sigma_xz, float * sigma_zx, float * sigma_yz, float * sigma_zy, float * rho_s_H1, float * rho_s_H2, float * rho_s_H3){
   float radius;
   float theta;
   float phi;
@@ -152,7 +152,7 @@ __device__ void compute_element_ic_gravity(const int tx, const int iglob, const 
   rho_s_H2[0 - 0] = (factor) * ((sx_l) * (Hxyl) + (sy_l) * (Hyyl) + (sz_l) * (Hyzl));
   rho_s_H3[0 - 0] = (factor) * ((sx_l) * (Hxzl) + (sy_l) * (Hyzl) + (sz_l) * (Hzzl));
 }
-__device__ void compute_element_ic_att_memory(const int tx, const int working_element, const float * d_muv, const float * factor_common, const float * alphaval, const float * betaval, const float * gammaval, float * R_xx, float * R_yy, float * R_xy, float * R_xz, float * R_yz, const float * epsilondev_xx, const float * epsilondev_yy, const float * epsilondev_xy, const float * epsilondev_xz, const float * epsilondev_yz, const float epsilondev_xx_loc, const float epsilondev_yy_loc, const float epsilondev_xy_loc, const float epsilondev_xz_loc, const float epsilondev_yz_loc, const int USE_3D_ATTENUATION_ARRAYS){
+static __device__ void compute_element_ic_att_memory(const int tx, const int working_element, const float * d_muv, const float * factor_common, const float * alphaval, const float * betaval, const float * gammaval, float * R_xx, float * R_yy, float * R_xy, float * R_xz, float * R_yz, const float * epsilondev_xx, const float * epsilondev_yy, const float * epsilondev_xy, const float * epsilondev_xz, const float * epsilondev_yz, const float epsilondev_xx_loc, const float epsilondev_yy_loc, const float epsilondev_xy_loc, const float epsilondev_xz_loc, const float epsilondev_yz_loc, const int USE_3D_ATTENUATION_ARRAYS){
   int offset;
   int i_sls;
   float mul;

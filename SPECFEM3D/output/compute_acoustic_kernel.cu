@@ -49,7 +49,7 @@
 #ifndef BLOCKSIZE_TRANSFER
 #define BLOCKSIZE_TRANSFER 256
 #endif
-__device__ void compute_gradient_kernel(const int ijk, const int ispec, const float * scalar_field, float * vector_field_element, const float * hprime_xx, const float * d_xix, const float * d_xiy, const float * d_xiz, const float * d_etax, const float * d_etay, const float * d_etaz, const float * d_gammax, const float * d_gammay, const float * d_gammaz){
+static __device__ void compute_gradient_kernel(const int ijk, const int ispec, const float * scalar_field, float * vector_field_element, const float * hprime_xx, const float * d_xix, const float * d_xiy, const float * d_xiz, const float * d_etax, const float * d_etay, const float * d_etaz, const float * d_gammax, const float * d_gammay, const float * d_gammaz){
   float temp1l;
   float temp2l;
   float temp3l;

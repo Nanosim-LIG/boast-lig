@@ -49,7 +49,7 @@
 #ifndef BLOCKSIZE_TRANSFER
 #define BLOCKSIZE_TRANSFER 256
 #endif
-__device__ void compute_strain_product(float * prod, const float eps_trace_over_3, const float * epsdev, const float b_eps_trace_over_3, const float * b_epsdev){
+static __device__ void compute_strain_product(float * prod, const float eps_trace_over_3, const float * epsdev, const float b_eps_trace_over_3, const float * b_epsdev){
   float eps[6];
   float b_eps[6];
   int p;
@@ -80,7 +80,7 @@ __device__ void compute_strain_product(float * prod, const float eps_trace_over_
     }
   }
 }
-__device__ void compute_element_strain_undo_att(const int ispec, const int ijk_ispec, const int * d_ibool, const float * s_dummyx_loc, const float * s_dummyy_loc, const float * s_dummyz_loc, const float * d_xix, const float * d_xiy, const float * d_xiz, const float * d_etax, const float * d_etay, const float * d_etaz, const float * d_gammax, const float * d_gammay, const float * d_gammaz, const float * sh_hprime_xx, float * epsilondev_loc, float * epsilon_trace_over_3){
+static __device__ void compute_element_strain_undo_att(const int ispec, const int ijk_ispec, const int * d_ibool, const float * s_dummyx_loc, const float * s_dummyy_loc, const float * s_dummyz_loc, const float * d_xix, const float * d_xiy, const float * d_xiz, const float * d_etax, const float * d_etay, const float * d_etaz, const float * d_gammax, const float * d_gammay, const float * d_gammaz, const float * sh_hprime_xx, float * epsilondev_loc, float * epsilon_trace_over_3){
   int tx;
   int K;
   int J;

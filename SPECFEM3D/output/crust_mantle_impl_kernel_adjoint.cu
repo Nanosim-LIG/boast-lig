@@ -57,7 +57,7 @@ texture<float, cudaTextureType1D, cudaReadModeElementType> d_b_accel_cm_tex;
 texture<float, cudaTextureType1D, cudaReadModeElementType> d_hprime_xx_cm_tex;
 texture<float, cudaTextureType1D, cudaReadModeElementType> d_hprimewgll_xx_cm_tex;
 #endif
-__device__ void compute_element_cm_att_stress(const int tx, const int working_element, const float * R_xx, const float * R_yy, const float * R_xy, const float * R_xz, const float * R_yz, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
+static __device__ void compute_element_cm_att_stress(const int tx, const int working_element, const float * R_xx, const float * R_yy, const float * R_xy, const float * R_xz, const float * R_yz, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
   int offset;
   int i_sls;
   float R_xx_val;
@@ -74,7 +74,7 @@ __device__ void compute_element_cm_att_stress(const int tx, const int working_el
     sigma_yz[0 - 0] = sigma_yz[0 - 0] - (R_yz[offset - 0]);
   }
 }
-__device__ void compute_element_cm_gravity(const int tx, const int iglob, const float * d_xstore, const float * d_ystore, const float * d_zstore, const float * d_minus_gravity_table, const float * d_minus_deriv_gravity_table, const float * d_density_table, const float * wgll_cube, const float jacobianl, const float * s_dummyx_loc, const float * s_dummyy_loc, const float * s_dummyz_loc, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_yx, float * sigma_xz, float * sigma_zx, float * sigma_yz, float * sigma_zy, float * rho_s_H1, float * rho_s_H2, float * rho_s_H3){
+static __device__ void compute_element_cm_gravity(const int tx, const int iglob, const float * d_xstore, const float * d_ystore, const float * d_zstore, const float * d_minus_gravity_table, const float * d_minus_deriv_gravity_table, const float * d_density_table, const float * wgll_cube, const float jacobianl, const float * s_dummyx_loc, const float * s_dummyy_loc, const float * s_dummyz_loc, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_yx, float * sigma_xz, float * sigma_zx, float * sigma_yz, float * sigma_zy, float * rho_s_H1, float * rho_s_H2, float * rho_s_H3){
   float radius;
   float theta;
   float phi;
@@ -152,7 +152,7 @@ __device__ void compute_element_cm_gravity(const int tx, const int iglob, const 
   rho_s_H2[0 - 0] = (factor) * ((sx_l) * (Hxyl) + (sy_l) * (Hyyl) + (sz_l) * (Hyzl));
   rho_s_H3[0 - 0] = (factor) * ((sx_l) * (Hxzl) + (sy_l) * (Hyzl) + (sz_l) * (Hzzl));
 }
-__device__ void compute_element_cm_att_memory(const int tx, const int working_element, const float * d_muv, const float * factor_common, const float * alphaval, const float * betaval, const float * gammaval, float * R_xx, float * R_yy, float * R_xy, float * R_xz, float * R_yz, const float * epsilondev_xx, const float * epsilondev_yy, const float * epsilondev_xy, const float * epsilondev_xz, const float * epsilondev_yz, const float epsilondev_xx_loc, const float epsilondev_yy_loc, const float epsilondev_xy_loc, const float epsilondev_xz_loc, const float epsilondev_yz_loc, const float * d_c44store, const int ANISOTROPY, const int USE_3D_ATTENUATION_ARRAYS){
+static __device__ void compute_element_cm_att_memory(const int tx, const int working_element, const float * d_muv, const float * factor_common, const float * alphaval, const float * betaval, const float * gammaval, float * R_xx, float * R_yy, float * R_xy, float * R_xz, float * R_yz, const float * epsilondev_xx, const float * epsilondev_yy, const float * epsilondev_xy, const float * epsilondev_xz, const float * epsilondev_yz, const float epsilondev_xx_loc, const float epsilondev_yy_loc, const float epsilondev_xy_loc, const float epsilondev_xz_loc, const float epsilondev_yz_loc, const float * d_c44store, const int ANISOTROPY, const int USE_3D_ATTENUATION_ARRAYS){
   int offset;
   int i_sls;
   float mul;
@@ -194,7 +194,7 @@ __device__ void compute_element_cm_att_memory(const int tx, const int working_el
     R_yz[offset - 0] = (alphaval_loc) * (R_yz[offset - 0]) + (betaval_loc) * (sn) + (gammaval_loc) * (snp1);
   }
 }
-__device__ void compute_element_cm_aniso(const int offset, const float * d_c11store, const float * d_c12store, const float * d_c13store, const float * d_c14store, const float * d_c15store, const float * d_c16store, const float * d_c22store, const float * d_c23store, const float * d_c24store, const float * d_c25store, const float * d_c26store, const float * d_c33store, const float * d_c34store, const float * d_c35store, const float * d_c36store, const float * d_c44store, const float * d_c45store, const float * d_c46store, const float * d_c55store, const float * d_c56store, const float * d_c66store, const int ATTENUATION, const float one_minus_sum_beta_use, const float duxdxl, const float duxdyl, const float duxdzl, const float duydxl, const float duydyl, const float duydzl, const float duzdxl, const float duzdyl, const float duzdzl, const float duxdyl_plus_duydxl, const float duzdxl_plus_duxdzl, const float duzdyl_plus_duydzl, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
+static __device__ void compute_element_cm_aniso(const int offset, const float * d_c11store, const float * d_c12store, const float * d_c13store, const float * d_c14store, const float * d_c15store, const float * d_c16store, const float * d_c22store, const float * d_c23store, const float * d_c24store, const float * d_c25store, const float * d_c26store, const float * d_c33store, const float * d_c34store, const float * d_c35store, const float * d_c36store, const float * d_c44store, const float * d_c45store, const float * d_c46store, const float * d_c55store, const float * d_c56store, const float * d_c66store, const int ATTENUATION, const float one_minus_sum_beta_use, const float duxdxl, const float duxdyl, const float duxdzl, const float duydxl, const float duydyl, const float duydzl, const float duzdxl, const float duzdyl, const float duzdzl, const float duxdyl_plus_duydxl, const float duzdxl_plus_duxdzl, const float duzdyl_plus_duydzl, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
   float c11;
   float c12;
   float c13;
@@ -259,7 +259,7 @@ __device__ void compute_element_cm_aniso(const int offset, const float * d_c11st
   *(sigma_xz) = (c15) * (duxdxl) + (c56) * (duxdyl_plus_duydxl) + (c25) * (duydyl) + (c55) * (duzdxl_plus_duxdzl) + (c45) * (duzdyl_plus_duydzl) + (c35) * (duzdzl);
   *(sigma_yz) = (c14) * (duxdxl) + (c46) * (duxdyl_plus_duydxl) + (c24) * (duydyl) + (c45) * (duzdxl_plus_duxdzl) + (c44) * (duzdyl_plus_duydzl) + (c34) * (duzdzl);
 }
-__device__ void compute_element_cm_iso(const int offset, const float * d_kappavstore, const float * d_muvstore, const int ATTENUATION, const float one_minus_sum_beta_use, const float duxdxl, const float duydyl, const float duzdzl, const float duxdxl_plus_duydyl, const float duxdxl_plus_duzdzl, const float duydyl_plus_duzdzl, const float duxdyl_plus_duydxl, const float duzdxl_plus_duxdzl, const float duzdyl_plus_duydzl, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
+static __device__ void compute_element_cm_iso(const int offset, const float * d_kappavstore, const float * d_muvstore, const int ATTENUATION, const float one_minus_sum_beta_use, const float duxdxl, const float duydyl, const float duzdzl, const float duxdxl_plus_duydyl, const float duxdxl_plus_duzdzl, const float duydyl_plus_duzdzl, const float duxdyl_plus_duydxl, const float duzdxl_plus_duxdzl, const float duzdyl_plus_duydzl, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
   float lambdal;
   float mul;
   float lambdalplus2mul;
@@ -278,7 +278,7 @@ __device__ void compute_element_cm_iso(const int offset, const float * d_kappavs
   *(sigma_xz) = (mul) * (duzdxl_plus_duxdzl);
   *(sigma_yz) = (mul) * (duzdyl_plus_duydzl);
 }
-__device__ void compute_element_cm_tiso(const int offset, const float * d_kappavstore, const float * d_muvstore, const float * d_kappahstore, const float * d_muhstore, const float * d_eta_anisostore, const int ATTENUATION, const float one_minus_sum_beta_use, const float duxdxl, const float duxdyl, const float duxdzl, const float duydxl, const float duydyl, const float duydzl, const float duzdxl, const float duzdyl, const float duzdzl, const float duxdyl_plus_duydxl, const float duzdxl_plus_duxdzl, const float duzdyl_plus_duydzl, const int iglob, const float * d_ystore, const float * d_zstore, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
+static __device__ void compute_element_cm_tiso(const int offset, const float * d_kappavstore, const float * d_muvstore, const float * d_kappahstore, const float * d_muhstore, const float * d_eta_anisostore, const int ATTENUATION, const float one_minus_sum_beta_use, const float duxdxl, const float duxdyl, const float duxdzl, const float duydxl, const float duydyl, const float duydzl, const float duzdxl, const float duzdyl, const float duzdzl, const float duxdyl_plus_duydxl, const float duzdxl_plus_duxdzl, const float duzdyl_plus_duydzl, const int iglob, const float * d_ystore, const float * d_zstore, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
   float kappavl;
   float muvl;
   float kappahl;
