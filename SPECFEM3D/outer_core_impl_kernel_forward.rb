@@ -63,9 +63,9 @@ module BOAST
     v = []
     function_name = "outer_core_impl_kernel"
     if forward then
-      function_name += "forward"
+      function_name += "_forward"
     else
-      function_name += "adjoint"
+      function_name += "_adjoint"
     end
     v.push nb_blocks_to_compute    = Int("nb_blocks_to_compute",     :dir => :in)
     v.push d_ibool                 = Int("d_ibool",                  :dir => :in, :dim => [Dim()] )
@@ -124,7 +124,7 @@ module BOAST
 
     p = Procedure(function_name, v, constants)
     if(get_lang == CUDA and ref) then
-      @@output.print File::read("references/#{function_name}.cu".gsub("forward","").gsub("adjoint",""))
+      @@output.print File::read("references/#{function_name}.cu".gsub("_forward","").gsub("_adjoint",""))
     elsif(get_lang == CL or get_lang == CUDA) then
       make_specfem3d_header(:ngllx => n_gllx, :ngll2 => n_gll2, :ngll3 => n_gll3, :ngll3_padded => n_gll3_padded, :r_earth_km => r_earth_km, :coloring_min_nspec_outer_core => coloring_min_nspec_outer_core)
       if get_lang == CUDA
