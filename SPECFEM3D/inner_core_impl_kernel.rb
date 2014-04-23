@@ -556,7 +556,7 @@ module BOAST
 
     p = Procedure(function_name, v, constants)
     if(get_lang == CUDA and ref) then
-      @@output.print File::read("references/#{function_name}.cu")
+      @@output.print File::read("references/#{function_name}.cu".gsub("forward","").gsub("adjoint",""))
     elsif(get_lang == CL or get_lang == CUDA) then
       make_specfem3d_header(:ngllx => n_gllx, :ngll2 => n_gll2, :ngll3 => n_gll3, :ngll3_padded => n_gll3_padded, :n_sls => n_sls, :r_earth_km => r_earth_km, :coloring_min_nspec_inner_core => coloring_min_nspec_inner_core, :iflag_in_fictitious_cube => i_flag_in_fictitious_cube)
       if get_lang == CUDA then
