@@ -53,13 +53,25 @@ module BOAST
     return p
   end
 
-  def BOAST::outer_core_impl_kernel(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, r_earth_km = 6371.0, coloring_min_nspec_outer_core = 1000)
+  def BOAST::outer_core_impl_kernel_forward(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, r_earth_km = 6371.0, coloring_min_nspec_outer_core = 1000)
+    return BOAST::outer_core_impl_kernel(true, ref, mesh_coloring, textures_fields, textures_constants, unroll_loops, n_gllx, n_gll2, n_gll3, n_gll3_padded, r_earth_km, coloring_min_nspec_outer_core)
+  end
+
+  def BOAST::outer_core_impl_kernel_adjoint(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, r_earth_km = 6371.0, coloring_min_nspec_outer_core = 1000)
+    return BOAST::outer_core_impl_kernel(false, ref, mesh_coloring, textures_fields, textures_constants, unroll_loops, n_gllx, n_gll2, n_gll3, n_gll3_padded, r_earth_km, coloring_min_nspec_outer_core)
+  end
+
+  def BOAST::outer_core_impl_kernel(forward, ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, r_earth_km = 6371.0, coloring_min_nspec_outer_core = 1000)
     push_env( :array_start => 0 )
     kernel = CKernel::new
     v = []
     function_name = "outer_core_impl_kernel"
+    if forward then
+      function_name += "forward"
+    else
+      function_name += "adjoint"
+    end
     v.push nb_blocks_to_compute    = Int("nb_blocks_to_compute",     :dir => :in)
-    v.push nglob                   = Int("NGLOB",                    :dir => :in)
     v.push d_ibool                 = Int("d_ibool",                  :dir => :in, :dim => [Dim()] )
     v.push d_phase_ispec_inner     = Int("d_phase_ispec_inner",      :dir => :in, :dim => [Dim()] )
     v.push num_phase_ispec         = Int("num_phase_ispec",          :dir => :in)
@@ -101,13 +113,14 @@ module BOAST
 
     constants = [] #ngllx, ngll2, ngll3, ngll3_padded]
 
-    d_displ_oc_tex = Real("d_displ_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-    d_accel_oc_tex = Real("d_accel_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+    d_displ_oc_tex = Real("d_#{forward?"":"b_"}displ_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+    d_accel_oc_tex = Real("d_#{forward?"":"b_"}accel_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
     if get_lang == CL then
       v.push(d_displ_oc_tex, d_accel_oc_tex)
       #constants.push( d_displ_oc_tex.sampler, d_accel_oc_tex.sampler )
     end
     d_hprime_xx_oc_tex = Real("d_hprime_xx_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+    d_hprimewgll_xx_oc_tex = Real("d_hprimewgll_xx_oc_tex", :texture => true, :dir => :in, :dim => [Dim()] )
     if get_lang == CL then
       v.push(d_hprime_xx_oc_tex)
       #constants.push( d_hprime_xx_oc_tex.sampler )
@@ -137,13 +150,14 @@ module BOAST
           @@output.puts "#endif"
           @@output.puts "#ifdef #{use_textures_constants}"
             decl d_hprime_xx_oc_tex.sampler
+            decl d_hprimewgll_xx_oc_tex.sampler
           @@output.puts "#endif"
         end
         decl bx = Int("bx")
         decl tx = Int("tx")
         decl k  = Int("K"), j = Int("J"), i = Int("I")
-        decl active = Int("active"), offset = Int("offset")
-        decl iglob  = Int("iglob")
+        decl active = Int("active", :size => 2, :signed => false)
+        decl offset = Int("offset"), iglob = Int("iglob")
         decl working_element = Int("working_element")
         decl l = Int("l")
   
@@ -204,11 +218,12 @@ module BOAST
         print If(tx < ngll2) {
           @@output.puts "#ifdef #{use_textures_constants}"
             print sh_hprime_xx[tx] === d_hprime_xx_oc_tex[tx]
+            print sh_hprimewgll_xx[tx] === d_hprimewgll_xx_oc_tex[tx]
           @@output.puts "#else"
             print sh_hprime_xx[tx] === d_hprime_xx[tx]
+            print sh_hprimewgll_xx[tx] === d_hprimewgll_xx[tx]
           @@output.puts "#endif"
   
-          print sh_hprimewgll_xx[tx] === d_hprimewgll_xx[tx]
         }
         print barrier(:local)
   

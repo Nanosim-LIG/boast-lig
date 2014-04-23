@@ -532,11 +532,11 @@ module BOAST
     constants = []
 
     if type == :inner_core then
-      d_displ_tex = Real("d_#{forward?"":"_b"}displ_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-      d_accel_tex = Real("d_#{forward?"":"_b"}accel_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-    elsif type == :crust_mantle then
-      d_displ_tex = Real("d_#{forward?"":"_b"}displ_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-      d_accel_tex = Real("d_#{forward?"":"_b"}accel_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_displ_tex = Real("d_#{forward?"":"b_"}displ_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_accel_tex = Real("d_#{forward?"":"b_"}accel_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+    elsif type == :crust_mantle then        
+      d_displ_tex = Real("d_#{forward?"":"b_"}displ_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_accel_tex = Real("d_#{forward?"":"b_"}accel_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
     end
     if get_lang == CL then
       v.push(d_displ_tex, d_accel_tex)
@@ -544,8 +544,10 @@ module BOAST
     end
     if type == :inner_core then
       d_hprime_xx_tex = Real("d_hprime_xx_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_hprimewgll_xx_tex = Real("d_hprimewgll_xx_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
     elsif type == :crust_mantle then
       d_hprime_xx_tex = Real("d_hprime_xx_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_hprimewgll_xx_tex = Real("d_hprimewgll_xx_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
     end
     if get_lang == CL then
       v.push(d_hprime_xx_tex)
@@ -564,6 +566,7 @@ module BOAST
         @@output.puts "#endif"
         @@output.puts "#ifdef #{use_textures_constants}"
           decl d_hprime_xx_tex
+          decl d_hprimewgll_xx_tex
         @@output.puts "#endif"
       end
       if type == :inner_core then

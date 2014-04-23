@@ -1,5 +1,108 @@
 // from compute_forces_outer_core_cuda.cu
-template<int FORWARD_OR_ADJOINT> __global__ void outer_core_impl_kernel(int nb_blocks_to_compute,const int* d_ibool,const int* d_phase_ispec_inner,const int num_phase_ispec,const int d_iphase,const int use_mesh_coloring_gpu,realw_const_p d_potential,realw_p d_potential_dot_dot,realw_const_p d_xix, realw_const_p d_xiy, realw_const_p d_xiz,realw_const_p d_etax, realw_const_p d_etay, realw_const_p d_etaz,realw_const_p d_gammax, realw_const_p d_gammay, realw_const_p d_gammaz,realw_const_p d_hprime_xx,realw_const_p d_hprimewgll_xx,realw_const_p wgllwgll_xy,realw_const_p wgllwgll_xz,realw_const_p wgllwgll_yz,const int GRAVITY,realw_const_p d_xstore, realw_const_p d_ystore, realw_const_p d_zstore,realw_const_p d_d_ln_density_dr_table,realw_const_p d_minus_rho_g_over_kappa_fluid,realw_const_p wgll_cube,const int ROTATION,realw time,realw two_omega_earth,realw deltat,realw_p d_A_array_rotation,realw_p d_B_array_rotation,const int NSPEC_OUTER_CORE){
+#define NGLLX 5
+#define NGLL2 25
+#define NGLL3 125
+#define NGLL3_PADDED 128
+#define R_EARTH_KM 6371.0f
+#define COLORING_MIN_NSPEC_OUTER_CORE 1000
+
+typedef float realw;
+typedef float * realw_p;
+typedef const float* __restrict__ realw_const_p;
+
+#ifdef USE_TEXTURES_FIELDS
+texture<realw, cudaTextureType1D, cudaReadModeElementType> d_displ_oc_tex;
+texture<realw, cudaTextureType1D, cudaReadModeElementType> d_accel_oc_tex;
+texture<realw, cudaTextureType1D, cudaReadModeElementType> d_b_displ_oc_tex;
+texture<realw, cudaTextureType1D, cudaReadModeElementType> d_b_accel_oc_tex;
+// templates definitions
+template<int FORWARD_OR_ADJOINT> __device__ float texfetch_displ_oc(int x);
+template<int FORWARD_OR_ADJOINT> __device__ float texfetch_accel_oc(int x);
+// templates for texture fetching
+// FORWARD_OR_ADJOINT == 1 <- forward arrays
+template<> __device__ float texfetch_displ_oc<1>(int x) { return tex1Dfetch(d_displ_oc_tex, x); }
+template<> __device__ float texfetch_accel_oc<1>(int x) { return tex1Dfetch(d_accel_oc_tex, x); }
+// FORWARD_OR_ADJOINT == 3 <- backward/reconstructed arrays
+template<> __device__ float texfetch_displ_oc<3>(int x) { return tex1Dfetch(d_b_displ_oc_tex, x); }
+template<> __device__ float texfetch_accel_oc<3>(int x) { return tex1Dfetch(d_b_accel_oc_tex, x); }
+#endif
+
+#ifdef USE_TEXTURES_CONSTANTS
+texture<realw, cudaTextureType1D, cudaReadModeElementType> d_hprime_xx_oc_tex;
+#endif
+
+__device__ void compute_element_oc_rotation(int tx,int working_element,
+                                            realw time,
+                                            realw two_omega_earth,
+                                            realw deltat,
+                                            realw_p d_A_array_rotation,
+                                            realw_p d_B_array_rotation,
+                                            realw dpotentialdxl,
+                                            realw dpotentialdyl,
+                                            realw* dpotentialdx_with_rot,
+                                            realw* dpotentialdy_with_rot) {
+
+  realw two_omega_deltat,cos_two_omega_t,sin_two_omega_t;
+  realw A_rotation,B_rotation;
+  realw source_euler_A,source_euler_B;
+
+  // store the source for the Euler scheme for A_rotation and B_rotation
+  if( sizeof( sin_two_omega_t ) == sizeof( float ) ){
+    // float operations
+    // sincos function return sinus and cosine for given value
+    sincosf(two_omega_earth*time, &sin_two_omega_t, &cos_two_omega_t);
+  }else{
+    cos_two_omega_t = cos(two_omega_earth*time);
+    sin_two_omega_t = sin(two_omega_earth*time);
+  }
+
+  // time step deltat of Euler scheme is included in the source
+  two_omega_deltat = deltat * two_omega_earth;
+
+  source_euler_A = two_omega_deltat * (cos_two_omega_t * dpotentialdyl + sin_two_omega_t * dpotentialdxl);
+  source_euler_B = two_omega_deltat * (sin_two_omega_t * dpotentialdyl - cos_two_omega_t * dpotentialdxl);
+
+  A_rotation = d_A_array_rotation[tx + working_element*NGLL3]; // (non-padded offset)
+  B_rotation = d_B_array_rotation[tx + working_element*NGLL3];
+
+  *dpotentialdx_with_rot = dpotentialdxl + (  A_rotation*cos_two_omega_t + B_rotation*sin_two_omega_t);
+  *dpotentialdy_with_rot = dpotentialdyl + (- A_rotation*sin_two_omega_t + B_rotation*cos_two_omega_t);
+
+  // updates rotation term with Euler scheme (non-padded offset)
+  d_A_array_rotation[tx + working_element*NGLL3] += source_euler_A;
+  d_B_array_rotation[tx + working_element*NGLL3] += source_euler_B;
+}
+
+
+
+template<int FORWARD_OR_ADJOINT> __global__ void outer_core_impl_kernel(int nb_blocks_to_compute,
+                                                                        const int* d_ibool,
+                                                                        const int* d_phase_ispec_inner,
+                                                                        const int num_phase_ispec,
+                                                                        const int d_iphase,
+                                                                        const int use_mesh_coloring_gpu,
+                                                                        realw_const_p d_potential,
+                                                                        realw_p d_potential_dot_dot,
+                                                                        realw_const_p d_xix, realw_const_p d_xiy, realw_const_p d_xiz,
+                                                                        realw_const_p d_etax, realw_const_p d_etay, realw_const_p d_etaz,
+                                                                        realw_const_p d_gammax, realw_const_p d_gammay, realw_const_p d_gammaz,
+                                                                        realw_const_p d_hprime_xx,
+                                                                        realw_const_p d_hprimewgll_xx,
+                                                                        realw_const_p wgllwgll_xy,
+                                                                        realw_const_p wgllwgll_xz,
+                                                                        realw_const_p wgllwgll_yz,
+                                                                        const int GRAVITY,
+                                                                        realw_const_p d_xstore, realw_const_p d_ystore, realw_const_p d_zstore,
+                                                                        realw_const_p d_d_ln_density_dr_table,
+                                                                        realw_const_p d_minus_rho_g_over_kappa_fluid,
+                                                                        realw_const_p wgll_cube,
+                                                                        const int ROTATION,
+                                                                        realw time,
+                                                                        realw two_omega_earth,
+                                                                        realw deltat,
+                                                                        realw_p d_A_array_rotation,
+                                                                        realw_p d_B_array_rotation,
+                                                                        const int NSPEC_OUTER_CORE){
 
   // block id == spectral-element id
   int bx = blockIdx.y*gridDim.x+blockIdx.x;
