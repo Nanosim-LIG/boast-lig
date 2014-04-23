@@ -1,4 +1,8 @@
 // from check_fields_cuda.cu
+#define BLOCKSIZE_TRANSFER 256
+
+typedef float realw;
+
 __global__ void get_maximum_vector_kernel(realw* array, int size, realw* d_max){
 
   // reduction example:
