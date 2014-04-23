@@ -1,5 +1,17 @@
 // from noise_tomography_cuda.cu
-__global__ void noise_transfer_surface_to_host_kernel(int* ibelm_top,int nspec_top,int* ibool,realw* displ,realw* noise_surface_movie) {
+#define NDIM 3
+#define NGLLX 5
+#define NGLL2 25
+#define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
+#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
+
+typedef float realw;
+
+__global__ void noise_transfer_surface_to_host_kernel(int* ibelm_top,
+                                                      int nspec_top,
+                                                      int* ibool,
+                                                      realw* displ,
+                                                      realw* noise_surface_movie) {
   int igll = threadIdx.x;
   int iface = blockIdx.x + blockIdx.y*gridDim.x;
 

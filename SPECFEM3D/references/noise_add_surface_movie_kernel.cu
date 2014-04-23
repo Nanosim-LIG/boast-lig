@@ -1,5 +1,23 @@
 // from noise_tomography_cuda.cu
-__global__ void noise_add_surface_movie_kernel(realw* accel,int* ibool,int* ibelm_top,int nspec_top,realw* noise_surface_movie,realw* normal_x_noise,realw* normal_y_noise,realw* normal_z_noise,realw* mask_noise,realw* jacobian2D,realw* wgllwgll) {
+#define NDIM 3
+#define NGLLX 5
+#define NGLL2 25
+#define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
+#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
+
+typedef float realw;
+
+__global__ void noise_add_surface_movie_kernel(realw* accel,
+                                               int* ibool,
+                                               int* ibelm_top,
+                                               int nspec_top,
+                                               realw* noise_surface_movie,
+                                               realw* normal_x_noise,
+                                               realw* normal_y_noise,
+                                               realw* normal_z_noise,
+                                               realw* mask_noise,
+                                               realw* jacobian2D,
+                                               realw* wgllwgll) {
 
   int igll = threadIdx.x;
   int iface = blockIdx.x + gridDim.x*blockIdx.y; // surface element id
