@@ -1,5 +1,13 @@
 // from update_displacement_cuda.cu
-__global__ void update_disp_veloc_kernel(realw* displ,realw* veloc,realw* accel,int size,realw deltat,realw deltatsqover2,realw deltatover2) {
+typedef float realw;
+
+__global__ void update_disp_veloc_kernel(realw* displ,
+                                         realw* veloc,
+                                         realw* accel,
+                                         int size,
+                                         realw deltat,
+                                         realw deltatsqover2,
+                                         realw deltatover2) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
 

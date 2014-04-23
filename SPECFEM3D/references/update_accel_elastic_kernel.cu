@@ -1,5 +1,13 @@
 // from update_displacement_cuda.cu
-__global__ void update_accel_elastic_kernel(realw* accel,realw* veloc,int size,realw two_omega_earth,realw* rmassx,realw* rmassy,realw* rmassz) {
+typedef float realw;
+
+__global__ void update_accel_elastic_kernel(realw* accel,
+                                            realw* veloc,
+                                            int size,
+                                            realw two_omega_earth,
+                                            realw* rmassx,
+                                            realw* rmassy,
+                                            realw* rmassz) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
 
