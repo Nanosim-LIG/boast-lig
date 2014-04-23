@@ -14,6 +14,7 @@ module BOAST
     v = []
     v.push ispec = Int("ispec", :dir => :in)
     v.push ijk_ispec = Int("ijk_ispec", :dir => :in)
+    v.push d_ibool   = Int( "d_ibool",  :dir => :in, :dim => [Dim()] ) #unused
     v.push *s_dummy_loc = ["x", "y", "z"].collect { |a|
       Real("s_dummy#{a}_loc", :dir => :in, :dim => [Dim(ngll3)], :local => true )
     }
