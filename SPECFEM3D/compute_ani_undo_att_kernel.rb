@@ -175,7 +175,7 @@ module BOAST
 
           print sub_compute_element_strain_undo_att.call(ispec,ijk_ispec,\
                                                          d_ibool,\
-                                                         s_dummyx_loc,s_dummyy_loc,s_dummyz_loc,\
+                                                         s_dummy_loc[0],s_dummy_loc[1],s_dummy_loc[2],\
                                                          d_xix,d_xiy,d_xiz,d_etax,d_etay,d_etaz,d_gammax,d_gammay,d_gammaz,\
                                                          sh_hprime_xx,\
                                                          b_epsdev,b_eps_trace_over_3.address)

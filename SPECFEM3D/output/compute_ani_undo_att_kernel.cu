@@ -207,7 +207,7 @@ __global__ void compute_ani_undo_att_kernel(const float * epsilondev_xx, const f
     epsdev[3 - 0] = epsilondev_xz[ijk_ispec - 0];
     epsdev[4 - 0] = epsilondev_yz[ijk_ispec - 0];
     eps_trace_over_3 = epsilon_trace_over_3[ijk_ispec - 0];
-    compute_element_strain_undo_att(ispec, ijk_ispec, d_ibool, s_dummyx_loc(), s_dummyy_loc(), s_dummyz_loc(), d_xix, d_xiy, d_xiz, d_etax, d_etay, d_etaz, d_gammax, d_gammay, d_gammaz, sh_hprime_xx, b_epsdev,  &b_eps_trace_over_3);
+    compute_element_strain_undo_att(ispec, ijk_ispec, d_ibool, s_dummyx_loc, s_dummyy_loc, s_dummyz_loc, d_xix, d_xiy, d_xiz, d_etax, d_etay, d_etaz, d_gammax, d_gammay, d_gammaz, sh_hprime_xx, b_epsdev,  &b_eps_trace_over_3);
     compute_strain_product(prod, eps_trace_over_3, epsdev, b_eps_trace_over_3, b_epsdev);
     for(i=0; i<=20; i+=1){
       cijkl_kl[i + (ijk_ispec) * (21) - 0 + ( - (0)) * (21)] = cijkl_kl[i + (ijk_ispec) * (21) - 0 + ( - (0)) * (21)] + (deltat) * (prod[i - 0]);
