@@ -71,7 +71,7 @@ __device__ void compute_element_oc_rotation(const int tx, const int working_elem
   A_rotation = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0];
   B_rotation = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0];
   dpotentialdx_with_rot[0 - 0] = dpotentialdxl + (A_rotation) * (cos_two_omega_t) + (B_rotation) * (sin_two_omega_t);
-  dpotentialdy_with_rot[0 - 0] = dpotentialdyl + ( - (A_rotation)) * (sin_two_omega_t) + (B_rotation) * (cos_two_omega_t);
+  dpotentialdy_with_rot[0 - 0] = dpotentialdyl + ( -(A_rotation)) * (sin_two_omega_t) + (B_rotation) * (cos_two_omega_t);
   d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_A;
   d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_B;
 }
@@ -257,7 +257,7 @@ __global__ void outer_core_impl_kernel_adjoint(const int nb_blocks_to_compute, c
       temp3l = temp3l + (s_temp3[(l) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + l - 0]);
     }
 #endif
-    sum_terms =  - ((wgllwgll_yz[(K) * (NGLLX) + J - 0]) * (temp1l) + (wgllwgll_xz[(K) * (NGLLX) + I - 0]) * (temp2l) + (wgllwgll_xy[(J) * (NGLLX) + I - 0]) * (temp3l));
+    sum_terms =  -((wgllwgll_yz[(K) * (NGLLX) + J - 0]) * (temp1l) + (wgllwgll_xz[(K) * (NGLLX) + I - 0]) * (temp2l) + (wgllwgll_xy[(J) * (NGLLX) + I - 0]) * (temp3l));
     if(GRAVITY){
       sum_terms = sum_terms + gravity_term;
     }

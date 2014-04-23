@@ -38,3 +38,4 @@ BOAST_KERNEL(compute_acoustic_kernel);
 BOAST_KERNEL(compute_strength_noise_kernel);
 BOAST_KERNEL(crust_mantle_impl_kernel_forward);
 BOAST_KERNEL(crust_mantle_impl_kernel_adjoint);
+BOAST_KERNEL(compute_ani_undo_att_kernel);

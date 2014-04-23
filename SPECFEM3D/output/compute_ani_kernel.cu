@@ -57,13 +57,13 @@ __device__ void compute_strain_product(float * prod, const float eps_trace_over_
   int j;
   eps[0 - 0] = epsdev[0 - 0] + eps_trace_over_3;
   eps[1 - 0] = epsdev[1 - 0] + eps_trace_over_3;
-  eps[2 - 0] =  - (eps[0 - 0] + eps[1 - 0]) + (eps_trace_over_3) * (3.0f);
+  eps[2 - 0] =  -(eps[0 - 0] + eps[1 - 0]) + (eps_trace_over_3) * (3.0f);
   eps[3 - 0] = epsdev[4 - 0];
   eps[4 - 0] = epsdev[3 - 0];
   eps[5 - 0] = epsdev[2 - 0];
   b_eps[0 - 0] = b_epsdev[0 - 0] + b_eps_trace_over_3;
   b_eps[1 - 0] = b_epsdev[1 - 0] + b_eps_trace_over_3;
-  b_eps[2 - 0] =  - (b_eps[0 - 0] + b_eps[1 - 0]) + (b_eps_trace_over_3) * (3.0f);
+  b_eps[2 - 0] =  -(b_eps[0 - 0] + b_eps[1 - 0]) + (b_eps_trace_over_3) * (3.0f);
   b_eps[3 - 0] = b_epsdev[4 - 0];
   b_eps[4 - 0] = b_epsdev[3 - 0];
   b_eps[5 - 0] = b_epsdev[2 - 0];

@@ -61,13 +61,14 @@ inline void atomicAdd(volatile __global float *source, const float val) {\n\
 #define BLOCKSIZE_TRANSFER 256\n\
 #endif\n\
 __kernel void write_seismograms_transfer_strain_from_device_kernel(const __global int * number_receiver_global, const __global int * ispec_selected_rec, const __global int * ibool, __global float * station_strain_field, const __global float * d_field, const int nrec_local){\n\
+  int tx;\n\
+  int irec;\n\
+  int ispec;\n\
+  int iglob;\n\
   int blockID;\n\
   blockID = get_group_id(0) + (get_group_id(1)) * (get_num_groups(0));\n\
   tx = get_local_id(0);\n\
   if(blockID < nrec_local){\n\
-    int irec;\n\
-    int ispec;\n\
-    int iglob;\n\
     irec = number_receiver_global[blockID - 0] - (1);\n\
     ispec = ispec_selected_rec[irec - 0] - (1);\n\
     iglob = ibool[tx + (NGLL3) * (ispec) - 0] - (1);\n\

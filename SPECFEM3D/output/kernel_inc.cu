@@ -38,3 +38,4 @@
 #include "compute_strength_noise_kernel.cu"
 #include "crust_mantle_impl_kernel_forward.cu"
 #include "crust_mantle_impl_kernel_adjoint.cu"
+#include "compute_ani_undo_att_kernel.cu"

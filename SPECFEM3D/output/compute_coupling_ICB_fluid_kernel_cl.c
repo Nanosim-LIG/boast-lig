@@ -92,11 +92,11 @@ __kernel void compute_coupling_ICB_fluid_kernel(const __global float * displ_inn
     if(GRAVITY){\n\
       pressure = (RHO_BOTTOM_OC) * ((minus_g_icb) * ((displ_inner_core[(iglob_ic) * (3) - 0]) * (nx) + (displ_inner_core[(iglob_ic) * (3) + 1 - 0]) * (ny) + (displ_inner_core[(iglob_ic) * (3) + 2 - 0]) * (nz)) - (accel_outer_core[iglob_oc - 0]));\n\
     } else {\n\
-      pressure = ( - (RHO_BOTTOM_OC)) * (accel_outer_core[iglob_oc - 0]);\n\
+      pressure = ( -(RHO_BOTTOM_OC)) * (accel_outer_core[iglob_oc - 0]);\n\
     }\n\
-    atomicAdd(accel_inner_core + (iglob_ic) * (3) + 0, (( - (weight)) * (nx)) * (pressure));\n\
-    atomicAdd(accel_inner_core + (iglob_ic) * (3) + 1, (( - (weight)) * (ny)) * (pressure));\n\
-    atomicAdd(accel_inner_core + (iglob_ic) * (3) + 2, (( - (weight)) * (nz)) * (pressure));\n\
+    atomicAdd(accel_inner_core + (iglob_ic) * (3) + 0, (( -(weight)) * (nx)) * (pressure));\n\
+    atomicAdd(accel_inner_core + (iglob_ic) * (3) + 1, (( -(weight)) * (ny)) * (pressure));\n\
+    atomicAdd(accel_inner_core + (iglob_ic) * (3) + 2, (( -(weight)) * (nz)) * (pressure));\n\
   }\n\
 }\n\
 ";

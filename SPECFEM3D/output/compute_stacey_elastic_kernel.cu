@@ -152,9 +152,9 @@ __global__ void compute_stacey_elastic_kernel(const float * veloc, float * accel
   ty = ((rho_vp_temp) * (vn)) * (ny) + (rho_vs_temp) * (vy - ((vn) * (ny)));
   tz = ((rho_vp_temp) * (vn)) * (nz) + (rho_vs_temp) * (vz - ((vn) * (nz)));
   jacobianw = (abs_boundary_jacobian2D[INDEX2(NGLL2, igll, iface) - 0]) * (fac1);
-  atomicAdd(accel + (iglob) * (3) + 0, ( - (tx)) * (jacobianw));
-  atomicAdd(accel + (iglob) * (3) + 1, ( - (ty)) * (jacobianw));
-  atomicAdd(accel + (iglob) * (3) + 2, ( - (tz)) * (jacobianw));
+  atomicAdd(accel + (iglob) * (3) + 0, ( -(tx)) * (jacobianw));
+  atomicAdd(accel + (iglob) * (3) + 1, ( -(ty)) * (jacobianw));
+  atomicAdd(accel + (iglob) * (3) + 2, ( -(tz)) * (jacobianw));
   if(SAVE_FORWARD){
     b_absorb_field[INDEX3(NDIM, NGLL2, 0, igll, iface) - 0] = (tx) * (jacobianw);
     b_absorb_field[INDEX3(NDIM, NGLL2, 1, igll, iface) - 0] = (ty) * (jacobianw);

@@ -141,15 +141,15 @@ void compute_element_ic_gravity(const int tx, const int iglob, const __global fl
   sx_l = (rho) * (s_dummyx_loc[tx - 0]);\n\
   sy_l = (rho) * (s_dummyy_loc[tx - 0]);\n\
   sz_l = (rho) * (s_dummyz_loc[tx - 0]);\n\
-   *(sigma_xx) =  *(sigma_xx) + (sy_l) * (gyl) + (sz_l) * (gzl);\n\
-   *(sigma_yy) =  *(sigma_yy) + (sx_l) * (gxl) + (sz_l) * (gzl);\n\
-   *(sigma_zz) =  *(sigma_zz) + (sx_l) * (gxl) + (sy_l) * (gyl);\n\
-   *(sigma_xy) =  *(sigma_xy) - ((sx_l) * (gyl));\n\
-   *(sigma_yx) =  *(sigma_yx) - ((sy_l) * (gxl));\n\
-   *(sigma_xz) =  *(sigma_xz) - ((sx_l) * (gzl));\n\
-   *(sigma_zx) =  *(sigma_zx) - ((sz_l) * (gxl));\n\
-   *(sigma_yz) =  *(sigma_yz) - ((sy_l) * (gzl));\n\
-   *(sigma_zy) =  *(sigma_zy) - ((sz_l) * (gyl));\n\
+  *(sigma_xx) = *(sigma_xx) + (sy_l) * (gyl) + (sz_l) * (gzl);\n\
+  *(sigma_yy) = *(sigma_yy) + (sx_l) * (gxl) + (sz_l) * (gzl);\n\
+  *(sigma_zz) = *(sigma_zz) + (sx_l) * (gxl) + (sy_l) * (gyl);\n\
+  *(sigma_xy) = *(sigma_xy) - ((sx_l) * (gyl));\n\
+  *(sigma_yx) = *(sigma_yx) - ((sy_l) * (gxl));\n\
+  *(sigma_xz) = *(sigma_xz) - ((sx_l) * (gzl));\n\
+  *(sigma_zx) = *(sigma_zx) - ((sz_l) * (gxl));\n\
+  *(sigma_yz) = *(sigma_yz) - ((sy_l) * (gzl));\n\
+  *(sigma_zy) = *(sigma_zy) - ((sz_l) * (gyl));\n\
   factor = (jacobianl) * (wgll_cube[tx - 0]);\n\
   rho_s_H1[0 - 0] = (factor) * ((sx_l) * (Hxxl) + (sy_l) * (Hxyl) + (sz_l) * (Hxzl));\n\
   rho_s_H2[0 - 0] = (factor) * ((sx_l) * (Hxyl) + (sy_l) * (Hyyl) + (sz_l) * (Hyzl));\n\
@@ -631,9 +631,9 @@ __kernel void inner_core_impl_kernel_adjoint(const int nb_blocks_to_compute, con
     fac1 = d_wgllwgll_yz[(K) * (NGLLX) + J - 0];\n\
     fac2 = d_wgllwgll_xz[(K) * (NGLLX) + I - 0];\n\
     fac3 = d_wgllwgll_xy[(J) * (NGLLX) + I - 0];\n\
-    sum_terms1 =  - ((fac1) * (tempx1l) + (fac2) * (tempx2l) + (fac3) * (tempx3l));\n\
-    sum_terms2 =  - ((fac1) * (tempy1l) + (fac2) * (tempy2l) + (fac3) * (tempy3l));\n\
-    sum_terms3 =  - ((fac1) * (tempz1l) + (fac2) * (tempz2l) + (fac3) * (tempz3l));\n\
+    sum_terms1 =  -((fac1) * (tempx1l) + (fac2) * (tempx2l) + (fac3) * (tempx3l));\n\
+    sum_terms2 =  -((fac1) * (tempy1l) + (fac2) * (tempy2l) + (fac3) * (tempy3l));\n\
+    sum_terms3 =  -((fac1) * (tempz1l) + (fac2) * (tempz2l) + (fac3) * (tempz3l));\n\
     if(GRAVITY){\n\
       sum_terms1 = sum_terms1 + rho_s_H1;\n\
       sum_terms2 = sum_terms2 + rho_s_H2;\n\
