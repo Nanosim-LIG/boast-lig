@@ -68,13 +68,13 @@ void compute_strain_product(float * prod, const float eps_trace_over_3, const fl
   int j;\n\
   eps[0 - 0] = epsdev[0 - 0] + eps_trace_over_3;\n\
   eps[1 - 0] = epsdev[1 - 0] + eps_trace_over_3;\n\
-  eps[2 - 0] =  -(eps[0 - 0] + eps[1 - 0]) + (eps_trace_over_3) * (3.0f);\n\
+  eps[2 - 0] =  - (eps[0 - 0] + eps[1 - 0]) + (eps_trace_over_3) * (3.0f);\n\
   eps[3 - 0] = epsdev[4 - 0];\n\
   eps[4 - 0] = epsdev[3 - 0];\n\
   eps[5 - 0] = epsdev[2 - 0];\n\
   b_eps[0 - 0] = b_epsdev[0 - 0] + b_eps_trace_over_3;\n\
   b_eps[1 - 0] = b_epsdev[1 - 0] + b_eps_trace_over_3;\n\
-  b_eps[2 - 0] =  -(b_eps[0 - 0] + b_eps[1 - 0]) + (b_eps_trace_over_3) * (3.0f);\n\
+  b_eps[2 - 0] =  - (b_eps[0 - 0] + b_eps[1 - 0]) + (b_eps_trace_over_3) * (3.0f);\n\
   b_eps[3 - 0] = b_epsdev[4 - 0];\n\
   b_eps[4 - 0] = b_epsdev[3 - 0];\n\
   b_eps[5 - 0] = b_epsdev[2 - 0];\n\

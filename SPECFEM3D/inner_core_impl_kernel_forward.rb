@@ -413,11 +413,6 @@ module BOAST
     return BOAST::impl_kernel(:inner_core, true, ref, mesh_coloring, textures_fields, textures_constants, unroll_loops, n_gllx, n_gll2, n_gll3, n_gll3_padded, n_sls, r_earth_km, coloring_min_nspec_inner_core, i_flag_in_fictitious_cube)
   end
 
-  def BOAST::inner_core_impl_kernel_adjoint(ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = true, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11)
-    return BOAST::impl_kernel(:inner_core, false, ref, mesh_coloring, textures_fields, textures_constants, unroll_loops, n_gllx, n_gll2, n_gll3, n_gll3_padded, n_sls, r_earth_km, coloring_min_nspec_inner_core, i_flag_in_fictitious_cube)
-  end
-
-
   def BOAST::impl_kernel(type, forward, ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11)
     push_env( :array_start => 0 )
     kernel = CKernel::new
@@ -532,11 +527,11 @@ module BOAST
     constants = []
 
     if type == :inner_core then
-      d_displ_tex = Real("d_#{forward?"":"b_"}displ_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-      d_accel_tex = Real("d_#{forward?"":"b_"}accel_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_displ_tex = Real("d_#{forward ? "":"b_"}displ_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_accel_tex = Real("d_#{forward ? "":"b_"}accel_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
     elsif type == :crust_mantle then        
-      d_displ_tex = Real("d_#{forward?"":"b_"}displ_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-      d_accel_tex = Real("d_#{forward?"":"b_"}accel_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_displ_tex = Real("d_#{forward ? "":"b_"}displ_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_accel_tex = Real("d_#{forward ? "":"b_"}accel_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
     end
     if get_lang == CL then
       v.push(d_displ_tex, d_accel_tex)

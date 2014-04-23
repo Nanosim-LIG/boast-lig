@@ -1,4 +1,4 @@
-const char * outer_core_impl_kernel_program = "\
+const char * outer_core_impl_kernel_adjoint_program = "\
 inline void atomicAdd(volatile __global float *source, const float val) {\n\
   union {\n\
     unsigned int iVal;\n\
@@ -75,24 +75,25 @@ void compute_element_oc_rotation(const int tx, const int working_element, const 
   A_rotation = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0];\n\
   B_rotation = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0];\n\
   dpotentialdx_with_rot[0 - 0] = dpotentialdxl + (A_rotation) * (cos_two_omega_t) + (B_rotation) * (sin_two_omega_t);\n\
-  dpotentialdy_with_rot[0 - 0] = dpotentialdyl + ( -(A_rotation)) * (sin_two_omega_t) + (B_rotation) * (cos_two_omega_t);\n\
+  dpotentialdy_with_rot[0 - 0] = dpotentialdyl + ( - (A_rotation)) * (sin_two_omega_t) + (B_rotation) * (cos_two_omega_t);\n\
   d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_A;\n\
   d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_B;\n\
 }\n\
-__kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int NGLOB, const __global int * d_ibool, const __global int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const __global float * d_potential, __global float * d_potential_dot_dot, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx, const __global float * d_hprimewgll_xx, const __global float * wgllwgll_xy, const __global float * wgllwgll_xz, const __global float * wgllwgll_yz, const int GRAVITY, const __global float * d_xstore, const __global float * d_ystore, const __global float * d_zstore, const __global float * d_d_ln_density_dr_table, const __global float * d_minus_rho_g_over_kappa_fluid, const __global float * wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, __global float * d_A_array_rotation, __global float * d_B_array_rotation, const int NSPEC_OUTER_CORE, __read_only image2d_t d_displ_oc_tex, __read_only image2d_t d_accel_oc_tex, __read_only image2d_t d_hprime_xx_oc_tex){\n\
+__kernel void outer_core_impl_kerneladjoint(const int nb_blocks_to_compute, const __global int * d_ibool, const __global int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const __global float * d_potential, __global float * d_potential_dot_dot, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx, const __global float * d_hprimewgll_xx, const __global float * wgllwgll_xy, const __global float * wgllwgll_xz, const __global float * wgllwgll_yz, const int GRAVITY, const __global float * d_xstore, const __global float * d_ystore, const __global float * d_zstore, const __global float * d_d_ln_density_dr_table, const __global float * d_minus_rho_g_over_kappa_fluid, const __global float * wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, __global float * d_A_array_rotation, __global float * d_B_array_rotation, const int NSPEC_OUTER_CORE, __read_only image2d_t d_b_displ_oc_tex, __read_only image2d_t d_b_accel_oc_tex, __read_only image2d_t d_hprime_xx_oc_tex){\n\
 #ifdef USE_TEXTURES_FIELDS\n\
-  const sampler_t sampler_d_displ_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
-  const sampler_t sampler_d_accel_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
+  const sampler_t sampler_d_b_displ_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
+  const sampler_t sampler_d_b_accel_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
 #endif\n\
 #ifdef USE_TEXTURES_CONSTANTS\n\
   const sampler_t sampler_d_hprime_xx_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
+  const sampler_t sampler_d_hprimewgll_xx_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
 #endif\n\
   int bx;\n\
   int tx;\n\
   int K;\n\
   int J;\n\
   int I;\n\
-  int active;\n\
+  ushort active;\n\
   int offset;\n\
   int iglob;\n\
   int working_element;\n\
@@ -155,7 +156,7 @@ __kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int N
 #endif\n\
     iglob = d_ibool[(working_element) * (NGLL3) + tx - 0] - (1);\n\
 #ifdef USE_TEXTURES_FIELDS\n\
-    s_dummy_loc[tx - 0] = as_float(read_imageui(d_displ_oc_tex, sampler_d_displ_oc_tex, int2(iglob,0)).x);\n\
+    s_dummy_loc[tx - 0] = as_float(read_imageui(d_b_displ_oc_tex, sampler_d_b_displ_oc_tex, int2(iglob,0)).x);\n\
 #else\n\
     s_dummy_loc[tx - 0] = d_potential[iglob - 0];\n\
 #endif\n\
@@ -163,10 +164,11 @@ __kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int N
   if(tx < NGLL2){\n\
 #ifdef USE_TEXTURES_CONSTANTS\n\
     sh_hprime_xx[tx - 0] = as_float(read_imageui(d_hprime_xx_oc_tex, sampler_d_hprime_xx_oc_tex, int2(tx,0)).x);\n\
+    sh_hprimewgll_xx[tx - 0] = as_float(read_imageui(d_hprimewgll_xx_oc_tex, sampler_d_hprimewgll_xx_oc_tex, int2(tx,0)).x);\n\
 #else\n\
     sh_hprime_xx[tx - 0] = d_hprime_xx[tx - 0];\n\
-#endif\n\
     sh_hprimewgll_xx[tx - 0] = d_hprimewgll_xx[tx - 0];\n\
+#endif\n\
   }\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
   if(active){\n\
@@ -267,13 +269,13 @@ __kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int N
       temp3l = temp3l + (s_temp3[(l) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + l - 0]);\n\
     }\n\
 #endif\n\
-    sum_terms =  -((wgllwgll_yz[(K) * (NGLLX) + J - 0]) * (temp1l) + (wgllwgll_xz[(K) * (NGLLX) + I - 0]) * (temp2l) + (wgllwgll_xy[(J) * (NGLLX) + I - 0]) * (temp3l));\n\
+    sum_terms =  - ((wgllwgll_yz[(K) * (NGLLX) + J - 0]) * (temp1l) + (wgllwgll_xz[(K) * (NGLLX) + I - 0]) * (temp2l) + (wgllwgll_xy[(J) * (NGLLX) + I - 0]) * (temp3l));\n\
     if(GRAVITY){\n\
       sum_terms = sum_terms + gravity_term;\n\
     }\n\
 #ifdef USE_MESH_COLORING_GPU\n\
 #ifdef USE_TEXTURES_FIELDS\n\
-    d_potential_dot_dot[iglob - 0] = as_float(read_imageui(d_accel_oc_tex, sampler_d_accel_oc_tex, int2(iglob,0)).x) + sum_terms;\n\
+    d_potential_dot_dot[iglob - 0] = as_float(read_imageui(d_b_accel_oc_tex, sampler_d_b_accel_oc_tex, int2(iglob,0)).x) + sum_terms;\n\
 #else\n\
     d_potential_dot_dot[iglob - 0] = d_potential_dot_dot[iglob - 0] + sum_terms;\n\
 #endif\n\
@@ -281,7 +283,7 @@ __kernel void outer_core_impl_kernel(const int nb_blocks_to_compute, const int N
     if(use_mesh_coloring_gpu){\n\
       if(NSPEC_OUTER_CORE > 1000){\n\
 #ifdef USE_TEXTURES_FIELDS\n\
-        d_potential_dot_dot[iglob - 0] = as_float(read_imageui(d_accel_oc_tex, sampler_d_accel_oc_tex, int2(iglob,0)).x) + sum_terms;\n\
+        d_potential_dot_dot[iglob - 0] = as_float(read_imageui(d_b_accel_oc_tex, sampler_d_b_accel_oc_tex, int2(iglob,0)).x) + sum_terms;\n\
 #else\n\
         d_potential_dot_dot[iglob - 0] = d_potential_dot_dot[iglob - 0] + sum_terms;\n\
 #endif\n\

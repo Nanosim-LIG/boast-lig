@@ -81,7 +81,7 @@ __global__ void compute_coupling_CMB_fluid_kernel(const float * displ_crust_mant
     if(GRAVITY){
       pressure = (RHO_TOP_OC) * ((minus_g_cmb) * ((displ_crust_mantle[(iglob_cm) * (3) - 0]) * (nx) + (displ_crust_mantle[(iglob_cm) * (3) + 1 - 0]) * (ny) + (displ_crust_mantle[(iglob_cm) * (3) + 2 - 0]) * (nz)) - (accel_outer_core[iglob_oc - 0]));
     } else {
-      pressure = ( -(RHO_TOP_OC)) * (accel_outer_core[iglob_oc - 0]);
+      pressure = ( - (RHO_TOP_OC)) * (accel_outer_core[iglob_oc - 0]);
     }
     atomicAdd(accel_crust_mantle + (iglob_cm) * (3) + 0, ((weight) * (nx)) * (pressure));
     atomicAdd(accel_crust_mantle + (iglob_cm) * (3) + 1, ((weight) * (ny)) * (pressure));

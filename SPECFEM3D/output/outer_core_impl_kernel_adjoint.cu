@@ -50,8 +50,8 @@
 #define BLOCKSIZE_TRANSFER 256
 #endif
 #ifdef USE_TEXTURES_FIELDS
-texture<float, cudaTextureType1D, cudaReadModeElementType> d_displ_oc_tex;
-texture<float, cudaTextureType1D, cudaReadModeElementType> d_accel_oc_tex;
+texture<float, cudaTextureType1D, cudaReadModeElementType> d_b_displ_oc_tex;
+texture<float, cudaTextureType1D, cudaReadModeElementType> d_b_accel_oc_tex;
 #endif
 #ifdef USE_TEXTURES_CONSTANTS
 texture<float, cudaTextureType1D, cudaReadModeElementType> d_hprime_xx_oc_tex;
@@ -71,17 +71,17 @@ __device__ void compute_element_oc_rotation(const int tx, const int working_elem
   A_rotation = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0];
   B_rotation = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0];
   dpotentialdx_with_rot[0 - 0] = dpotentialdxl + (A_rotation) * (cos_two_omega_t) + (B_rotation) * (sin_two_omega_t);
-  dpotentialdy_with_rot[0 - 0] = dpotentialdyl + ( -(A_rotation)) * (sin_two_omega_t) + (B_rotation) * (cos_two_omega_t);
+  dpotentialdy_with_rot[0 - 0] = dpotentialdyl + ( - (A_rotation)) * (sin_two_omega_t) + (B_rotation) * (cos_two_omega_t);
   d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_A;
   d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_B;
 }
-__global__ void outer_core_impl_kernel(const int nb_blocks_to_compute, const int NGLOB, const int * d_ibool, const int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const float * d_potential, float * d_potential_dot_dot, const float * d_xix, const float * d_xiy, const float * d_xiz, const float * d_etax, const float * d_etay, const float * d_etaz, const float * d_gammax, const float * d_gammay, const float * d_gammaz, const float * d_hprime_xx, const float * d_hprimewgll_xx, const float * wgllwgll_xy, const float * wgllwgll_xz, const float * wgllwgll_yz, const int GRAVITY, const float * d_xstore, const float * d_ystore, const float * d_zstore, const float * d_d_ln_density_dr_table, const float * d_minus_rho_g_over_kappa_fluid, const float * wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, float * d_A_array_rotation, float * d_B_array_rotation, const int NSPEC_OUTER_CORE){
+__global__ void outer_core_impl_kerneladjoint(const int nb_blocks_to_compute, const int * d_ibool, const int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const float * d_potential, float * d_potential_dot_dot, const float * d_xix, const float * d_xiy, const float * d_xiz, const float * d_etax, const float * d_etay, const float * d_etaz, const float * d_gammax, const float * d_gammay, const float * d_gammaz, const float * d_hprime_xx, const float * d_hprimewgll_xx, const float * wgllwgll_xy, const float * wgllwgll_xz, const float * wgllwgll_yz, const int GRAVITY, const float * d_xstore, const float * d_ystore, const float * d_zstore, const float * d_d_ln_density_dr_table, const float * d_minus_rho_g_over_kappa_fluid, const float * wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, float * d_A_array_rotation, float * d_B_array_rotation, const int NSPEC_OUTER_CORE){
   int bx;
   int tx;
   int K;
   int J;
   int I;
-  int active;
+  unsigned short active;
   int offset;
   int iglob;
   int working_element;
@@ -144,7 +144,7 @@ __global__ void outer_core_impl_kernel(const int nb_blocks_to_compute, const int
 #endif
     iglob = d_ibool[(working_element) * (NGLL3) + tx - 0] - (1);
 #ifdef USE_TEXTURES_FIELDS
-    s_dummy_loc[tx - 0] = tex1Dfetch(d_displ_oc_tex,iglob);
+    s_dummy_loc[tx - 0] = tex1Dfetch(d_b_displ_oc_tex,iglob);
 #else
     s_dummy_loc[tx - 0] = d_potential[iglob - 0];
 #endif
@@ -152,10 +152,11 @@ __global__ void outer_core_impl_kernel(const int nb_blocks_to_compute, const int
   if(tx < NGLL2){
 #ifdef USE_TEXTURES_CONSTANTS
     sh_hprime_xx[tx - 0] = tex1Dfetch(d_hprime_xx_oc_tex,tx);
+    sh_hprimewgll_xx[tx - 0] = tex1Dfetch(d_hprimewgll_xx_oc_tex,tx);
 #else
     sh_hprime_xx[tx - 0] = d_hprime_xx[tx - 0];
-#endif
     sh_hprimewgll_xx[tx - 0] = d_hprimewgll_xx[tx - 0];
+#endif
   }
   __syncthreads();
   if(active){
@@ -256,13 +257,13 @@ __global__ void outer_core_impl_kernel(const int nb_blocks_to_compute, const int
       temp3l = temp3l + (s_temp3[(l) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprimewgll_xx[(K) * (NGLLX) + l - 0]);
     }
 #endif
-    sum_terms =  -((wgllwgll_yz[(K) * (NGLLX) + J - 0]) * (temp1l) + (wgllwgll_xz[(K) * (NGLLX) + I - 0]) * (temp2l) + (wgllwgll_xy[(J) * (NGLLX) + I - 0]) * (temp3l));
+    sum_terms =  - ((wgllwgll_yz[(K) * (NGLLX) + J - 0]) * (temp1l) + (wgllwgll_xz[(K) * (NGLLX) + I - 0]) * (temp2l) + (wgllwgll_xy[(J) * (NGLLX) + I - 0]) * (temp3l));
     if(GRAVITY){
       sum_terms = sum_terms + gravity_term;
     }
 #ifdef USE_MESH_COLORING_GPU
 #ifdef USE_TEXTURES_FIELDS
-    d_potential_dot_dot[iglob - 0] = tex1Dfetch(d_accel_oc_tex,iglob) + sum_terms;
+    d_potential_dot_dot[iglob - 0] = tex1Dfetch(d_b_accel_oc_tex,iglob) + sum_terms;
 #else
     d_potential_dot_dot[iglob - 0] = d_potential_dot_dot[iglob - 0] + sum_terms;
 #endif
@@ -270,7 +271,7 @@ __global__ void outer_core_impl_kernel(const int nb_blocks_to_compute, const int
     if(use_mesh_coloring_gpu){
       if(NSPEC_OUTER_CORE > 1000){
 #ifdef USE_TEXTURES_FIELDS
-        d_potential_dot_dot[iglob - 0] = tex1Dfetch(d_accel_oc_tex,iglob) + sum_terms;
+        d_potential_dot_dot[iglob - 0] = tex1Dfetch(d_b_accel_oc_tex,iglob) + sum_terms;
 #else
         d_potential_dot_dot[iglob - 0] = d_potential_dot_dot[iglob - 0] + sum_terms;
 #endif

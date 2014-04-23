@@ -85,6 +85,6 @@ __global__ void compute_coupling_fluid_ICB_kernel(const float * displ_inner_core
     displ_n = (displ_x) * (nx) + (displ_y) * (ny) + (displ_z) * (nz);
     weight = (jacobian2D_bottom_outer_core[INDEX3(NGLLX, NGLLX, i, j, iface) - 0]) * (wgllwgll_xy[INDEX2(NGLLX, i, j) - 0]);
     iglob_oc = ibool_outer_core[INDEX4(NGLLX, NGLLX, NGLLX, i, j, k, ispec) - 0] - (1);
-    atomicAdd(accel_outer_core + iglob_oc, ( -(weight)) * (displ_n));
+    atomicAdd(accel_outer_core + iglob_oc, ( - (weight)) * (displ_n));
   }
 }

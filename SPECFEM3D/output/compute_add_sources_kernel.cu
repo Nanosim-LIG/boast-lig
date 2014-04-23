@@ -49,7 +49,7 @@
 #ifndef BLOCKSIZE_TRANSFER
 #define BLOCKSIZE_TRANSFER 256
 #endif
-__global__ void compute_add_sources_kernel(float * accel, const int * ibool, const float * sourcearrays, const double * stf_pre_compute, const int myrank, const int * islice_selected_source, const int * ispec_selected_source, const int nsources){
+__global__ void compute_add_sources_kernel(float * accel, const int * ibool, const float * sourcearrays, const double * stf_pre_compute, const int myrank, const int * islice_selected_source, const int * ispec_selected_source, const int NSOURCES){
   int ispec;
   int iglob;
   float stf;
@@ -61,7 +61,7 @@ __global__ void compute_add_sources_kernel(float * accel, const int * ibool, con
   j = threadIdx.y;
   k = threadIdx.z;
   isource = blockIdx.x + (gridDim.x) * (blockIdx.y);
-  if(isource < nsources){
+  if(isource < NSOURCES){
     if(myrank == islice_selected_source[isource - 0]){
       ispec = ispec_selected_source[isource - 0] - (1);
       stf = stf_pre_compute[isource - 0];

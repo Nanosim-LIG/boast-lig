@@ -49,16 +49,17 @@
 #ifndef BLOCKSIZE_TRANSFER
 #define BLOCKSIZE_TRANSFER 256
 #endif
-__global__ void write_seismograms_transfer_scalar_from_device_kernel(const int * number_receiver_global, const int * ispec_selected_rec, const int * ibool, float * station_seismo_field, const float * desired_field, const int nrec_local){
+__global__ void write_seismograms_transfer_strain_from_device_kernel(const int * number_receiver_global, const int * ispec_selected_rec, const int * ibool, float * station_strain_field, const float * d_field, const int nrec_local){
   int blockID;
   blockID = blockIdx.x + (blockIdx.y) * (gridDim.x);
+  tx = threadIdx.x;
   if(blockID < nrec_local){
     int irec;
     int ispec;
     int iglob;
     irec = number_receiver_global[blockID - 0] - (1);
     ispec = ispec_selected_rec[irec - 0] - (1);
-    iglob = ibool[threadIdx.x + (NGLL3) * (ispec) - 0] - (1);
-    station_seismo_field[(NGLL3) * (blockID) + threadIdx.x - 0] = desired_field[iglob - 0];
+    iglob = ibool[tx + (NGLL3) * (ispec) - 0] - (1);
+    station_strain_field[(NGLL3) * (blockID) + tx - 0] = d_field[iglob - 0];
   }
 }
