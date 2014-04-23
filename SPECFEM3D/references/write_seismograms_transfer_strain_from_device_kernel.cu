@@ -1,5 +1,14 @@
 // from write_seismograms_cuda.cu
-__global__ void write_seismograms_transfer_strain_from_device_kernel(int* number_receiver_global,int* ispec_selected_rec,int* ibool,realw* station_strain_field,realw* d_field,int nrec_local) {
+#define NGLL3 125
+
+typedef float realw;
+
+__global__ void write_seismograms_transfer_strain_from_device_kernel(int* number_receiver_global,
+                                                                     int* ispec_selected_rec,
+                                                                     int* ibool,
+                                                                     realw* station_strain_field,
+                                                                     realw* d_field,
+                                                                     int nrec_local) {
 
 // scalar fields
 
