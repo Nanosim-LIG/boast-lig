@@ -27,10 +27,10 @@ module BOAST
 
     sub = Procedure(function_name, v, [], :local => true) {
       decl tx = Int("tx")
-      deck k = Int("K") 
-      deck j = Int("J") 
-      deck i = Int("I")
-      deck l = Int("l")
+      decl k = Int("K") 
+      decl j = Int("J") 
+      decl i = Int("I")
+      decl l = Int("l")
       decl offset = Int("offset")
       tempanl = ["x", "y", "z"].collect { |a|
         [ 1, 2, 3 ].collect { |n|

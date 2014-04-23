@@ -82,6 +82,10 @@ __device__ void compute_strain_product(float * prod, const float eps_trace_over_
 }
 __device__ void compute_element_strain_undo_att(const int ispec, const int ijk_ispec, const float * s_dummyx_loc, const float * s_dummyy_loc, const float * s_dummyz_loc, const float * d_xix, const float * d_xiy, const float * d_xiz, const float * d_etax, const float * d_etay, const float * d_etaz, const float * d_gammax, const float * d_gammay, const float * d_gammaz, const float * sh_hprime_xx, float * epsilondev_loc, float * epsilon_trace_over_3){
   int tx;
+  int K;
+  int J;
+  int I;
+  int l;
   int offset;
   float tempx1l;
   float tempx2l;
