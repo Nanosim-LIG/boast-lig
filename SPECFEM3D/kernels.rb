@@ -120,26 +120,36 @@ langs.each { |lang|
   if lang == :CUDA then
     suffix = ".cu"
     kern_proto_f = File::new("#{$options[:output_dir]}/kernel_proto.cu.h", "w+")
+    kern_mk_f = File::new("#{$options[:output_dir]}/kernel_cuda.mk", "w+")
+    kern_mk_f.puts "cuda_kernels_OBJS := \\"
   elsif lang == :CL
     suffix = "_cl.c"
+    kern_inc_f = File::new("#{$options[:output_dir]}/kernel_inc"+suffix, "w+")
   end
-  kern_inc_f = File::new("#{$options[:output_dir]}/kernel_inc"+suffix, "w+")
+  
   kern_list_f = File::new("#{$options[:output_dir]}/kernel_list.h", "w+")
 
   kernels.each { |kern|
     kern_list_f.puts "BOAST_KERNEL(#{kern.to_s});"
-    kern_inc_f.puts "#include \"#{kern.to_s}#{suffix}\""
+    
     if lang == :CUDA then
       require "./#{kern.to_s}.rb"
       BOAST::set_lang( BOAST::const_get(lang))
       k = BOAST::method(kern).call(false)
       proto = k.procedure.decl(false)[0..-3]+";"
       kern_proto_f.puts proto
+      kern_mk_f.puts "\t$0/#{kern.to_s}.cuda-kernel.o \\"
+    elsif lang == :CL
+      kern_inc_f.puts "#include \"#{kern.to_s}#{suffix}\""
     end
   }
+
   kern_list_f.close
-  kern_inc_f.close
   if lang == :CUDA then
     kern_proto_f.close
+    kern_mk_f.puts "\t$(EMPTY_MACRO)"
+    kern_mk_f.close
+  elsif lang == :CL
+    kern_inc_f.close
   end
 }
