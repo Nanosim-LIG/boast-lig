@@ -66,7 +66,8 @@ kernels = [
 :compute_strength_noise_kernel,
 :crust_mantle_impl_kernel_forward,
 :crust_mantle_impl_kernel_adjoint,
-:compute_ani_undo_att_kernel
+:compute_ani_undo_att_kernel,
+:compute_iso_undo_att_kernel
 ]
 
 langs = [ :CUDA, :CL]

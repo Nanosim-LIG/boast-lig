@@ -1,4 +1,4 @@
-const char * compute_ani_undo_att_kernel_program = "\
+const char * compute_iso_undo_att_kernel_program = "\
 inline void atomicAdd(volatile __global float *source, const float val) {\n\
   union {\n\
     unsigned int iVal;\n\
@@ -60,37 +60,6 @@ inline void atomicAdd(volatile __global float *source, const float val) {\n\
 #ifndef BLOCKSIZE_TRANSFER\n\
 #define BLOCKSIZE_TRANSFER 256\n\
 #endif\n\
-void compute_strain_product(float * prod, const float eps_trace_over_3, const float * epsdev, const float b_eps_trace_over_3, const float * b_epsdev){\n\
-  float eps[6];\n\
-  float b_eps[6];\n\
-  int p;\n\
-  int i;\n\
-  int j;\n\
-  eps[0 - 0] = epsdev[0 - 0] + eps_trace_over_3;\n\
-  eps[1 - 0] = epsdev[1 - 0] + eps_trace_over_3;\n\
-  eps[2 - 0] =  -(eps[0 - 0] + eps[1 - 0]) + (eps_trace_over_3) * (3.0f);\n\
-  eps[3 - 0] = epsdev[4 - 0];\n\
-  eps[4 - 0] = epsdev[3 - 0];\n\
-  eps[5 - 0] = epsdev[2 - 0];\n\
-  b_eps[0 - 0] = b_epsdev[0 - 0] + b_eps_trace_over_3;\n\
-  b_eps[1 - 0] = b_epsdev[1 - 0] + b_eps_trace_over_3;\n\
-  b_eps[2 - 0] =  -(b_eps[0 - 0] + b_eps[1 - 0]) + (b_eps_trace_over_3) * (3.0f);\n\
-  b_eps[3 - 0] = b_epsdev[4 - 0];\n\
-  b_eps[4 - 0] = b_epsdev[3 - 0];\n\
-  b_eps[5 - 0] = b_epsdev[2 - 0];\n\
-  p = 0;\n\
-  for(i=0; i<=5; i+=1){\n\
-    for(j=0; j<=5; j+=1){\n\
-      prod[p - 0] = (eps[i - 0]) * (b_eps[j - 0]);\n\
-      if(j > i){\n\
-        prod[p - 0] = prod[p - 0] + (eps[j - 0]) * (b_eps[i - 0]);\n\
-        if(j > 2 && i < 3){\n\
-          prod[p - 0] = (prod[p - 0]) * (2.0f);\n\
-        }\n\
-      }\n\
-    }\n\
-  }\n\
-}\n\
 void compute_element_strain_undo_att(const int ispec, const int ijk_ispec, const __global int * d_ibool, const __local float * s_dummyx_loc, const __local float * s_dummyy_loc, const __local float * s_dummyz_loc, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __local float * sh_hprime_xx, float * epsilondev_loc, float * epsilon_trace_over_3){\n\
   int tx;\n\
   int K;\n\
@@ -183,7 +152,7 @@ void compute_element_strain_undo_att(const int ispec, const int ijk_ispec, const
   epsilondev_loc[4 - 0] = (duzdyl + duydzl) * (0.5f);\n\
   *(epsilon_trace_over_3) = templ;\n\
 }\n\
-__kernel void compute_ani_undo_att_kernel(const __global float * epsilondev_xx, const __global float * epsilondev_yy, const __global float * epsilondev_xy, const __global float * epsilondev_xz, const __global float * epsilondev_yz, const __global float * epsilon_trace_over_3, __global float * cijkl_kl, const int NSPEC, const float deltat, const __global int * d_ibool, const __global float * d_b_displ, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx){\n\
+__kernel void compute_iso_undo_att_kernel(const __global float * epsilondev_xx, const __global float * epsilondev_yy, const __global float * epsilondev_xy, const __global float * epsilondev_xz, const __global float * epsilondev_yz, const __global float * epsilon_trace_over_3, __global float * mu_kl, __global float * kappa_kl, const int NSPEC, const float deltat, const __global int * d_ibool, const __global float * d_b_displ, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx){\n\
   int i;\n\
   int ispec;\n\
   int ijk_ispec;\n\
@@ -219,10 +188,8 @@ __kernel void compute_ani_undo_att_kernel(const __global float * epsilondev_xx, 
     epsdev[4 - 0] = epsilondev_yz[ijk_ispec - 0];\n\
     eps_trace_over_3 = epsilon_trace_over_3[ijk_ispec - 0];\n\
     compute_element_strain_undo_att(ispec, ijk_ispec, d_ibool, s_dummyx_loc, s_dummyy_loc, s_dummyz_loc, d_xix, d_xiy, d_xiz, d_etax, d_etay, d_etaz, d_gammax, d_gammay, d_gammaz, sh_hprime_xx, b_epsdev,  &b_eps_trace_over_3);\n\
-    compute_strain_product(prod, eps_trace_over_3, epsdev, b_eps_trace_over_3, b_epsdev);\n\
-    for(i=0; i<=20; i+=1){\n\
-      cijkl_kl[i - 0 + (ijk_ispec - (0)) * (21)] = cijkl_kl[i - 0 + (ijk_ispec - (0)) * (21)] + (deltat) * (prod[i - 0]);\n\
-    }\n\
+    mu_kl[ijk_ispec - 0] = mu_kl[ijk_ispec - 0] + (deltat) * ((epsdev[0 - 0]) * (b_epsdev[0 - 0]) + (epsdev[1 - 0]) * (b_epsdev[1 - 0]) + (epsdev[0 - 0] + epsdev[1 - 0]) * (b_epsdev[0 - 0] + b_epsdev[1 - 0]) + ((epsdev[2 - 0]) * (b_epsdev[2 - 0]) + (epsdev[3 - 0]) * (b_epsdev[3 - 0]) + (epsdev[4 - 0]) * (b_epsdev[4 - 0])) * (2));\n\
+    kappa_kl[ijk_ispec - 0] = kappa_kl[ijk_ispec - 0] + (((deltat) * (9)) * (eps_trace_over_3)) * (b_eps_trace_over_3);\n\
   }\n\
 }\n\
 ";
