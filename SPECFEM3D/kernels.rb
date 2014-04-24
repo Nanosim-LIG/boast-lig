@@ -139,7 +139,7 @@ langs.each { |lang|
       k = BOAST::method(kern).call(false)
       proto = k.procedure.decl(false)[0..-3]+";"
       kern_proto_f.puts proto
-      kern_mk_f.puts "\t$0/#{kern.to_s}.cuda-kernel.o \\"
+      kern_mk_f.puts "\t$O/#{kern.to_s}.cuda-kernel.o \\"
     elsif lang == :CL
       kern_inc_f.puts "#include \"#{kern.to_s}#{suffix}\""
     end
