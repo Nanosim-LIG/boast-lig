@@ -9,6 +9,11 @@ page_size = 4096
 
 output = NArray.int(1024*12).random(1000)
 
+BOAST::set_architecture(BOAST::ARM)
+k = BOAST::kernel_read_vectorized2(8,4,4)
+puts k.print
+
+BOAST::set_architecture(BOAST::X86)
 k = BOAST::kernel_read_vectorized2(8)
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 (1..10).each { |page|
