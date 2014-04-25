@@ -49,14 +49,6 @@
 #ifndef BLOCKSIZE_TRANSFER
 #define BLOCKSIZE_TRANSFER 256
 #endif
-#ifdef USE_TEXTURES_FIELDS
-texture<float, cudaTextureType1D, cudaReadModeElementType> d_displ_cm_tex;
-texture<float, cudaTextureType1D, cudaReadModeElementType> d_accel_cm_tex;
-#endif
-#ifdef USE_TEXTURES_CONSTANTS
-texture<float, cudaTextureType1D, cudaReadModeElementType> d_hprime_xx_cm_tex;
-texture<float, cudaTextureType1D, cudaReadModeElementType> d_hprimewgll_xx_cm_tex;
-#endif
 static __device__ void compute_element_cm_att_stress(const int tx, const int working_element, const float * R_xx, const float * R_yy, const float * R_xy, const float * R_xz, const float * R_yz, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_xz, float * sigma_yz){
   int offset;
   int i_sls;

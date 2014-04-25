@@ -127,15 +127,15 @@ module BOAST
       @@output.print File::read("references/#{function_name}.cu".gsub("_forward","").gsub("_adjoint",""))
     elsif(get_lang == CL or get_lang == CUDA) then
       make_specfem3d_header(:ngllx => n_gllx, :ngll2 => n_gll2, :ngll3 => n_gll3, :ngll3_padded => n_gll3_padded, :r_earth_km => r_earth_km, :coloring_min_nspec_outer_core => coloring_min_nspec_outer_core)
-      if get_lang == CUDA
-        @@output.puts "#ifdef #{use_textures_fields}"
-          decl d_displ_oc_tex
-          decl d_accel_oc_tex
-        @@output.puts "#endif"
-        @@output.puts "#ifdef #{use_textures_constants}"
-          decl d_hprime_xx_oc_tex
-        @@output.puts "#endif"
-      end
+#      if get_lang == CUDA
+#        @@output.puts "#ifdef #{use_textures_fields}"
+#          decl d_displ_oc_tex
+#          decl d_accel_oc_tex
+#        @@output.puts "#endif"
+#        @@output.puts "#ifdef #{use_textures_constants}"
+#          decl d_hprime_xx_oc_tex
+#        @@output.puts "#endif"
+#      end
       sub_kernel =  compute_element_oc_rotation(n_gll3)
       print sub_kernel
       decl p

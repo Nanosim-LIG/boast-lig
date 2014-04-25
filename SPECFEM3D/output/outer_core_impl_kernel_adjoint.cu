@@ -49,13 +49,6 @@
 #ifndef BLOCKSIZE_TRANSFER
 #define BLOCKSIZE_TRANSFER 256
 #endif
-#ifdef USE_TEXTURES_FIELDS
-texture<float, cudaTextureType1D, cudaReadModeElementType> d_b_displ_oc_tex;
-texture<float, cudaTextureType1D, cudaReadModeElementType> d_b_accel_oc_tex;
-#endif
-#ifdef USE_TEXTURES_CONSTANTS
-texture<float, cudaTextureType1D, cudaReadModeElementType> d_hprime_xx_oc_tex;
-#endif
 static __device__ void compute_element_oc_rotation(const int tx, const int working_element, const float time, const float two_omega_earth, const float deltat, float * d_A_array_rotation, float * d_B_array_rotation, const float dpotentialdxl, const float dpotentialdyl, float * dpotentialdx_with_rot, float * dpotentialdy_with_rot){
   float two_omega_deltat;
   float cos_two_omega_t;
