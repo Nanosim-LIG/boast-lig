@@ -515,8 +515,8 @@ __global__ void crust_mantle_impl_kernel_adjoint(const int nb_blocks_to_compute,
   }
   if(tx < NGLL2){
 #ifdef USE_TEXTURES_CONSTANTS
-    sh_hprime_xx[tx - 0] = tex1Dfetch(d_hprime_xx_cm_tex,tx);
-    sh_hprimewgll_xx[tx - 0] = tex1Dfetch(d_hprimewgll_xx_cm_tex,tx);
+    sh_hprime_xx[tx - 0] = tex1Dfetch(d_hprime_xx_tex,tx);
+    sh_hprimewgll_xx[tx - 0] = tex1Dfetch(d_hprimewgll_xx_tex,tx);
 #else
     sh_hprime_xx[tx - 0] = d_hprime_xx[tx - 0];
     sh_hprimewgll_xx[tx - 0] = d_hprimewgll_xx[tx - 0];

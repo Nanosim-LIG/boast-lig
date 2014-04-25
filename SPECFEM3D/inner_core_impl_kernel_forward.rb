@@ -540,8 +540,8 @@ module BOAST
       d_hprime_xx_tex = Real("d_hprime_xx_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
       d_hprimewgll_xx_tex = Real("d_hprimewgll_xx_ic_tex", :texture => true, :dir => :in, :dim => [Dim()] )
     elsif type == :crust_mantle then
-      d_hprime_xx_tex = Real("d_hprime_xx_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
-      d_hprimewgll_xx_tex = Real("d_hprimewgll_xx_cm_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_hprime_xx_tex = Real("d_hprime_xx_tex", :texture => true, :dir => :in, :dim => [Dim()] )
+      d_hprimewgll_xx_tex = Real("d_hprimewgll_xx_tex", :texture => true, :dir => :in, :dim => [Dim()] )
     end
     if get_lang == CL and type == :crust_mantle then
       # WARNING : dectivates texture usage in opencl fo inner core

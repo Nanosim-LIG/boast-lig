@@ -173,7 +173,6 @@ static __device__ void compute_element_strain_undo_att(const int ispec, const in
   *(epsilon_trace_over_3) = templ;
 }
 __global__ void compute_ani_undo_att_kernel(const float * epsilondev_xx, const float * epsilondev_yy, const float * epsilondev_xy, const float * epsilondev_xz, const float * epsilondev_yz, const float * epsilon_trace_over_3, float * cijkl_kl, const int NSPEC, const float deltat, const int * d_ibool, const float * d_b_displ, const float * d_xix, const float * d_xiy, const float * d_xiz, const float * d_etax, const float * d_etay, const float * d_etaz, const float * d_gammax, const float * d_gammay, const float * d_gammaz, const float * d_hprime_xx){
-  int i;
   int ispec;
   int ijk_ispec;
   int tx;
@@ -181,6 +180,7 @@ __global__ void compute_ani_undo_att_kernel(const float * epsilondev_xx, const f
   float eps_trace_over_3;
   float b_eps_trace_over_3;
   float prod[21];
+  int i;
   float epsdev[5];
   float b_epsdev[5];
   __shared__ float s_dummyx_loc[NGLL3 + 0 - (1) - (0) + 1];

@@ -184,7 +184,6 @@ void compute_element_strain_undo_att(const int ispec, const int ijk_ispec, const
   *(epsilon_trace_over_3) = templ;\n\
 }\n\
 __kernel void compute_ani_undo_att_kernel(const __global float * epsilondev_xx, const __global float * epsilondev_yy, const __global float * epsilondev_xy, const __global float * epsilondev_xz, const __global float * epsilondev_yz, const __global float * epsilon_trace_over_3, __global float * cijkl_kl, const int NSPEC, const float deltat, const __global int * d_ibool, const __global float * d_b_displ, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx){\n\
-  int i;\n\
   int ispec;\n\
   int ijk_ispec;\n\
   int tx;\n\
@@ -192,6 +191,7 @@ __kernel void compute_ani_undo_att_kernel(const __global float * epsilondev_xx, 
   float eps_trace_over_3;\n\
   float b_eps_trace_over_3;\n\
   float prod[21];\n\
+  int i;\n\
   float epsdev[5];\n\
   float b_epsdev[5];\n\
   __local float s_dummyx_loc[NGLL3 + 0 - (1) - (0) + 1];\n\

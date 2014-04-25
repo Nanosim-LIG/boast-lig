@@ -60,7 +60,6 @@ module BOAST
 
       decl p
 
-      decl i = Int("i")
       decl ispec = Int("ispec")
       decl ijk_ispec = Int("ijk_ispec")
       decl tx = Int("tx")
@@ -68,7 +67,10 @@ module BOAST
 
       decl eps_trace_over_3 = Real("eps_trace_over_3")
       decl b_eps_trace_over_3 = Real("b_eps_trace_over_3")
-      decl prod = Real("prod", :dim => [Dim(21)], :allocate => true)
+      if type == :ani then 
+        decl prod = Real("prod", :dim => [Dim(21)], :allocate => true)
+        decl i = Int("i")
+      end
       decl epsdev = Real("epsdev", :dim => [Dim(5)], :allocate => true)
       decl b_epsdev = Real("b_epsdev", :dim => [Dim(5)], :allocate => true)
 
