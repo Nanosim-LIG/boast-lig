@@ -554,6 +554,12 @@ module BOAST
       @@output.print File::read("references/#{function_name}.cu".gsub("_forward","").gsub("_adjoint",""))
     elsif(get_lang == CL or get_lang == CUDA) then
       make_specfem3d_header(:ngllx => n_gllx, :ngll2 => n_gll2, :ngll3 => n_gll3, :ngll3_padded => n_gll3_padded, :n_sls => n_sls, :r_earth_km => r_earth_km, :coloring_min_nspec_inner_core => coloring_min_nspec_inner_core, :iflag_in_fictitious_cube => i_flag_in_fictitious_cube)
+      if get_lang == CUDA and type == :inner_core then
+        #DEACTIVATE USE TEXTURES CONSTANTSs
+        @@output.puts "#ifdef #{use_textures_constants}"
+        @@output.puts "#undef #{use_textures_constants}"
+        @@output.puts "#endif"
+      end
 #      if get_lang == CUDA then
 #        @@output.puts "#ifdef #{use_textures_fields}"
 #          decl d_displ_tex
