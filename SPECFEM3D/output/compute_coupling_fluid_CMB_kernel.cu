@@ -1,5 +1,5 @@
 #ifndef INDEX2
-INDEX2(isize,i,j) i + isize*j
+#define INDEX2(isize,i,j) i + isize*j
 #endif
 #ifndef INDEX3
 #define INDEX3(isize,jsize,i,j,k) i + isize*(j + jsize*k)

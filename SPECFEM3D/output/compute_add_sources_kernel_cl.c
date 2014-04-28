@@ -12,7 +12,7 @@ inline void atomicAdd(volatile __global float *source, const float val) {\n\
   } while (atomic_cmpxchg((volatile __global unsigned int *)source, orig.iVal, res.iVal) != orig.iVal);\n\
 }\n\
 #ifndef INDEX2\n\
-INDEX2(isize,i,j) i + isize*j\n\
+#define INDEX2(isize,i,j) i + isize*j\n\
 #endif\n\
 #ifndef INDEX3\n\
 #define INDEX3(isize,jsize,i,j,k) i + isize*(j + jsize*k)\n\
