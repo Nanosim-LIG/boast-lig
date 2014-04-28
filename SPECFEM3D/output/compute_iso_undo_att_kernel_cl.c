@@ -173,9 +173,9 @@ __kernel void compute_iso_undo_att_kernel(const __global float * epsilondev_xx, 
   }\n\
   if(ispec < NSPEC){\n\
     iglob = d_ibool[ijk_ispec - 0] - (1);\n\
-    s_dummyx_loc[tx - 0] = d_b_displ[(iglob) * (3) + 0 - 0 + ( - (0)) * (3)];\n\
-    s_dummyy_loc[tx - 0] = d_b_displ[(iglob) * (3) + 1 - 0 + ( - (0)) * (3)];\n\
-    s_dummyz_loc[tx - 0] = d_b_displ[(iglob) * (3) + 2 - 0 + ( - (0)) * (3)];\n\
+    s_dummyx_loc[tx - 0] = d_b_displ[0 - 0 + (iglob - (0)) * (3)];\n\
+    s_dummyy_loc[tx - 0] = d_b_displ[1 - 0 + (iglob - (0)) * (3)];\n\
+    s_dummyz_loc[tx - 0] = d_b_displ[2 - 0 + (iglob - (0)) * (3)];\n\
   }\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
   if(ispec < NSPEC){\n\

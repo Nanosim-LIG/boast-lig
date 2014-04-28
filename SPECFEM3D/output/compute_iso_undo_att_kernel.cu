@@ -162,9 +162,9 @@ __global__ void compute_iso_undo_att_kernel(const float * epsilondev_xx, const f
   }
   if(ispec < NSPEC){
     iglob = d_ibool[ijk_ispec - 0] - (1);
-    s_dummyx_loc[tx - 0] = d_b_displ[(iglob) * (3) + 0 - 0 + ( - (0)) * (3)];
-    s_dummyy_loc[tx - 0] = d_b_displ[(iglob) * (3) + 1 - 0 + ( - (0)) * (3)];
-    s_dummyz_loc[tx - 0] = d_b_displ[(iglob) * (3) + 2 - 0 + ( - (0)) * (3)];
+    s_dummyx_loc[tx - 0] = d_b_displ[0 - 0 + (iglob - (0)) * (3)];
+    s_dummyy_loc[tx - 0] = d_b_displ[1 - 0 + (iglob - (0)) * (3)];
+    s_dummyz_loc[tx - 0] = d_b_displ[2 - 0 + (iglob - (0)) * (3)];
   }
   __syncthreads();
   if(ispec < NSPEC){

@@ -90,7 +90,7 @@ module BOAST
       print If(ispec < nspec) {
         print iglob === d_ibool[ijk_ispec] - 1
         (0..2).each { |indx|
-          print s_dummy_loc[indx][tx] === d_b_displ[iglob*3+indx]
+          print s_dummy_loc[indx][tx] === d_b_displ[indx,iglob]
         }
       }
       print barrier(:local)
