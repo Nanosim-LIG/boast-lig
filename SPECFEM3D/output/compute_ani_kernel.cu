@@ -76,6 +76,10 @@ static __device__ void compute_strain_product(float * prod, const float eps_trac
         if(j > 2 && i < 3){
           prod[p - 0] = (prod[p - 0]) * (2.0f);
         }
+        if(i > 2){
+          prod[p - 0] = (prod[p - 0]) * (4.0f);
+        }
+        p = p + 1;
       }
     }
   }

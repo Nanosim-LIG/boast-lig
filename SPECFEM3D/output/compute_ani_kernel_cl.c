@@ -87,6 +87,10 @@ void compute_strain_product(float * prod, const float eps_trace_over_3, const fl
         if(j > 2 && i < 3){\n\
           prod[p - 0] = (prod[p - 0]) * (2.0f);\n\
         }\n\
+        if(i > 2){\n\
+          prod[p - 0] = (prod[p - 0]) * (4.0f);\n\
+        }\n\
+        p = p + 1;\n\
       }\n\
     }\n\
   }\n\
