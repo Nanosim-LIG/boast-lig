@@ -32,11 +32,12 @@ module BOAST
       decl sum
 
       print elem_n === buffer_size / (elem_size*length)
-      (0...length).each { |indx|
-        print resultV[indx] === 0
-      }
+#      (0...length).each { |indx|
+#        print resultV[indx] === 0
+#      }
 
-      print sumV === resultV.dereference
+
+      print sumV.set(0)
 
       print For(i, 1, m_cycles*m_stride) {
         print For(j, m_start, elem_n + m_start - m_stride*unrolled, m_stride*unrolled) {
