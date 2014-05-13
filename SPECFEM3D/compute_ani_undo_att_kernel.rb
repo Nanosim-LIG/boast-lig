@@ -120,9 +120,9 @@ module BOAST
                                      (epsdev[0] + epsdev[1]) * (b_epsdev[0] + b_epsdev[1]) + \
                                      ( epsdev[2] * b_epsdev[2] + \
                                        epsdev[3] * b_epsdev[3] + \
-                                       epsdev[4] * b_epsdev[4]) * 2 )
+                                       epsdev[4] * b_epsdev[4]) * 2.0 )
 
-          print kappa_kl[ijk_ispec] === kappa_kl[ijk_ispec] + deltat * 9 * eps_trace_over_3 * b_eps_trace_over_3 
+          print kappa_kl[ijk_ispec] === kappa_kl[ijk_ispec] + deltat * ( eps_trace_over_3 * b_eps_trace_over_3 * 9.0 )
         end
       }
 
