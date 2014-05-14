@@ -438,10 +438,10 @@ module BOAST
       v.push d_ispec_is_tiso       = Int("d_ispec_is_tiso",          :dir => :in, :dim => [Dim()] )
     end
     v.push d_phase_ispec_inner     = Int("d_phase_ispec_inner",      :dir => :in, :dim => [Dim()] )
-    v.push num_phase_ispec         = Int("num_phase_ispec",          :dir => :in)
-    v.push d_iphase                = Int("d_iphase",                 :dir => :in)
-    v.push deltat                  = Real("deltat",                  :dir => :in)
-    v.push use_mesh_coloring_gpu   = Int("use_mesh_coloring_gpu",    :dir => :in)
+    v.push num_phase_ispec         = Int("num_phase_ispec",          :dir => :in )
+    v.push d_iphase                = Int("d_iphase",                 :dir => :in )
+    v.push deltat                  = Real("deltat",                  :dir => :in )
+    v.push use_mesh_coloring_gpu   = Int("use_mesh_coloring_gpu",    :dir => :in )
     v.push d_displ                 = Real("d_displ",                 :dir => :in, :restrict => true, :dim => [Dim(3), Dim()] )
     v.push d_accel                 = Real("d_accel",                 :dir => :inout, :dim => [Dim(3), Dim()] )
     v.push *d_xi = [d_xix          = Real("d_xix",                   :dir => :in, :restrict => true, :dim => [Dim()] ), d_xiy = Real("d_xiy",:dir => :in, :restrict => true, :dim => [Dim()] ), d_xiz = Real("d_xiz",:dir => :in, :restrict => true, :dim => [Dim()] ) ]
@@ -452,12 +452,12 @@ module BOAST
     v.push d_wgllwgll_xy           = Real("d_wgllwgll_xy",           :dir => :in, :restrict => true, :dim => [Dim()] )
     v.push d_wgllwgll_xz           = Real("d_wgllwgll_xz",           :dir => :in, :restrict => true, :dim => [Dim()] )
     v.push d_wgllwgll_yz           = Real("d_wgllwgll_yz",           :dir => :in, :restrict => true, :dim => [Dim()] )
-    v.push d_kappavstore           = Real("d_kappavstore",           :dir => :in, :restrict => true, :dim => [Dim()])
-    v.push d_muvstore              = Real("d_muvstore",              :dir => :in, :restrict => true, :dim => [Dim()])
+    v.push d_kappavstore           = Real("d_kappavstore",           :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push d_muvstore              = Real("d_muvstore",              :dir => :in, :restrict => true, :dim => [Dim()] )
     if type == :crust_mantle then
-      v.push d_kappahstore           = Real("d_kappahstore",           :dir => :in, :restrict => true, :dim => [Dim()])
-      v.push d_muhstore              = Real("d_muhstore",              :dir => :in, :restrict => true, :dim => [Dim()])
-      v.push d_eta_anisostore        = Real("d_eta_anisostore",        :dir => :in, :restrict => true, :dim => [Dim()])
+      v.push d_kappahstore           = Real("d_kappahstore",           :dir => :in, :restrict => true, :dim => [Dim()] )
+      v.push d_muhstore              = Real("d_muhstore",              :dir => :in, :restrict => true, :dim => [Dim()] )
+      v.push d_eta_anisostore        = Real("d_eta_anisostore",        :dir => :in, :restrict => true, :dim => [Dim()] )
     end
     v.push compute_and_store_strain= Int( "COMPUTE_AND_STORE_STRAIN",:dir => :in)
     v.push epsilondev_xx           = Real("epsilondev_xx",           :dir => :inout, :dim => [Dim()] )
