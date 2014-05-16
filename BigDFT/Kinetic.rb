@@ -1106,7 +1106,9 @@ EOF
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
     end
     load "./GenericConvolution.rb" 
-    fil,lowfil,upfil=filter_boastruct(filt,center)
+    conv_filter = ConvolutionFilter::new(filt,center)
+                             
+    #fil,lowfil,upfil=filter_boastruct(filt,center)
     #lowfil = Variable::new("lowfil",Int,{:constant => -center})
     #upfil = Variable::new("upfil",Int,{:constant => filt.length - center -1})
     #arr = ConstArray::new(filt,Real)
@@ -1198,40 +1200,42 @@ EOF
 ##    }
 ##
 
-    kinetic_d = lambda { |t,dim,unro,init,reliq,unrol|
-      @@output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
-      For::new(iters[dim[0]], (reliq and unro == dim[0] ) ? (dims[dim[0]]/unrol)*unrol : 0 , (unro == dim[0] and not reliq) ? dims[dim[0]]-unrol : dims[dim[0]]-1, unro == dim[0] ? t.length : 1 ) {
-        For::new(iters[dim[1]], (reliq and unro == dim[1] ) ? (dims[dim[1]]/unrol)*unrol : 0 , (unro == dim[1] and not reliq) ? dims[dim[1]]-unrol : dims[dim[1]]-1, unro == dim[1] ? t.length : 1) {
-          For::new(iters[dim[2]], 0, -lowfil) {
-            #for_BC.call(t, dim, unro, init)
-            for_conv(false,iters,l,t, dim[2], unro, init,free[dim[2]],c,scal[dim[2]],x,y,eks[dim[2]],fil,lowfil,upfil,
-                   dims,mods[dim[2]])
-          }.print
-          For::new(iters[dim[2]], -lowfil+1, dims[dim[2]] - 1 - upfil) {
-            for_conv(true,iters,l,t, dim[2], unro, init,free[dim[2]],c,scal[dim[2]],x,y,eks[dim[2]],fil,lowfil,upfil,
-                   dims,mods[dim[2]])
-            #for_noBC(iters,l,t, dim[2], unro, init,c,scal[dim[2]],x,y,eks[dim[2]],fil,lowfil,upfil)
-          }.print
-          For::new(iters[dim[2]], dims[dim[2]] - upfil, dims[dim[2]]-1) {
-            for_conv(false,iters,l,t, dim[2], unro, init,free[dim[2]],c,scal[dim[2]],x,y,eks[dim[2]],fil,lowfil,upfil,
-                   dims,mods[dim[2]])
-          }.print
-        }.print
-      }.print
-      @@output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
-    }
+#    kinetic_d = lambda { |t,dim,unro,init,reliq,unrol|
+#      @@output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
+#      For::new(iters[dim[0]], (reliq and unro == dim[0] ) ? (dims[dim[0]]/unrol)*unrol : 0 , (unro == dim[0] and not reliq) ? dims[dim[0]]-unrol : dims[dim[0]]-1, unro == dim[0] ? t.length : 1 ) {
+#        For::new(iters[dim[1]], (reliq and unro == dim[1] ) ? (dims[dim[1]]/unrol)*unrol : 0 , (unro == dim[1] and not reliq) ? dims[dim[1]]-unrol : dims[dim[1]]-1, unro == dim[1] ? t.length : 1) {
+#          conv_lines(conv_filter,free[dim[2]],dims,iters,l,t,dim[2],unro,0,init,c,scal[dim[2]],x,y,eks[dim[2]],mods[dim[2]])
+##
+#         For::new(iters[dim[2]], 0, -conv_filter.lowfil) {
+#           #for_BC.call(t, dim, unro, init)
+#           for_conv(false,iters,l,t, dim[2], unro, init,free[dim[2]],c,scal[dim[2]],x,y,eks[dim[2]],conv_filter,
+#                  dims,mods[dim[2]],0)
+#         }.print
+#         For::new(iters[dim[2]], -conv_filter.lowfil+1, dims[dim[2]] - 1 - conv_filter.upfil) {
+#           for_conv(true,iters,l,t, dim[2], unro, init,free[dim[2]],c,scal[dim[2]],x,y,eks[dim[2]],conv_filter,
+#                  dims,mods[dim[2]],0)
+#           #for_noBC(iters,l,t, dim[2], unro, init,c,scal[dim[2]],x,y,eks[dim[2]],fil,lowfil,upfil)
+#         }.print
+#         For::new(iters[dim[2]], dims[dim[2]] - conv_filter.upfil, dims[dim[2]]-1) {
+#           for_conv(false,iters,l,t, dim[2], unro, init,free[dim[2]],c,scal[dim[2]],x,y,eks[dim[2]],conv_filter,
+#                  dims,mods[dim[2]],0)
+#         }.print
+#        }.print
+#      }.print
+#      @@output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
+#    }
 
     vars = [n1,n2,n3,hgrid,x,y]
     vars += [c] if not ekin
     vars += [ek] if ekin
-    p = Procedure::new(function_name, vars, [lowfil,upfil,zerocinq]){
+    p = Procedure::new(function_name, vars, [conv_filter.lowfil,conv_filter.upfil,zerocinq]){
       i1.decl
       i2.decl
       i3.decl
       l.decl
       k.decl
       scal.decl
-      fil.decl
+      decl conv_filter.fil
       if ekin then
         eks.each { |e|
           e.decl
@@ -1262,13 +1266,16 @@ EOF
         @@output.print(tt.join(","))
         @@output.print(")\n")
       end
-      kinetic_d.call(tt[0...unroll[0]], [2,1,0], 1, true,false,unroll[0])
-      kinetic_d.call([tt[0]], [2,1,0], 1, true,true,unroll[0]) if unroll[0] > 1
-      kinetic_d.call(tt[0...unroll[1]], [2,0,1], 2, false,false,unroll[1])
-      kinetic_d.call([tt[0]], [2,0,1], 2, false,true,unroll[1]) if unroll[1] > 1
-      kinetic_d.call(tt[0...unroll[2]], [1,0,2], 0, false,false,unroll[2]) 
-      kinetic_d.call([tt[0]], [1,0,2], 0, false,true,unroll[2]) if unroll[2] > 1
-      @@output.print("!$omp  end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
+      convolution1d(conv_filter,dims,free[0],iters,l,tt,[2,1,0],0,true,c,scal[0],x,y,eks[0],mods[0],1,unroll[0])
+      convolution1d(conv_filter,dims,free[1],iters,l,tt,[2,0,1],0,false,c,scal[1],x,y,eks[1],mods[1],2,unroll[1])
+      convolution1d(conv_filter,dims,free[2],iters,l,tt,[1,0,2],0,false,c,scal[2],x,y,eks[2],mods[2],0,unroll[2])
+#      kinetic_d.call(tt[0...unroll[0]], [2,1,0], 1, true,false,unroll[0])
+#      kinetic_d.call([tt[0]], [2,1,0], 1, true,true,unroll[0]) if unroll[0] > 1
+#      kinetic_d.call(tt[0...unroll[1]], [2,0,1], 2, false,false,unroll[1])
+#      kinetic_d.call([tt[0]], [2,0,1], 2, false,true,unroll[1]) if unroll[1] > 1
+#      kinetic_d.call(tt[0...unroll[2]], [1,0,2], 0, false,false,unroll[2]) 
+#      kinetic_d.call([tt[0]], [1,0,2], 0, false,true,unroll[2]) if unroll[2] > 1
+      @@output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
       (0..2).each { |ind|
         (ek[ind] === eks[ind]).print if ekin
       }
