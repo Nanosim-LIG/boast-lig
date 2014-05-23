@@ -175,7 +175,7 @@ __global__ void compute_iso_undo_att_kernel(const float * epsilondev_xx, const f
     epsdev[4 - 0] = epsilondev_yz[ijk_ispec - 0];
     eps_trace_over_3 = epsilon_trace_over_3[ijk_ispec - 0];
     compute_element_strain_undo_att(ispec, ijk_ispec, d_ibool, s_dummyx_loc, s_dummyy_loc, s_dummyz_loc, d_xix, d_xiy, d_xiz, d_etax, d_etay, d_etaz, d_gammax, d_gammay, d_gammaz, sh_hprime_xx, b_epsdev,  &b_eps_trace_over_3);
-    mu_kl[ijk_ispec - 0] = mu_kl[ijk_ispec - 0] + (deltat) * ((epsdev[0 - 0]) * (b_epsdev[0 - 0]) + (epsdev[1 - 0]) * (b_epsdev[1 - 0]) + (epsdev[0 - 0] + epsdev[1 - 0]) * (b_epsdev[0 - 0] + b_epsdev[1 - 0]) + ((epsdev[2 - 0]) * (b_epsdev[2 - 0]) + (epsdev[3 - 0]) * (b_epsdev[3 - 0]) + (epsdev[4 - 0]) * (b_epsdev[4 - 0])) * (2));
-    kappa_kl[ijk_ispec - 0] = kappa_kl[ijk_ispec - 0] + (((deltat) * (9)) * (eps_trace_over_3)) * (b_eps_trace_over_3);
+    mu_kl[ijk_ispec - 0] = mu_kl[ijk_ispec - 0] + (deltat) * ((epsdev[0 - 0]) * (b_epsdev[0 - 0]) + (epsdev[1 - 0]) * (b_epsdev[1 - 0]) + (epsdev[0 - 0] + epsdev[1 - 0]) * (b_epsdev[0 - 0] + b_epsdev[1 - 0]) + ((epsdev[2 - 0]) * (b_epsdev[2 - 0]) + (epsdev[3 - 0]) * (b_epsdev[3 - 0]) + (epsdev[4 - 0]) * (b_epsdev[4 - 0])) * (2.0f));
+    kappa_kl[ijk_ispec - 0] = kappa_kl[ijk_ispec - 0] + (deltat) * (((eps_trace_over_3) * (b_eps_trace_over_3)) * (9.0f));
   }
 }

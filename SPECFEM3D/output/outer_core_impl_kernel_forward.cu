@@ -71,7 +71,7 @@ static __device__ void compute_element_oc_rotation(const int tx, const int worki
   d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_A;
   d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_B;
 }
-__global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, const int * d_ibool, const int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const float * d_potential, float * d_potential_dot_dot, const float * d_xix, const float * d_xiy, const float * d_xiz, const float * d_etax, const float * d_etay, const float * d_etaz, const float * d_gammax, const float * d_gammay, const float * d_gammaz, const float * d_hprime_xx, const float * d_hprimewgll_xx, const float * wgllwgll_xy, const float * wgllwgll_xz, const float * wgllwgll_yz, const int GRAVITY, const float * d_xstore, const float * d_ystore, const float * d_zstore, const float * d_d_ln_density_dr_table, const float * d_minus_rho_g_over_kappa_fluid, const float * wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, float * d_A_array_rotation, float * d_B_array_rotation, const int NSPEC_OUTER_CORE){
+__global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, const int * d_ibool, const int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const float * __restrict__ d_potential, float * d_potential_dot_dot, const float * __restrict__ d_xix, const float * __restrict__ d_xiy, const float * __restrict__ d_xiz, const float * __restrict__ d_etax, const float * __restrict__ d_etay, const float * __restrict__ d_etaz, const float * __restrict__ d_gammax, const float * __restrict__ d_gammay, const float * __restrict__ d_gammaz, const float * __restrict__ d_hprime_xx, const float * __restrict__ d_hprimewgll_xx, const float * __restrict__ wgllwgll_xy, const float * __restrict__ wgllwgll_xz, const float * __restrict__ wgllwgll_yz, const int GRAVITY, const float * __restrict__ d_xstore, const float * __restrict__ d_ystore, const float * __restrict__ d_zstore, const float * __restrict__ d_d_ln_density_dr_table, const float * __restrict__ d_minus_rho_g_over_kappa_fluid, const float * __restrict__ wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, float * d_A_array_rotation, float * d_B_array_rotation, const int NSPEC_OUTER_CORE){
   int bx;
   int tx;
   int K;
@@ -81,7 +81,6 @@ __global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, c
   int offset;
   int iglob;
   int working_element;
-  int l;
   float temp1l;
   float temp2l;
   float temp3l;
@@ -176,6 +175,7 @@ __global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, c
     temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (4) * (NGLLX) + I - 0]) * (sh_hprime_xx[(4) * (NGLLX) + J - 0]);
     temp3l = temp3l + (s_dummy_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(4) * (NGLLX) + K - 0]);
 #else
+    int l;
     for(l=0; l<=NGLLX - (1); l+=1){
       temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - 0]) * (sh_hprime_xx[(l) * (NGLLX) + I - 0]);
       temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (l) * (NGLLX) + I - 0]) * (sh_hprime_xx[(l) * (NGLLX) + J - 0]);

@@ -82,7 +82,7 @@ void compute_element_oc_rotation(const int tx, const int working_element, const 
   d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_A_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_A;\n\
   d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] = d_B_array_rotation[tx + (working_element) * (NGLL3) - 0] + source_euler_B;\n\
 }\n\
-__kernel void outer_core_impl_kernel_adjoint(const int nb_blocks_to_compute, const __global int * d_ibool, const __global int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const __global float * d_potential, __global float * d_potential_dot_dot, const __global float * d_xix, const __global float * d_xiy, const __global float * d_xiz, const __global float * d_etax, const __global float * d_etay, const __global float * d_etaz, const __global float * d_gammax, const __global float * d_gammay, const __global float * d_gammaz, const __global float * d_hprime_xx, const __global float * d_hprimewgll_xx, const __global float * wgllwgll_xy, const __global float * wgllwgll_xz, const __global float * wgllwgll_yz, const int GRAVITY, const __global float * d_xstore, const __global float * d_ystore, const __global float * d_zstore, const __global float * d_d_ln_density_dr_table, const __global float * d_minus_rho_g_over_kappa_fluid, const __global float * wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, __global float * d_A_array_rotation, __global float * d_B_array_rotation, const int NSPEC_OUTER_CORE, __read_only image2d_t d_b_displ_oc_tex, __read_only image2d_t d_b_accel_oc_tex){\n\
+__kernel void outer_core_impl_kernel_adjoint(const int nb_blocks_to_compute, const __global int * d_ibool, const __global int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const int use_mesh_coloring_gpu, const __global float * restrict d_potential, __global float * d_potential_dot_dot, const __global float * restrict d_xix, const __global float * restrict d_xiy, const __global float * restrict d_xiz, const __global float * restrict d_etax, const __global float * restrict d_etay, const __global float * restrict d_etaz, const __global float * restrict d_gammax, const __global float * restrict d_gammay, const __global float * restrict d_gammaz, const __global float * restrict d_hprime_xx, const __global float * restrict d_hprimewgll_xx, const __global float * restrict wgllwgll_xy, const __global float * restrict wgllwgll_xz, const __global float * restrict wgllwgll_yz, const int GRAVITY, const __global float * restrict d_xstore, const __global float * restrict d_ystore, const __global float * restrict d_zstore, const __global float * restrict d_d_ln_density_dr_table, const __global float * restrict d_minus_rho_g_over_kappa_fluid, const __global float * restrict wgll_cube, const int ROTATION, const float time, const float two_omega_earth, const float deltat, __global float * d_A_array_rotation, __global float * d_B_array_rotation, const int NSPEC_OUTER_CORE, __read_only image2d_t d_b_displ_oc_tex, __read_only image2d_t d_b_accel_oc_tex){\n\
 #ifdef USE_TEXTURES_FIELDS\n\
   const sampler_t sampler_d_b_displ_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
   const sampler_t sampler_d_b_accel_oc_tex = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n\
@@ -100,7 +100,6 @@ __kernel void outer_core_impl_kernel_adjoint(const int nb_blocks_to_compute, con
   int offset;\n\
   int iglob;\n\
   int working_element;\n\
-  int l;\n\
   float temp1l;\n\
   float temp2l;\n\
   float temp3l;\n\
@@ -195,6 +194,7 @@ __kernel void outer_core_impl_kernel_adjoint(const int nb_blocks_to_compute, con
     temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (4) * (NGLLX) + I - 0]) * (sh_hprime_xx[(4) * (NGLLX) + J - 0]);\n\
     temp3l = temp3l + (s_dummy_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (sh_hprime_xx[(4) * (NGLLX) + K - 0]);\n\
 #else\n\
+    int l;\n\
     for(l=0; l<=NGLLX - (1); l+=1){\n\
       temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - 0]) * (sh_hprime_xx[(l) * (NGLLX) + I - 0]);\n\
       temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (l) * (NGLLX) + I - 0]) * (sh_hprime_xx[(l) * (NGLLX) + J - 0]);\n\

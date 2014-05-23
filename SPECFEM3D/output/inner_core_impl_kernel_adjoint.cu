@@ -69,7 +69,7 @@ static __device__ void compute_element_ic_att_stress(const int tx, const int wor
     sigma_yz[0 - 0] = sigma_yz[0 - 0] - (R_yz[offset - 0]);
   }
 }
-static __device__ void compute_element_ic_gravity(const int tx, const int iglob, const float * d_xstore, const float * d_ystore, const float * d_zstore, const float * d_minus_gravity_table, const float * d_minus_deriv_gravity_table, const float * d_density_table, const float * wgll_cube, const float jacobianl, const float * s_dummyx_loc, const float * s_dummyy_loc, const float * s_dummyz_loc, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_yx, float * sigma_xz, float * sigma_zx, float * sigma_yz, float * sigma_zy, float * rho_s_H1, float * rho_s_H2, float * rho_s_H3){
+static __device__ void compute_element_ic_gravity(const int tx, const int iglob, const float * __restrict__ d_xstore, const float * __restrict__ d_ystore, const float * __restrict__ d_zstore, const float * __restrict__ d_minus_gravity_table, const float * __restrict__ d_minus_deriv_gravity_table, const float * __restrict__ d_density_table, const float * __restrict__ wgll_cube, const float jacobianl, const float * s_dummyx_loc, const float * s_dummyy_loc, const float * s_dummyz_loc, float * sigma_xx, float * sigma_yy, float * sigma_zz, float * sigma_xy, float * sigma_yx, float * sigma_xz, float * sigma_zx, float * sigma_yz, float * sigma_zy, float * rho_s_H1, float * rho_s_H2, float * rho_s_H3){
   float radius;
   float theta;
   float phi;
@@ -185,7 +185,11 @@ static __device__ void compute_element_ic_att_memory(const int tx, const int wor
     R_yz[offset - 0] = (alphaval_loc) * (R_yz[offset - 0]) + (betaval_loc) * (sn) + (gammaval_loc) * (snp1);
   }
 }
-__global__ void inner_core_impl_kernel_adjoint(const int nb_blocks_to_compute, const int * d_ibool, const int * d_idoubling, const int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const float deltat, const int use_mesh_coloring_gpu, const float * d_displ, float * d_accel, const float * d_xix, const float * d_xiy, const float * d_xiz, const float * d_etax, const float * d_etay, const float * d_etaz, const float * d_gammax, const float * d_gammay, const float * d_gammaz, const float * d_hprime_xx, const float * d_hprimewgll_xx, const float * d_wgllwgll_xy, const float * d_wgllwgll_xz, const float * d_wgllwgll_yz, const float * d_kappavstore, const float * d_muvstore, const int COMPUTE_AND_STORE_STRAIN, float * epsilondev_xx, float * epsilondev_yy, float * epsilondev_xy, float * epsilondev_xz, float * epsilondev_yz, float * epsilon_trace_over_3, const int ATTENUATION, const int PARTIAL_PHYS_DISPERSION_ONLY, const int USE_3D_ATTENUATION_ARRAYS, const float * one_minus_sum_beta, const float * factor_common, float * R_xx, float * R_yy, float * R_xy, float * R_xz, float * R_yz, const float * alphaval, const float * betaval, const float * gammaval, const int ANISOTROPY, const float * d_c11store, const float * d_c12store, const float * d_c13store, const float * d_c33store, const float * d_c44store, const int GRAVITY, const float * d_xstore, const float * d_ystore, const float * d_zstore, const float * d_minus_gravity_table, const float * d_minus_deriv_gravity_table, const float * d_density_table, const float * wgll_cube, const int NSPEC_INNER_CORE_STRAIN_ONLY, const int NSPEC_INNER_CORE){
+__global__ 
+#ifdef USE_LAUNCH_BOUNDS
+__launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
+#endif
+ void inner_core_impl_kernel_adjoint(const int nb_blocks_to_compute, const int * d_ibool, const int * d_idoubling, const int * d_phase_ispec_inner, const int num_phase_ispec, const int d_iphase, const float deltat, const int use_mesh_coloring_gpu, const float * __restrict__ d_displ, float * d_accel, const float * __restrict__ d_xix, const float * __restrict__ d_xiy, const float * __restrict__ d_xiz, const float * __restrict__ d_etax, const float * __restrict__ d_etay, const float * __restrict__ d_etaz, const float * __restrict__ d_gammax, const float * __restrict__ d_gammay, const float * __restrict__ d_gammaz, const float * __restrict__ d_hprime_xx, const float * __restrict__ d_hprimewgll_xx, const float * __restrict__ d_wgllwgll_xy, const float * __restrict__ d_wgllwgll_xz, const float * __restrict__ d_wgllwgll_yz, const float * __restrict__ d_kappavstore, const float * __restrict__ d_muvstore, const int COMPUTE_AND_STORE_STRAIN, float * epsilondev_xx, float * epsilondev_yy, float * epsilondev_xy, float * epsilondev_xz, float * epsilondev_yz, float * epsilon_trace_over_3, const int ATTENUATION, const int PARTIAL_PHYS_DISPERSION_ONLY, const int USE_3D_ATTENUATION_ARRAYS, const float * __restrict__ one_minus_sum_beta, const float * __restrict__ factor_common, float * R_xx, float * R_yy, float * R_xy, float * R_xz, float * R_yz, const float * __restrict__ alphaval, const float * __restrict__ betaval, const float * __restrict__ gammaval, const int ANISOTROPY, const float * __restrict__ d_c11store, const float * __restrict__ d_c12store, const float * __restrict__ d_c13store, const float * __restrict__ d_c33store, const float * __restrict__ d_c44store, const int GRAVITY, const float * __restrict__ d_xstore, const float * __restrict__ d_ystore, const float * __restrict__ d_zstore, const float * __restrict__ d_minus_gravity_table, const float * __restrict__ d_minus_deriv_gravity_table, const float * __restrict__ d_density_table, const float * __restrict__ wgll_cube, const int NSPEC_INNER_CORE_STRAIN_ONLY, const int NSPEC_INNER_CORE){
   int bx;
   int tx;
   int K;
@@ -195,7 +199,6 @@ __global__ void inner_core_impl_kernel_adjoint(const int nb_blocks_to_compute, c
   int offset;
   int iglob;
   int working_element;
-  int l;
   float tempx1l;
   float tempx2l;
   float tempx3l;
@@ -392,6 +395,7 @@ __global__ void inner_core_impl_kernel_adjoint(const int nb_blocks_to_compute, c
     tempy3l = tempy3l + (s_dummyy_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (fac3);
     tempz3l = tempz3l + (s_dummyz_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - 0]) * (fac3);
 #else
+    int l;
     for(l=0; l<=NGLLX - (1); l+=1){
       fac1 = sh_hprime_xx[(l) * (NGLLX) + I - 0];
       tempx1l = tempx1l + (s_dummyx_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - 0]) * (fac1);

@@ -413,7 +413,7 @@ module BOAST
     return BOAST::impl_kernel(:inner_core, true, ref, mesh_coloring, textures_fields, textures_constants, unroll_loops, n_gllx, n_gll2, n_gll3, n_gll3_padded, n_sls, r_earth_km, coloring_min_nspec_inner_core, i_flag_in_fictitious_cube)
   end
 
-  def BOAST::impl_kernel(type, forward, ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11)
+  def BOAST::impl_kernel(type, forward, ref = true, mesh_coloring = false, textures_fields = false, textures_constants = false, unroll_loops = false, n_gllx = 5, n_gll2 = 25, n_gll3 = 125, n_gll3_padded = 128, n_sls = 3, r_earth_km = 6371.0, coloring_min_nspec_inner_core = 1000, i_flag_in_fictitious_cube = 11, launch_bounds = false, min_blocks = 7)
     push_env( :array_start => 0 )
     kernel = CKernel::new
     v = []
@@ -438,26 +438,26 @@ module BOAST
       v.push d_ispec_is_tiso       = Int("d_ispec_is_tiso",          :dir => :in, :dim => [Dim()] )
     end
     v.push d_phase_ispec_inner     = Int("d_phase_ispec_inner",      :dir => :in, :dim => [Dim()] )
-    v.push num_phase_ispec         = Int("num_phase_ispec",          :dir => :in)
-    v.push d_iphase                = Int("d_iphase",                 :dir => :in)
-    v.push deltat                  = Real("deltat",                  :dir => :in)
-    v.push use_mesh_coloring_gpu   = Int("use_mesh_coloring_gpu",    :dir => :in)
-    v.push d_displ                 = Real("d_displ",                 :dir => :in, :dim => [Dim(3), Dim()] )
+    v.push num_phase_ispec         = Int("num_phase_ispec",          :dir => :in )
+    v.push d_iphase                = Int("d_iphase",                 :dir => :in )
+    v.push deltat                  = Real("deltat",                  :dir => :in )
+    v.push use_mesh_coloring_gpu   = Int("use_mesh_coloring_gpu",    :dir => :in )
+    v.push d_displ                 = Real("d_displ",                 :dir => :in, :restrict => true, :dim => [Dim(3), Dim()] )
     v.push d_accel                 = Real("d_accel",                 :dir => :inout, :dim => [Dim(3), Dim()] )
-    v.push *d_xi = [d_xix          = Real("d_xix",                   :dir => :in, :dim => [Dim()] ), d_xiy = Real("d_xiy",:dir => :in, :dim => [Dim()] ), d_xiz = Real("d_xiz",:dir => :in, :dim => [Dim()] ) ]
-    v.push *d_eta = [d_etax        = Real("d_etax",                  :dir => :in, :dim => [Dim()] ), d_etay = Real("d_etay",:dir => :in, :dim => [Dim()] ), d_etaz = Real("d_etaz",:dir => :in, :dim => [Dim()] ) ]
-    v.push *d_gamma = [d_gammax    = Real("d_gammax",                :dir => :in, :dim => [Dim()] ), d_gammay = Real("d_gammay",:dir => :in, :dim => [Dim()] ), d_gammaz = Real("d_gammaz",:dir => :in, :dim => [Dim()] ) ]
-    v.push d_hprime_xx             = Real("d_hprime_xx",             :dir => :in, :dim => [Dim()] )
-    v.push d_hprimewgll_xx         = Real("d_hprimewgll_xx",         :dir => :in, :dim => [Dim()] )
-    v.push d_wgllwgll_xy           = Real("d_wgllwgll_xy",           :dir => :in, :dim => [Dim()] )
-    v.push d_wgllwgll_xz           = Real("d_wgllwgll_xz",           :dir => :in, :dim => [Dim()] )
-    v.push d_wgllwgll_yz           = Real("d_wgllwgll_yz",           :dir => :in, :dim => [Dim()] )
-    v.push d_kappavstore           = Real("d_kappavstore",           :dir => :in, :dim => [Dim()])
-    v.push d_muvstore              = Real("d_muvstore",              :dir => :in, :dim => [Dim()])
+    v.push *d_xi = [d_xix          = Real("d_xix",                   :dir => :in, :restrict => true, :dim => [Dim()] ), d_xiy = Real("d_xiy",:dir => :in, :restrict => true, :dim => [Dim()] ), d_xiz = Real("d_xiz",:dir => :in, :restrict => true, :dim => [Dim()] ) ]
+    v.push *d_eta = [d_etax        = Real("d_etax",                  :dir => :in, :restrict => true, :dim => [Dim()] ), d_etay = Real("d_etay",:dir => :in, :restrict => true, :dim => [Dim()] ), d_etaz = Real("d_etaz",:dir => :in, :restrict => true, :dim => [Dim()] ) ]
+    v.push *d_gamma = [d_gammax    = Real("d_gammax",                :dir => :in, :restrict => true, :dim => [Dim()] ), d_gammay = Real("d_gammay",:dir => :in, :restrict => true, :dim => [Dim()] ), d_gammaz = Real("d_gammaz",:dir => :in, :restrict => true, :dim => [Dim()] ) ]
+    v.push d_hprime_xx             = Real("d_hprime_xx",             :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push d_hprimewgll_xx         = Real("d_hprimewgll_xx",         :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push d_wgllwgll_xy           = Real("d_wgllwgll_xy",           :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push d_wgllwgll_xz           = Real("d_wgllwgll_xz",           :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push d_wgllwgll_yz           = Real("d_wgllwgll_yz",           :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push d_kappavstore           = Real("d_kappavstore",           :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push d_muvstore              = Real("d_muvstore",              :dir => :in, :restrict => true, :dim => [Dim()] )
     if type == :crust_mantle then
-      v.push d_kappahstore           = Real("d_kappahstore",           :dir => :in, :dim => [Dim()])
-      v.push d_muhstore              = Real("d_muhstore",              :dir => :in, :dim => [Dim()])
-      v.push d_eta_anisostore        = Real("d_eta_anisostore",        :dir => :in, :dim => [Dim()])
+      v.push d_kappahstore           = Real("d_kappahstore",           :dir => :in, :restrict => true, :dim => [Dim()] )
+      v.push d_muhstore              = Real("d_muhstore",              :dir => :in, :restrict => true, :dim => [Dim()] )
+      v.push d_eta_anisostore        = Real("d_eta_anisostore",        :dir => :in, :restrict => true, :dim => [Dim()] )
     end
     v.push compute_and_store_strain= Int( "COMPUTE_AND_STORE_STRAIN",:dir => :in)
     v.push epsilondev_xx           = Real("epsilondev_xx",           :dir => :inout, :dim => [Dim()] )
@@ -469,41 +469,41 @@ module BOAST
     v.push attenuation             = Int( "ATTENUATION",             :dir => :in)
     v.push partial_phys_dispersion_only = Int( "PARTIAL_PHYS_DISPERSION_ONLY", :dir => :in)
     v.push use_3d_attenuation_arrays    = Int( "USE_3D_ATTENUATION_ARRAYS",    :dir => :in)
-    v.push one_minus_sum_beta      = Real("one_minus_sum_beta",      :dir => :in, :dim => [Dim()] )
-    v.push factor_common           = Real("factor_common",           :dir => :in, :dim => [Dim()] )
+    v.push one_minus_sum_beta      = Real("one_minus_sum_beta",      :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push factor_common           = Real("factor_common",           :dir => :in, :restrict => true, :dim => [Dim()] )
     v.push r_xx                    = Real("R_xx",                    :dir => :inout, :dim => [Dim()] )
     v.push r_yy                    = Real("R_yy",                    :dir => :inout, :dim => [Dim()] )
     v.push r_xy                    = Real("R_xy",                    :dir => :inout, :dim => [Dim()] )
     v.push r_xz                    = Real("R_xz",                    :dir => :inout, :dim => [Dim()] )
     v.push r_yz                    = Real("R_yz",                    :dir => :inout, :dim => [Dim()] )
-    v.push alphaval                = Real("alphaval",                :dir => :in, :dim => [Dim()] )
-    v.push betaval                 = Real("betaval",                 :dir => :in, :dim => [Dim()] )
-    v.push gammaval                = Real("gammaval",                :dir => :in, :dim => [Dim()] )
+    v.push alphaval                = Real("alphaval",                :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push betaval                 = Real("betaval",                 :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push gammaval                = Real("gammaval",                :dir => :in, :restrict => true, :dim => [Dim()] )
     v.push anisotropy              = Int( "ANISOTROPY",              :dir => :in)
     if type == :inner_core then
-      v.push d_c11store              = Real("d_c11store",              :dir => :in, :dim => [Dim()] )
-      v.push d_c12store              = Real("d_c12store",              :dir => :in, :dim => [Dim()] )
-      v.push d_c13store              = Real("d_c13store",              :dir => :in, :dim => [Dim()] )
-      v.push d_c33store              = Real("d_c33store",              :dir => :in, :dim => [Dim()] )
-      v.push d_c44store              = Real("d_c44store",              :dir => :in, :dim => [Dim()] )
+      v.push d_c11store              = Real("d_c11store",              :dir => :in, :restrict => true, :dim => [Dim()] )
+      v.push d_c12store              = Real("d_c12store",              :dir => :in, :restrict => true, :dim => [Dim()] )
+      v.push d_c13store              = Real("d_c13store",              :dir => :in, :restrict => true, :dim => [Dim()] )
+      v.push d_c33store              = Real("d_c33store",              :dir => :in, :restrict => true, :dim => [Dim()] )
+      v.push d_c44store              = Real("d_c44store",              :dir => :in, :restrict => true, :dim => [Dim()] )
     elsif type == :crust_mantle then
       d_cstore = (0..5).collect { |indx1|
         (0..5).collect { |indx2|
           if(indx2 < indx1) then
             nil
           else
-            Real( "d_c#{indx1+1}#{indx2+1}store", :dir => :in, :dim => [Dim()] )
+            Real( "d_c#{indx1+1}#{indx2+1}store", :dir => :in, :restrict => true, :dim => [Dim()] )
           end
         }
       }
       v.push *(d_cstore.flatten.reject { |e| e.nil? })
     end
     v.push gravity                 = Int( "GRAVITY",                 :dir => :in)
-    v.push *d_store = [d_xstore    = Real("d_xstore",                :dir => :in, :dim => [Dim()] ), d_ystore = Real("d_ystore",:dir => :in, :dim => [Dim()] ), d_zstore = Real("d_zstore",:dir => :in, :dim => [Dim()] ) ]
-    v.push d_minus_gravity_table   = Real("d_minus_gravity_table",   :dir => :in, :dim => [Dim()] )
-    v.push d_minus_deriv_gravity_table = Real("d_minus_deriv_gravity_table", :dir => :in, :dim => [Dim()] )
-    v.push d_density_table         = Real("d_density_table",         :dir => :in, :dim => [Dim()] )
-    v.push wgll_cube               = Real("wgll_cube",               :dir => :in, :dim => [Dim()] )
+    v.push *d_store = [d_xstore    = Real("d_xstore",                :dir => :in, :restrict => true, :dim => [Dim()] ), d_ystore = Real("d_ystore",:dir => :in, :restrict => true, :dim => [Dim()] ), d_zstore = Real("d_zstore",:dir => :in, :restrict => true, :dim => [Dim()] ) ]
+    v.push d_minus_gravity_table   = Real("d_minus_gravity_table",   :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push d_minus_deriv_gravity_table = Real("d_minus_deriv_gravity_table", :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push d_density_table         = Real("d_density_table",         :dir => :in, :restrict => true, :dim => [Dim()] )
+    v.push wgll_cube               = Real("wgll_cube",               :dir => :in, :restrict => true, :dim => [Dim()] )
     if type == :inner_core then
       v.push nspec_strain_only = Int( "NSPEC_INNER_CORE_STRAIN_ONLY", :dir => :in)
       v.push nspec_inner_core        = Int( "NSPEC_INNER_CORE",        :dir => :in)
@@ -523,6 +523,8 @@ module BOAST
     use_textures_constants  = Int("USE_TEXTURES_CONSTANTS",  :const => textures_constants)
     use_textures_fields     = Int("USE_TEXTURES_FIELDS",     :const => textures_fields)
     manually_unrolled_loops = Int("MANUALLY_UNROLLED_LOOPS", :const => unroll_loops)
+    use_launch_bounds       = Int("USE_LAUNCH_BOUNDS",       :const => launch_bounds)
+    launch_min_blocks       = Int("LAUNCH_MIN_BLOCKS",       :const => min_blocks)
 
     constants = []
 
@@ -548,7 +550,13 @@ module BOAST
       v.push(d_hprime_xx_tex)
     end
 
-    p = Procedure(function_name, v, constants)
+    if(get_lang == CUDA ) then
+      qualifiers = "\n#ifdef #{use_launch_bounds}\n__launch_bounds__(#{ngll3_padded}, #{launch_min_blocks})\n#endif\n"
+    elsif(get_lang == CL ) then
+      qualifiers = "__attribute__((reqd_work_group_size(#{ngll3_padded},1,1))) "
+    end
+
+    p = Procedure(function_name, v, constants, :qualifiers => qualifiers)
     if(get_lang == CUDA and ref) then
       @@output.print File::read("references/#{function_name}.cu".gsub("_forward","").gsub("_adjoint",""))
     elsif(get_lang == CL or get_lang == CUDA) then
@@ -602,10 +610,10 @@ module BOAST
         decl bx = Int("bx")
         decl tx = Int("tx")
         decl k  = Int("K"), j = Int("J"), i = Int("I")
+        l = Int("l")
         decl active = Int("active", :size => 2, :signed => false)
         decl offset = Int("offset"), iglob = Int("iglob")
         decl working_element = Int("working_element")
-        decl l = Int("l")
         tempanl = ["x", "y", "z"].collect { |a|
           [ 1, 2, 3 ].collect { |n|
             Real("temp#{a}#{n}l")
@@ -759,6 +767,7 @@ module BOAST
           @@output.puts "#ifdef #{manually_unrolled_loops}"
             for_loop.unroll
           @@output.puts "#else"
+            decl l
             print for_loop
           @@output.puts "#endif"
 
@@ -841,12 +850,13 @@ module BOAST
               print sigma[1][2] === mul*duzdyl_plus_duydzl
             })
           elsif type == :crust_mantle then
-            print If(use_3d_attenuation_arrays, lambda {
-              print one_minus_sum_beta_use === one_minus_sum_beta[tx+working_element*ngll3]
-            }, lambda {
-              print one_minus_sum_beta_use === one_minus_sum_beta[working_element]
-            })
-
+            print If(attenuation) {
+              print If(use_3d_attenuation_arrays, lambda {
+                print one_minus_sum_beta_use === one_minus_sum_beta[tx+working_element*ngll3]
+              }, lambda {
+                print one_minus_sum_beta_use === one_minus_sum_beta[working_element]
+              })
+            }
             print If(anisotropy, lambda {
               print sub_compute_element_cm_aniso.call( offset,
                                                       *(d_cstore.flatten.reject { |e| e.nil?}),
