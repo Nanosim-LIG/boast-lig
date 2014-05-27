@@ -15,6 +15,7 @@ puts k.print
 
 BOAST::set_architecture(BOAST::X86)
 k = BOAST::kernel_read_vectorized2(8)
+puts k.print
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 (1..10).each { |page|
   stats = k.run(m_start, m_cycle, m_stride, page_size*page, output)
@@ -22,6 +23,7 @@ k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 }
 k = BOAST::kernel_read_vectorized2
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
+puts k.print
 (1..10).each { |page|
   stats = k.run(m_start, m_cycle, m_stride, page_size*page, output)
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{page_size*page*m_cycle/(stats[:duration]*1.0e9)}"
@@ -34,6 +36,7 @@ k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 #}
 k = BOAST::kernel_read_vectorized2(8,4,4)
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
+puts k.print
 (1..10).each { |page|
   stats = k.run(m_start, m_cycle, m_stride, page_size*page, output)
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{page_size*page*m_cycle/(stats[:duration]*1.0e9)}"
@@ -41,6 +44,7 @@ k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 
 k = BOAST::kernel_read_vectorized2(8,4,2)
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
+puts k.print
 (1..10).each { |page|
   stats = k.run(m_start, m_cycle, m_stride, page_size*page, output)
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{page_size*page*m_cycle/(stats[:duration]*1.0e9)}"

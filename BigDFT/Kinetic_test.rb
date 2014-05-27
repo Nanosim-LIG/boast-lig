@@ -45,6 +45,8 @@ hgrid = NArray.float(3)
 hgrid[0] = 0.5
 hgrid[1] = 0.6
 hgrid[2] = 0.7
+scal=NArray.float(3)
+(0..2).each{ |ind| scal[ind] = -0.5 / (hgrid[ind]*hgrid[ind])   }
 kstrten_ref = NArray.float(3)
 kstrten = NArray.float(3)
 epsilon = 10e-13
@@ -53,8 +55,8 @@ k = BOAST::kinetic_per_ref
 stats = k.run(n1, n2, n3, hgrid, input, output_ref, 0.5)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 k = BOAST::kinetic_per_ref_optim
-#k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -ftree-vectorize -fopenmp",:LDFLAGS => "-fopenmp"})
-k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -axSSE4.2 -openmp",:LDFLAGS => "-openmp"})
+k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -ftree-vectorize -fopenmp",:LDFLAGS => "-fopenmp"})
+#k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -axSSE4.2 -openmp",:LDFLAGS => "-openmp"})
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
@@ -71,8 +73,11 @@ output = NArray.float(n1,n2,n3).random
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
   k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
   begin
-    stats = k.run(n1, n2, n3, hgrid, input, output, 0.5)
-    stats = k.run(n1, n2, n3, hgrid, input, output, 0.5)
+    #stats = k.run(n1, n2, n3, hgrid, input, output, 0.5)
+    #stats = k.run(n1, n2, n3, hgrid, input, output, 0.5)
+    stats = k.run(n1, n2, n3, scal, input, output, 0.5)
+    stats = k.run(n1, n2, n3, scal, input, output, 0.5)
+
   rescue Exception => e
     puts e.inspect
   end

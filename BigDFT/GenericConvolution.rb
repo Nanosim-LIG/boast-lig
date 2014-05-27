@@ -127,21 +127,62 @@ module BOAST
     # Class describing to the convolution operator. Should contain the filter values and its central point
     attr_reader :filter
     # Dimensions of the problem. Can be multi-dimensional
-    attr_reader :n
+    attr_reader :ndim
     # Boundary conditions of the problem Integer values: -1 (shrink), 0 (periodic), 1 (grow) - to be implemented in for_conv
     attr_reader :bc
     # Constants (in matricial sense) to which the output arrays has to be initialized, y <- alpha* Conv * x + beta * x
     attr_reader :beta, :a
     # Matrix where the results of the convolution reductions can be written
     attr_reader :eks
+    # Array of boast dimensions
+    attr_reader :dims
+    # data in (x) and data out (y), also with work arrays (work)
+    attr_reader :x, :y, :work
+    # Array of subconvolutions steps
+    attr_reader :subops
+    # Variables of the convolution operations
+    attr_reader :vars
 
-    def initialize(filter,n,bc,beta,a,eks)
+    def initialize(filter,ndim,bc,options={})
       @filter = filter
-      @n = n
+      @ndim = ndim
       @bc = bc
-      @beta = beta
-      @a = a
-      @eks = eks
+      @dims = (0...@ndim).collect{ |indx| 
+        BOAST::Int("n#{indx+1}",{:direction => :in, :signed => false})
+      }
+      @vars = @dims
+      if options[:a] then
+        @a = BOAST::Real("scal",:dir => :in,:dim => [ BOAST::Dim(0, @ndim-1)]) 
+        @vars += [@a]
+      end
+      #each of the dimension should be adapted to the bc of the system according to filter lengths
+      dimx = @dims.collect{ |dim|
+        BOAST::Dim(0, dim-1)
+      }
+      dimy = @dims.collect{ |dim|
+        BOAST::Dim(0, dim-1)
+      }
+      dimw = @dims.collect{ |dim|
+        BOAST::Dim(0, dim-1)
+      }
+      #shoud put input in the case of convolutions with work array
+      @x = BOAST::Real("x",:dir => :in, :dim => dimx)
+      @y = BOAST::Real("y",:dir => :out, :dim => dimy)
+      @vars += [@x, @y]
+      if options[:work] then
+        @work = BOAST::Real("work",:dir => :inout, :dim => dimw) 
+        @vars += [@work]
+      end  
+      if options[:beta] then
+        @beta = BOAST::Real("c",:dir => :in) if options[:beta]
+        @vars += [@beta]
+      end
+      if options[:eks] then
+        @eks = BOAST::Real("kstrten",:dir => :out,:dim =>[ BOAST::Dim(0, @ndim-1)])
+        @vars += [@eks]
+      else
+        @eks = []
+      end
     end
     
     def dim_indexes(processed_dim, transpose)

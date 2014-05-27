@@ -1084,12 +1084,12 @@ EOF
       function_name += "_u#{unroll.join("_")}"
     end
 
-    n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
-    n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
-    n3 = Variable::new("n3",Int,{:direction => :in, :signed => false})
-    hgrid = Variable::new("hgrid",Real,{:direction => :in, :dimension => [Dimension::new(0,2)]})
-    c = Variable::new("c",Real,{:direction => :in})
-    ek = Variable::new("kstrten",Real,{:direction => :out, :dimension => [Dimension::new(0,2)]}) if ekin
+    # n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
+    # n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
+    # n3 = Variable::new("n3",Int,{:direction => :in, :signed => false})
+    # hgrid = Variable::new("hgrid",Real,{:direction => :in, :dimension => [Dimension::new(0,2)]})
+    # c = Variable::new("c",Real,{:direction => :in})
+    # ek = Variable::new("kstrten",Real,{:direction => :out, :dimension => [Dimension::new(0,2)]}) if ekin
     if ekin then
       ek1 = Variable::new("ek1",Real)
       ek2 = Variable::new("ek2",Real)
@@ -1098,36 +1098,34 @@ EOF
     else
       eks=[]
     end
-    x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
-    y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
+    sc1 = Variable::new("sc1",Real)
+    sc2 = Variable::new("sc2",Real)
+    sc3 = Variable::new("sc3",Real)
+    scals = [sc1, sc2, sc3]
+
+    # x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
+    # y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
     if BOAST::get_lang == C then
       @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
       @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
     end
     load "./GenericConvolution.rb" 
+    
     conv_filter = ConvolutionFilter::new(filt,center)
-                             
-    #fil,lowfil,upfil=filter_boastruct(filt,center)
-    #lowfil = Variable::new("lowfil",Int,{:constant => -center})
-    #upfil = Variable::new("upfil",Int,{:constant => filt.length - center -1})
-    #arr = ConstArray::new(filt,Real)
-    zerocinq = Variable::new("zerocinq",Real,{:constant => "0.5"})
-    #fil = Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new((-center),(filt.length - center -1)) ]})
-    scal = Variable::new("scal",Real,{:dimension => [Dimension::new(0,2)]})
+    
+    kinetic_operation = ConvolutionOperator::new(conv_filter,3,free,:beta=>(not ekin),:eks=>ekin,:a=>true)
+
+    # zerocinq = Variable::new("zerocinq",Real,{:constant => "0.5"})
+    # scal = Variable::new("scal",Real,{:dimension => [Dimension::new(0,2)]})
     i1 = Variable::new("i1",Int)
     i2 = Variable::new("i2",Int)
     i3 = Variable::new("i3",Int)
     l = Variable::new("l",Int)
     k = Variable::new("k",Int)
-    dims = [n1,n2,n3]
+    # dims = [n1,n2,n3]
     iters = [i1,i2,i3]
 
-    #to replace modulo operation
-    mods=[]
-    mod_arr.each_index { |i| 
-      mods[i]=Variable::new("mod_arr#{i}",Real,{:dimension => [ Dimension::new((-center),dims[i]+(filt.length - center -1)) ]}) if mod_arr[i] and not free[i]
-    }
       
 
     tt = [Variable::new("tt1",Real)]
@@ -1135,119 +1133,55 @@ EOF
       tt.push(Variable::new("tt#{index}",Real))
     }
 
+    #vars = [n1,n2,n3,hgrid,x,y]
+    #vars += [c] if not ekin
+    #vars += [ek] if ekin
+    x     = kinetic_operation.x
+    y     = kinetic_operation.y
+    free  = kinetic_operation.bc
+    dims  = kinetic_operation.dims
+    filter= kinetic_operation.filter
+    c     = kinetic_operation.beta
+    scal  = kinetic_operation.a
+    kstr  = kinetic_operation.eks
+    vars  = kinetic_operation.vars
 
-##    for_BC = lambda { |t,dim,unro,init|
-##      t.each_index { |ind|
-##        j1 = (unro == 0 ? i1 + ind : i1)
-##        j2 = (unro == 1 ? i2 + ind : i2)
-##        j3 = (unro == 2 ? i3 + ind : i3)
-##        (t[ind] === ( (init and not ekin) ? c * x[j1,j2,j3] / scal[dim[2]] : 0.0 )).print
-##      }
-##      if( free[dim[2]] ) then
-##        For::new( l, FuncCall::new( "max", -iters[dim[2]], lowfil), FuncCall::new( "min", upfil, dims[dim[2]] - 1 - iters[dim[2]] ) ) {
-##          (k === iters[dim[2]]+l).print
-##          t.each_index { |ind|
-##            j1 = (dim[2] == 0 ? k : (unro == 0 ? i1 + ind : i1))
-##            j2 = (dim[2] == 1 ? k : (unro == 1 ? i2 + ind : i2))
-##            j3 = (dim[2] == 2 ? k : (unro == 2 ? i3 + ind : i3))
-##            (t[ind] === t[ind] + x[j1,j2,j3]*fil[l] ).print
-##          }
-##        }.unroll#.print#
-##      else
-##        For::new( l, lowfil, upfil) {
-##          #(k === FuncCall::new( "modulo", iters[dim[2]]+(l), dims[dim[2]] )).print
-##          (k ===  iters[dim[2]]+(l) - ((iters[dim[2]]+(l) +  dims[dim[2]] * 2 )/(dims[dim[2]]) - 2) *dims[dim[2]]  ).print unless mods[dim[2]]
-##          t.each_index { |ind|
-##            j1 = (dim[2] == 0 ? (mods[0]? mods[0][iters[0]+(l)] : k ) : (unro == 0 ? i1 + ind : i1))
-##            j2 = (dim[2] == 1 ? (mods[1]? mods[1][iters[1]+(l)] : k ) : (unro == 1 ? i2 + ind : i2))
-##            j3 = (dim[2] == 2 ? (mods[2]? mods[2][iters[2]+(l)] : k ) : (unro == 2 ? i3 + ind : i3))
-##            (t[ind] === t[ind] + x[j1,j2,j3]*fil[l] ).print
-##          }
-##        }.unroll#.print#
-##      end
-##      t.each_index { |ind|
-##          j1 = (unro == 0 ? i1 + ind : i1)
-##          j2 = (unro == 1 ? i2 + ind : i2)
-##          j3 = (unro == 2 ? i3 + ind : i3)
-##          (t[ind] === t[ind] * scal[dim[2]]).print
-##          (eks[dim[2]] === eks[dim[2]] + t[ind] * x[j1,j2,j3]).print if ekin
-##          (y[j1,j2,j3] === ( init ? t[ind] : y[j1,j2,j3] + t[ind] )).print
-##      }
-##    }
-##    for_noBC = lambda { |t,dim,unro,init|
-##      t.each_index { |ind|
-##        j1 = (unro == 0 ? i1 + ind : i1)
-##        j2 = (unro == 1 ? i2 + ind : i2)
-##        j3 = (unro == 2 ? i3 + ind : i3)
-##        (t[ind] === ( (init and not ekin) ? c * x[j1,j2,j3] / scal[dim[2]] : 0.0 )).print
-##      }
-##      For::new( l, lowfil, upfil) {
-##        t.each_index { |ind|
-##          j1 = (dim[2] == 0 ? i1 + l : (unro == 0 ? i1 + ind : i1))
-##          j2 = (dim[2] == 1 ? i2 + l : (unro == 1 ? i2 + ind : i2))
-##          j3 = (dim[2] == 2 ? i3 + l : (unro == 2 ? i3 + ind : i3))
-##          (t[ind] === t[ind] + x[j1,j2,j3]*fil[l] ).print
-##        }
-##      }.unroll#.print#
-##      t.each_index { |ind|
-##          j1 = (unro == 0 ? i1 + ind : i1)
-##          j2 = (unro == 1 ? i2 + ind : i2)
-##          j3 = (unro == 2 ? i3 + ind : i3)
-##          (t[ind] === t[ind] * scal[dim[2]]).print
-##          (eks[dim[2]] === eks[dim[2]] + t[ind] * x[j1,j2,j3]).print if ekin
-##          (y[j1,j2,j3] === ( init ? t[ind] : y[j1,j2,j3] + t[ind] )).print
-##      }
-##    }
-##
+    #to replace modulo operation
+    mods=[]
+    mod_arr.each_index { |i| 
+      mods[i]=Variable::new("mod_arr#{i}",Real,{:dimension => [ Dimension::new((-center),dims[i]+(filt.length - center -1)) ]}) if mod_arr[i] and not free[i]
+    }
 
-#    kinetic_d = lambda { |t,dim,unro,init,reliq,unrol|
-#      @@output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
-#      For::new(iters[dim[0]], (reliq and unro == dim[0] ) ? (dims[dim[0]]/unrol)*unrol : 0 , (unro == dim[0] and not reliq) ? dims[dim[0]]-unrol : dims[dim[0]]-1, unro == dim[0] ? t.length : 1 ) {
-#        For::new(iters[dim[1]], (reliq and unro == dim[1] ) ? (dims[dim[1]]/unrol)*unrol : 0 , (unro == dim[1] and not reliq) ? dims[dim[1]]-unrol : dims[dim[1]]-1, unro == dim[1] ? t.length : 1) {
-#          conv_lines(conv_filter,free[dim[2]],dims,iters,l,t,dim[2],unro,0,init,c,scal[dim[2]],x,y,eks[dim[2]],mods[dim[2]])
-##
-#         For::new(iters[dim[2]], 0, -conv_filter.lowfil) {
-#           #for_BC.call(t, dim, unro, init)
-#           for_conv(false,iters,l,t, dim[2], unro, init,free[dim[2]],c,scal[dim[2]],x,y,eks[dim[2]],conv_filter,
-#                  dims,mods[dim[2]],0)
-#         }.print
-#         For::new(iters[dim[2]], -conv_filter.lowfil+1, dims[dim[2]] - 1 - conv_filter.upfil) {
-#           for_conv(true,iters,l,t, dim[2], unro, init,free[dim[2]],c,scal[dim[2]],x,y,eks[dim[2]],conv_filter,
-#                  dims,mods[dim[2]],0)
-#           #for_noBC(iters,l,t, dim[2], unro, init,c,scal[dim[2]],x,y,eks[dim[2]],fil,lowfil,upfil)
-#         }.print
-#         For::new(iters[dim[2]], dims[dim[2]] - conv_filter.upfil, dims[dim[2]]-1) {
-#           for_conv(false,iters,l,t, dim[2], unro, init,free[dim[2]],c,scal[dim[2]],x,y,eks[dim[2]],conv_filter,
-#                  dims,mods[dim[2]],0)
-#         }.print
-#        }.print
-#      }.print
-#      @@output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
-#    }
-
-    vars = [n1,n2,n3,hgrid,x,y]
-    vars += [c] if not ekin
-    vars += [ek] if ekin
-    p = Procedure::new(function_name, vars, [conv_filter.lowfil,conv_filter.upfil,zerocinq]){
+#uts vars.inspect
+    p = Procedure::new(function_name, vars, [filter.lowfil,filter.upfil]){
       i1.decl
       i2.decl
       i3.decl
       l.decl
       k.decl
-      scal.decl
-      decl conv_filter.fil
+#      scal.decl
+
       if ekin then
         eks.each { |e|
           e.decl
         }
       end
+      scals.each { |e|
+        e.decl
+      }
+
       tt.each { |t| t.decl }
       mods.each{ |mod| mod.decl if mod}
 
+
+      decl filter.fil
       (0..2).each { |ind|
-        (scal[ind] === -zerocinq / (hgrid[ind] * hgrid[ind])).print
+        #        (scal[ind] === -zerocinq / (hgrid[ind] * hgrid[ind])).print
         (eks[ind] === 0.0).print if ekin
+        (scals[ind] === scal[ind]).print 
       }
+
+
       mod_arr.each_index{ |i|
         if mods[i] then
           For::new(k,(-center),dims[i]+(filt.length - center -1)) {
@@ -1255,8 +1189,6 @@ EOF
           }.print
         end
       }
-      
-
       
       if BOAST::get_lang == BOAST::FORTRAN then
         @@output.print("!$omp parallel default(shared)&\n")
@@ -1266,18 +1198,12 @@ EOF
         @@output.print(tt.join(","))
         @@output.print(")\n")
       end
-      convolution1d(conv_filter,dims,free[0],iters,l,tt,[2,1,0],0,true,c,scal[0],x,y,eks[0],mods[0],1,unroll[0])
-      convolution1d(conv_filter,dims,free[1],iters,l,tt,[2,0,1],0,false,c,scal[1],x,y,eks[1],mods[1],2,unroll[1])
-      convolution1d(conv_filter,dims,free[2],iters,l,tt,[1,0,2],0,false,c,scal[2],x,y,eks[2],mods[2],0,unroll[2])
-#      kinetic_d.call(tt[0...unroll[0]], [2,1,0], 1, true,false,unroll[0])
-#      kinetic_d.call([tt[0]], [2,1,0], 1, true,true,unroll[0]) if unroll[0] > 1
-#      kinetic_d.call(tt[0...unroll[1]], [2,0,1], 2, false,false,unroll[1])
-#      kinetic_d.call([tt[0]], [2,0,1], 2, false,true,unroll[1]) if unroll[1] > 1
-#      kinetic_d.call(tt[0...unroll[2]], [1,0,2], 0, false,false,unroll[2]) 
-#      kinetic_d.call([tt[0]], [1,0,2], 0, false,true,unroll[2]) if unroll[2] > 1
+      convolution1d(filter,dims,free[0],iters,l,tt,[2,1,0],0,true,c,scals[0],x,y,eks[0],mods[0],1,unroll[0])
+      convolution1d(filter,dims,free[1],iters,l,tt,[2,0,1],0,false,c,scals[1],x,y,eks[1],mods[1],2,unroll[1])
+      convolution1d(filter,dims,free[2],iters,l,tt,[1,0,2],0,false,c,scals[2],x,y,eks[2],mods[2],0,unroll[2])
       @@output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
       (0..2).each { |ind|
-        (ek[ind] === eks[ind]).print if ekin
+        (kstr[ind] === eks[ind]).print if ekin
       }
     }
     p.print
