@@ -1072,39 +1072,7 @@ EOF
     kernel = CKernel::new
     BOAST::set_output( kernel.code )
     kernel.lang = BOAST::get_lang
-    function_name = "kinetic"
-    fr = free.collect { |e|
-      if e
-      then "f"
-      else "p"
-      end
-    }
-    function_name += "_" + fr.join("")
-    if unroll.max > 0 then
-      function_name += "_u#{unroll.join("_")}"
-    end
 
-    # n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
-    # n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
-    # n3 = Variable::new("n3",Int,{:direction => :in, :signed => false})
-    # hgrid = Variable::new("hgrid",Real,{:direction => :in, :dimension => [Dimension::new(0,2)]})
-    # c = Variable::new("c",Real,{:direction => :in})
-    # ek = Variable::new("kstrten",Real,{:direction => :out, :dimension => [Dimension::new(0,2)]}) if ekin
-    if ekin then
-      ek1 = Variable::new("ek1",Real)
-      ek2 = Variable::new("ek2",Real)
-      ek3 = Variable::new("ek3",Real)
-      eks = [ek1, ek2, ek3]
-    else
-      eks=[]
-    end
-    sc1 = Variable::new("sc1",Real)
-    sc2 = Variable::new("sc2",Real)
-    sc3 = Variable::new("sc3",Real)
-    scals = [sc1, sc2, sc3]
-
-    # x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
-    # y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
     if BOAST::get_lang == C then
       @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
       @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
@@ -1112,101 +1080,16 @@ EOF
     end
     load "./GenericConvolution.rb" 
     
-    conv_filter = ConvolutionFilter::new(filt,center)
+    conv_filter = ConvolutionFilter::new('kinetic',filt,center)
     
-    kinetic_operation = ConvolutionOperator::new(conv_filter,3,free,:beta=>(not ekin),:eks=>ekin,:a=>true)
+    kinetic_operation = ConvolutionOperator::new(conv_filter,3,free,:beta =>(not ekin),:eks => ekin,:alpha => true)
 
-    # zerocinq = Variable::new("zerocinq",Real,{:constant => "0.5"})
-    # scal = Variable::new("scal",Real,{:dimension => [Dimension::new(0,2)]})
-    i1 = Variable::new("i1",Int)
-    i2 = Variable::new("i2",Int)
-    i3 = Variable::new("i3",Int)
-    l = Variable::new("l",Int)
-    k = Variable::new("k",Int)
-    # dims = [n1,n2,n3]
-    iters = [i1,i2,i3]
+    optim = ConvolutionOptimization::new(kinetic_operation,:use_mod => true,:unroll => unroll)
 
-      
-
-    tt = [Variable::new("tt1",Real)]
-    2.upto(unroll.max) { |index|
-      tt.push(Variable::new("tt#{index}",Real))
-    }
-
-    #vars = [n1,n2,n3,hgrid,x,y]
-    #vars += [c] if not ekin
-    #vars += [ek] if ekin
-    x     = kinetic_operation.x
-    y     = kinetic_operation.y
-    free  = kinetic_operation.bc
-    dims  = kinetic_operation.dims
-    filter= kinetic_operation.filter
-    c     = kinetic_operation.beta
-    scal  = kinetic_operation.a
-    kstr  = kinetic_operation.eks
-    vars  = kinetic_operation.vars
-
-    #to replace modulo operation
-    mods=[]
-    mod_arr.each_index { |i| 
-      mods[i]=Variable::new("mod_arr#{i}",Real,{:dimension => [ Dimension::new((-center),dims[i]+(filt.length - center -1)) ]}) if mod_arr[i] and not free[i]
-    }
-
-#uts vars.inspect
-    p = Procedure::new(function_name, vars, [filter.lowfil,filter.upfil]){
-      i1.decl
-      i2.decl
-      i3.decl
-      l.decl
-      k.decl
-#      scal.decl
-
-      if ekin then
-        eks.each { |e|
-          e.decl
-        }
-      end
-      scals.each { |e|
-        e.decl
-      }
-
-      tt.each { |t| t.decl }
-      mods.each{ |mod| mod.decl if mod}
-
-
-      decl filter.fil
-      (0..2).each { |ind|
-        #        (scal[ind] === -zerocinq / (hgrid[ind] * hgrid[ind])).print
-        (eks[ind] === 0.0).print if ekin
-        (scals[ind] === scal[ind]).print 
-      }
-
-
-      mod_arr.each_index{ |i|
-        if mods[i] then
-          For::new(k,(-center),dims[i]+(filt.length - center -1)) {
-            (mods[i][k] === FuncCall::new( "modulo", k+(l), dims[i])).print
-          }.print
-        end
-      }
-      
-      if BOAST::get_lang == BOAST::FORTRAN then
-        @@output.print("!$omp parallel default(shared)&\n")
-        @@output.print("!$omp reduction(+:#{eks.join(",")})&\n") if ekin
-        @@output.print("!$omp private(i1,i2,i3,k,l)&\n")
-        @@output.print("!$omp private(")
-        @@output.print(tt.join(","))
-        @@output.print(")\n")
-      end
-      convolution1d(filter,dims,free[0],iters,l,tt,[2,1,0],0,true,c,scals[0],x,y,eks[0],mods[0],1,unroll[0])
-      convolution1d(filter,dims,free[1],iters,l,tt,[2,0,1],0,false,c,scals[1],x,y,eks[1],mods[1],2,unroll[1])
-      convolution1d(filter,dims,free[2],iters,l,tt,[1,0,2],0,false,c,scals[2],x,y,eks[2],mods[2],0,unroll[2])
-      @@output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
-      (0..2).each { |ind|
-        (kstr[ind] === eks[ind]).print if ekin
-      }
-    }
+    p, subops= kinetic_operation.procedure(optim)
+    subops.each{ | ops| ops.print}
     p.print
+    
     kernel.procedure = p
     return kernel
   end
