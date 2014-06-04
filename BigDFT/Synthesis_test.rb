@@ -84,7 +84,7 @@ epsilon = 10e-15
 BOAST::set_lang( BOAST::FORTRAN )
 k = BOAST::synthesis_free_ref
 out_fortran.puts k
-k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
+k.build({:FC => 'gfortran',:CC => 'gcc', :openmp => true})
 durations = []
 repetition.times {
   stats = k.run(n1/2, n2*n3, input, output_ref)
