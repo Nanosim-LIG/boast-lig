@@ -66,10 +66,10 @@ diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
 output = NArray.float(n1,n2,n3).random
-(3..12).each{ |unroll|
-  k = BOAST::kinetic(filt,14,[4,1,12],false,[false]*3,[true]*3)
+(3..3).each{ |unroll|
+  k = BOAST::kinetic(filt,14,[1,1,1],false,[false]*3,[true]*3)
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
-  #k.print
+  k.print
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
   k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
   begin

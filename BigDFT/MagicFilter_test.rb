@@ -23,6 +23,7 @@ n1 = 124
 n2 = 132
 n3 = 130
 input = NArray.float(n1,n2,n3).random
+work = NArray.float(n1,n2,n3)
 output_ref = NArray.float(n1,n2,n3)
 output = NArray.float(n1,n2,n3)
 epsilon = 10e-15
@@ -32,22 +33,46 @@ epsilon = 10e-15
 BOAST::set_lang( BOAST::FORTRAN )
 k = BOAST::magicfilter_per_ref
 stats = k.run(n1, n2*n3, input, output_ref)
+stats = k.run(n1, n2*n3, input, output_ref)
+stats = k.run(n2, n1*n3, output_ref, work)
+stats = k.run(n3, n2*n1, work, output_ref)
+
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 #BOAST::MagicFilter(FILTER,8,0,false).run(32, 32, " "*32*32*8, " "*32*32*8)
 1.upto(2) { |i|
   k = BOAST::MagicFilter(FILTER,8,i,false)
   stats = k.run(n1, n2*n3, input, output)
   stats = k.run(n1, n2*n3, input, output)
+  stats = k.run(n2, n1*n3, output, work)
+  stats = k.run(n3, n2*n1, work, output)
   diff = (output_ref - output).abs
   diff.each { |elem|
-    puts "Warning: residue too big: #{elem}" if elem > epsilon
+    raise "Warning: residue too big: #{elem}" if elem > epsilon
   }
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
-
+#BOAST::set_lang( BOAST::C )
+1.upto(1) { |i|
+  k = BOAST::MF3d(FILTER,8,i)
+  k.print
+  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
+  begin
+    stats = k.run(n1, n2, n3, input, output, work)
+    stats = k.run(n1, n2, n3, input, output, work)
+  rescue Exception => e
+    puts e.inspect
+  end
+  diff = (output_ref - output).abs
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+  diff.each { |elem|
+    raise "Warning: residue too big: #{elem}" if elem > epsilon
+  }
+}
+dfgdfag
 k = BOAST::magicfilter_per_ref(true)
 stats = k.run(n1, n2*n3, input, output_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+
 #BOAST::MagicFilter(FILTER,8,0,false).run(32, 32, " "*32*32*8, " "*32*32*8)
 1.upto(2) { |i|
   k = BOAST::MagicFilter(FILTER,8,i,true)

@@ -142,10 +142,10 @@ module BOAST
           for3.close
           tt.each_index{ |index|
             (y[j+index,i] === tt[index]).print
-          }
-        }.print
+        }
+      }.print
       for1.close
-  
+      
       if unroll>1 then
         for1 = For::new(j,ndat-FuncCall::new("modulo",ndat,unroll)+1,ndat) {
           for2 = For::new(i,dim_out_min,dim_out_max) {
@@ -174,5 +174,31 @@ module BOAST
     kernel.procedure = p
     return kernel
   end
-end
 
+  def BOAST::MF3d(filt, center, unroll, free=[false,false,false], mod_arr=[false,false,false])
+    kernel = CKernel::new
+    BOAST::set_output( kernel.code )
+    kernel.lang = BOAST::get_lang
+
+    if BOAST::get_lang == C then
+      @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
+      @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
+      @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
+    end
+    load "./GenericConvolution.rb" 
+    
+    conv_filter = ConvolutionFilter::new('magfilt',filt,center)
+    
+    conv_operation = ConvolutionOperator::new(conv_filter,3,free,:work => true)
+
+    optim = ConvolutionOptimization::new(conv_operation,:use_mod => true,:unroll => unroll, :transpose => 1)
+
+    p, subops= conv_operation.procedure(optim)
+    subops[0].print
+    #subops.each{ | ops| ops.print}
+    p.print
+    
+    kernel.procedure = p
+    return kernel
+  end
+end

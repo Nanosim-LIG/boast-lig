@@ -70,35 +70,11 @@ module BOAST
 
     t.each_index { |ind|
       i_out = output_index(unro, i_in, ind)
-      print t[ind] === t[ind] * scal
+      print t[ind] === t[ind] * scal if scal
       print eks === eks + t[ind] * x[*i_out] if eks
-      print y[*i_out.rotate(nrotate)] === (init ? t[ind] : y[*i_out] + t[ind] )
+      #print y[*i_out.rotate(nrotate)] === (init ? t[ind] : y[*i_out.rotate(nrotate)] + t[ind] )
+      print y[*i_out.rotate(nrotate)] === t[ind]
     }
-  end
-
-  class ConvolutionFilter
-    # List of the floating point values of the convolution filter
-    attr_reader :fil_array
-    # central point of the filter
-    attr_reader :center
-    # BOAST variables
-    # Filter array (to be used on BOAST functions)
-    attr_reader :fil
-    # extremes of the filter, calculated via its central point (BOAST object)
-    attr_reader :lowfil, :upfil
-    # name of the filter
-    attr_reader :name
-
-    def initialize(name,filt,center)
-      arr = ConstArray::new(filt,Real)
-      @fil=BOAST::Real("fil",:constant => arr,:dim => [ BOAST::Dim((-center),(filt.length - center -1)) ])
-      @lowfil = BOAST::Int("lowfil",:constant => -center)
-      @upfil = BOAST::Int("upfil",:constant => filt.length - center -1)
-      @fil_array=filt
-      @center=center
-      @name=name
-    end
-
   end
 
   def self.conv_lines(filter,free,dims,iters,l,t,processed_dim,unro,nrotate,init,c,scal,x,y,eks,mods)
@@ -126,6 +102,162 @@ module BOAST
     return [istart,iend,istep]
   end
 
+  def self.convolution1d(filter,dims,free,iters,l,t,dim_indexes,nrotate,init,scal,c,x,y,eks,mods,unro,unrolling_length)
+    convgen= lambda { |dim,t,reliq|
+      ises0 = startendpoints(dims[dim[0]],unro == dim[0],unrolling_length,reliq)
+      @@output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
+      For::new(iters[dim[0]], *ises0 ) {
+        if dim.length == 3 then
+          ises1 = startendpoints(dims[dim[1]],unro == dim[1],unrolling_length,reliq)
+          For::new(iters[dim[1]], *ises1) {
+            conv_lines(filter,free,dims,iters,l,t,dim[-1],unro,nrotate,init,c,scal,x,y,eks,mods)
+          }.print
+        else
+          conv_lines(filter,free,dims,iters,l,t,dim[-1],unro,nrotate,init,c,scal,x,y,eks,mods)
+        end
+      }.print
+      @@output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
+    }
+    #first without the reliq
+    convgen.call(dim_indexes,t[0..unrolling_length-1],false)
+    #then with the reliq but only if the unrolling patterns need it
+    convgen.call(dim_indexes,t[0..0],true) if (unrolling_length > 1)
+  end
+
+
+  class ConvolutionFilter
+    # List of the floating point values of the convolution filter
+    attr_reader :fil_array
+    # central point of the filter
+    attr_reader :center
+    # BOAST variables
+    # Filter array (to be used on BOAST functions)
+    attr_reader :fil
+    # extremes of the filter, calculated via its central point (BOAST object)
+    attr_reader :lowfil, :upfil
+    # name of the filter
+    attr_reader :name
+
+    def initialize(name,filt,center)
+      arr = ConstArray::new(filt,Real)
+      @fil=BOAST::Real("fil",:constant => arr,:dim => [ BOAST::Dim((-center),(filt.length - center -1)) ])
+      @lowfil = BOAST::Int("lowfil",:constant => -center)
+      @upfil = BOAST::Int("upfil",:constant => filt.length - center -1)
+      @fil_array=filt
+      @center=center
+      @name=name
+    end
+
+  end
+
+  class ConvolutionOperator1d
+    # Convolution filter
+    attr_reader :filter
+    # Boundary conditions
+    attr_reader :bc
+    # Dimension of the problem, associated to in or out array depending on the nature of bc (grow or shrink)
+    attr_reader :dims, :dim_n
+    # input array, unchanged on exit
+    attr_reader :in
+    # output array, reduced on exit
+    attr_reader :out
+    # out <- [out +] alpha conv(in) + beta in
+    # reduce the array or not
+    attr_reader :reduce
+    # constants of the convolution
+    attr_reader :beta, :alpha
+    # value of <in | conv (in)>
+    attr_reader :dotp
+    # order of the dimensions to be convolved (las one is the processed dim)
+    attr_reader :dim_indexes
+    # variables of the procedure
+    attr_reader :vars
+    # options
+    attr_reader :option
+    # Creates new 1d convolution
+    # 
+    # ==== Attributes
+    # 
+    # * +filter+ - ConvolutionFilter object corresponding to the operations to be applied on data
+    # * +bc+ - 
+    # * +options+ - Hash table of allowed options (see options descritpion)
+    #
+    # ==== Options
+    #
+    # * +:alpha+ -  Convolution constant of the operation out <- [out +] alpha conv(in) + beta in
+    # * +:beta+ -  Convolution constant of the operation out <- [out +] alpha conv(in) + beta in
+    def initialize(filter,bc,transpose,dim_indexes,init,options={})
+      @filter = filter
+      @bc = bc
+      @transpose = transpose
+      @dim_indexes = dim_indexes
+      @dim_n = BOAST::Int("n",:dir =>:in)
+      @dims = [@dim_n]
+      if (dim_indexes.length == 3) then
+        @dims = [BOAST::Int("ndat1",:dir =>:in)] + @dims + [BOAST::Int("ndat2",:dir =>:in)]
+      elsif dim_indexes.last == 0
+        @dims = @dims + [BOAST::Int("ndat",:dir =>:in)]
+      else
+        @dims = [BOAST::Int("ndat",:dir =>:in)] + @dims
+      end
+      @vars = @dims.dup
+      dimx =  @dims.collect{ |dim|
+        BOAST::Dim(0, dim-1)
+      }
+      if transpose !=0  then
+        dimy = dimx.rotate(1)
+      else
+        dimy= dimx
+      end
+      @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx)
+      @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy)
+      @vars.push @alpha = BOAST::Real("alpha",:dir => :in) if options[:alpha]
+      @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta]
+      @vars.push @dotp = BOAST::Real("dotp",:dir => :out) if options[:dotp]
+      @init = init
+      @options = options
+    end
+    def procedure(unroll,unrolled_dim,use_mod)
+      function_name = @filter.name + "_" + ( @bc ? "f" : "p") + "_#{@dim_indexes.join('')}" +
+        "_u#{unroll}_#{unrolled_dim}_#{use_mod}"
+
+      l = BOAST::Int("l")
+      tt = (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("tt#{index}") }
+      iters =  (1..@dims.length).collect{ |index| BOAST::Int("i#{index}")}
+      
+      if use_mod then
+        mods=BOAST::Real("mod_arr", :dim => [BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil)])
+      else
+        mods=nil
+      end
+      return BOAST::Procedure(function_name,vars,[@filter.lowfil,@filter.upfil]){
+        BOAST::decl @filter.fil
+        BOAST::decl *iters
+        BOAST::decl l
+        BOAST::decl *tt
+        if use_mod then
+          BOAST::decl mods 
+          BOAST::print BOAST::For(l, @filter.lowfil, @dim_n + @filter.upfil) {
+            BOAST::print mods[l] === BOAST::modulo(l, @dim_n)
+          } 
+        end
+        BOAST::print @dotp === 0.0 if @options[:dotp]
+        if BOAST::get_lang == BOAST::FORTRAN then
+          BOAST::get_output.print("!$omp parallel default(shared)&\n")
+          BOAST::get_output.print("!$omp reduction(+:#{dotp})&\n") if @options[:dotp]
+          BOAST::get_output.print("!$omp private(#{iters.join(",")},#{l})&\n")
+          BOAST::get_output.print("!$omp private(#{tt.join(",")})\n")
+        end
+
+        BOAST::convolution1d(@filter,@dims,@bc,iters,l,tt,@dim_indexes,@transpose,@init,
+                             @alpha,@beta,@in,@out,@dotp,mods,unrolled_dim,unroll)
+
+        BOAST::get_output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
+      }
+    end
+  end
+
+
   class ConvolutionOperator
     # Class describing to the convolution operator. Should contain the filter values and its central point
     attr_reader :filter
@@ -133,7 +265,8 @@ module BOAST
     attr_reader :ndim
     # Boundary conditions of the problem Integer values: -1 (shrink), 0 (periodic), 1 (grow) - to be implemented in for_conv
     attr_reader :bc
-    # Constants (in matricial sense) to which the output arrays has to be initialized, y <- alpha* Conv * x + beta * x
+    # Constants (in matricial sense) to which the output arrays has to be initialized, 
+    # y <- alpha* Conv * x + beta * x
     attr_reader :beta, :alpha
     # Matrix where the results of the convolution reductions can be written
     attr_reader :eks
@@ -214,7 +347,7 @@ module BOAST
       #set of 1 chaining of convolutions
       subops= (0...@ndim).collect{ |ind|
         ConvolutionOperator1d::new(@filter, @bc[ind], transpose,
-                                   self.dim_indexes(ind,transpose),ind==0,
+                                   self.dim_indexes(ind,transpose),(ind==0 and @options[:beta]),
                                    @options)
       }
       procs = []
@@ -247,6 +380,7 @@ module BOAST
           out += [ [ @y, @work], [ @work, @y ] ]
           ndim -= 2
         end
+        return out
       else
         out = [ [ @x, @y] ]*ndim
       end
@@ -334,124 +468,6 @@ module BOAST
       end
       @unroll = [ unroll_lengths, unrolled_dim ]
     end
-  end
-
-  class ConvolutionOperator1d
-    # Convolution filter
-    attr_reader :filter
-    # Boundary conditions
-    attr_reader :bc
-    # Dimension of the problem, associated to in or out array depending on the nature of bc (grow or shrink)
-    attr_reader :dims, :dim_n
-    # input array, unchanged on exit
-    attr_reader :in
-    # output array, reduced on exit
-    attr_reader :out
-    # out <- [out +] alpha conv(in) + beta in
-    # reduce the array or not
-    attr_reader :reduce
-    # constants of the convolution
-    attr_reader :beta, :alpha
-    # value of <in | conv (in)>
-    attr_reader :dotp
-    # order of the dimensions to be convolved (las one is the processed dim)
-    attr_reader :dim_indexes
-    # variables of the procedure
-    attr_reader :vars
-    # options
-    attr_reader :option
-    def initialize(filter,bc,transpose,dim_indexes,init,options={})
-      @filter = filter
-      @bc = bc
-      @transpose = transpose
-      @dim_indexes = dim_indexes
-      @dim_n = BOAST::Int("n",:dir =>:in)
-      @dims = [@dim_n]
-      if (dim_indexes.length == 3) then
-        @dims = [BOAST::Int("ndat1",:dir =>:in)] + @dims + [BOAST::Int("ndat2",:dir =>:in)]
-      elsif dim_indexes.last == 0
-        @dims = @dims + [BOAST::Int("ndat",:dir =>:in)]
-      else
-        @dims = [BOAST::Int("ndat",:dir =>:in)] + @dims
-      end
-      @vars = @dims.dup
-      dimx =  @dims.collect{ |dim|
-        BOAST::Dim(0, dim-1)
-      }
-      if transpose !=0  then
-        dimy = dimx.rotate(1)
-      else
-        dimy= dimx
-      end
-      @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx)
-      @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy)
-      @vars.push @alpha = BOAST::Real("alpha",:dir => :in) if options[:alpha]
-      @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta]
-      @vars.push @dotp = BOAST::Real("dotp",:dir => :out) if options[:dotp]
-      @init = init
-      @options = options
-    end
-    def procedure(unroll,unrolled_dim,use_mod)
-      function_name = @filter.name + "_" + ( @bc ? "f" : "p") + "_#{@dim_indexes.join('')}" +
-        "_u#{unroll}_#{unrolled_dim}_#{use_mod}"
-
-      l = BOAST::Int("l")
-      tt = (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("tt#{index}") }
-      iters =  (1..@dims.length).collect{ |index| BOAST::Int("i#{index}")}
-                                                    
-      if use_mod then
-        mods=BOAST::Real("mod_arr", :dim => [BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil)])
-      else
-        mods=nil
-      end
-      return BOAST::Procedure(function_name,vars,[@filter.lowfil,@filter.upfil]){
-        BOAST::decl @filter.fil
-        BOAST::decl *iters
-        BOAST::decl l
-        BOAST::decl *tt
-        if use_mod then
-          BOAST::decl mods 
-          BOAST::print BOAST::For(l, @filter.lowfil, @dim_n + @filter.upfil) {
-            BOAST::print mods[l] === BOAST::modulo(l, @dim_n)
-          } 
-        end
-        BOAST::print @dotp === 0.0 if @options[:dotp]
-        if BOAST::get_lang == BOAST::FORTRAN then
-          BOAST::get_output.print("!$omp parallel default(shared)&\n")
-          BOAST::get_output.print("!$omp reduction(+:#{dotp})&\n") if @options[:dotp]
-          BOAST::get_output.print("!$omp private(#{iters.join(",")},#{l})&\n")
-          BOAST::get_output.print("!$omp private(#{tt.join(",")})\n")
-        end
-
-        BOAST::convolution1d(@filter,@dims,@bc,iters,l,tt,@dim_indexes,@transpose,@init,
-                             @alpha,@beta,@in,@out,@dotp,mods,unrolled_dim,unroll)
-
-        BOAST::get_output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
-      }
-    end
-  end
-
-
-  def self.convolution1d(filter,dims,free,iters,l,t,dim_indexes,nrotate,init,scal,c,x,y,eks,mods,unro,unrolling_length)
-    convgen= lambda { |dim,t,reliq|
-      ises0 = startendpoints(dims[dim[0]],unro == dim[0],unrolling_length,reliq)
-      @@output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
-      For::new(iters[dim[0]], *ises0 ) {
-        if dim.length == 3 then
-          ises1 = startendpoints(dims[dim[1]],unro == dim[1],unrolling_length,reliq)
-          For::new(iters[dim[1]], *ises1) {
-            conv_lines(filter,free,dims,iters,l,t,dim[-1],unro,nrotate,init,c,scal,x,y,eks,mods)
-          }.print
-        else
-          conv_lines(filter,free,dims,iters,l,t,dim[-1],unro,nrotate,init,c,scal,x,y,eks,mods)
-        end
-      }.print
-      @@output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
-    }
-    #first without the reliq
-    convgen.call(dim_indexes,t[0..unrolling_length-1],false)
-    #then with the reliq but only if the unrolling patterns need it
-    convgen.call(dim_indexes,t[0..0],true) if (unrolling_length > 1)
   end
 
 
