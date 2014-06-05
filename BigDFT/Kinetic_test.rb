@@ -55,7 +55,7 @@ k = BOAST::kinetic_per_ref
 stats = k.run(n1, n2, n3, hgrid, input, output_ref, 0.5)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 k = BOAST::kinetic_per_ref_optim
-k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -ftree-vectorize -fopenmp",:LDFLAGS => "-fopenmp"})
+k.build(:openmp => true)
 #k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -axSSE4.2 -openmp",:LDFLAGS => "-openmp"})
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
@@ -71,7 +71,7 @@ output = NArray.float(n1,n2,n3).random
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
   k.print
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
-  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
+  k.build(:openmp => true)
   begin
     #stats = k.run(n1, n2, n3, hgrid, input, output, 0.5)
     #stats = k.run(n1, n2, n3, hgrid, input, output, 0.5)
@@ -94,7 +94,7 @@ output = NArray.float(n1,n2,n3).random
   #k.print
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
-  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
+  k.build(:openmp => true)
   begin
     3.times {
       input_y = 0.5*input

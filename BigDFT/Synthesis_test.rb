@@ -50,7 +50,7 @@ puts "FORTRAN"
 (0..8).each{ |unroll|
   k = BOAST::synthesis(FILTER,7,unroll,false)
   out_fortran.puts k
-  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+  k.build
   stats = k.run(n1/2, n2*n3, input, output)
   stats = k.run(n1/2, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -64,7 +64,7 @@ BOAST::set_lang( BOAST::C )
 (0..8).each{ |unroll|
   k = BOAST::synthesis(FILTER,7,unroll,false)
   out_c.puts k
-  k.build({:FC => 'gfortran',:CC => 'gcc',:CFLAGS => "-O2",:LDFLAGS => ""})
+  k.build
   stats = k.run(n1/2, n2*n3, input, output)
   stats = k.run(n1/2, n2*n3, input, output)
   diff = (output_ref - output).abs
@@ -84,7 +84,7 @@ epsilon = 10e-15
 BOAST::set_lang( BOAST::FORTRAN )
 k = BOAST::synthesis_free_ref
 out_fortran.puts k
-k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
+k.build(:openmp => true)
 durations = []
 repetition.times {
   stats = k.run(n1/2, n2*n3, input, output_ref)
@@ -98,7 +98,7 @@ puts "FORTRAN OpenMP"
   durations = []
   k = BOAST::synthesis(FILTER,7,unroll,true)
   out_fortran.puts k
-  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
+  k.build( :openmp => true )
   repetition.times {
     stats = k.run(n1/2, n2*n3, input, output)
     durations.push( stats[:duration] )
@@ -117,7 +117,7 @@ BOAST::set_lang( BOAST::C )
   k = BOAST::synthesis(FILTER,7,unroll,true)
   out_c.puts k
 #  k.print if unroll == 0
-  k.build({:FC => 'gfortran',:CC => 'gcc',:CFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
+  k.build( :openmp => true )
   repetition.times {
     stats = k.run(n1/2, n2*n3, input, output)
     durations.push( stats[:duration] )
@@ -134,7 +134,7 @@ BOAST::set_lang( BOAST::FORTRAN )
 (1..8).each{ |unroll|
   durations = []
   k = BOAST::synthesis(FILTER,7,unroll,true)
-  k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2",:LDFLAGS => ""})
+  k.build
   repetition.times {
     stats = k.run(n1/2, n2*n3, input, output)
     durations.push( stats[:duration] )
@@ -151,7 +151,7 @@ BOAST::set_lang( BOAST::C )
 (1..8).each{ |unroll|
   durations = []
   k = BOAST::synthesis(FILTER,7,unroll,true)
-  k.build({:FC => 'gfortran',:CC => 'gcc',:CFLAGS => "-O2",:LDFLAGS => ""})
+  k.build
   repetition.times {
     stats = k.run(n1/2, n2*n3, input, output)
     durations.push( stats[:duration] )

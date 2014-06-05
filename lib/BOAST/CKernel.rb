@@ -4,9 +4,75 @@ require 'rake'
 require 'tempfile'
 require 'rbconfig'
 require 'systemu'
+require 'yaml'
 
 module BOAST
   @@verbose = false
+  @@compiler_default_options = {
+    :FC => 'gfortran',
+    :FCFLAGS => '-O2 -Wall',
+    :CC => 'gcc',
+    :CFLAGS => '-O2 -Wall',
+    :CXX => 'g++',
+    :CXXFLAGS => '-O2 -Wall',
+    :NVCC => 'nvcc',
+    :NVCCFLAGS => '-O2',
+    :LDFLAGS => '',
+    :CLFLAGS => '',
+    :openmp => false
+  }
+  
+  @@openmp_default_flags = {
+    "gcc" => "-fopenmp",
+    "icc" => "-openmp",
+    "gfortran" => "-fopenmp",
+    "ifort" => "-openmp",
+    "g++" => "-fopenmp",
+    "icpc" => "-openmp"
+  }
+
+  def BOAST::read_boast_config
+    home_config_dir = ENV["XDG_CONFIG_HOME"]
+    home_config_dir = "#{Dir.home}/.config" if not home_config_dir
+    Dir.mkdir( home_config_dir ) if not File::exist?( home_config_dir )
+    return if not File::directory?(home_config_dir)
+    boast_config_dir = "#{home_config_dir}/BOAST"
+    Dir.mkdir( boast_config_dir ) if not File::exist?( boast_config_dir )
+    compiler_options_file = "#{boast_config_dir}/compiler_options"
+    if File::exist?( compiler_options_file ) then
+      File::open( compiler_options_file, "r" ) { |f|
+        @@compiler_default_options.update( YAML::load( f.read ) )
+      }
+    else
+      File::open( compiler_options_file, "w" ) { |f|
+        f.write YAML::dump( @@compiler_default_options )
+      }
+    end
+    openmp_flags_file = "#{boast_config_dir}/openmp_flags"
+    if File::exist?( openmp_flags_file ) then
+      File::open( openmp_flags_file, "r" ) { |f|
+        @@openmp_default_flags.update( YAML::load( f.read ) )
+      }
+    else
+      File::open( openmp_flags_file, "w" ) { |f|
+        f.write YAML::dump( @@openmp_default_flags )
+      }
+    end
+    @@compiler_default_options.each_key { |k|
+      @@compiler_default_options[k] = ENV[k.to_s] if ENV[k.to_s]
+    }
+  end
+
+  BOAST::read_boast_config
+
+  def BOAST::get_openmp_flags
+    return @@openmp_default_flags.clone
+  end
+
+  def BOAST::get_compiler_options
+    return @@compiler_default_options.clone
+  end
+
 
   def BOAST::get_verbose
     return @@verbose
@@ -68,21 +134,14 @@ module BOAST
       Rake::verbose(verbose)
       Rake::FileUtilsExt.verbose_flag=verbose
       f_compiler = options[:FC]
-      f_compiler = "gfortran" if not f_compiler
       c_compiler = options[:CC]
-      c_compiler = "cc" if not c_compiler
       cxx_compiler = options[:CXX]
-      cxx_compiler = "g++" if not cxx_compiler
       cuda_compiler = options[:NVCC]
-      cuda_compiler = "nvcc"if not cuda_compiler
       f_flags = options[:FCFLAGS]
-      f_flags = "-O2 -Wall" if not f_flags
       f_flags += " -fPIC"
       f_flags += " -fno-second-underscore" if f_compiler == 'g95'
       ld_flags = options[:LDFLAGS]
-      ld_flags = "" if not ld_flags
       cuda_flags = options[:NVCCFLAGS]
-      cuda_flags = "-O2" if not cuda_flags
       cuda_flags += " --compiler-options '-fPIC'"
 
 
@@ -104,12 +163,47 @@ module BOAST
         end
       end
       includes += " -I#{narray_path}" if narray_path
-      cflags = "-O2 -Wall -fPIC #{includes}"
-      cxxflags = String::new(cflags)
+      cflags = options[:CFLAGS]
+      cxxflags = options[:CXXFLAGS]
+      cflags += " -fPIC #{includes}"
+      cxxflags += " -fPIC #{includes}"
       cflags += " -DHAVE_NARRAY_H" if narray_path
-      cflags += options[:CFLAGS] if options[:CFLAGS]
       fcflags = f_flags
       cudaflags = cuda_flags
+
+      if options[:openmp] then
+        case @lang
+        when BOAST::C
+          openmp_c_flags = BOAST::get_openmp_flags[c_compiler]
+          if not openmp_c_flags then
+            keys = BOAST::get_openmp_flags.keys
+            keys.each { |k|
+              openmp_c_flags = BOAST::get_openmp_flags[k] if c_compiler.match(k)
+            }
+          end
+          raise "unkwown openmp flags for: #{c_compiler}" if not openmp_c_flags
+          cflags += " #{openmp_c_flags}"
+          openmp_cxx_flags = BOAST::get_openmp_flags[cxx_compiler]
+          if not openmp_cxx_flags then
+            keys = BOAST::get_openmp_flags.keys
+            keys.each { |k|
+              openmp_cxx_flags = BOAST::get_openmp_flags[k] if cxx_compiler.match(k)
+            }
+          end
+          raise "unkwown openmp flags for: #{cxx_compiler}" if not openmp_cxx_flags
+          cxxflags += " #{openmp_cxx_flags}"
+        when BOAST::FORTRAN
+          openmp_f_flags = BOAST::get_openmp_flags[f_compiler]
+          if not openmp_f_flags then
+            keys = BOAST::get_openmp_flags.keys
+            keys.each { |k|
+              openmp_f_flags = BOAST::get_openmp_flags[k] if f_compiler.match(k)
+            }
+          end
+          raise "unkwown openmp flags for: #{f_compiler}" if not openmp_f_flags
+          fcflags += " #{openmp_f_flags}"
+        end
+      end
 
       runner = lambda { |t, call_string|
         if verbose then
@@ -244,17 +338,30 @@ EOF
     end
 
     def build(options = {})
-      return build_opencl(options) if @lang == BOAST::CL
-      ldflags = self.setup_compiler(options)
+      compiler_options = BOAST::get_compiler_options
+      compiler_options.update(options)
+      return build_opencl(comiler_options) if @lang == BOAST::CL
+      ldflags = self.setup_compiler(compiler_options)
       extension = ".c" if @lang == BOAST::C
       extension = ".cu" if @lang == BOAST::CUDA
       extension = ".f90" if @lang == BOAST::FORTRAN
 #temporary
-      c_compiler = options[:CC]
+      c_compiler = compiler_options[:CC]
       c_compiler = "cc" if not c_compiler
-      linker = options[:LD]
+      linker = compiler_options[:LD]
       linker = c_compiler if not linker
 #end temporary
+      if options[:openmp] then
+        openmp_ld_flags = BOAST::get_openmp_flags[linker]
+          if not openmp_ld_flags then
+            keys = BOAST::get_openmp_flags.keys
+            keys.each { |k|
+              openmp_ld_flags = BOAST::get_openmp_flags[k] if linker.match(k)
+            }
+          end
+          raise "unkwown openmp flags for: #{linker}" if not openmp_ld_flags
+          ldflags += " #{openmp_ld_flags}"
+      end
       source_file = Tempfile::new([@procedure.name,extension])
       path = source_file.path
       target = path.chomp(File::extname(path))+".o"
