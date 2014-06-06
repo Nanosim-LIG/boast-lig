@@ -211,7 +211,7 @@ module BOAST
         BOAST::print t[ind] === t[ind] * scal if scal
         BOAST::print eks === eks + t[ind] * x[*i_out] if eks
         BOAST::print y[*i_out.rotate(nrotate)] === (init ? t[ind] : y[*i_out.rotate(nrotate)] + t[ind] )
-        #print y[*i_out.rotate(nrotate)] === t[ind]
+        #BOAST::print y[*i_out.rotate(nrotate)] === t[ind]
       }
     end
 
