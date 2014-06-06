@@ -456,7 +456,7 @@ module BOAST
       @transpose = options[:transpose] if options[:transpose]
       
       @use_mod = convolution.dims.collect { false }
-      convolution.bc.each_with_index { |bc,ind| @use_mod[ind] = (not bc) } if options[:use_mod]
+      convolution.bc.each_with_index { |bc,ind| @use_mod[ind] = (bc == 0) } if options[:use_mod]
 
       @dim_order=(0...ndim).collect{|i| i}
       @dim_order.reverse!  if @transpose == -1 
