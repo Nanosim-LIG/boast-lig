@@ -68,7 +68,7 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
     raise "Warning: residue too big: #{elem}" if elem > epsilon
   }
 }
-dfgdfag
+#dfgdfag
 k = BOAST::magicfilter_per_ref(true)
 stats = k.run(n1, n2*n3, input, output_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
@@ -84,6 +84,8 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
   }
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
+
+###here follow the Free BC cases
 
 input = NArray.float(n1,n2,n3).random
 output_ref = NArray.float(n2,n3,n1+15)

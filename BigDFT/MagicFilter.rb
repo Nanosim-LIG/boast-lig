@@ -16,8 +16,8 @@ module BOAST
     end
     function_name += "_t" if invert
     function_name += "_ref"
-    n = Variable::new("n",Int,{:direction => :in, :signed => false})
-    ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
+    n = BOAST::Int("n",:dir => :in, :signed => false)
+    ndat = BOAST::Int("ndat",:dir => :in, :signed => false)
 
     dim_in_min = 0
     dim_in_max = n-1
@@ -33,8 +33,8 @@ module BOAST
       end
     end
 
-
-    x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(dim_in_min, dim_in_max), Dimension::new(ndat) ] })
+    x = BOAST::Real("x",:dir => :in, 
+                    :dim => [ BOAST:Dim(dim_in_min, dim_in_max), BOAST:Dim(ndat) ])
     y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(ndat), Dimension::new(dim_out_min, dim_out_max) ] })
     p = Procedure::new(function_name, [n,ndat,x,y])
     kernel.code.print(File::read("magicfilter_refs.f90"))

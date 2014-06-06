@@ -28,9 +28,7 @@ module BOAST
   class ConvolutionOperator1d
     # Convolution filter
     attr_reader :filter
-    # Boundary conditions
-    attr_reader :bc
-    # Dimension of the problem, associated to in or out array depending on the nature of bc (grow or shrink)
+    # dimensions
     attr_reader :dims, :dim_n
     # input array, unchanged on exit
     attr_reader :in
@@ -54,7 +52,17 @@ module BOAST
     # ==== Attributes
     # 
     # * +filter+ - ConvolutionFilter object corresponding to the operations to be applied on data
-    # * +bc+ - 
+    # * +bc+ Boundary conditions: control the way in which the convolution has to be applied.
+    #        Typical values are 0 : periodic BC, the size of input and output arrays are identical
+    #                           1 : Free BC, grow: the size of the output array is equal to the 
+    #                                              size of input array plus the one of the filter
+    #                          -1 : Free BC, shrink: the size of the input array is equal to the one
+    #                                        of output array plus the filter
+    #                     Given a convolution and its inverse, in free BC -1 is the inverse of 1
+    #                      but not viceversa as the number of point treated is lower.
+    #                         10:  Free BC, the size of input and output arrays are identical
+    #                              (loss of information)
+    #                       
     # * +options+ - Hash table of allowed options (see options descritpion)
     #
     # ==== Options
@@ -87,7 +95,7 @@ module BOAST
       @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx)
       @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy)
       @vars.push @alpha = BOAST::Real("alpha",:dir => :in) if options[:alpha]
-      @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta]
+      @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta] and init
       @vars.push @dotp = BOAST::Real("dotp",:dir => :out) if options[:dotp]
       @init = init
       @options = options
@@ -102,7 +110,7 @@ module BOAST
       iters =  (1..@dims.length).collect{ |index| BOAST::Int("i#{index}")}
       
       if use_mod then
-        mods=BOAST::Real("mod_arr", :allocate => true, :dim => [BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil)])
+        mods=BOAST::Int("mod_arr", :allocate => true, :dim => [BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil)])
       else
         mods=nil
       end
@@ -210,8 +218,13 @@ module BOAST
         i_out = output_index(unro, i_in, ind)
         BOAST::print t[ind] === t[ind] * scal if scal
         BOAST::print eks === eks + t[ind] * x[*i_out] if eks
-        BOAST::print y[*i_out.rotate(nrotate)] === (init ? t[ind] : y[*i_out.rotate(nrotate)] + t[ind] )
-        #BOAST::print y[*i_out.rotate(nrotate)] === t[ind]
+        if nrotate != 0 then
+          BOAST::print y[*i_out.rotate(nrotate)] === t[ind]
+        else
+          BOAST::print y[*i_out.rotate(nrotate)] === 
+            (init ? t[ind] : y[*i_out.rotate(nrotate)] + t[ind] )
+        end
+          
       }
     end
 
