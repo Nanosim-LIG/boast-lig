@@ -411,7 +411,7 @@ module BOAST
         if transpose != 0 then
           dims_tmp2 = dims_tmp.dup
           n = dims_tmp2.delete_at(ind)
-          ndat = eval '"#{dims_tmp2.join("*")}"'
+          ndat = eval '"(#{dims_tmp2.join(")*(")})"'
           if transpose == 1 then
             res = [n,ndat]
           else
@@ -419,13 +419,13 @@ module BOAST
           end
         else
           n = dims_tmp[ind]
-          ndat1 = eval '"#{dims_tmp[0...ind].join("*")}"'
-          ndat2 = eval '"#{dims_tmp[ind+1..-1].join("*")}"'
+          ndat1 = eval '"(#{dims_tmp[0...ind].join(")*(")})"'
+          ndat2 = eval '"(#{dims_tmp[ind+1..-1].join(")*(")})"'
 
           res=[]
-          res += [ndat1] if ndat1 != ""
+          res += [ndat1] if ndat1 != "()"
           res += [n]
-          res += [ndat2] if ndat2 != ""
+          res += [ndat2] if ndat2 != "()"
         end
         #here we should apply the correction to the dimension depending on bc
         #count where we are and which dimensions have alredy been treated
