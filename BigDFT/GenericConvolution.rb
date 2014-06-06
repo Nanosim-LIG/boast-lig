@@ -92,8 +92,8 @@ module BOAST
       else
         dimy= dimx
       end
-      @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx)
-      @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy)
+      @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
+      @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
       @vars.push @alpha = BOAST::Real("alpha",:dir => :in) if options[:alpha]
       @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta] and init
       @vars.push @dotp = BOAST::Real("dotp",:dir => :out) if options[:dotp]
@@ -131,12 +131,15 @@ module BOAST
           BOAST::get_output.print("!$omp reduction(+:#{dotp})&\n") if @options[:dotp]
           BOAST::get_output.print("!$omp private(#{iters.join(",")},#{l})&\n")
           BOAST::get_output.print("!$omp private(#{tt.join(",")})\n")
+        elsif BOAST::get_lang == BOAST::C then
+          BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt.join(",")})\n")
         end
 
         convolution1d(@filter,@dims,@bc,iters,l,tt,@dim_indexes,@transpose,@init,
                             @alpha,@beta,@in,@out,@dotp,mods,unrolled_dim,unroll)
 
         BOAST::get_output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
+        BOAST::get_output.print("#pragma omp end parrallel\n")  if BOAST::get_lang == BOAST::C
       }
     end
 
@@ -145,6 +148,7 @@ module BOAST
       convgen= lambda { |dim,t,reliq|
         ises0 = startendpoints(dims[dim[0]],unro == dim[0],unrolling_length,reliq)
         BOAST::get_output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
+        BOAST::get_output.print("#pragma omp for\n")
         For::new(iters[dim[0]], *ises0 ) {
           if dim.length == 3 then
             ises1 = startendpoints(dims[dim[1]],unro == dim[1],unrolling_length,reliq)
@@ -316,8 +320,8 @@ module BOAST
         BOAST::Dim(0, dim-1)
       }
       #shoud put input in the case of convolutions with work array
-      @x = BOAST::Real("x",:dir => :in, :dim => dimx)
-      @y = BOAST::Real("y",:dir => :out, :dim => dimy)
+      @x = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
+      @y = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
       @vars += [@x, @y]
       @vars.push @work = BOAST::Real("work",:dir => :inout, :dim => dimw) if options[:work]
       @vars.push @alpha = BOAST::Real("scal",:dir => :in,:dim => [ BOAST::Dim(0, @ndim-1)]) if options[:alpha]
