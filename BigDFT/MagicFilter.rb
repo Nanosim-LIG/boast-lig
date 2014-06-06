@@ -60,8 +60,8 @@ module BOAST
       function_name += "_u#{unroll}"
     end
 
-    n = Variable::new("n",Int,{:direction => :in, :signed => false})
-    ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
+    n = Variable::new("n",Int,{:direction => :in})
+    ndat = Variable::new("ndat",Int,{:direction => :in})
     if invert then
       lowfil = Variable::new("lowfil",Int,{:constant => 1-center})
       upfil = Variable::new("upfil",Int,{:constant => filt.length-center})
@@ -104,7 +104,6 @@ module BOAST
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
     end  
     p = Procedure::new(function_name, [n,ndat,x,y], [lowfil,upfil]) {
-  
       i.decl
       j.decl
       k.decl
