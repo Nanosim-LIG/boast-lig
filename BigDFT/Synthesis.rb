@@ -6,8 +6,8 @@ module BOAST
   def BOAST::synthesis_free_ref
     kernel = CKernel::new(:lang => BOAST::FORTRAN)
     function_name = "synthesis_free_ref"
-    n = Variable::new("n",Int,{:direction => :in, :signed => false})
-    ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
+    n = Variable::new("n",Int,{:direction => :in})
+    ndat = Variable::new("ndat",Int,{:direction => :in})
     dim_in_min = 0
     dim_in_max = n*2-1
     dim_out_min = -7
@@ -87,8 +87,8 @@ EOF
   def BOAST::synthesis_per_ref
     kernel = CKernel::new(:lang => BOAST::FORTRAN)
     function_name = "synthesis_per_ref"
-    n = Variable::new("n",Int,{:direction => :in, :signed => false})
-    ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
+    n = Variable::new("n",Int,{:direction => :in})
+    ndat = Variable::new("ndat",Int,{:direction => :in})
     dim_in_min = 0
     dim_in_max = n*2-1
     dim_out_min = 0
@@ -152,9 +152,9 @@ EOF
   def BOAST::synthesis3D_per(kernel_1D)
     kernel = CKernel::new(:kernels => [kernel_1D])
     function_name = "synthesis3d_per"
-    n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
-    n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
-    n3 = Variable::new("n3",Int,{:direction => :in, :signed => false})
+    n1 = Variable::new("n1",Int,{:direction => :in})
+    n2 = Variable::new("n2",Int,{:direction => :in})
+    n3 = Variable::new("n3",Int,{:direction => :in})
     input = Variable::new("input",Real,{:direction => :in, :dimension => [ Dimension::new(n1 * n2 * n3) ] })
     output = Variable::new("output",Real,{:direction => :out, :dimension => [ Dimension::new(n1 * n2 * n3) ] })
     temp = Variable::new("temp",Real,{:direction => :out, :dimension => [ Dimension::new(n1 * n2 * n3) ] })
@@ -180,8 +180,8 @@ EOF
       function_name += "_u#{unroll}"
     end
 
-    n = Variable::new("n",Int,{:direction => :in, :signed => false})
-    ndat = Variable::new("ndat",Int,{:direction => :in, :signed => false})
+    n = Variable::new("n",Int,{:direction => :in})
+    ndat = Variable::new("ndat",Int,{:direction => :in})
     lowfil = Variable::new("lowfil",Int,{:constant => (1-center) / 2})
     upfil = Variable::new("upfil",Int,{:constant => (filt.length - center) / 2})
 
