@@ -50,7 +50,6 @@ scal=NArray.float(3)
 kstrten_ref = NArray.float(3)
 kstrten = NArray.float(3)
 epsilon = 10e-13
-BOAST::set_lang( BOAST::FORTRAN )
 k = BOAST::kinetic_per_ref
 stats = k.run(n1, n2, n3, hgrid, input, output_ref, 0.5)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
@@ -66,7 +65,6 @@ diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
 output = NArray.float(n1,n2,n3).random
-BOAST::set_lang( BOAST::C )
 (0..3).each{ |unroll|
   k = BOAST::kinetic(filt,14,[3,1,12],false,[false]*3,[true]*3)
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
