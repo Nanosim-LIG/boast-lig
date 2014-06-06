@@ -102,7 +102,7 @@ module BOAST
       iters =  (1..@dims.length).collect{ |index| BOAST::Int("i#{index}")}
       
       if use_mod then
-        mods=BOAST::Real("mod_arr", :dim => [BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil)])
+        mods=BOAST::Real("mod_arr", :allocate => true, :dim => [BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil)])
       else
         mods=nil
       end
