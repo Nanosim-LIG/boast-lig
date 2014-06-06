@@ -148,7 +148,7 @@ module BOAST
       convgen= lambda { |dim,t,reliq|
         ises0 = startendpoints(dims[dim[0]],unro == dim[0],unrolling_length,reliq)
         BOAST::get_output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
-        BOAST::get_output.print("#pragma omp for\n")
+        BOAST::get_output.print("#pragma omp for\n") if BOAST::get_lang == BOAST::C
         For::new(iters[dim[0]], *ises0 ) {
           if dim.length == 3 then
             ises1 = startendpoints(dims[dim[1]],unro == dim[1],unrolling_length,reliq)
