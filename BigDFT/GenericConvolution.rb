@@ -102,7 +102,7 @@ module BOAST
     end
 
     def procedure(unroll,unrolled_dim,use_mod)
-      function_name = @filter.name + "_" + ( @bc ? "f" : "p") + "_#{@dim_indexes.join('')}" +
+      function_name = @filter.name + "_" + ( (@bc != 0 and @bc != 10) ? "f" : "p") + "_#{@dim_indexes.join('')}" +
         "_u#{unroll}_#{unrolled_dim}_#{use_mod}"
 
       l = BOAST::Int("l")
@@ -198,7 +198,7 @@ module BOAST
         #WARNING: the eks conditional here can be relaxed
         BOAST::print t[ind] === ((init and not eks) ? c * x[*i_out] / scal : 0.0)
       }
-      if (free and not nobc) then
+      if ((free !=0 and free != 10) and not nobc) then
         loop_start=max(-i_in[processed_dim], filter.lowfil)
         loop_end=min(filter.upfil, dims[processed_dim] - 1 - i_in[processed_dim])
       elsif
@@ -207,7 +207,7 @@ module BOAST
       end
       BOAST::For( l,loop_start,loop_end) {
         t.each_index { |ind|
-          if free or nobc then
+          if (free != 0 and free !=10) or nobc then
             i_out = output_index(unro, i_in, ind,processed_dim,l)
           elsif mods then
             i_out = output_index(unro, i_in, ind,processed_dim,l,nil,mods) 
@@ -351,7 +351,7 @@ module BOAST
     # return BOAST Procedure corresponding to the application of the multidimensional convolution
     def procedure(optimization)
       function_name = @filter.name
-      fr = @bc.collect { |e| ( e ? "f" : "p") }
+      fr = @bc.collect { |e| ( (e != 0 and e != 10) ? "f" : "p") }
       function_name += "_" + fr.join("")
       unroll, unroll_dims = optimization.unroll
       if unroll.max > 0 then
@@ -428,6 +428,7 @@ module BOAST
           res += [ndat2] if ndat2 != ""
         end
         #here we should apply the correction to the dimension depending on bc
+        #count where we are and which dimensions have alredy been treated
         bc=@bc[ind]
         dims_tmp[ind]=n
         #end of correction
