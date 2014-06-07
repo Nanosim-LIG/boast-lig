@@ -23,7 +23,47 @@ module BOAST
       @name=name
     end
 
-  end
+  end #class ConvolutionFilter
+
+  # determine the BC of the convolutions
+  #        Typical values are 0 : periodic BC, the size of input and output arrays are identical
+  #                           1 : Free BC, grow: the size of the output array is equal to the 
+  #                                              size of input array plus the one of the filter
+  #                          -1 : Free BC, shrink: the size of the input array is equal to the one
+  #                                        of output array plus the filter
+  #                     Given a convolution and its inverse, in free BC -1 is the inverse of 1
+  #                      but not viceversa as the number of point treated is lower.
+  #                         10:  Free BC, the size of input and output arrays are identical
+  #                              (loss of information)
+
+  class BoundaryConditions
+    # determine if the boundary condition is free or not
+    attr_reader :free 
+    # name of the boundary condition, used for the name of the routines
+    attr_reader :name
+    # determine if the convolution is a grow-like type (cannot be true if shrink is true)
+    attr_reader :grow
+    # determine if the convolution is a shrink-like type (cannot be true if grow is true)
+    attr_reader :shrink
+    # original id of the boundary conditions
+    attr_reader :id
+    def initialize(ibc)
+      @id     = ibc
+      @free   = (ibc !=0)
+      @grow   = (ibc == 1)
+      @shrink = (ibc == -1)
+      if not @free then
+        @name = 'p'
+      else
+        @name = 'f'
+        if @grow then
+          @name += 'g'
+        elsif @shrink then
+          @name += 's'
+        end
+      end
+    end
+  end #class BoundaryConditions
 
   class ConvolutionOperator1d
     # Convolution filter
@@ -53,15 +93,6 @@ module BOAST
     # 
     # * +filter+ - ConvolutionFilter object corresponding to the operations to be applied on data
     # * +bc+ Boundary conditions: control the way in which the convolution has to be applied.
-    #        Typical values are 0 : periodic BC, the size of input and output arrays are identical
-    #                           1 : Free BC, grow: the size of the output array is equal to the 
-    #                                              size of input array plus the one of the filter
-    #                          -1 : Free BC, shrink: the size of the input array is equal to the one
-    #                                        of output array plus the filter
-    #                     Given a convolution and its inverse, in free BC -1 is the inverse of 1
-    #                      but not viceversa as the number of point treated is lower.
-    #                         10:  Free BC, the size of input and output arrays are identical
-    #                              (loss of information)
     #                       
     # * +options+ - Hash table of allowed options (see options descritpion)
     #
@@ -102,7 +133,7 @@ module BOAST
     end
 
     def procedure(unroll,unrolled_dim,use_mod)
-      function_name = @filter.name + "_" + ( (@bc != 0 and @bc != 10) ? "f" : "p") + "_#{@dim_indexes.join('')}" +
+      function_name = @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}" +
         "_u#{unroll}_#{unrolled_dim}_#{use_mod}"
 
       l = BOAST::Int("l")
@@ -135,11 +166,11 @@ module BOAST
           BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt.join(",")})\n")
         end
 
-        convolution1d(@filter,@dims,@bc,iters,l,tt,@dim_indexes,@transpose,@init,
+        convolution1d(@filter,@dims,@bc.id,iters,l,tt,@dim_indexes,@transpose,@init,
                             @alpha,@beta,@in,@out,@dotp,mods,unrolled_dim,unroll)
 
         BOAST::get_output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
-        BOAST::get_output.print("#pragma omp end parrallel\n")  if BOAST::get_lang == BOAST::C
+        BOAST::get_output.print("#pragma omp end parallel\n")  if BOAST::get_lang == BOAST::C
       }
     end
 
@@ -302,7 +333,7 @@ module BOAST
     def initialize(filter,ndim,bc,options={})
       @filter = filter
       @ndim = ndim
-      @bc = bc
+      @bc = bc.collect{ |ibc| BoundaryConditions::new(ibc)}
       @dims = (0...@ndim).collect{ |indx| 
         BOAST::Int("n#{indx+1}",{:direction => :in, :signed => false})
       }
@@ -351,7 +382,7 @@ module BOAST
     # return BOAST Procedure corresponding to the application of the multidimensional convolution
     def procedure(optimization)
       function_name = @filter.name
-      fr = @bc.collect { |e| ( (e != 0 and e != 10) ? "f" : "p") }
+      fr = @bc.collect { |e| e.name }
       function_name += "_" + fr.join("")
       unroll, unroll_dims = optimization.unroll
       if unroll.max > 0 then
