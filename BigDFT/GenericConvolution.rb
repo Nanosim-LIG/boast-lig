@@ -35,7 +35,6 @@ module BOAST
   #                      but not viceversa as the number of point treated is lower.
   #                         10:  Free BC, the size of input and output arrays are identical
   #                              (loss of information)
-
   class BoundaryConditions
     # determine if the boundary condition is free or not
     attr_reader :free 
@@ -106,22 +105,42 @@ module BOAST
       @transpose = transpose
       @dim_indexes = dim_indexes
       @dim_n = BOAST::Int("n",:dir =>:in)
+      #growed dimension, to be used either for extremes or for mod_arr
+      @dim_ngs = BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil)
+      #dimensions corresponding to the output of a grow operation
+      dim_nsg = BOAST::Dim(-@filter.upfil,@dim_n-@filter.lowfil)
       @dims = [@dim_n]
       if (dim_indexes.length == 3) then
         @dims = [BOAST::Int("ndat1",:dir =>:in)] + @dims + [BOAST::Int("ndat2",:dir =>:in)]
+        #shrinked and growed dimensions to be used for non-periodic bcs
+        dimss = [ BOAST::Dim(0, @dims[0] -1) , @dim_ngs, BOAST::Dim(0, @dims[-1] -1) ] 
+        dimsg = [ BOAST::Dim(0, @dims[0] -1) , dim_nsg, BOAST::Dim(0, @dims[-1] -1) ] 
       elsif dim_indexes.last == 0
         @dims = @dims + [BOAST::Int("ndat",:dir =>:in)]
+        dimss = [ @dim_ngs, BOAST::Dim(0, @dims[-1] -1) ] 
+        dimsg = [ dim_nsg, BOAST::Dim(0, @dims[-1] -1) ] 
       else
         @dims = [BOAST::Int("ndat",:dir =>:in)] + @dims
+        dimss = [ BOAST::Dim(0, @dims[0] -1) , @dim_ngs ] 
+        dimsg = [ BOAST::Dim(0, @dims[0] -1) , dim_nsg ] 
       end
       @vars = @dims.dup
-      dimx =  @dims.collect{ |dim|
+      # dimension of the problem
+      dim_data = @dims.collect{ |dim|
         BOAST::Dim(0, dim-1)
-      }
-      if transpose !=0  then
-        dimy = dimx.rotate(1)
+      } 
+      if bc.shrink then
+        dimx = dimss
       else
-        dimy= dimx
+        dimx = dim_data
+      end
+      if bc.grow then
+        dimy = dimsg
+      else
+        dimy = dim_data
+      end
+      if transpose !=0  then
+        dimy = dimy.rotate(1)
       end
       @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
       @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
@@ -141,7 +160,8 @@ module BOAST
       iters =  (1..@dims.length).collect{ |index| BOAST::Int("i#{index}")}
       
       if use_mod then
-        mods=BOAST::Int("mod_arr", :allocate => true, :dim => [BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil)])
+        # the mod_arr behaves as a shrink operation
+        mods=BOAST::Int("mod_arr", :allocate => true, :dim => [@dim_ngs])
       else
         mods=nil
       end
@@ -166,7 +186,7 @@ module BOAST
           BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt.join(",")})\n")
         end
 
-        convolution1d(@filter,@dims,@bc.id,iters,l,tt,@dim_indexes,@transpose,@init,
+        convolution1d(@filter,@dims,@bc,iters,l,tt,@dim_indexes,@transpose,@init,
                             @alpha,@beta,@in,@out,@dotp,mods,unrolled_dim,unroll)
 
         BOAST::get_output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
@@ -207,17 +227,24 @@ module BOAST
     end
 
     def conv_lines(filter,free,dims,iters,l,t,processed_dim,unro,nrotate,init,c,scal,x,y,eks,mods)
-      #to be checked: grow and shrink operations have to be applied there!
-      BOAST::For(iters[processed_dim], 0, -filter.lowfil) {
+      # the only difference holds for the grow operation
+      if free.grow then
+        line_start = -filter.upfil
+        line_end = dims[processed_dim]-1-filter.lowfil
+      else
+        #for the shrink, periodic or constant operation the loop is between 0 and n-1
+        line_start = 0
+        line_end = dims[processed_dim]-1
+      end
+      BOAST::For(iters[processed_dim], line_start, -filter.lowfil-1 + line_start) {
         for_conv(false,iters,l,t, processed_dim, unro, init,free,c,scal,x,y,eks,filter,
                  dims,mods,nrotate)
       }.print
-      BOAST::For(iters[processed_dim], -filter.lowfil+1, dims[processed_dim] - 1 - filter.upfil) {
+      BOAST::For(iters[processed_dim], -filter.lowfil+line_start, line_end - filter.upfil) {
         for_conv(true,iters,l,t, processed_dim, unro, init,free,c,scal,x,y,eks,filter,
                  dims,mods,nrotate)
       }.print
-      #to be checked: grow and shrink operations have to be applied there!
-      BOAST::For(iters[processed_dim], dims[processed_dim] - filter.upfil, dims[processed_dim]-1) {
+      BOAST::For(iters[processed_dim], line_end + 1 - filter.upfil, line_end) {
         for_conv(false,iters,l,t, processed_dim, unro, init,free,c,scal,x,y,eks,filter,
                  dims,mods,nrotate)
       }.print
@@ -229,7 +256,7 @@ module BOAST
         #WARNING: the eks conditional here can be relaxed
         BOAST::print t[ind] === ((init and not eks) ? c * x[*i_out] / scal : 0.0)
       }
-      if ((free !=0 and free != 10) and not nobc) then
+      if ( free.free and not nobc) then
         loop_start=max(-i_in[processed_dim], filter.lowfil)
         loop_end=min(filter.upfil, dims[processed_dim] - 1 - i_in[processed_dim])
       elsif
@@ -238,7 +265,7 @@ module BOAST
       end
       BOAST::For( l,loop_start,loop_end) {
         t.each_index { |ind|
-          if (free != 0 and free !=10) or nobc then
+          if free.free or nobc then
             i_out = output_index(unro, i_in, ind,processed_dim,l)
           elsif mods then
             i_out = output_index(unro, i_in, ind,processed_dim,l,nil,mods) 
@@ -279,27 +306,22 @@ module BOAST
       return i_out
     end
 
-    def filter_boastruct(filt,center)
-      arr = ConstArray::new(filt,Real)
-      fil=Variable::new("fil",Real,{:constant => arr,:dimension => [ Dimension::new((-center),(filt.length - center -1)) ]})
-      lowfil = Variable::new("lowfil",Int,{:constant => -center})
-      upfil = Variable::new("upfil",Int,{:constant => filt.length - center -1})
-      return [fil,lowfil,upfil]
-    end
-
     #returns the indices of the output according to which of the directions is unrolled
     def output_index_unroll(unrolling_dim, i_in,unroll_index)
       i_out=(0...i_in.length).collect { |indx| unrolling_dim == indx ? i_in[unrolling_dim] + (unroll_index) : i_in[indx]}
       return i_out
     end
+    # index of the convolution in the internal region, k=i+l, otherwise the index in the unrolling dimension
     def output_index_k(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index)
       i_out=output_index_unroll(unrolling_dim, i_in,unroll_index)
       return (0...i_in.length).collect { |indx| processed_dim == indx ? lconv_index +i_in[processed_dim] : i_out[indx]}
     end
+    # index in the external region wrapped around (periodic BC), thanks to the presence of the wrapping_array
     def output_index_k_mod_arr(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,wrapping_array)
       i_out=output_index_unroll(unrolling_dim, i_in,unroll_index)
       return (0...i_in.length).collect { |indx| processed_dim == indx ? wrapping_array[lconv_index +i_in[processed_dim]] : i_out[indx]}
     end
+    # index in the external region wrapped around (periodic BC), where the wrapping is given by the integer division
     def output_index_k_mod(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,ndim_processed)
       i_out=output_index_unroll(unrolling_dim, i_in,unroll_index)
       return (0...i_in.length).collect { |indx| processed_dim == indx ?  lconv_index + i_in[processed_dim] - ((i_in[processed_dim]+lconv_index +  ndim_processed * 2 )/ndim_processed - 2) *ndim_processed  : i_out[indx]}
@@ -350,7 +372,7 @@ module BOAST
       dimw = @dims.collect{ |dim|
         BOAST::Dim(0, dim-1)
       }
-      #shoud put input in the case of convolutions with work array
+      #should put input in the case of convolutions with work array
       @x = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
       @y = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
       @vars += [@x, @y]
@@ -381,9 +403,8 @@ module BOAST
 
     # return BOAST Procedure corresponding to the application of the multidimensional convolution
     def procedure(optimization)
-      function_name = @filter.name
-      fr = @bc.collect { |e| e.name }
-      function_name += "_" + fr.join("")
+      function_name = @filter.name + "_" +
+        @bc.collect { |e| e.name }.join("")
       unroll, unroll_dims = optimization.unroll
       if unroll.max > 0 then
         function_name += "_u#{unroll.join("_")}"
@@ -459,7 +480,7 @@ module BOAST
           res += [ndat2] if ndat2 != "()"
         end
         #here we should apply the correction to the dimension depending on bc
-        #count where we are and which dimensions have alredy been treated
+        #count where we are and which dimensions have already been treated
         bc=@bc[ind]
         dims_tmp[ind]=n
         #end of correction
@@ -487,7 +508,7 @@ module BOAST
       @transpose = options[:transpose] if options[:transpose]
       
       @use_mod = convolution.dims.collect { false }
-      convolution.bc.each_with_index { |bc,ind| @use_mod[ind] = (bc == 0) } if options[:use_mod]
+      convolution.bc.each_with_index { |bc,ind| @use_mod[ind] = (not bc.free) } if options[:use_mod]
 
       @dim_order=(0...ndim).collect{|i| i}
       @dim_order.reverse!  if @transpose == -1 
