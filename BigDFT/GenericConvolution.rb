@@ -106,9 +106,9 @@ module BOAST
       @dim_indexes = dim_indexes
       @dim_n = BOAST::Int("n",:dir =>:in)
       #growed dimension, to be used either for extremes or for mod_arr
-      @dim_ngs = BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil)
+      @dim_ngs = BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil-1)
       #dimensions corresponding to the output of a grow operation
-      dim_nsg = BOAST::Dim(-@filter.upfil,@dim_n-@filter.lowfil)
+      dim_nsg = BOAST::Dim(-@filter.upfil,@dim_n-@filter.lowfil-1)
       @dims = [@dim_n]
       if (dim_indexes.length == 3) then
         @dims = [BOAST::Int("ndat1",:dir =>:in)] + @dims + [BOAST::Int("ndat2",:dir =>:in)]
@@ -248,19 +248,26 @@ module BOAST
         line_start = -@filter.upfil
         line_end = @dims[processed_dim]-1-@filter.lowfil
       else
-        #for the shrink, periodic or constant operation the loop is between 0 and n-1
+        #for the periodic or constant operation the loop is between 0 and n-1
         line_start = 0
         line_end = @dims[processed_dim]-1
       end
-      BOAST::For(iters[processed_dim], line_start, -@filter.lowfil-1 + line_start) {
-        for_conv(false,iters,l,t,tlen,processed_dim, unro,mods)
-      }.print
-      BOAST::For(iters[processed_dim], -@filter.lowfil+line_start, line_end - @filter.upfil) {
-        for_conv(true,iters,l,t,tlen,processed_dim, unro,mods)
-      }.print
-      BOAST::For(iters[processed_dim], line_end + 1 - @filter.upfil, line_end) {
-        for_conv(false,iters,l,t,tlen,processed_dim, unro,mods)
-      }.print
+      # the shrink operation contains the central part only
+      if @bc.shrink then
+        BOAST::For(iters[processed_dim], line_start, line_end) {
+          for_conv(true,iters,l,t,tlen,processed_dim, unro,mods)
+        }.print
+      else
+        BOAST::For(iters[processed_dim], line_start, -@filter.lowfil-1 + line_start) {
+          for_conv(false,iters,l,t,tlen,processed_dim, unro,mods)
+        }.print
+        BOAST::For(iters[processed_dim], -@filter.lowfil+line_start, line_end - @filter.upfil) {
+          for_conv(true,iters,l,t,tlen,processed_dim, unro,mods)
+        }.print
+        BOAST::For(iters[processed_dim], line_end + 1 - @filter.upfil, line_end) {
+          for_conv(false,iters,l,t,tlen,processed_dim, unro,mods)
+        }.print
+      end
     end
 
     def for_conv(nobc,i_in,l,t,tlen,processed_dim,unro,mods)
@@ -271,8 +278,8 @@ module BOAST
         BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_out] / @alpha : 0.0)
       }
       if ( @bc.free and not nobc) then
-        loop_start=max(-i_in[processed_dim], @filter.lowfil)
-        loop_end=min(@filter.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
+        loop_start = BOAST::max(-i_in[processed_dim], @filter.lowfil)
+        loop_end   = BOAST::min(@filter.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
       elsif
         loop_start=@filter.lowfil
         loop_end=@filter.upfil
