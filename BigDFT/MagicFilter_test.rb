@@ -47,7 +47,7 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
   }
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
-1.upto(1) { |i|
+1.upto(6) { |i|
   k = BOAST::MF3d(FILTER,8,i)
   k.build(:openmp => true)
   begin
@@ -65,18 +65,36 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
 #dfgdfag
 k = BOAST::magicfilter_per_ref(true)
 stats = k.run(n1, n2*n3, input, output_ref)
+stats = k.run(n1, n2*n3, input, output_ref)
+stats = k.run(n2, n1*n3, output_ref, work)
+stats = k.run(n3, n2*n1, work, output_ref)
+
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
 #BOAST::MagicFilter(FILTER,8,0,false).run(32, 32, " "*32*32*8, " "*32*32*8)
-1.upto(2) { |i|
-  k = BOAST::MagicFilter(FILTER,8,i,true)
-  stats = k.run(n1, n2*n3, input, output)
-  stats = k.run(n1, n2*n3, input, output)
+1.upto(6) { |i|
+  k = BOAST::MF3d(FILTER.reverse,7,i)
+  k.build(:openmp => true)
+  begin
+    stats = k.run(n1, n2, n3, input, output, work)
+    stats = k.run(n1, n2, n3, input, output, work)
+  rescue Exception => e
+    puts e.inspect
+  end
   diff = (output_ref - output).abs
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
   diff.each { |elem|
     raise "Warning: residue too big: #{elem}" if elem > epsilon
   }
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+
+#  k = BOAST::MagicFilter(FILTER,8,i,true)
+#  stats = k.run(n1, n2*n3, input, output)
+#  stats = k.run(n1, n2*n3, input, output)
+#  diff = (output_ref - output).abs
+#  diff.each { |elem|
+#    raise "Warning: residue too big: #{elem}" if elem > epsilon
+#  }
+#  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
 
 ###here follow the Free BC cases
