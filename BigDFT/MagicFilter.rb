@@ -190,7 +190,7 @@ module BOAST
     
     conv_operation = ConvolutionOperator::new(conv_filter,3,free,:work => true)
 
-    optim = ConvolutionOptimization::new(conv_operation,:use_mod => true,:unroll => unroll, :transpose => 1)
+    optim = ConvolutionOptimization::new(conv_operation,:use_mod => true,:unroll => unroll, :transpose => 1,:tt_arr => true)
 
     p, subops= conv_operation.procedure(optim)
     subops[0].print

@@ -151,14 +151,17 @@ module BOAST
       @options = options
     end
 
-    def procedure(unroll,unrolled_dim,use_mod)
+    def procedure(unroll,unrolled_dim,use_mod,tt_arr)
       function_name = @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}" +
         "_u#{unroll}_#{unrolled_dim}_#{use_mod}"
 
       l = BOAST::Int("l")
       #try to modify tt scalars into arrays of size unroll
-      tt = (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("tt#{index}") }
-      #tt = BOAST::Int("tt", :dim => [ BOAST::Dim(1,unroll)])
+      if tt_arr then
+        tt = BOAST::Real("tt", :dim => [ BOAST::Dim(0,unroll-1)])
+      else
+        tt = (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("tt#{index}") }
+      end
       iters =  (1..@dims.length).collect{ |index| BOAST::Int("i#{index}")}
       
       if use_mod then
@@ -171,8 +174,11 @@ module BOAST
         BOAST::decl @filter.fil
         BOAST::decl *iters
         BOAST::decl l
-        BOAST::decl *tt
-        #BOAST::decl tt
+        if tt_arr then
+          BOAST::decl tt
+        else
+          BOAST::decl *tt
+        end
         if use_mod then
           BOAST::decl mods 
           BOAST::print BOAST::For(l, @filter.lowfil, @dim_n + @filter.upfil) {
@@ -184,12 +190,17 @@ module BOAST
           BOAST::get_output.print("!$omp parallel default(shared)&\n")
           BOAST::get_output.print("!$omp reduction(+:#{dotp})&\n") if @options[:dotp]
           BOAST::get_output.print("!$omp private(#{iters.join(",")},#{l})&\n")
-          BOAST::get_output.print("!$omp private(#{tt.join(",")})\n")
-          #BOAST::get_output.print("!$omp private(#{tt})\n")
+          if tt_arr then
+            BOAST::get_output.print("!$omp private(#{tt})\n")
+          else
+            BOAST::get_output.print("!$omp private(#{tt.join(",")})\n")
+          end
         elsif BOAST::get_lang == BOAST::C then
-          BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt.join(",")})\n")
-          #BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt})\n")
-
+          if tt_arr then
+            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt})\n")
+          else
+            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt.join(",")})\n")
+          end
         end
 
         convolution1d(iters,l,tt,mods,unrolled_dim,unroll)
@@ -218,10 +229,8 @@ module BOAST
         BOAST::get_output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
       }
       #first without the reliq
-      #convgen.call(@dim_indexes,t[0..unrolling_length-1],false)
       convgen.call(@dim_indexes,t,unrolling_length,false)
       #then with the reliq but only if the unrolling patterns need it
-      #convgen.call(@dim_indexes,t[0..0],true) if (unrolling_length > 1)
       convgen.call(@dim_indexes,t,1,true) if (unrolling_length > 1)
     end
 
@@ -462,7 +471,7 @@ module BOAST
       }
       procs = []
       subops.each_with_index{ |subop,ind|
-        procs.push subop.procedure(unroll[ind],unroll_dims[ind],optimization.use_mod[ind])
+        procs.push subop.procedure(unroll[ind],unroll_dims[ind],optimization.use_mod[ind],optimization.tt_arr[ind])
       }
       p= BOAST::Procedure(function_name,@vars){
         procs.each_with_index{ |sub,ind|
@@ -557,6 +566,8 @@ module BOAST
     attr_reader :unroll
     # use the mod_arr strategy for the convolutions
     attr_reader :use_mod
+    # use the tt_arr strategy for the convolutions (temporary variables are arrays and not scalars)
+    attr_reader :tt_arr
     def initialize(convolution,options)
 
       ndim = convolution.dims.length
@@ -566,6 +577,20 @@ module BOAST
       
       @use_mod = convolution.dims.collect { false }
       convolution.bc.each_with_index { |bc,ind| @use_mod[ind] = (not bc.free) } if options[:use_mod]
+
+      @tt_arr = convolution.dims.collect { false }
+      if options[:tt_arr] then
+        ttopt=[options[:tt_arr]].flatten
+        if ttopt.length == 1 then
+          @tt_arr = convolution.dims.collect { ttopt[0] }
+        elsif ttopt.length == ndim then
+          @tt_arr = ttopt
+        else
+          raise 'Incoherent dimensions specified in tt_arr options: #{ndim}, #{ttopt.length}'
+        end
+      end
+        
+      convolution.bc.each_with_index { |bc,ind| @use_mod[ind] = (not bc.free) } 
 
       @dim_order=(0...ndim).collect{|i| i}
       @dim_order.reverse!  if @transpose == -1 

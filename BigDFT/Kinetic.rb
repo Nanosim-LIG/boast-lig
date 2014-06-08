@@ -1084,7 +1084,7 @@ EOF
     
     kinetic_operation = ConvolutionOperator::new(conv_filter,3,free,:beta =>(not ekin),:eks => ekin,:alpha => true)
 
-    optim = ConvolutionOptimization::new(kinetic_operation,:use_mod => true,:unroll => unroll)
+    optim = ConvolutionOptimization::new(kinetic_operation,:use_mod => true,:unroll => unroll,:tt_arr => [false,true,false])
 
     p, subops= kinetic_operation.procedure(optim)
     subops.each{ | ops| ops.print}
