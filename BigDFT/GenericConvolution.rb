@@ -156,7 +156,9 @@ module BOAST
         "_u#{unroll}_#{unrolled_dim}_#{use_mod}"
 
       l = BOAST::Int("l")
+      #try to modify tt scalars into arrays of size unroll
       tt = (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("tt#{index}") }
+      #tt = BOAST::Int("tt", :dim => [ BOAST::Dim(1,unroll)])
       iters =  (1..@dims.length).collect{ |index| BOAST::Int("i#{index}")}
       
       if use_mod then
@@ -170,6 +172,7 @@ module BOAST
         BOAST::decl *iters
         BOAST::decl l
         BOAST::decl *tt
+        #BOAST::decl tt
         if use_mod then
           BOAST::decl mods 
           BOAST::print BOAST::For(l, @filter.lowfil, @dim_n + @filter.upfil) {
@@ -182,12 +185,14 @@ module BOAST
           BOAST::get_output.print("!$omp reduction(+:#{dotp})&\n") if @options[:dotp]
           BOAST::get_output.print("!$omp private(#{iters.join(",")},#{l})&\n")
           BOAST::get_output.print("!$omp private(#{tt.join(",")})\n")
+          #BOAST::get_output.print("!$omp private(#{tt})\n")
         elsif BOAST::get_lang == BOAST::C then
           BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt.join(",")})\n")
+          #BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt})\n")
+
         end
 
-        convolution1d(@filter,@dims,@bc,iters,l,tt,@dim_indexes,@transpose,@init,
-                            @alpha,@beta,@in,@out,@dotp,mods,unrolled_dim,unroll)
+        convolution1d(iters,l,tt,mods,unrolled_dim,unroll)
 
         BOAST::get_output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
         BOAST::get_output.print("#pragma omp end parallel\n")  if BOAST::get_lang == BOAST::C
@@ -195,27 +200,29 @@ module BOAST
     end
 
     #here follows the internal operations for the convolution 1d
-    def convolution1d(filter,dims,free,iters,l,t,dim_indexes,nrotate,init,scal,c,x,y,eks,mods,unro,unrolling_length)
-      convgen= lambda { |dim,t,reliq|
-        ises0 = startendpoints(dims[dim[0]],unro == dim[0],unrolling_length,reliq)
+    def convolution1d(iters,l,t,mods,unro,unrolling_length)
+      convgen= lambda { |dim,t,tlen,reliq|
+        ises0 = startendpoints(@dims[dim[0]],unro == dim[0],unrolling_length,reliq)
         BOAST::get_output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
         BOAST::get_output.print("#pragma omp for\n") if BOAST::get_lang == BOAST::C
         For::new(iters[dim[0]], *ises0 ) {
           if dim.length == 3 then
-            ises1 = startendpoints(dims[dim[1]],unro == dim[1],unrolling_length,reliq)
+            ises1 = startendpoints(@dims[dim[1]],unro == dim[1],unrolling_length,reliq)
             For::new(iters[dim[1]], *ises1) {
-              conv_lines(filter,free,dims,iters,l,t,dim[-1],unro,nrotate,init,c,scal,x,y,eks,mods)
+              conv_lines(iters,l,t,tlen,dim[-1],unro,mods)
             }.print
           else
-            conv_lines(filter,free,dims,iters,l,t,dim[-1],unro,nrotate,init,c,scal,x,y,eks,mods)
+            conv_lines(iters,l,t,tlen,dim[-1],unro,mods)
           end
         }.print
         BOAST::get_output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
       }
       #first without the reliq
-      convgen.call(dim_indexes,t[0..unrolling_length-1],false)
+      #convgen.call(@dim_indexes,t[0..unrolling_length-1],false)
+      convgen.call(@dim_indexes,t,unrolling_length,false)
       #then with the reliq but only if the unrolling patterns need it
-      convgen.call(dim_indexes,t[0..0],true) if (unrolling_length > 1)
+      #convgen.call(@dim_indexes,t[0..0],true) if (unrolling_length > 1)
+      convgen.call(@dim_indexes,t,1,true) if (unrolling_length > 1)
     end
 
     #returns the starting and ending points of the convolutions according to unrolling and unrolled dimension
@@ -226,65 +233,65 @@ module BOAST
       return [istart,iend,istep]
     end
 
-    def conv_lines(filter,free,dims,iters,l,t,processed_dim,unro,nrotate,init,c,scal,x,y,eks,mods)
+    def conv_lines(iters,l,t,tlen,processed_dim,unro,mods)
       # the only difference holds for the grow operation
-      if free.grow then
-        line_start = -filter.upfil
-        line_end = dims[processed_dim]-1-filter.lowfil
+      if @bc.grow then
+        line_start = -@filter.upfil
+        line_end = @dims[processed_dim]-1-@filter.lowfil
       else
         #for the shrink, periodic or constant operation the loop is between 0 and n-1
         line_start = 0
-        line_end = dims[processed_dim]-1
+        line_end = @dims[processed_dim]-1
       end
-      BOAST::For(iters[processed_dim], line_start, -filter.lowfil-1 + line_start) {
-        for_conv(false,iters,l,t, processed_dim, unro, init,free,c,scal,x,y,eks,filter,
-                 dims,mods,nrotate)
+      BOAST::For(iters[processed_dim], line_start, -@filter.lowfil-1 + line_start) {
+        for_conv(false,iters,l,t,tlen,processed_dim, unro,mods)
       }.print
-      BOAST::For(iters[processed_dim], -filter.lowfil+line_start, line_end - filter.upfil) {
-        for_conv(true,iters,l,t, processed_dim, unro, init,free,c,scal,x,y,eks,filter,
-                 dims,mods,nrotate)
+      BOAST::For(iters[processed_dim], -@filter.lowfil+line_start, line_end - @filter.upfil) {
+        for_conv(true,iters,l,t,tlen,processed_dim, unro,mods)
       }.print
-      BOAST::For(iters[processed_dim], line_end + 1 - filter.upfil, line_end) {
-        for_conv(false,iters,l,t, processed_dim, unro, init,free,c,scal,x,y,eks,filter,
-                 dims,mods,nrotate)
+      BOAST::For(iters[processed_dim], line_end + 1 - @filter.upfil, line_end) {
+        for_conv(false,iters,l,t,tlen,processed_dim, unro,mods)
       }.print
     end
 
-    def for_conv(nobc,i_in,l,t,processed_dim,unro,init,free,c,scal,x,y,eks,filter,dims,mods,nrotate)
-      t.each_index { |ind|
+    def for_conv(nobc,i_in,l,t,tlen,processed_dim,unro,mods)
+      #t.each_index { |ind|
+      (0...tlen).each{ |ind|
         i_out = output_index(unro, i_in, ind)
         #WARNING: the eks conditional here can be relaxed
-        BOAST::print t[ind] === ((init and not eks) ? c * x[*i_out] / scal : 0.0)
+        BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_out] / @alpha : 0.0)
       }
-      if ( free.free and not nobc) then
-        loop_start=max(-i_in[processed_dim], filter.lowfil)
-        loop_end=min(filter.upfil, dims[processed_dim] - 1 - i_in[processed_dim])
+      if ( @bc.free and not nobc) then
+        loop_start=max(-i_in[processed_dim], @filter.lowfil)
+        loop_end=min(@filter.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
       elsif
-        loop_start=filter.lowfil
-        loop_end=filter.upfil
+        loop_start=@filter.lowfil
+        loop_end=@filter.upfil
       end
       BOAST::For( l,loop_start,loop_end) {
-        t.each_index { |ind|
-          if free.free or nobc then
+        (0...tlen).each{ |ind|
+         #t.each_index { |ind|
+          if @bc.free or nobc then
             i_out = output_index(unro, i_in, ind,processed_dim,l)
           elsif mods then
             i_out = output_index(unro, i_in, ind,processed_dim,l,nil,mods) 
           else
-            i_out = output_index(unro, i_in, ind,processed_dim,l,dims[processed_dim])
+            i_out = output_index(unro, i_in, ind,processed_dim,l,@dims[processed_dim])
           end
-          BOAST::print t[ind] === t[ind] + x[*i_out]*filter.fil[l]
+          BOAST::print t[ind] === t[ind] + @in[*i_out]*@filter.fil[l]
         }
       }.unroll#.print#
 
-      t.each_index { |ind|
+      #t.each_index { |ind|
+      (0...tlen).each{ |ind|
         i_out = output_index(unro, i_in, ind)
-        BOAST::print t[ind] === t[ind] * scal if scal
-        BOAST::print eks === eks + t[ind] * x[*i_out] if eks
-        if nrotate != 0 then
-          BOAST::print y[*i_out.rotate(nrotate)] === t[ind]
+        BOAST::print t[ind] === t[ind] * @alpha if @alpha
+        BOAST::print @dotp === @dotp + t[ind] * @in[*i_out] if @dotp
+        if @transpose != 0 then
+          BOAST::print @out[*i_out.rotate(@transpose)] === t[ind]
         else
-          BOAST::print y[*i_out.rotate(nrotate)] === 
-            (init ? t[ind] : y[*i_out.rotate(nrotate)] + t[ind] )
+          BOAST::print @out[*i_out] === 
+            (@init ? t[ind] : @out[*i_out] + t[ind] )
         end
           
       }
