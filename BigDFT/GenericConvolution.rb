@@ -8,6 +8,8 @@ module BOAST
     # BOAST variables
     # Filter array (to be used on BOAST functions)
     attr_reader :fil
+    # extremes of the filter, calculated via its central point (integers)
+    attr_reader :lowfil_val, :upfil_val
     # extremes of the filter, calculated via its central point (BOAST object)
     attr_reader :lowfil, :upfil
     # name of the filter
@@ -16,8 +18,10 @@ module BOAST
     def initialize(name,filt,center)
       arr = ConstArray::new(filt,Real)
       @fil=BOAST::Real("fil",:constant => arr,:dim => [ BOAST::Dim((-center),(filt.length - center -1)) ])
-      @lowfil = BOAST::Int("lowfil",:constant => -center)
-      @upfil = BOAST::Int("upfil",:constant => filt.length - center -1)
+      @lowfil_val = -center
+      @upfil_val = filt.length - center -1
+      @lowfil = BOAST::Int("lowfil",:constant => @lowfil_val)
+      @upfil = BOAST::Int("upfil",:constant => @upfil_val)
       @fil_array=filt
       @center=center
       @name=name
@@ -426,7 +430,7 @@ module BOAST
     def dim_from_bc(dim,bc)
       dim_data = BOAST::Dim(0, dim-1)
       if bc.grow then
-        dim_nsg = BOAST::Dim(-@filter.upfil,@dim_n-@filter.lowfil)
+        dim_nsg = BOAST::Dim(-@filter.upfil,dim - @filter.lowfil) 
         dim_arrays = [ dim_data, dim_nsg , dim_nsg]
       elsif bc.shrink then
         dim_ngs = BOAST::Dim(@filter.lowfil,dim+@filter.upfil)

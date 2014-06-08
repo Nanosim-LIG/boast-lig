@@ -72,9 +72,9 @@ stats = k.run(n3, n2*n1, work, output_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
 #BOAST::MagicFilter(FILTER,8,0,false).run(32, 32, " "*32*32*8, " "*32*32*8)
-1.upto(6) { |i|
+1.upto(1) { |i|
   k = BOAST::MF3d(FILTER.reverse,7,i)
-  k.print
+  #k.print
   k.build(:openmp => true)
   begin
     stats = k.run(n1, n2, n3, input, output, work)
@@ -118,6 +118,53 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
   }
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 }
+#redo the 3d case for the grow operation
+input = NArray.float(n1,n2,n3).random
+work = NArray.float(n1+15,n2+15,n3+15)
+output_ref = NArray.float(n1+15,n2+15,n3+15)
+output = NArray.float(n1+15,n2+15,n3+15)
+epsilon = 10e-15
+puts 'again, grow'
+k = BOAST::magicfilter_per_ref(false,true)
+stats = k.run(n1, n2*n3, input, output_ref)
+stats = k.run(n1, n2*n3, input, output_ref)
+stats = k.run(n2, (n1+15)*n3, output_ref, work)
+stats = k.run(n3, (n2+15)*(n1+15), work, output_ref)
+
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+1.upto(1) { |i|
+  k = BOAST::MagicFilter(FILTER,8,i,false,true)
+  stats = k.run(n1, n2*n3, input, output)
+  stats = k.run(n1, n2*n3, input, output)
+  stats = k.run(n2, n3*(n1+15), output, work)
+  stats = k.run(n3, (n2+15)*(n1+15), work, output)
+  diff = (output_ref - output).abs
+  diff.each { |elem|
+    raise "Warning: residue too big: #{elem}" if elem > epsilon
+  }
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+}
+#rtret
+1.upto(1) { |i|
+  k = BOAST::MF3d(FILTER,8,i,[1,1,1])
+  k.print
+  k.build(:openmp => true)
+  begin
+    stats = k.run(n1, n2, n3, input, output, work)
+    stats = k.run(n1, n2, n3, input, output, work)
+  rescue Exception => e
+    puts e.inspect
+  end
+  diff = (output_ref - output).abs
+  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+  diff.each { |elem|
+    raise "Warning: residue too big: #{elem}" if elem > epsilon
+  }
+}
+
+erwe
+
 
 input = NArray.float(n1+15,n2,n3).random
 output_ref = NArray.float(n2,n3,n1)
@@ -143,7 +190,7 @@ work = NArray.float(n1+15,n2+15,n3+15)
 output_ref = NArray.float(n1,n2+15,n3+15)
 output = NArray.float(n1,n2+15,n3+15)
 epsilon = 10e-15
-puts 'again'
+puts 'again, shrink'
 k = BOAST::magicfilter_per_ref(true,true)
 stats = k.run(n1, (n2+15)*(n3+15), input, output_ref)
 stats = k.run(n1, (n2+15)*(n3+15), input, output_ref)
