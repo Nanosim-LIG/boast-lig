@@ -363,15 +363,30 @@ module BOAST
       @vars = @dims.dup
 
       #each of the dimension should be adapted to the bc of the system according to filter lengths
-      dimx = @dims.collect{ |dim|
-        BOAST::Dim(0, dim-1)
+      dimx = []
+      dimy = []
+      dimw = []
+      #the sizes of the work array are the maximum between inpu and output
+      #but this can be reduced by considering the order of the subops
+      #however this order is only fixed in the optimization part
+      #therefore the value of the array work might be updated
+      #before calling the procedure
+      @dims.each_with_index { |dim,ind|
+        dimin, dimout, dimwork = dim_from_bc(dim,@bc[ind])
+        dimx.push(dimin)
+        dimy.push(dimout)
+        dimw.push(dimwork)
       }
-      dimy = @dims.collect{ |dim|
-        BOAST::Dim(0, dim-1)
-      }
-      dimw = @dims.collect{ |dim|
-        BOAST::Dim(0, dim-1)
-      }
+      #dimx = @dims.collect{ |dim|
+      #  BOAST::Dim(0, dim-1)
+      #}
+      #dimy = @dims.collect{ |dim|
+      #  BOAST::Dim(0, dim-1)
+      #}
+      #dimw = @dims.collect{ |dim|
+      #  BOAST::Dim(0, dim-1)
+      #}
+
       #should put input in the case of convolutions with work array
       @x = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
       @y = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
@@ -382,6 +397,21 @@ module BOAST
       @vars.push @eks = BOAST::Real("kstrten",:dir => :out,:dim =>[ BOAST::Dim(0, @ndim-1)]) if options[:eks]
       #save options for future reference
       @options=options
+    end
+
+    #define the boast dimensions of the input, output and work array as a function of the 1d bc
+    def dim_from_bc(dim,bc)
+      dim_data = BOAST::Dim(0, dim-1)
+      if bc.grow then
+        dim_nsg = BOAST::Dim(-@filter.upfil,@dim_n-@filter.lowfil)
+        dim_arrays = [ dim_data, dim_nsg , dim_nsg]
+      elsif bc.shrink then
+        dim_ngs = BOAST::Dim(@filter.lowfil,dim+@filter.upfil)
+        dim_arrays = [ dim_ngs, dim_data, dim_ngs ]
+      else
+        dim_arrays = [ dim_data, dim_data, dim_data ]
+      end
+      return dim_arrays
     end
     
     def dim_indexes(processed_dim, transpose)
@@ -419,7 +449,8 @@ module BOAST
       #set of 1 chaining of convolutions
       subops= (0...@ndim).collect{ |ind|
         ConvolutionOperator1d::new(@filter, @bc[ind], transpose,
-                                   self.dim_indexes(ind,transpose),(ind==0 and @options[:beta]),
+                                   self.dim_indexes(ind,transpose),
+                                   (ind==0 and @options[:beta]),
                                    @options)
       }
       procs = []
@@ -457,12 +488,28 @@ module BOAST
         out = [ [ @x, @y] ]*ndim
       end
     end
+    #this procedure returns the values of the dimensions of the 
+    #data problem that has to be treated
+    #the values of the ndat has to be coherent with the
+    #boundary conditions 
     def convolution_steps_dims(processed_dims,transpose)
-      dims_tmp=@dims.dup
+      # first copy the data dimension as reference
+      dims_data = []
+      # then consider the starting point of the data
+      dims_actual = []
+      @dims.each_with_index { |d,ind|
+        dims_data.push(d)
+        if @bc[ind].shrink then
+          dims_actual.push(d-@filter.lowfil+@filter.upfil)
+        else
+          dims_actual.push(d)
+        end
+      }
       return processed_dims.collect{ |ind| 
+        n = dims_data[ind]
         if transpose != 0 then
-          dims_tmp2 = dims_tmp.dup
-          n = dims_tmp2.delete_at(ind)
+          dims_tmp2 = dims_actual.dup
+          dims_tmp2.delete_at(ind)
           ndat = eval '"(#{dims_tmp2.join(")*(")})"'
           if transpose == 1 then
             res = [n,ndat]
@@ -470,9 +517,9 @@ module BOAST
             res = [ndat,n]
           end
         else
-          n = dims_tmp[ind]
-          ndat1 = eval '"(#{dims_tmp[0...ind].join(")*(")})"'
-          ndat2 = eval '"(#{dims_tmp[ind+1..-1].join(")*(")})"'
+          #n = dims_data[ind]
+          ndat1 = eval '"(#{dims_actual[0...ind].join(")*(")})"'
+          ndat2 = eval '"(#{dims_actual[ind+1..-1].join(")*(")})"'
 
           res=[]
           res += [ndat1] if ndat1 != "()"
@@ -481,8 +528,11 @@ module BOAST
         end
         #here we should apply the correction to the dimension depending on bc
         #count where we are and which dimensions have already been treated
-        bc=@bc[ind]
-        dims_tmp[ind]=n
+        if @bc[ind].grow then
+          dims_actual[ind]=n+@filter.upfil-@filter.lowfil
+        else
+          dims_actual[ind]=n
+        end
         #end of correction
         res
       }
