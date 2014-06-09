@@ -191,7 +191,7 @@ module BOAST
         end
         if use_mod then
           BOAST::decl mods 
-          BOAST::print BOAST::For(l, @filter.lowfil, @dim_n + @filter.upfil) {
+          BOAST::print BOAST::For(l, @filter.lowfil, @dim_n + @filter.upfil - 1) {
             BOAST::print mods[l] === BOAST::modulo(l, @dim_n)
           } 
         end
@@ -268,10 +268,10 @@ module BOAST
           for_conv(true,iters,l,t,tlen,processed_dim, unro,mods)
         }.print
       else
-        BOAST::For(iters[processed_dim], line_start, -@filter.lowfil-1 + line_start) {
+        BOAST::For(iters[processed_dim], line_start, -@filter.lowfil + line_start) {
           for_conv(false,iters,l,t,tlen,processed_dim, unro,mods)
         }.print
-        BOAST::For(iters[processed_dim], -@filter.lowfil+line_start, line_end - @filter.upfil) {
+        BOAST::For(iters[processed_dim], -@filter.lowfil + line_start + 1, line_end - @filter.upfil) {
           for_conv(true,iters,l,t,tlen,processed_dim, unro,mods)
         }.print
         BOAST::For(iters[processed_dim], line_end + 1 - @filter.upfil, line_end) {
