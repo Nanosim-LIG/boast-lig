@@ -135,6 +135,7 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 1.upto(1) { |i|
   k = BOAST::MagicFilter(FILTER,8,i,false,true)
+  k.print
   stats = k.run(n1, n2*n3, input, output)
   stats = k.run(n1, n2*n3, input, output)
   stats = k.run(n2, n3*(n1+15), output, work)
