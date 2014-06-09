@@ -436,10 +436,10 @@ module BOAST
     def dim_from_bc(dim,bc)
       dim_data = BOAST::Dim(0, dim-1)
       if bc.grow then
-        dim_nsg = BOAST::Dim(-@filter.upfil,dim - @filter.lowfil) 
+        dim_nsg = BOAST::Dim(-@filter.upfil,dim - 1 - @filter.lowfil) 
         dim_arrays = [ dim_data, dim_nsg , dim_nsg]
       elsif bc.shrink then
-        dim_ngs = BOAST::Dim(@filter.lowfil,dim+@filter.upfil)
+        dim_ngs = BOAST::Dim(@filter.lowfil,dim - 1 + @filter.upfil)
         dim_arrays = [ dim_ngs, dim_data, dim_ngs ]
       else
         dim_arrays = [ dim_data, dim_data, dim_data ]
