@@ -135,7 +135,7 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 1.upto(1) { |i|
   k = BOAST::MagicFilter(FILTER,8,i,false,true)
-  k.print
+  #k.print
   stats = k.run(n1, n2*n3, input, output)
   stats = k.run(n1, n2*n3, input, output)
   stats = k.run(n2, n3*(n1+15), output, work)
@@ -149,7 +149,7 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
 #rtret
 1.upto(1) { |i|
   k = BOAST::MF3d(FILTER,8,i,[1,1,1])
-  k.print
+  #k.print
   k.build(:openmp => true)
   begin
     stats = k.run(n1, n2, n3, input, output, work)
@@ -164,7 +164,6 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
   }
 }
 
-erwe
 
 
 input = NArray.float(n1+15,n2,n3).random
