@@ -193,8 +193,9 @@ module BOAST
     optim = ConvolutionOptimization::new(conv_operation,:use_mod => true,:unroll => unroll, :transpose => 1,:tt_arr => true)
 
     p, subops= conv_operation.procedure(optim)
-    subops[0].print
-    #subops.each{ | ops| ops.print}
+    subops_h = {}
+    subops.each { |op| subops_h[op.name] = op }
+    subops_h.each_value { |op| op.print }
     p.print
     
     kernel.procedure = p
