@@ -284,7 +284,7 @@ module BOAST
         #WARNING: the eks conditional here can be relaxed
         BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_out] / @alpha : 0.0)
       }
-      if ( @bc.free and not nobc) then
+      if ( @bc.free and nobc != 0) then
         loop_start = BOAST::max(-i_in[processed_dim], @filter.lowfil)
         loop_end   = BOAST::min(@filter.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
       elsif

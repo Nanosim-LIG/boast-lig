@@ -445,8 +445,8 @@ subroutine kinetic_per_ref_optim(n1,n2,n3,hgrid,x,y,c)
   end do
 
   call conv_kin_x(mod_arr1,fil,c,x,y,n1,(n2+1)*(n3+1))   
-  call conv_kin_y(mod_arr2,fil,x,y,n1,n2,n3)
-  call conv_kin_z(mod_arr3,fil,x,y,n3,(n1+1)*(n2+1))
+  call conv_kin_y_new(mod_arr2,fil,x,y,n1,n2,n3)
+  call conv_kin_z_new(mod_arr3,fil,x,y,n3,(n1+1)*(n2+1))
   !$omp end parallel
 
 
@@ -1084,7 +1084,7 @@ EOF
     
     kinetic_operation = ConvolutionOperator::new(conv_filter, 3, free, :beta =>(not ekin), :eks => ekin, :alpha => true)
 
-    optim = ConvolutionOptimization::new(kinetic_operation,:use_mod => true,:unroll => unroll,:tt_arr => [false,false,false])
+    optim = ConvolutionOptimization::new(kinetic_operation,:use_mod => true,:unroll => unroll,:tt_arr => [true,false,true])
 
     p, subops= kinetic_operation.procedure(optim)
     subops.each{ | ops| ops.print}
