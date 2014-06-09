@@ -175,7 +175,7 @@ module BOAST
     return kernel
   end
 
-  def BOAST::MF3d(filt, center, unroll, free=[0,0,0])
+  def BOAST::MF3d(filt, center, unroll, free=[BOAST::BC::PERIODIC]*3)
     kernel = CKernel::new
     BOAST::set_output( kernel.code )
     kernel.lang = BOAST::get_lang
