@@ -162,7 +162,7 @@ module BOAST
       l = BOAST::Int("l")
       #try to modify tt scalars into arrays of size unroll
       if tt_arr then
-        tt = BOAST::Real("tt", :dim => [ BOAST::Dim(0,unroll-1)])
+        tt = BOAST::Real("tt", :dim => [ BOAST::Dim(0,unroll-1)], :allocate => true)
       else
         tt = (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("tt#{index}") }
       end
