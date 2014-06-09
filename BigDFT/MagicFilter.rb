@@ -1,5 +1,6 @@
 require "BOAST"
 require 'narray'
+require "./GenericConvolution.rb" 
 module BOAST
   def BOAST::magicfilter_per_ref( invert = false, free = false )
     lang = BOAST::get_lang
@@ -184,7 +185,6 @@ module BOAST
       @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
     end
-    load "./GenericConvolution.rb" 
     
     conv_filter = ConvolutionFilter::new('magfilt',filt,center)
     
