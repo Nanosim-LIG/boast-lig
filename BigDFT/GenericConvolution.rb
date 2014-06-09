@@ -210,16 +210,16 @@ module BOAST
           end
         elsif BOAST::get_lang == BOAST::C then
           if tt_arr then
-            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt})\n")
+            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt})\n{\n")
           else
-            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt.join(",")})\n")
+            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt.join(",")})\n{\n")
           end
         end
 
         convolution1d(iters,l,tt,mods,unrolled_dim,unroll)
 
         BOAST::get_output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
-        BOAST::get_output.print("#pragma omp end parallel\n")  if BOAST::get_lang == BOAST::C
+        BOAST::get_output.print("}\n")  if BOAST::get_lang == BOAST::C
       }
     end
 
