@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'BOAST'
 require 'narray'
+require "./GenericConvolution.rb" 
 module BOAST
 
   def BOAST::kinetic_per_ref_optim_ekin
@@ -1078,13 +1079,12 @@ EOF
       @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
     end
-    load "./GenericConvolution.rb" 
     
     conv_filter = ConvolutionFilter::new('kinetic',filt,center)
     
-    kinetic_operation = ConvolutionOperator::new(conv_filter,3,free,:beta =>(not ekin),:eks => ekin,:alpha => true)
+    kinetic_operation = ConvolutionOperator::new(conv_filter, 3, free, :beta =>(not ekin), :eks => ekin, :alpha => true)
 
-    optim = ConvolutionOptimization::new(kinetic_operation,:use_mod => true,:unroll => unroll,:tt_arr => [false,true,false])
+    optim = ConvolutionOptimization::new(kinetic_operation,:use_mod => true,:unroll => unroll,:tt_arr => [false,false,false])
 
     p, subops= kinetic_operation.procedure(optim)
     subops.each{ | ops| ops.print}
