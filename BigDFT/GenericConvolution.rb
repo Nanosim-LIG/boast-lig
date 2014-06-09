@@ -172,7 +172,7 @@ module BOAST
         # the mod_arr behaves as a shrink operation
         #mods=BOAST::Int("mod_arr", :allocate => true, :dim => [@dim_ngs])
         mods=BOAST::Int("mod_arr", :allocate => true, 
-                        :dim => [BOAST::Dim(@filter.lowfil-@filter.upfil, -@filter.lowfil+@filter.upfil)])
+                        :dim => [BOAST::Dim(@filter.lowfil - @filter.upfil, @filter.upfil - @filter.lowfil - 1)])
       else
         mods=nil
       end
@@ -188,8 +188,7 @@ module BOAST
         if use_mod then
           BOAST::decl mods 
           #BOAST::print BOAST::For(l, @filter.lowfil, @dim_n -1 + @filter.upfil) {
-          ###HERE we could save a -1 but the for does not like subtracting (maybe due to constant attr?
-          BOAST::print BOAST::For(l, @filter.lowfil - @filter.upfil, @filter.upfil - @filter.lowfil) {
+          BOAST::print BOAST::For(l, @filter.lowfil - @filter.upfil, @filter.upfil - @filter.lowfil - 1) {
             BOAST::print mods[l] === BOAST::modulo(l, @dim_n)
           }
         end
