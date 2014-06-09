@@ -1068,7 +1068,7 @@ EOF
     BOAST::set_lang(lang)
     return kernel
   end
-
+BOAST::set_verbose true
   def BOAST::kinetic(filt, center, unroll, ekin = false, free=[0,0,0])
     kernel = CKernel::new
     BOAST::set_output( kernel.code )
