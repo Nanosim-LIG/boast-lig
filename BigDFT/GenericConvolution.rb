@@ -40,6 +40,10 @@ module BOAST
   #                         10:  Free BC, the size of input and output arrays are identical
   #                              (loss of information)
   class BoundaryConditions
+    # conditions names
+    PERIODIC = 0
+    GROW = 1
+    SHRINK = -1
     # determine if the boundary condition is free or not
     attr_reader :free 
     # name of the boundary condition, used for the name of the routines
@@ -52,9 +56,9 @@ module BOAST
     attr_reader :id
     def initialize(ibc)
       @id     = ibc
-      @free   = (ibc !=0)
-      @grow   = (ibc == 1)
-      @shrink = (ibc == -1)
+      @free   = (ibc != PERIODIC)
+      @grow   = (ibc == GROW)
+      @shrink = (ibc == SHRINK)
       if not @free then
         @name = 'p'
       else
@@ -67,6 +71,8 @@ module BOAST
       end
     end
   end #class BoundaryConditions
+
+  BC = BoundaryConditions
 
   class ConvolutionOperator1d
     # Convolution filter
@@ -204,16 +210,16 @@ module BOAST
           end
         elsif BOAST::get_lang == BOAST::C then
           if tt_arr then
-            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt})\n")
+            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt})\n{\n")
           else
-            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt.join(",")})\n")
+            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt.join(",")})\n{\n")
           end
         end
 
         convolution1d(iters,l,tt,mods,unrolled_dim,unroll)
 
         BOAST::get_output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
-        BOAST::get_output.print("#pragma omp end parallel\n")  if BOAST::get_lang == BOAST::C
+        BOAST::get_output.print("}\n")  if BOAST::get_lang == BOAST::C
       }
     end
 

@@ -148,7 +148,7 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
 }
 #rtret
 1.upto(1) { |i|
-  k = BOAST::MF3d(FILTER,8,i,[1,1,1])
+  k = BOAST::MF3d(FILTER,8,i,[BOAST::BC::GROW]*3)
   #k.print
   k.build(:openmp => true)
   begin
@@ -212,7 +212,7 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
 }
 #rtret
 1.upto(6) { |i|
-  k = BOAST::MF3d(FILTER.reverse,7,i,[-1,-1,-1])
+  k = BOAST::MF3d(FILTER.reverse,7,i,[BOAST::BC::SHRINK]*3)
   #k.print
   k.build(:openmp => true)
   begin
