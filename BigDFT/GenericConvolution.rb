@@ -40,6 +40,10 @@ module BOAST
   #                         10:  Free BC, the size of input and output arrays are identical
   #                              (loss of information)
   class BoundaryConditions
+    #constants representing the different boundary conditions
+    PERIODIC = 0
+    GROW = 1
+    SHRINK = -1
     # determine if the boundary condition is free or not
     attr_reader :free 
     # name of the boundary condition, used for the name of the routines
@@ -67,6 +71,8 @@ module BOAST
       end
     end
   end #class BoundaryConditions
+
+  BC = BoundaryConditions 
 
   class ConvolutionOperator1d
     # Convolution filter
