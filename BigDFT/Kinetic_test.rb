@@ -66,9 +66,9 @@ diff.each { |elem|
 }
 output = NArray.float(n1,n2,n3).random
 (1..6).each{ |unroll|
-  k = BOAST::kinetic(filt,14,[4,4,4],false,[0]*3)
+  k = BOAST::kinetic(filt,14,[3,1,12],false,[0]*3)
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
-  k.print if unroll==1
+  #k.print if unroll==1
   #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fopenmp",:LDFLAGS => "-fopenmp"})
   k.build(:openmp => true)
   begin
