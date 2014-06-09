@@ -40,10 +40,6 @@ module BOAST
   #                         10:  Free BC, the size of input and output arrays are identical
   #                              (loss of information)
   class BoundaryConditions
-    #constants representing the different boundary conditions
-    PERIODIC = 0
-    GROW = 1
-    SHRINK = -1
     # determine if the boundary condition is free or not
     attr_reader :free 
     # name of the boundary condition, used for the name of the routines
@@ -71,8 +67,6 @@ module BOAST
       end
     end
   end #class BoundaryConditions
-
-  BC = BoundaryConditions 
 
   class ConvolutionOperator1d
     # Convolution filter
@@ -176,7 +170,9 @@ module BOAST
       
       if use_mod then
         # the mod_arr behaves as a shrink operation
-        mods=BOAST::Int("mod_arr", :allocate => true, :dim => [@dim_ngs])
+        #mods=BOAST::Int("mod_arr", :allocate => true, :dim => [@dim_ngs])
+        mods=BOAST::Int("mod_arr", :allocate => true, 
+                        :dim => [BOAST::Dim(@filter.lowfil-@filter.upfil, -@filter.lowfil+@filter.upfil)])
       else
         mods=nil
       end
@@ -191,9 +187,11 @@ module BOAST
         end
         if use_mod then
           BOAST::decl mods 
-          BOAST::print BOAST::For(l, @filter.lowfil, @dim_n + @filter.upfil - 1) {
+          #BOAST::print BOAST::For(l, @filter.lowfil, @dim_n -1 + @filter.upfil) {
+          ###HERE we could save a -1 but the for does not like subtracting (maybe due to constant attr?
+          BOAST::print BOAST::For(l, @filter.lowfil - @filter.upfil, @filter.upfil - @filter.lowfil) {
             BOAST::print mods[l] === BOAST::modulo(l, @dim_n)
-          } 
+          }
         end
         BOAST::print @dotp === 0.0 if @options[:dotp]
         if BOAST::get_lang == BOAST::FORTRAN then
@@ -265,17 +263,17 @@ module BOAST
       # the shrink operation contains the central part only
       if @bc.shrink then
         BOAST::For(iters[processed_dim], line_start, line_end) {
-          for_conv(true,iters,l,t,tlen,processed_dim, unro,mods)
+          for_conv(0,iters,l,t,tlen,processed_dim, unro,mods)
         }.print
       else
-        BOAST::For(iters[processed_dim], line_start, -@filter.lowfil + line_start) {
-          for_conv(false,iters,l,t,tlen,processed_dim, unro,mods)
+        BOAST::For(iters[processed_dim], line_start, -@filter.lowfil-1) {
+          for_conv(-1,iters,l,t,tlen,processed_dim, unro,mods)
         }.print
-        BOAST::For(iters[processed_dim], -@filter.lowfil + line_start + 1, line_end - @filter.upfil) {
-          for_conv(true,iters,l,t,tlen,processed_dim, unro,mods)
+        BOAST::For(iters[processed_dim], -@filter.lowfil, @dims[processed_dim]-1 - @filter.upfil) {
+          for_conv(0,iters,l,t,tlen,processed_dim, unro,mods)
         }.print
-        BOAST::For(iters[processed_dim], line_end + 1 - @filter.upfil, line_end) {
-          for_conv(false,iters,l,t,tlen,processed_dim, unro,mods)
+        BOAST::For(iters[processed_dim], @dims[processed_dim] - @filter.upfil, line_end) {
+          for_conv(1,iters,l,t,tlen,processed_dim, unro,mods)
         }.print
       end
     end
@@ -297,16 +295,16 @@ module BOAST
       BOAST::For( l,loop_start,loop_end) {
         (0...tlen).each{ |ind|
          #t.each_index { |ind|
-          if @bc.free or nobc then
+          if @bc.free or (nobc == 0) then
             i_out = output_index(unro, i_in, ind,processed_dim,l)
           elsif mods then
-            i_out = output_index(unro, i_in, ind,processed_dim,l,nil,mods) 
+            i_out = output_index(unro, i_in, ind,processed_dim,l,nil,mods,nobc) 
           else
             i_out = output_index(unro, i_in, ind,processed_dim,l,@dims[processed_dim])
           end
           BOAST::print t[ind] === t[ind] + @in[*i_out]*@filter.fil[l]
         }
-      }.unroll#.print#
+      }.unroll#
 
       #t.each_index { |ind|
       (0...tlen).each{ |ind|
@@ -326,11 +324,11 @@ module BOAST
     #returns the indices of the output array according to the starting point in the input and of the
     ## processed dimension as well as th eposition in the convolution
     def output_index(unrolling_dim, i_in,unroll_index,processed_dim=nil,lconv_index=nil,
-                          ndim_processed=nil,wrapping_array=nil)
+                          ndim_processed=nil,wrapping_array=nil,side=nil)
       if ndim_processed then
         i_out=output_index_k_mod(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,ndim_processed)
       elsif wrapping_array then
-        i_out=output_index_k_mod_arr(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,wrapping_array)
+        i_out=output_index_k_mod_arr(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,wrapping_array,side)
       elsif processed_dim then
         i_out=output_index_k(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index)
       else
@@ -350,19 +348,24 @@ module BOAST
       return (0...i_in.length).collect { |indx| processed_dim == indx ? lconv_index +i_in[processed_dim] : i_out[indx]}
     end
     # index in the external region wrapped around (periodic BC), thanks to the presence of the wrapping_array
-    def output_index_k_mod_arr(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,wrapping_array)
+    # if the side is the left one (-1), the recipe is the usual, otherwise (+1) the recipe is subtracted
+    # the the value of the processed dim. In this way the size of mod_arr is only dependent by the size of the 
+    # filter which makes life easier for the compiler
+    def output_index_k_mod_arr(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,wrapping_array,side)
       i_out=output_index_unroll(unrolling_dim, i_in,unroll_index)
-      return (0...i_in.length).collect { |indx| processed_dim == indx ? wrapping_array[lconv_index +i_in[processed_dim]] : i_out[indx]}
+      if (side == 1) then
+        return (0...i_in.length).collect { |indx| 
+          processed_dim == indx ? wrapping_array[lconv_index +i_in[processed_dim] - @dims[processed_dim]] : i_out[indx]}
+      else
+        return (0...i_in.length).collect { |indx| processed_dim == indx ? wrapping_array[lconv_index +i_in[processed_dim]] : i_out[indx]}
+      end
     end
     # index in the external region wrapped around (periodic BC), where the wrapping is given by the integer division
     def output_index_k_mod(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,ndim_processed)
       i_out=output_index_unroll(unrolling_dim, i_in,unroll_index)
       return (0...i_in.length).collect { |indx| processed_dim == indx ?  lconv_index + i_in[processed_dim] - ((i_in[processed_dim]+lconv_index +  ndim_processed * 2 )/ndim_processed - 2) *ndim_processed  : i_out[indx]}
     end
-
-
   end
-
 
   class ConvolutionOperator
     # Class describing to the convolution operator. Should contain the filter values and its central point
