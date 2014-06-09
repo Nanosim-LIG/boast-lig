@@ -1069,7 +1069,7 @@ EOF
     return kernel
   end
 
-  def BOAST::kinetic(filt, center, unroll, ekin = false, free=[0,0,0])
+  def BOAST::kinetic(filt, center, unroll, ekin = false, free=[BOAST::BC::PERIODIC]*3)
     kernel = CKernel::new
     BOAST::set_output( kernel.code )
     kernel.lang = BOAST::get_lang
