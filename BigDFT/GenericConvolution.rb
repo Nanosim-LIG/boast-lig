@@ -595,19 +595,19 @@ module BOAST
     attr_reader :tt_arr
     def initialize(convolution,options)
 
-      ndim = convolution.dims.length
+      ndim = convolution.ndim
 
       @transpose = 0
       @transpose = options[:transpose] if options[:transpose]
       
-      @use_mod = convolution.dims.collect { false }
+      @use_mod =  [ false ] * ndim
       convolution.bc.each_with_index { |bc,ind| @use_mod[ind] = (not bc.free) } if options[:use_mod]
 
       @tt_arr = convolution.dims.collect { false }
       if options[:tt_arr] then
         ttopt=[options[:tt_arr]].flatten
         if ttopt.length == 1 then
-          @tt_arr = convolution.dims.collect { ttopt[0] }
+          @tt_arr = [ttopt[0]] * ndim
         elsif ttopt.length == ndim then
           @tt_arr = ttopt
         else
