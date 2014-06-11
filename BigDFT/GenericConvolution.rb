@@ -268,29 +268,29 @@ module BOAST
       # the shrink operation contains the central part only
       if @bc.shrink then
         BOAST::For(iters[processed_dim], line_start, line_end) {
-          for_conv(0,iters,l,t,tlen,processed_dim, unro,mods)
+          for_conv(:center,iters,l,t,tlen,processed_dim, unro,mods)
         }.print
       else
         BOAST::For(iters[processed_dim], line_start, -@filter.lowfil-1) {
-          for_conv(-1,iters,l,t,tlen,processed_dim, unro,mods)
+          for_conv(:begin,iters,l,t,tlen,processed_dim, unro,mods)
         }.print
         BOAST::For(iters[processed_dim], -@filter.lowfil, @dims[processed_dim]-1 - @filter.upfil) {
-          for_conv(0,iters,l,t,tlen,processed_dim, unro,mods)
+          for_conv(:center,iters,l,t,tlen,processed_dim, unro,mods)
         }.print
         BOAST::For(iters[processed_dim], @dims[processed_dim] - @filter.upfil, line_end) {
-          for_conv(1,iters,l,t,tlen,processed_dim, unro,mods)
+          for_conv(:end,iters,l,t,tlen,processed_dim, unro,mods)
         }.print
       end
     end
 
-    def for_conv(nobc,i_in,l,t,tlen,processed_dim,unro,mods)
+    def for_conv(side,i_in,l,t,tlen,processed_dim,unro,mods)
       #t.each_index { |ind|
       (0...tlen).each{ |ind|
         i_out = output_index(unro, i_in, ind)
         #WARNING: the eks conditional here can be relaxed
         BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_out] / @alpha : 0.0)
       }
-      if ( @bc.free and nobc != 0) then
+      if ( @bc.free and side != :center) then
         loop_start = BOAST::max(-i_in[processed_dim], @filter.lowfil)
         loop_end   = BOAST::min(@filter.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
       elsif
@@ -300,10 +300,10 @@ module BOAST
       BOAST::For( l,loop_start,loop_end) {
         (0...tlen).each{ |ind|
          #t.each_index { |ind|
-          if @bc.free or (nobc == 0) then
+          if @bc.free or (side == :center) then
             i_out = output_index(unro, i_in, ind,processed_dim,l)
           elsif mods then
-            i_out = output_index(unro, i_in, ind,processed_dim,l,nil,mods,nobc) 
+            i_out = output_index(unro, i_in, ind,processed_dim,l,nil,mods,side) 
           else
             i_out = output_index(unro, i_in, ind,processed_dim,l,@dims[processed_dim])
           end
@@ -353,12 +353,12 @@ module BOAST
       return (0...i_in.length).collect { |indx| processed_dim == indx ? lconv_index +i_in[processed_dim] : i_out[indx]}
     end
     # index in the external region wrapped around (periodic BC), thanks to the presence of the wrapping_array
-    # if the side is the left one (-1), the recipe is the usual, otherwise (+1) the recipe is subtracted
+    # if the side is :begin, the recipe is the usual, otherwise (:end) the recipe is subtracted
     # the the value of the processed dim. In this way the size of mod_arr is only dependent by the size of the 
     # filter which makes life easier for the compiler
     def output_index_k_mod_arr(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,wrapping_array,side)
       i_out=output_index_unroll(unrolling_dim, i_in,unroll_index)
-      if (side == 1) then
+      if (side == :end) then
         return (0...i_in.length).collect { |indx| 
           processed_dim == indx ? wrapping_array[lconv_index +i_in[processed_dim] - @dims[processed_dim]] : i_out[indx]}
       else
