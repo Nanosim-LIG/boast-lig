@@ -153,7 +153,7 @@ module BOAST
         dimy = dim_data
       end
       if transpose !=0  then
-        dimy = dimy.rotate(1)
+        dimy = dimy.rotate(transpose)
       end
       @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
       @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
@@ -161,6 +161,8 @@ module BOAST
       @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta] and init
       @vars.push @dotp = BOAST::Real("dotp",:dir => :out) if options[:dotp]
       @init = init
+      @accumulate = false
+      @accumulate = options[:accumulate] if options[:accumulate]
       @options = options
       @base_name = @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}"
     end
@@ -319,7 +321,7 @@ module BOAST
         i_out = output_index(unro, i_in, ind)
         BOAST::print t[ind] === t[ind] * @alpha if @alpha
         BOAST::print @dotp === @dotp + t[ind] * @in[*i_out] if @dotp
-        if @transpose != 0 then
+        if not @accumulate then
           BOAST::print @out[*i_out.rotate(@transpose)] === t[ind]
         else
           BOAST::print @out[*i_out] === 
