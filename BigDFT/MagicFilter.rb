@@ -201,4 +201,24 @@ module BOAST
     kernel.procedure = p
     return kernel
   end
+
+  def BOAST::MFG(conv_filter, center, unroll=1)
+    kernel = CKernel::new
+    BOAST::set_output( kernel.code )
+    kernel.lang = BOAST::get_lang
+    if BOAST::get_lang == C then
+      @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
+      @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
+      @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
+    end
+
+    conv_operation = GenericConvolutionOperator::new(conv_filter, :transpose => 1)
+    p, subops= conv_operation.procedure( unroll )
+    subops.each_value { |op| print op }
+    print p
+
+    kernel.procedure = p
+    return kernel
+
+  end
 end

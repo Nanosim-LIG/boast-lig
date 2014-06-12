@@ -5,6 +5,7 @@ module BOAST
     attr_reader :fil_array
     # central point of the filter
     attr_reader :center
+    attr_reader :length
     # BOAST variables
     # Filter array (to be used on BOAST functions)
     attr_reader :fil
@@ -19,12 +20,13 @@ module BOAST
       arr = ConstArray::new(filt,Real)
       @fil=BOAST::Real("fil",:constant => arr,:dim => [ BOAST::Dim((-center),(filt.length - center -1)) ])
       @lowfil_val = -center
-      @upfil_val = filt.length - center -1
+      @upfil_val = filt.length - center - 1
       @lowfil = BOAST::Int("lowfil",:constant => @lowfil_val)
       @upfil = BOAST::Int("upfil",:constant => @upfil_val)
-      @fil_array=filt
-      @center=center
-      @name=name
+      @fil_array = filt
+      @center = center
+      @name = name
+      @length = filt.length
     end
 
   end #class ConvolutionFilter
@@ -163,7 +165,7 @@ module BOAST
       @base_name = @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}"
     end
 
-    def procedure(unroll,unrolled_dim,use_mod,tt_arr)
+    def procedure(unroll, unrolled_dim, use_mod, tt_arr)
       function_name = @base_name + "_u#{unroll}_#{unrolled_dim}_#{use_mod}"
 
       l = BOAST::Int("l")
@@ -183,7 +185,7 @@ module BOAST
       else
         mods=nil
       end
-      return BOAST::Procedure(function_name,vars,[@filter.lowfil,@filter.upfil]){
+      return BOAST::Procedure(function_name, vars, [@filter.lowfil, @filter.upfil] ){
         BOAST::decl @filter.fil
         BOAST::decl *iters
         BOAST::decl l
@@ -374,18 +376,22 @@ module BOAST
   end
 
   class GenericConvolutionOperator
+    attr_accessor :procs
+    attr_reader :needed_subops
     def initialize(filter,options={})
+      @filter = filter
+
       @vars = []
       @vars.push @ndim  = BOAST::Int( "d",  :dir => :in )
-      @vars.push @dims  = BOAST::Int( "n",  :dir => :in, :dim => [ BOAST::Dim(0, d - 1) ] )
-      @vars.push @bc    = BOAST::Int( "bc", :dir => :in, :dim => [ BOAST::Dim(0, d - 1) ] )
+      @vars.push @dims  = BOAST::Int( "n",  :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
+      @vars.push @bc    = BOAST::Int( "bc", :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
       @vars.push @x     = BOAST::Real("x",  :dir => :in,  :restrict => true, :dim => [ BOAST::Dim() ] )
       @vars.push @y     = BOAST::Real("y",  :dir => :out, :restrict => true, :dim => [ BOAST::Dim() ] )
-      @vars.push @work1 = BOAST::Real("w1", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim() ] )
-      @vars.push @work2 = BOAST::Real("w2", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim() ] )
-      @vars.push @vars.push @alpha = BOAST::Real("alpha",:dir => :in,:dim => [ BOAST::Dim(0, d - 1)]) if options[:alpha]
+      @vars.push @w1 = BOAST::Real("w1", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim() ] )
+      @vars.push @w2 = BOAST::Real("w2", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim() ] )
+      @vars.push @vars.push @alpha = BOAST::Real("alpha",:dir => :in,:dim => [ BOAST::Dim(0, @ndim - 1)]) if options[:alpha]
       @vars.push @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta]
-      @vars.push @vars.push @eks = BOAST::Real("eks",:dir => :out,:dim =>[ BOAST::Dim(0, d - 1)]) if options[:eks]
+      @vars.push @vars.push @eks = BOAST::Real("eks",:dir => :out,:dim =>[ BOAST::Dim(0, @ndim - 1)]) if options[:eks]
 
       @transpose = 0
       @transpose = options[:transpose] if options[:transpose]
@@ -393,8 +399,16 @@ module BOAST
 
       @needed_subops = {}
       [BOAST::BC::PERIODIC, BOAST::BC::GROW, BOAST::BC::SHRINK].each { |bc|
-        [ [1, 0], [0, 1], [2, 0, 1] ].each{ |dim_indexes|
-          p = ConvolutionOperator1d::new(@filter, bc, @transpose, dim_indexes, false, @options)
+        dim_indexes_a = []
+        if @transpose == 0 then
+          dim_indexes_a = [ [1, 0], [0, 1], [2, 0, 1] ]
+        elsif @transpose == 1
+          dim_indexes_a = [ [1, 0] ]
+        elsif @transpose == -1
+          dim_indexes_a = [ [0, 1] ]
+        end
+        dim_indexes_a.each{ |dim_indexes|
+          p = ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc), @transpose, dim_indexes, false, @options)
           @needed_subops[p.base_name] = p
           if @options[:beta] then
             p = ConvolutionOperator1d::new(@filter, bc, @transpose, dim_indexes, true, @options)
@@ -404,22 +418,31 @@ module BOAST
       }
       @procs = {}
     end
-    def procedure()
+    def procedure(unroll = 1, use_modarr = true, use_ttarr = false)
       function_name = @filter.name
-
+      @needed_subops.each { |name, subop|
+        unrolled_dim = subop.dim_indexes[0]
+        @procs[name] = subop.procedure(unroll, unrolled_dim, use_modarr, use_ttarr)
+      }
       p = BOAST::Procedure(function_name,@vars) {
-        dims_actual = BOAST::Int( "dims_actual", :dim => [ BOAST::Dim(0, d - 1) ] )
+        dims_actual = BOAST::Int( "dims_actual", :allocate => true, :dim => [ BOAST::Dim(0, @ndim - 1) ] ) if BOAST::get_lang == FORTRAN
+        dims_actual = BOAST::Int( "dims_actual", :allocate => true, :dim => [ BOAST::Dim(0, 16) ] ) if BOAST::get_lang == C
         dims_left   = BOAST::Int "dims_left"
         ni = BOAST::Int "ni"
         ndat = BOAST::Int "ndat"
         ndat2 = BOAST::Int "ndat2"
         i = BOAST::Int "i"
         j = BOAST::Int "j"
+        BOAST::decl i, j, dims_actual, dims_left, ni, ndat, ndat2
         dims = []
         dim_indexes = []
         BOAST::print dims_left === @ndim
         BOAST::print BOAST::For( i, 0, @ndim - 1 ) {
-          BOAST::print dims_actual[i] === @dims[i]
+          BOAST::print BOAST::If(@bc[i] == BOAST::BC::SHRINK, lambda {
+            BOAST::print dims_actual[i] === @dims[i] + @filter.length - 1
+          }, lambda {
+            BOAST::print dims_actual[i] === @dims[i]
+          })
         }
         compute_ni_ndat = lambda { |indx|
           if @transpose == -1 then
@@ -428,9 +451,9 @@ module BOAST
             BOAST::print ni === @dims[indx]
           end
           BOAST::print ndat === 1
-          BOAST::print BOAST::For(j, 0, @ndim) {
+          BOAST::print BOAST::For(j, 0, @ndim - 1) {
             BOAST::print BOAST::If( j != indx ) {
-              BOAST::print ndat = ndat * dims_actual[j]
+              BOAST::print ndat === ndat * dims_actual[j]
             }
           }
           dims = [ ni, ndat ]
@@ -442,7 +465,7 @@ module BOAST
           BOAST::print ni === @dims[indx]
           BOAST::print ndat === 1
           BOAST::print ndat2 === 1
-          BOAST::print BOAST::For(j, 0, @ndim) {
+          BOAST::print BOAST::For(j, 0, @ndim - 1) {
             BOAST::print BOAST::If( j < indx, lambda {
               BOAST::print ndat = ndat * dims_actual[j]
             }, j > indx, lambda {
@@ -453,69 +476,73 @@ module BOAST
           dim_indexes = [2, 0, 1]
         }
 
-        print_call = lambda { |init, datas|
+        print_call = lambda { |indx, init, datas|
           vars = dims + datas
           vars.push( @alpha[0] ) if @options[:alpha]
           vars.push( @beta ) if (init and @options[:beta])
           vars.push( @eks[0] ) if @options[:eks]
-          procname = ConvolutionOperator1d::new(@filter, BOAST::BC::PERIODIC, @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
-          BOAST::print @procs[procname].call( *vars )
-        }, BOAST::BC::GROW, lambda {
-          procname = ConvolutionOperator1d::new(@filter, BOAST::BC::GROW, @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
-          BOAST::print @procs[procname].call( *vars )
-        }, BOAST::BC::SHRINK, lambda {
-          procname = ConvolutionOperator1d::new(@filter, BOAST::BC::SHRINK, @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
-          BOAST::print @procs[procname].call( *vars )
+          BOAST::print BOAST::Case( @bc[indx], BOAST::BC::PERIODIC, lambda {
+            procname = ConvolutionOperator1d::new(@filter, BOAST::BC::new(BOAST::BC::PERIODIC), @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
+            BOAST::print @procs[procname].call( *vars )
+          }, BOAST::BC::GROW, lambda {
+            procname = ConvolutionOperator1d::new(@filter, BOAST::BC::new(BOAST::BC::GROW),     @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
+            BOAST::print @procs[procname].call( *vars )
+            BOAST::print dims_actual[indx] === dims_actual[indx] + @filter.length - 1
+          }, BOAST::BC::SHRINK, lambda {
+            procname = ConvolutionOperator1d::new(@filter, BOAST::BC::new(BOAST::BC::SHRINK),    @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
+            BOAST::print @procs[procname].call( *vars )
+            BOAST::print dims_actual[indx] === dims_actual[indx] - @filter.length + 1
+          })
         }
-        
+ 
         BOAST::print BOAST::If( @ndim == 1 , lambda { 
           dims = [ @dims[0], 1 ]
           dim_indexes = [ 1, 0 ]
-          print_call( true, [@x, @y] )
+          print_call.call( 0, true, [@x, @y] )
         }, lambda {
-          compute_ni_ndat( 0 )
-          print_call( true, [ @x, @w1 ] )
+          compute_ni_ndat.call( 0 )
+          print_call.call( 0, true, [ @x, @w1 ] )
           BOAST::print dims_left === dims_left - 1
-        })
-        BOAST::print i === 1
-        BOAST::print While( dims_left > 2 ) {
-          if transpose == 0 then
-            compute_ndat_ni_ndat2( i )
-          else
-            compute_ni_ndat( i )
-          end
-          print_call( false, [ @w1, @w2 ] )
-          BOAST::print i === i + 1
-          if transpose == 0 then
-            compute_ndat_ni_ndat2( i )
-          else
-            compute_ni_ndat( i )
-          end
-          print_call( false, [ @w2, @w1 ] )
-          BOAST::print i === i + 1
-          BOAST::print dims_left === dims_left - 2
-        }
-        BOAST::print If( dims_left == 2, lambda {
-          if transpose == 0 then
-            compute_ndat_ni_ndat2( i )
-          else
-            compute_ni_ndat( i )
-          end
-          print_call( false, [ @w2, @w1 ] )
-          BOAST::print i === i + 1
-          compute_ni_ndat( i )
-          if transpose == 0 then
-            dims.reverse!
-            dim_indexes.reverse!
-          end
-          print_call( false, [ @w2, @y ] )
-        }, lambda {
-          compute_ni_ndat( i )
-          if transpose == 0 then
-            dims.reverse! 
-            dim_indexes.reverse!
-          end
-          print_call( false, [ @w1, @y ] )
+          BOAST::print i === 1
+          BOAST::print BOAST::While( dims_left > 2 ) {
+            if @transpose == 0 then
+              compute_ndat_ni_ndat2.call( i )
+            else
+              compute_ni_ndat.call( i )
+            end
+            print_call.call( i, false, [ @w1, @w2 ] )
+            BOAST::print i === i + 1
+            if @transpose == 0 then
+              compute_ndat_ni_ndat2.call( i )
+            else
+              compute_ni_ndat.call( i )
+            end
+            print_call.call( i, false, [ @w2, @w1 ] )
+            BOAST::print i === i + 1
+            BOAST::print dims_left === dims_left - 2
+          }
+          BOAST::print BOAST::If( dims_left == 2, lambda {
+            if @transpose == 0 then
+              compute_ndat_ni_ndat2.call( i )
+            else
+              compute_ni_ndat.call( i )
+            end
+            print_call.call( i, false, [ @w1, @w2 ] )
+            BOAST::print i === i + 1
+            compute_ni_ndat.call( i )
+            if @transpose == 0 then
+              dims.reverse!
+              dim_indexes.reverse!
+            end
+            print_call.call( i, false, [ @w2, @y ] )
+          }, lambda {
+            compute_ni_ndat.call( i )
+            if @transpose == 0 then
+              dims.reverse! 
+              dim_indexes.reverse!
+            end
+            print_call.call( i, false, [ @w1, @y ] )
+          })
         })
       }
       return [ p, @procs ]
