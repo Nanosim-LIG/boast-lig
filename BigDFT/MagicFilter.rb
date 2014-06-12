@@ -212,7 +212,7 @@ module BOAST
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
     end
 
-    conv_operation = GenericConvolutionOperator::new(conv_filter, :transpose => 1)
+    conv_operation = GenericConvolutionOperator::new(conv_filter, :transpose => 1, :work => true)
     p, subops= conv_operation.procedure( unroll )
     subops.each_value { |op| print op }
     print p
