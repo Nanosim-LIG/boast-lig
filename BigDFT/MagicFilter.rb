@@ -202,7 +202,7 @@ module BOAST
     return kernel
   end
 
-  def BOAST::MFG(conv_filter, center, unroll=1)
+  def BOAST::MFG(conv_filter, unroll=1)
     kernel = CKernel::new
     BOAST::set_output( kernel.code )
     kernel.lang = BOAST::get_lang
