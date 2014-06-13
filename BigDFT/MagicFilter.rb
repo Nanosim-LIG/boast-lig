@@ -203,6 +203,17 @@ module BOAST
   end
 
   def BOAST::MFG(conv_filter, unroll=1)
+      
+    optims = GenericOptimization::new(12,true,true)
+
+    conv_operation = GenericConvolutionOperator::new(conv_filter, :transpose => 1, :work => true)
+
+    #test of 1d kernels optimizations in view of many-d
+    conv_operation.optimize(optims)
+    puts " optimization ended" 
+
+    p, subops= conv_operation.procedure()
+
     kernel = CKernel::new
     BOAST::set_output( kernel.code )
     kernel.lang = BOAST::get_lang
@@ -212,9 +223,10 @@ module BOAST
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
     end
 
-    conv_operation = GenericConvolutionOperator::new(conv_filter, :transpose => 1, :work => true)
-    p, subops= conv_operation.procedure( unroll )
-    subops.each_value { |op| print op }
+    subops.each_value { |op| 
+      print op 
+      puts "chosen:"+ op.name
+    }
     print p
 
     kernel.procedure = p

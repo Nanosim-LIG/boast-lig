@@ -1096,7 +1096,17 @@ EOF
   end
 
   def BOAST::kineticG(conv_filter, unroll = 1, ekin = false)
-        kernel = CKernel::new
+
+    optims = GenericOptimization::new([2,6,2],true,true,true)
+
+    kinetic_operation = GenericConvolutionOperator::new(conv_filter, :accumulate => true, :transpose => 0, :beta =>(not ekin), :eks => ekin, :alpha => true)
+    #test of 1d kernels optimizations in view of many-d
+#    kinetic_operation.optimize(optims)
+    puts " optimization ended"
+
+    p, subops= kinetic_operation.procedure()
+    
+    kernel = CKernel::new
     BOAST::set_output( kernel.code )
     kernel.lang = BOAST::get_lang
 
@@ -1106,9 +1116,10 @@ EOF
       @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
     end
 
-    kinetic_operation = GenericConvolutionOperator::new(conv_filter, :accumulate => true, :transpose => 0, :beta =>(not ekin), :eks => ekin, :alpha => true)
-    p, subops= kinetic_operation.procedure(unroll)
-    subops.each_value { |op| print op }
+    subops.each_value { |op| 
+      print op 
+      puts "chosen:"+ op.name
+    }
     print p
 
     kernel.procedure = p

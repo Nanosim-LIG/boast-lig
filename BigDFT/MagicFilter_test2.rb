@@ -45,8 +45,9 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:dur
 bc[0] = BOAST::BC::PERIODIC
 bc[1] = BOAST::BC::PERIODIC
 bc[2] = BOAST::BC::PERIODIC
-1.upto(4) { |i|
+1.upto(2) { |i|
   k = BOAST::MFG(conv_filter,i)
+#  k.print
   k.build(:openmp => true)
   begin
     stats = k.run(3, n, bc, input, output, work1, work2)

@@ -56,6 +56,7 @@ module BOAST
     attr_reader :shrink
     # original id of the boundary conditions
     attr_reader :id
+
     def initialize(ibc)
       @id     = ibc
       @free   = (ibc != PERIODIC)
@@ -75,6 +76,79 @@ module BOAST
   end #class BoundaryConditions
 
   BC = BoundaryConditions
+
+
+  #handle the choice of the best kernels in a given architecture
+  class GenericOptimization
+    
+    class DataRange
+      def initialize(start,stop,step)
+        @range = start..stop
+        @step = step
+      end
+      def each(&block)
+        return @range.step(@step,&block) 
+      end
+    end
+
+    class ParamSpace
+      attr_accessor :space
+      def initialize(space={})
+        @space=space
+      end
+      def size
+        return @space.size
+      end
+      def points
+        pts=[]
+        space2 = @space.dup
+        dimension,value = space2.shift 
+        space2=ParamSpace::new(space2)
+        value.each{ |val| 
+          pts.push({dimension.to_s.chomp("_range").to_sym => val})
+        }
+        if space2.size == 0 then
+          return pts
+        else
+          pts3=[]
+          pts.each{ |p1| 
+            space2.each { |p2| 
+              pts3.push(p1.dup.update(p2))
+            }
+          }
+          return pts3
+        end
+      end
+      def each(&block)
+        return self.points.each(&block)
+      end
+    end
+
+    def initialize(unroll_range=1,mod_arr_test=true,tt_arr_test=true,
+                   unrolled_dim_index_test=false)
+      unrl_rng=[unroll_range].flatten
+      if unrl_rng.length == 2 then
+        unrl_rng=[*unrl_rng,1]
+      elsif unrl_rng.length == 1 then
+        unrl_rng=[1,*unrl_rng,1]
+      end
+      space={}
+      space[:unroll_range]=DataRange::new(*unrl_rng[0..2])
+      space[:mod_arr_range]=[true]
+      space[:mod_arr_range]=[true,false] if mod_arr_test
+      space[:tt_arr_range]=[false]
+      space[:tt_arr_range]=[true,false] if tt_arr_test
+      space[:unrolled_dim_index_range]=[0]
+      space[:unrolled_dim_index_range]=[0,1] if unrolled_dim_index_test
+      @space=ParamSpace::new(space)
+    end
+    
+    def each(&block)
+      return @space.each(&block)
+    end
+
+  end
+
 
   class ConvolutionOperator1d
     # Convolution filter
@@ -171,8 +245,91 @@ module BOAST
       @base_name += "_acc" if @accumulate
     end
 
-    def procedure(unroll, unrolled_dim, use_mod, tt_arr)
-      function_name = @base_name + "_u#{unroll}_#{unrolled_dim}_#{use_mod}"
+    def params(avg_size=124)
+      vars=[]
+      varsin=[]
+      varsout=[]
+      @dims.each{ |dim|
+        if dim.name.match("ndat") and @dims.length==2 then
+          ndat=avg_size*(avg_size-2)
+          varsin.push(ndat)
+          varsout.push(ndat)
+          vars.push(ndat)
+        else
+          n=avg_size+36
+          vars.push(n)
+          if @bc.grow then
+            varsin.push(n)
+            varsout.push(n+@filter.length-1)
+          elsif @bc.shrink
+            varsout.push(n)
+            varsin.push(n+@filter.length-1)
+          else
+            varsin.push(n)
+            varsout.push(n)
+          end
+        end
+      }
+      #input and output arrays
+      vars.push(NArray.float(*varsin).random)
+      vars.push(NArray.float(*varsout))
+      #accessory scalars
+      nscal=0
+      nscal+=1 if @alpha
+      nscal+=1 if @beta
+      nscal.times{vars.push(0.5)}
+      vars.push(NArray.float(1).random) if @dotp
+      return vars
+    end
+
+    def optimize(opt_space)
+      opt_space=GenericOptimization::new if not opt_space
+      t_best=Float::INFINITY
+      p_best = nil
+      opt_space.each{ |optim|
+        #puts optim
+        kernel = CKernel::new
+        BOAST::set_output( kernel.code )
+        kernel.lang = BOAST::get_lang
+        if BOAST::get_lang == C then
+          BOAST::get_output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
+          BOAST::get_output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
+          BOAST::get_output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
+        end
+
+        p = self.procedure(optim)
+        BOAST::print p
+        kernel.procedure = p
+        kernel.build(:openmp => true)
+        stats=kernel.run(*self.params) 
+        stats=kernel.run(*self.params) 
+        if BOAST::get_verbose then
+          puts optim
+        end
+        puts "#{kernel.procedure.name}: #{stats[:duration]*1.0e3}" 
+        if t_best > stats[:duration] then
+          t_best = stats[:duration]
+          p_best = p
+        end
+      }
+      return p_best
+    end
+
+    def procedure(options={})
+      #(unroll, unrolled_dim, use_mod, tt_arr)
+      #default values
+      unroll=1
+      mod_arr=true
+      tt_arr=false
+      unroll=options[:unroll] if options[:unroll]
+      mod_arr=options[:mod_arr] if options[:mod_arr]
+      tt_arr=options[:tt_arr] if options[:tt_arr]
+
+      unrolled_dim=@dim_indexes[0]
+      unrolled_dim=@dim_indexes[options[:unrolled_dim_index]] if @dim_indexes.length > 2 and options[:unrolled_dim_index]
+      
+      mod_arr = (mod_arr and not @bc.free)
+      
       function_name = @base_name + 
         "_u#{unroll}_#{unrolled_dim}_#{mod_arr}_#{tt_arr}"
 
@@ -185,7 +342,7 @@ module BOAST
       end
       iters =  (1..@dims.length).collect{ |index| BOAST::Int("i#{index}")}
       
-      if use_mod then
+      if mod_arr then
         # the mod_arr behaves as a shrink operation
         #mods=BOAST::Int("mod_arr", :allocate => true, :dim => [@dim_ngs])
         mods=BOAST::Int("mod_arr", :allocate => true, 
@@ -202,7 +359,7 @@ module BOAST
         else
           BOAST::decl *tt
         end
-        if use_mod then
+        if mod_arr then
           BOAST::decl mods 
           #BOAST::print BOAST::For(l, @filter.lowfil, @dim_n -1 + @filter.upfil) {
           BOAST::print BOAST::For(l, @filter.lowfil - @filter.upfil, @filter.upfil - @filter.lowfil - 1) {
@@ -330,8 +487,8 @@ module BOAST
         if not @accumulate then
           BOAST::print @out[*i_out.rotate(@transpose)] === t[ind]
         else
-          BOAST::print @out[*i_out] === 
-            (@init ? t[ind] : @out[*i_out] + t[ind] )
+          BOAST::print @out[*i_out.rotate(@transpose)] === 
+            (@init ? t[ind] : @out[*i_out.rotate(@transpose)] + t[ind] )
         end
           
       }
@@ -393,10 +550,10 @@ module BOAST
       @vars.push @ndim  = BOAST::Int( "d",  :dir => :in )
       @vars.push @dims  = BOAST::Int( "n",  :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
       @vars.push @bc    = BOAST::Int( "bc", :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
-      @vars.push @x     = BOAST::Real("x",  :dir => :in,  :restrict => true, :dim => [ BOAST::Dim(1) ] )
-      @vars.push @y     = BOAST::Real("y",  :dir => :out, :restrict => true, :dim => [ BOAST::Dim(1) ] )
-      @vars.push @w1 = BOAST::Real("w1", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim(1) ] ) if options[:work]
-      @vars.push @w2 = BOAST::Real("w2", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim(1) ] ) if options[:work]
+      @vars.push @x     = BOAST::Real("x",  :dir => :in,  :restrict => true, :dim => [ BOAST::Dim() ] )
+      @vars.push @y     = BOAST::Real("y",  :dir => :out, :restrict => true, :dim => [ BOAST::Dim() ] )
+      @vars.push @w1 = BOAST::Real("w1", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim() ] ) if options[:work]
+      @vars.push @w2 = BOAST::Real("w2", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim() ] ) if options[:work]
       @vars.push @alpha = BOAST::Real("alpha",:dir => :in,:dim => [ BOAST::Dim(0, @ndim - 1)]) if options[:alpha]
       @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta]
       @vars.push @eks = BOAST::Real("eks",:dir => :out,:dim =>[ BOAST::Dim(0, @ndim - 1)]) if options[:eks]
@@ -404,7 +561,7 @@ module BOAST
       @transpose = 0
       @transpose = options[:transpose] if options[:transpose]
       @options=options
-
+      @procs = {}
       @needed_subops = {}
       [BOAST::BC::PERIODIC, BOAST::BC::GROW, BOAST::BC::SHRINK].each { |bc|
         dim_indexes_a = []
@@ -418,20 +575,24 @@ module BOAST
         dim_indexes_a.each{ |dim_indexes|
           p = ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc), @transpose, dim_indexes, false, @options)
           @needed_subops[p.base_name] = p
+          @procs[p.base_name] = p.procedure
           if @options[:beta] then
             p = ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc), @transpose, dim_indexes, true, @options)
             @needed_subops[p.base_name] = p
+            @procs[p.base_name] = p.procedure
           end
         }
       }
-      @procs = {}
     end
-    def procedure(unroll = 1, use_modarr = true, use_ttarr = false)
-      function_name = @filter.name
+
+    def optimize(opt_space=nil)
       @needed_subops.each { |name, subop|
-        unrolled_dim = subop.dim_indexes[0]
-        @procs[name] = subop.procedure(unroll, unrolled_dim, use_modarr, use_ttarr)
+        @procs[name] = subop.optimize(opt_space)
       }
+    end
+
+    def procedure()
+      function_name = @filter.name
       p = BOAST::Procedure(function_name,@vars) {
         dims_actual = BOAST::Int( "dims_actual", :allocate => true, :dim => [ BOAST::Dim(0, @ndim - 1) ] ) if BOAST::get_lang == FORTRAN
         dims_actual = BOAST::Int( "dims_actual", :allocate => true, :dim => [ BOAST::Dim(0, 16) ] ) if BOAST::get_lang == C
@@ -571,7 +732,7 @@ module BOAST
   end
 
   class ConvolutionOperator
-    # Class describing to the convolution operator. Should contain the filter values and its central point
+    # Class describing to the convolution operator. Should contain the filter valus and its central point
     attr_reader :filter
     # Dimensions of the problem. Can be multi-dimensional
     attr_reader :ndim
@@ -847,6 +1008,8 @@ module BOAST
       @unroll = [ unroll_lengths, unrolled_dim ]
     end
   end
+
+
 
 
 end
