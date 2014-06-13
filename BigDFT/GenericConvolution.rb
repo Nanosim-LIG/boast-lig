@@ -165,7 +165,10 @@ module BOAST
       @accumulate = options[:accumulate] if options[:accumulate]
       @options = options
       @base_name = @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}"
+      @base_name += "_alpha" if @alpha
       @base_name += "_beta" if @beta
+      @base_name += "_dotp" if @dotp
+      @base_name += "_acc" if @accumulate
     end
 
     def procedure(unroll, unrolled_dim, use_mod, tt_arr)
