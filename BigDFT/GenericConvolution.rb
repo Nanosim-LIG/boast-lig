@@ -173,6 +173,8 @@ module BOAST
 
     def procedure(unroll, unrolled_dim, use_mod, tt_arr)
       function_name = @base_name + "_u#{unroll}_#{unrolled_dim}_#{use_mod}"
+      function_name = @base_name + 
+        "_u#{unroll}_#{unrolled_dim}_#{mod_arr}_#{tt_arr}"
 
       l = BOAST::Int("l")
       #try to modify tt scalars into arrays of size unroll
