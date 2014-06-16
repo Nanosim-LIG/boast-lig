@@ -1101,7 +1101,7 @@ EOF
 
     kinetic_operation = GenericConvolutionOperator::new(conv_filter, :accumulate => true, :transpose => 0, :beta =>(not ekin), :eks => ekin, :alpha => true)
     #test of 1d kernels optimizations in view of many-d
-#    kinetic_operation.optimize(optims)
+    kinetic_operation.optimize(optims)
     puts " optimization ended"
 
     p, subops= kinetic_operation.procedure()

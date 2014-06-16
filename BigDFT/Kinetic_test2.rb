@@ -73,25 +73,31 @@ n[0] = n1
 n[1] = n2
 n[2] = n3
 
+k = BOAST::kineticG(conv_filter)
+#k.print
+k.build(:openmp => true)
+
 bc = NArray.int(3)
 bc[0] = BOAST::BC::PERIODIC
 bc[1] = BOAST::BC::PERIODIC
 bc[2] = BOAST::BC::PERIODIC
 
-(1..4).each{ |unroll|
-  k = BOAST::kineticG(conv_filter,unroll)
-  #k.print
-  k.build(:openmp => true)
-  begin
-    stats = k.run(3, n, bc, input, output, scal, 0.5)
-    stats = k.run(3, n, bc, input, output, scal, 0.5)
+repeat = 5
 
-  rescue Exception => e
-    puts e.inspect
-  end
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-  diff = (output_ref - output).abs
-  diff.each { |elem|
-    raise "Warning: residue too big: #{elem}" if elem > epsilon
+begin
+  stats_a = []
+  repeat.times { 
+    stats_a.push  k.run(3, n, bc, input, output, scal, 0.5)
   }
+
+rescue Exception => e
+  puts e.inspect
+end
+stats_a.sort_by! { |a| a[:duration] }
+  
+stats = stats_a.first
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+diff = (output_ref - output).abs
+diff.each { |elem|
+  raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
