@@ -36,30 +36,31 @@ n[2] = n3
 
 bc = NArray.int(3)
 
-k = BOAST::magicfilter_per_ref
-stats = k.run(n1, n2*n3, input, output_ref)
-stats = k.run(n2, n1*n3, output_ref, work1)
-stats = k.run(n3, n2*n1, work1, output_ref)
+k_ref = BOAST::magicfilter_per_ref
+stats = k_ref.run(n1, n2*n3, input, output_ref)
+stats = k_ref.run(n2, n1*n3, output_ref, work1)
+stats = k_ref.run(n3, n2*n1, work1, output_ref)
 
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+
+k = BOAST::MFG(conv_filter)
+k.build(:openmp => true)
+
 bc[0] = BOAST::BC::PERIODIC
 bc[1] = BOAST::BC::PERIODIC
 bc[2] = BOAST::BC::PERIODIC
-1.upto(2) { |i|
-  k = BOAST::MFG(conv_filter,i)
+
 #  k.print
-  k.build(:openmp => true)
-  begin
-    stats = k.run(3, n, bc, input, output, work1, work2)
-    stats = k.run(3, n, bc, input, output, work1, work2)
-  rescue Exception => e
-    puts e.inspect
-  end
-  diff = (output_ref - output).abs
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-  diff.each { |elem|
-    raise "Warning: residue too big: #{elem}" if elem > epsilon
-  }
+begin
+  stats = k.run(3, n, bc, input, output, work1, work2)
+  stats = k.run(3, n, bc, input, output, work1, work2)
+rescue Exception => e
+  puts e.inspect
+end
+diff = (output_ref - output).abs
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+diff.each { |elem|
+  raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
 
 puts 'again, grow'
@@ -69,61 +70,60 @@ work2 = NArray.float(n1+15,n2+15,n3+15)
 output_ref = NArray.float(n1+15,n2+15,n3+15)
 output = NArray.float(n1+15,n2+15,n3+15)
 
-k = BOAST::magicfilter_per_ref(false,true)
-stats = k.run(n1, n2*n3, input, work2)
-stats = k.run(n2, (n1+15)*n3, work2, work1)
-stats = k.run(n3, (n2+15)*(n1+15), work1, output_ref)
+k_ref = BOAST::magicfilter_per_ref(false,true)
+stats = k_ref.run(n1, n2*n3, input, work2)
+stats = k_ref.run(n2, (n1+15)*n3, work2, work1)
+stats = k_ref.run(n3, (n2+15)*(n1+15), work1, output_ref)
 
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
 bc[0] = BOAST::BC::GROW
 bc[1] = BOAST::BC::GROW
 bc[2] = BOAST::BC::GROW
-1.upto(4) { |i|
-  k = BOAST::MFG(conv_filter,i)
-  k.build(:openmp => true)
-  begin
-    stats = k.run(3, n, bc, input, output, work1, work2)
-    stats = k.run(3, n, bc, input, output, work1, work2)
-  rescue Exception => e
-    puts e.inspect
-  end
-  diff = (output_ref - output).abs
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-  diff.each { |elem|
-    raise "Warning: residue too big: #{elem}" if elem > epsilon
-  }
+
+begin
+  stats = k.run(3, n, bc, input, output, work1, work2)
+  stats = k.run(3, n, bc, input, output, work1, work2)
+rescue Exception => e
+  puts e.inspect
+end
+diff = (output_ref - output).abs
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+diff.each { |elem|
+  raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
 
+
 puts 'again, shrink'
-conv_filter = BOAST::ConvolutionFilter::new('rfsf',FILTER.reverse,7)
 input = NArray.float(n1+15,n2+15,n3+15).random
 work1 = NArray.float(n1+15,n2+15,n3+15)
 work2 = NArray.float(n1+15,n2+15,n3+15)
 output_ref = NArray.float(n1,n2,n3)
 output = NArray.float(n1,n2,n3)
 
-k = BOAST::magicfilter_per_ref(true,true)
-stats = k.run(n1, (n2+15)*(n3+15), input, work2)
-stats = k.run(n2, n1*(n3+15), work2, work1)
-stats = k.run(n3, n2*n1, work1, output_ref)
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+k_ref = BOAST::magicfilter_per_ref(true,true)
+stats = k_ref.run(n1, (n2+15)*(n3+15), input, work2)
+stats = k_ref.run(n2, n1*(n3+15), work2, work1)
+stats = k_ref.run(n3, n2*n1, work1, output_ref)
+puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+
+conv_filter = BOAST::ConvolutionFilter::new('rfsf',FILTER.reverse,7)
+k = BOAST::MFG(conv_filter)
+k.build(:openmp => true)
 
 bc[0] = BOAST::BC::SHRINK
 bc[1] = BOAST::BC::SHRINK
 bc[2] = BOAST::BC::SHRINK
-1.upto(4) { |i|
-  k = BOAST::MFG(conv_filter,i)
-  k.build(:openmp => true)
-  begin
-    stats = k.run(3, n, bc, input, output, work1, work2)
-    stats = k.run(3, n, bc, input, output, work1, work2)
-  rescue Exception => e
-    puts e.inspect
-  end
-  diff = (output_ref - output).abs
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-  diff.each { |elem|
-    raise "Warning: residue too big: #{elem}" if elem > epsilon
-  }
+
+begin
+  stats = k.run(3, n, bc, input, output, work1, work2)
+  stats = k.run(3, n, bc, input, output, work1, work2)
+rescue Exception => e
+  puts e.inspect
+end
+diff = (output_ref - output).abs
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+diff.each { |elem|
+  raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
+

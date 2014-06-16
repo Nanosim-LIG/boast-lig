@@ -202,7 +202,7 @@ module BOAST
     return kernel
   end
 
-  def BOAST::MFG(conv_filter, unroll=1)
+  def BOAST::MFG(conv_filter)
       
     optims = GenericOptimization::new(12,true,true)
 
@@ -210,7 +210,6 @@ module BOAST
 
     #test of 1d kernels optimizations in view of many-d
     conv_operation.optimize(optims)
-    puts " optimization ended" 
 
     p, subops= conv_operation.procedure()
 
