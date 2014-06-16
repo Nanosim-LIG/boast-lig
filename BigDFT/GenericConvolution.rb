@@ -211,28 +211,28 @@ module BOAST
       @dim_indexes = dim_indexes
       @dim_n = BOAST::Int("n",:dir =>:in)
       #growed dimension, to be used either for extremes or for mod_arr
-      @dim_ngs = BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil-1)
+      @dim_ngs = BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil - 1)
       #dimensions corresponding to the output of a grow operation
-      dim_nsg = BOAST::Dim(-@filter.upfil,@dim_n-@filter.lowfil-1)
+      dim_nsg = BOAST::Dim(-@filter.upfil,@dim_n-@filter.lowfil - 1)
       @dims = [@dim_n]
       if (dim_indexes.length == 3) then
         @dims = [BOAST::Int("ndat1",:dir =>:in)] + @dims + [BOAST::Int("ndat2",:dir =>:in)]
         #shrinked and growed dimensions to be used for non-periodic bcs
-        dimss = [ BOAST::Dim(0, @dims[0] -1) , @dim_ngs, BOAST::Dim(0, @dims[-1] -1) ] 
-        dimsg = [ BOAST::Dim(0, @dims[0] -1) , dim_nsg, BOAST::Dim(0, @dims[-1] -1) ] 
+        dimss = [ BOAST::Dim(0, @dims[0] -1) , @dim_ngs, BOAST::Dim(0, @dims[-1] - 1) ] 
+        dimsg = [ BOAST::Dim(0, @dims[0] -1) , dim_nsg, BOAST::Dim(0, @dims[-1] - 1) ] 
       elsif dim_indexes.last == 0
         @dims = @dims + [BOAST::Int("ndat",:dir =>:in)]
-        dimss = [ @dim_ngs, BOAST::Dim(0, @dims[-1] -1) ] 
-        dimsg = [ dim_nsg, BOAST::Dim(0, @dims[-1] -1) ] 
+        dimss = [ @dim_ngs, BOAST::Dim(0, @dims[-1] - 1) ] 
+        dimsg = [ dim_nsg, BOAST::Dim(0, @dims[-1] - 1) ] 
       else
         @dims = [BOAST::Int("ndat",:dir =>:in)] + @dims
-        dimss = [ BOAST::Dim(0, @dims[0] -1) , @dim_ngs ] 
-        dimsg = [ BOAST::Dim(0, @dims[0] -1) , dim_nsg ] 
+        dimss = [ BOAST::Dim(0, @dims[0] - 1) , @dim_ngs ] 
+        dimsg = [ BOAST::Dim(0, @dims[0] - 1) , dim_nsg ] 
       end
       @vars = @dims.dup
       # dimension of the problem
       dim_data = @dims.collect{ |dim|
-        BOAST::Dim(0, dim-1)
+        BOAST::Dim(0, dim - 1)
       } 
       if bc.shrink then
         dimx = dimss
@@ -269,7 +269,7 @@ module BOAST
       varsout=[]
       @dims.each{ |dim|
         if dim.name.match("ndat") and @dims.length==2 then
-          ndat=avg_size*(avg_size-2)
+          ndat=avg_size*(avg_size - 2)
           varsin.push(ndat)
           varsout.push(ndat)
           vars.push(ndat)
@@ -278,10 +278,10 @@ module BOAST
           vars.push(n)
           if @bc.grow then
             varsin.push(n)
-            varsout.push(n+@filter.length-1)
+            varsout.push(n + @filter.length - 1)
           elsif @bc.shrink
             varsout.push(n)
-            varsin.push(n+@filter.length-1)
+            varsin.push(n + @filter.length - 1)
           else
             varsin.push(n)
             varsout.push(n)
@@ -322,21 +322,31 @@ module BOAST
         kernel.procedure = p
         kernel.build(:openmp => true)
         stats_a = []
+        par = self.params
         opt_space.repeat.times {
-          stats_a.push kernel.run(*self.params)
+          stats_a.push kernel.run(*par)
         }
         stats_a.sort_by! { |a| a[:duration] }
         stats = stats_a.first
         if BOAST::get_verbose then
           puts optim
         end
-        puts "#{kernel.procedure.name}: #{stats[:duration]*1.0e3}" 
+        puts "#{kernel.procedure.name}: #{stats[:duration]*1.0e3} us #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops" 
         if t_best > stats[:duration] then
           t_best = stats[:duration]
           p_best = p
         end
       }
       return p_best
+    end
+
+    def cost(*dimens)
+      n = dimens[@dim_indexes.last]
+      ndat = 1
+      @dim_indexes[0...-1].each { |indx|
+        ndat *= dimens[indx]
+      }
+      return n * ( 2 * @filter.length ) * ndat
     end
 
     def procedure(options={})
@@ -622,7 +632,65 @@ module BOAST
       }
     end
 
-    def procedure()
+    def cost(n, bc)
+      dims_actual = []
+      compute_ni_ndat = lambda { |indx|
+        indx = n.length - indx - 1 if @transpose == -1
+        ndat = 1
+        (n[0...indx]+n[(indx+1)..-1]).each { |nindx|
+          ndat *= nindx
+        }
+        ni_ndat = [ n[indx], ndat ]
+        ni_ndat.reverse! if @transpose == -1 or (@transpose == 0 and indx = @n.length - 1 )
+        indexes = [ 1, 0]
+        indexes.reverse! if @transpose == -1 or (@transpose == 0 and indx = @n.length - 1 )
+        return [ni_ndat, indexes]
+      }
+      compute_ndat_ni_ndat2 = lambda { |indx|
+        ndat = 1
+        ndat2 = 1
+        (0..(n.length -1)).each { |i|
+          ndat *= n[i] if i < indx
+          ndat2 *= n[i] if i > indx
+        }
+        ni = n[indx]
+        ndat_ni_ndat2 = [ndat, ni, ndat2]
+        indexes = [2, 0, 1]
+        return [ndat_ni_ndat2, indexes]
+      }
+      n.each_index { |indx|
+        if bc[indx] == BOAST::BC::SHRINK then
+          dims_actual[indx] = n[indx] + @filter.length - 1
+        else
+          dims_actual[indx] = n[indx]
+        end
+      }
+      if n.length == 1 then
+        d = [ n[0], 1 ]
+        d_indexes = [ 1, 0 ]
+        dims.reverse! if @transpose == -1
+        dim_indexes.reverse! if @transpose == -1
+        return ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, d_indexes, (true and @options[:beta]), @options).cost( *d )
+      else
+        cost = 0
+        dims, dim_indexes = compute_ni_ndat(0)
+        cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, dim_indexes, (true and @options[:beta]), @options).cost( *dims )
+        dims_left = n.length - 1
+        while dims_left > 1 do
+          if transpose == 0 then
+            dims, dim_indexes = compute_ndat_ni_ndat2(n.length-dims_left)
+          else
+            dims, dim_indexes = compute_ni_ndat(n.length-dims_left)
+          end
+          cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, dim_indexes, false, @options).cost( *dims )
+          dims_left += 1
+        end
+        dims, dim_indexes = compute_ni_ndat(n.length-1)
+        cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, dim_indexes, false, @options).cost( *dims )
+      end
+    end
+
+    def procedure
       function_name = @filter.name
       p = BOAST::Procedure(function_name,@vars) {
         dims_actual = BOAST::Int( "dims_actual", :allocate => true, :dim => [ BOAST::Dim(0, @ndim - 1) ] ) if BOAST::get_lang == FORTRAN
