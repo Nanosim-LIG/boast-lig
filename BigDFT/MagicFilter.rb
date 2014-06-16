@@ -228,6 +228,7 @@ module BOAST
     print p
 
     kernel.procedure = p
+    kernel.cost_function = lambda { |*args| conv_operation.cost(*args) }
     return kernel
 
   end

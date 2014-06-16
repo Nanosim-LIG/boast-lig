@@ -1120,6 +1120,7 @@ EOF
     print p
 
     kernel.procedure = p
+    kernel.cost_function = lambda { |*args| kinetic_operation.cost(*args) }
     return kernel
 
   end

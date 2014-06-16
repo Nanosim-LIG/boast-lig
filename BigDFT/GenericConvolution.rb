@@ -129,13 +129,13 @@ module BOAST
 #    def initialize(unroll_range=1,mod_arr_test=true,tt_arr_test=true,
 #                   unrolled_dim_index_test=false)
     def initialize(options = {})
-      unroll_range=1
+      unroll_range = 1
       unroll_range = options[:unroll_range] if options[:unroll_range]
       mod_arr_test = true
       mod_arr_test = options[:mod_arr_test] if not options[:mod_arr_test].nil?
-      tt_arr_test = true
+      tt_arr_test = false
       tt_arr_test = options[:tt_arr_test] if not options[:tt_arr_test].nil?
-      unrolled_dim_index_test = true
+      unrolled_dim_index_test = false
       unrolled_dim_index_test = options[:unrolled_dim_index_test] if not options[:unrolled_dim_index_test].nil?
       unroll_inner_test = false
       unroll_inner_test = options[:unroll_inner_test] if not options[:unroll_inner_test].nil?
@@ -637,19 +637,19 @@ module BOAST
       compute_ni_ndat = lambda { |indx|
         indx = n.length - indx - 1 if @transpose == -1
         ndat = 1
-        (n[0...indx]+n[(indx+1)..-1]).each { |nindx|
-          ndat *= nindx
+        (0..(n.length - 1)).each { |i|
+          ndat *= n[i] if i != indx
         }
         ni_ndat = [ n[indx], ndat ]
-        ni_ndat.reverse! if @transpose == -1 or (@transpose == 0 and indx = @n.length - 1 )
+        ni_ndat.reverse! if @transpose == -1 or (@transpose == 0 and indx = n.length - 1 )
         indexes = [ 1, 0]
-        indexes.reverse! if @transpose == -1 or (@transpose == 0 and indx = @n.length - 1 )
+        indexes.reverse! if @transpose == -1 or (@transpose == 0 and indx = n.length - 1 )
         return [ni_ndat, indexes]
       }
       compute_ndat_ni_ndat2 = lambda { |indx|
         ndat = 1
         ndat2 = 1
-        (0..(n.length -1)).each { |i|
+        (0..(n.length - 1)).each { |i|
           ndat *= n[i] if i < indx
           ndat2 *= n[i] if i > indx
         }
@@ -658,7 +658,7 @@ module BOAST
         indexes = [2, 0, 1]
         return [ndat_ni_ndat2, indexes]
       }
-      n.each_index { |indx|
+      (0...n.length).each { |indx|
         if bc[indx] == BOAST::BC::SHRINK then
           dims_actual[indx] = n[indx] + @filter.length - 1
         else
@@ -673,19 +673,19 @@ module BOAST
         return ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, d_indexes, (true and @options[:beta]), @options).cost( *d )
       else
         cost = 0
-        dims, dim_indexes = compute_ni_ndat(0)
+        dims, dim_indexes = compute_ni_ndat.call(0)
         cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, dim_indexes, (true and @options[:beta]), @options).cost( *dims )
         dims_left = n.length - 1
         while dims_left > 1 do
-          if transpose == 0 then
-            dims, dim_indexes = compute_ndat_ni_ndat2(n.length-dims_left)
+          if @transpose == 0 then
+            dims, dim_indexes = compute_ndat_ni_ndat2.call(n.length-dims_left)
           else
-            dims, dim_indexes = compute_ni_ndat(n.length-dims_left)
+            dims, dim_indexes = compute_ni_ndat.call(n.length-dims_left)
           end
           cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, dim_indexes, false, @options).cost( *dims )
-          dims_left += 1
+          dims_left -= 1
         end
-        dims, dim_indexes = compute_ni_ndat(n.length-1)
+        dims, dim_indexes = compute_ni_ndat.call(n.length-1)
         cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, dim_indexes, false, @options).cost( *dims )
       end
     end

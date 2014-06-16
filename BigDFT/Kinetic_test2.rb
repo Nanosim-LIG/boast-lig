@@ -97,7 +97,7 @@ end
 stats_a.sort_by! { |a| a[:duration] }
 stats = stats_a.first
 
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{k.cost(n,bc) / (stats[:duration]*1.0e9)} GFlops"
 diff = (output_ref - output).abs
 diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
