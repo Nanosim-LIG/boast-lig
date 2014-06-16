@@ -135,8 +135,10 @@ module BOAST
       mod_arr_test = options[:mod_arr_test] if not options[:mod_arr_test].nil?
       tt_arr_test = true
       tt_arr_test = options[:tt_arr_test] if not options[:tt_arr_test].nil?
-      unrolled_dim_index_test=true
+      unrolled_dim_index_test = true
       unrolled_dim_index_test = options[:unrolled_dim_index_test] if not options[:unrolled_dim_index_test].nil?
+      unroll_inner_test = false
+      unroll_inner_test = options[:unroll_inner_test] if not options[:unroll_inner_test].nil?
       @repeat = 3
       @repeat = options[:repeat] if options[:repeat]
 
@@ -147,13 +149,15 @@ module BOAST
         unrl_rng=[1,*unrl_rng,1]
       end
       space={}
-      space[:unroll_range]=DataRange::new(*unrl_rng[0..2])
-      space[:mod_arr_range]=[true]
-      space[:mod_arr_range]=[true,false] if mod_arr_test
-      space[:tt_arr_range]=[false]
-      space[:tt_arr_range]=[true,false] if tt_arr_test
-      space[:unrolled_dim_index_range]=[0]
-      space[:unrolled_dim_index_range]=[0,1] if unrolled_dim_index_test
+      space[:unroll_range] = DataRange::new(*unrl_rng[0..2])
+      space[:mod_arr_range] = [true]
+      space[:mod_arr_range] = [true,false] if mod_arr_test
+      space[:tt_arr_range] = [false]
+      space[:tt_arr_range] = [true,false] if tt_arr_test
+      space[:unrolled_dim_index_range] = [0]
+      space[:unrolled_dim_index_range] = [0,1] if unrolled_dim_index_test
+      space[:unroll_inner_range] = [true]
+      space[:unroll_inner_range] = [true, false] if unroll_inner_test
       @space=ParamSpace::new(space)
     end
     
@@ -338,12 +342,14 @@ module BOAST
     def procedure(options={})
       #(unroll, unrolled_dim, use_mod, tt_arr)
       #default values
-      unroll=1
-      mod_arr=false
-      tt_arr=false
-      unroll=options[:unroll] if options[:unroll]
-      mod_arr=options[:mod_arr] if options[:mod_arr]
-      tt_arr=options[:tt_arr] if options[:tt_arr]
+      unroll = 1
+      mod_arr = true
+      tt_arr = false
+      unroll_inner = true
+      unroll = options[:unroll] if options[:unroll]
+      mod_arr = options[:mod_arr] if not options[:mod_arr].nil?
+      tt_arr = options[:tt_arr] if not options[:tt_arr].nil?
+      unroll_inner = options[:unroll_inner] if not options[:unroll_inner].nil?
 
       unrolled_dim=@dim_indexes[0]
       unrolled_dim=@dim_indexes[options[:unrolled_dim_index]] if @dim_indexes.length > 2 and options[:unrolled_dim_index]
@@ -351,7 +357,7 @@ module BOAST
       mod_arr = false if @bc.free
 
       function_name = @base_name + 
-        "_u#{unroll}_#{unrolled_dim}_#{mod_arr}_#{tt_arr}"
+        "_u#{unroll}_#{unrolled_dim}_#{mod_arr}_#{tt_arr}_#{unroll_inner}"
 
       l = BOAST::Int("l")
       #try to modify tt scalars into arrays of size unroll
@@ -404,7 +410,7 @@ module BOAST
           end
         end
 
-        convolution1d(iters,l,tt,mods,unrolled_dim,unroll)
+        convolution1d(iters, l, tt, mods, unrolled_dim, unroll, unroll_inner)
 
         BOAST::get_output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
         BOAST::get_output.print("}\n")  if BOAST::get_lang == BOAST::C
@@ -412,19 +418,19 @@ module BOAST
     end
 
     #here follows the internal operations for the convolution 1d
-    def convolution1d(iters,l,t,mods,unro,unrolling_length)
+    def convolution1d(iters, l, t, mods, unro, unrolling_length, unroll_inner)
       convgen= lambda { |dim,t,tlen,reliq|
-        ises0 = startendpoints(@dims[dim[0]],unro == dim[0],unrolling_length,reliq)
+        ises0 = startendpoints(@dims[dim[0]], unro == dim[0], unrolling_length, reliq)
         BOAST::get_output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
         BOAST::get_output.print("#pragma omp for\n") if BOAST::get_lang == BOAST::C
         For::new(iters[dim[0]], *ises0 ) {
           if dim.length == 3 then
-            ises1 = startendpoints(@dims[dim[1]],unro == dim[1],unrolling_length,reliq)
+            ises1 = startendpoints(@dims[dim[1]], unro == dim[1], unrolling_length, reliq)
             For::new(iters[dim[1]], *ises1) {
-              conv_lines(iters,l,t,tlen,dim[-1],unro,mods)
+              conv_lines(iters, l, t, tlen, dim[-1], unro, mods, unroll_inner)
             }.print
           else
-            conv_lines(iters,l,t,tlen,dim[-1],unro,mods)
+            conv_lines(iters, l, t, tlen, dim[-1], unro, mods, unroll_inner)
           end
         }.print
         BOAST::get_output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
@@ -443,7 +449,7 @@ module BOAST
       return [istart,iend,istep]
     end
 
-    def conv_lines(iters,l,t,tlen,processed_dim,unro,mods)
+    def conv_lines(iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
       # the only difference holds for the grow operation
       if @bc.grow then
         line_start = -@filter.upfil
@@ -456,22 +462,22 @@ module BOAST
       # the shrink operation contains the central part only
       if @bc.shrink then
         BOAST::For(iters[processed_dim], line_start, line_end) {
-          for_conv(:center,iters,l,t,tlen,processed_dim, unro,mods)
+          for_conv(:center, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
         }.print
       else
         BOAST::For(iters[processed_dim], line_start, -@filter.lowfil-1) {
-          for_conv(:begin,iters,l,t,tlen,processed_dim, unro,mods)
+          for_conv(:begin, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
         }.print
         BOAST::For(iters[processed_dim], -@filter.lowfil, @dims[processed_dim]-1 - @filter.upfil) {
-          for_conv(:center,iters,l,t,tlen,processed_dim, unro,mods)
+          for_conv(:center, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
         }.print
         BOAST::For(iters[processed_dim], @dims[processed_dim] - @filter.upfil, line_end) {
-          for_conv(:end,iters,l,t,tlen,processed_dim, unro,mods)
+          for_conv(:end, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
         }.print
       end
     end
 
-    def for_conv(side,i_in,l,t,tlen,processed_dim,unro,mods)
+    def for_conv(side, i_in, l, t, tlen, processed_dim, unro, mods, unroll_inner)
       #t.each_index { |ind|
       (0...tlen).each{ |ind|
         i_out = output_index(unro, i_in, ind)
@@ -485,7 +491,7 @@ module BOAST
         loop_start=@filter.lowfil
         loop_end=@filter.upfil
       end
-      BOAST::For( l,loop_start,loop_end) {
+      f = BOAST::For( l,loop_start,loop_end) {
         (0...tlen).each{ |ind|
          #t.each_index { |ind|
           if @bc.free or (side == :center) then
@@ -497,7 +503,12 @@ module BOAST
           end
           BOAST::print t[ind] === t[ind] + @in[*i_out]*@filter.fil[l]
         }
-      }.unroll#
+      }
+      if unroll_inner then
+        f.unroll
+      else
+        f.print
+      end
 
       #t.each_index { |ind|
       (0...tlen).each{ |ind|
