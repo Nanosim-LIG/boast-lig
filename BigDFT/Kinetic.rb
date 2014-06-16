@@ -1095,14 +1095,11 @@ EOF
     return kernel
   end
 
-  def BOAST::kineticG(conv_filter, unroll = 1, ekin = false)
+  def BOAST::kineticG(conv_filter, optims = GenericOptimization::new, ekin = false)
 
-    optims = GenericOptimization::new([2,6,2],true,true,true)
 
     kinetic_operation = GenericConvolutionOperator::new(conv_filter, :accumulate => true, :transpose => 0, :beta =>(not ekin), :eks => ekin, :alpha => true)
-    #test of 1d kernels optimizations in view of many-d
     kinetic_operation.optimize(optims)
-    puts " optimization ended"
 
     p, subops= kinetic_operation.procedure()
     

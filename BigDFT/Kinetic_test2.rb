@@ -73,7 +73,8 @@ n[0] = n1
 n[1] = n2
 n[2] = n3
 
-k = BOAST::kineticG(conv_filter)
+optims = BOAST::GenericOptimization::new(:unroll_range => [2,6,2], :mod_arr_test => true, :tt_arr_test => true, :unrolled_dim_index_test => true)
+k = BOAST::kineticG(conv_filter, optims)
 #k.print
 k.build(:openmp => true)
 
@@ -94,8 +95,8 @@ rescue Exception => e
   puts e.inspect
 end
 stats_a.sort_by! { |a| a[:duration] }
-  
 stats = stats_a.first
+
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 diff = (output_ref - output).abs
 diff.each { |elem|

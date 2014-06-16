@@ -202,9 +202,8 @@ module BOAST
     return kernel
   end
 
-  def BOAST::MFG(conv_filter)
+  def BOAST::MFG(conv_filter, optims=GenericOptimization::new)
       
-    optims = GenericOptimization::new(12,true,true)
 
     conv_operation = GenericConvolutionOperator::new(conv_filter, :transpose => 1, :work => true)
 

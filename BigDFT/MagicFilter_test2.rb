@@ -43,20 +43,27 @@ stats = k_ref.run(n3, n2*n1, work1, output_ref)
 
 puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
-k = BOAST::MFG(conv_filter)
+optims = BOAST::GenericOptimization::new(:unroll_range => 12, :mod_arr_test => true,:tt_arr_test => true)
+k = BOAST::MFG(conv_filter, optims)
+#k.print
 k.build(:openmp => true)
 
 bc[0] = BOAST::BC::PERIODIC
 bc[1] = BOAST::BC::PERIODIC
 bc[2] = BOAST::BC::PERIODIC
 
-#  k.print
+repeat = 5
 begin
-  stats = k.run(3, n, bc, input, output, work1, work2)
-  stats = k.run(3, n, bc, input, output, work1, work2)
+  stats_a = []
+  repeat.times { 
+    stats_a.push k.run(3, n, bc, input, output, work1, work2)
+  }
 rescue Exception => e
   puts e.inspect
 end
+stats_a.sort_by! { |a| a[:duration] }
+stats = stats_a.first
+
 diff = (output_ref - output).abs
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 diff.each { |elem|
@@ -82,11 +89,16 @@ bc[1] = BOAST::BC::GROW
 bc[2] = BOAST::BC::GROW
 
 begin
-  stats = k.run(3, n, bc, input, output, work1, work2)
-  stats = k.run(3, n, bc, input, output, work1, work2)
+  stats_a = []
+  repeat.times { 
+    stats_a.push k.run(3, n, bc, input, output, work1, work2)
+  }
 rescue Exception => e
   puts e.inspect
 end
+stats_a.sort_by! { |a| a[:duration] }
+stats = stats_a.first
+
 diff = (output_ref - output).abs
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 diff.each { |elem|
@@ -108,7 +120,7 @@ stats = k_ref.run(n3, n2*n1, work1, output_ref)
 puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
 conv_filter = BOAST::ConvolutionFilter::new('rfsf',FILTER.reverse,7)
-k = BOAST::MFG(conv_filter)
+k = BOAST::MFG(conv_filter, optims)
 k.build(:openmp => true)
 
 bc[0] = BOAST::BC::SHRINK
@@ -116,11 +128,16 @@ bc[1] = BOAST::BC::SHRINK
 bc[2] = BOAST::BC::SHRINK
 
 begin
-  stats = k.run(3, n, bc, input, output, work1, work2)
-  stats = k.run(3, n, bc, input, output, work1, work2)
+  stats_a = []
+  repeat.times { 
+    stats_a.push k.run(3, n, bc, input, output, work1, work2)
+  }
 rescue Exception => e
   puts e.inspect
 end
+stats_a.sort_by! { |a| a[:duration] }
+stats = stats_a.first
+
 diff = (output_ref - output).abs
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 diff.each { |elem|

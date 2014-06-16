@@ -80,6 +80,8 @@ module BOAST
 
   #handle the choice of the best kernels in a given architecture
   class GenericOptimization
+
+    attr_reader :repeat
     
     class DataRange
       def initialize(start,stop,step)
@@ -124,8 +126,20 @@ module BOAST
       end
     end
 
-    def initialize(unroll_range=1,mod_arr_test=true,tt_arr_test=true,
-                   unrolled_dim_index_test=false)
+#    def initialize(unroll_range=1,mod_arr_test=true,tt_arr_test=true,
+#                   unrolled_dim_index_test=false)
+    def initialize(options = {})
+      unroll_range=1
+      unroll_range = options[:unroll_range] if options[:unroll_range]
+      mod_arr_test = true
+      mod_arr_test = options[:mod_arr_test] if not options[:mod_arr_test].nil?
+      tt_arr_test = true
+      tt_arr_test = options[:tt_arr_test] if not options[:tt_arr_test].nil?
+      unrolled_dim_index_test=true
+      unrolled_dim_index_test = options[:unrolled_dim_index_test] if not options[:unrolled_dim_index_test].nil?
+      @repeat = 3
+      @repeat = options[:repeat] if options[:repeat]
+
       unrl_rng=[unroll_range].flatten
       if unrl_rng.length == 2 then
         unrl_rng=[*unrl_rng,1]
@@ -287,6 +301,8 @@ module BOAST
       t_best=Float::INFINITY
       p_best = nil
       opt_space.each{ |optim|
+        next if optim[:unrolled_dim_index] == 1 and @dims.length < 3
+        next if optim[:mod_arr] and @bc.free
         #puts optim
         kernel = CKernel::new
         BOAST::set_output( kernel.code )
@@ -301,8 +317,12 @@ module BOAST
         BOAST::print p
         kernel.procedure = p
         kernel.build(:openmp => true)
-        stats=kernel.run(*self.params) 
-        stats=kernel.run(*self.params) 
+        stats_a = []
+        opt_space.repeat.times {
+          stats_a.push kernel.run(*self.params)
+        }
+        stats_a.sort_by! { |a| a[:duration] }
+        stats = stats_a.first
         if BOAST::get_verbose then
           puts optim
         end
@@ -319,7 +339,7 @@ module BOAST
       #(unroll, unrolled_dim, use_mod, tt_arr)
       #default values
       unroll=1
-      mod_arr=true
+      mod_arr=false
       tt_arr=false
       unroll=options[:unroll] if options[:unroll]
       mod_arr=options[:mod_arr] if options[:mod_arr]
@@ -327,9 +347,9 @@ module BOAST
 
       unrolled_dim=@dim_indexes[0]
       unrolled_dim=@dim_indexes[options[:unrolled_dim_index]] if @dim_indexes.length > 2 and options[:unrolled_dim_index]
-      
-      mod_arr = (mod_arr and not @bc.free)
-      
+     
+      mod_arr = false if @bc.free
+
       function_name = @base_name + 
         "_u#{unroll}_#{unrolled_dim}_#{mod_arr}_#{tt_arr}"
 
