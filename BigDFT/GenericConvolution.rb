@@ -336,9 +336,9 @@ module BOAST
           stats_a.sort_by! { |a| a[:duration] }
           stats = stats_a.first
           if BOAST::get_verbose then
+            puts "#{indx} - [#{dimensions.join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} us #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
             puts optim
           end
-          puts "#{indx} - [#{dimensions.join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} us #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
           t_mean += stats[:duration]
           dimensions.rotate!(1)
         }
