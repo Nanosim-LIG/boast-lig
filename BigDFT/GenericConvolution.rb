@@ -82,6 +82,7 @@ module BOAST
   class GenericOptimization
 
     attr_reader :repeat
+    attr_reader :dimensions
     
     class DataRange
       def initialize(start,stop,step)
@@ -141,6 +142,8 @@ module BOAST
       unroll_inner_test = options[:unroll_inner_test] if not options[:unroll_inner_test].nil?
       @repeat = 3
       @repeat = options[:repeat] if options[:repeat]
+      @dimensions = [124,132,130]
+      @dimensions = options[:dimensions] if options[:dimensions]
 
       unrl_rng=[unroll_range].flatten
       if unrl_rng.length == 2 then
@@ -263,18 +266,18 @@ module BOAST
       @base_name += "_acc" if @accumulate
     end
 
-    def params(avg_size=124)
+    def params(dimensions)
       vars=[]
       varsin=[]
       varsout=[]
-      @dims.each{ |dim|
-        if dim.name.match("ndat") and @dims.length==2 then
-          ndat=avg_size*(avg_size - 2)
+      @dims.each_index{ |indx|
+        if @dims[indx].name.match("ndat") and @dims.length==2 then
+          ndat = dimensions[1] * dimensions[2]
           varsin.push(ndat)
           varsout.push(ndat)
           vars.push(ndat)
         else
-          n=avg_size+36
+          n = dimensions[indx]
           vars.push(n)
           if @bc.grow then
             varsin.push(n)
@@ -321,19 +324,28 @@ module BOAST
         BOAST::print p
         kernel.procedure = p
         kernel.build(:openmp => true)
-        stats_a = []
-        par = self.params
-        opt_space.repeat.times {
-          stats_a.push kernel.run(*par)
+        t_mean = 0
+        dimensions = opt_space.dimensions.dup
+        par = nil
+	dimensions.length.times { |indx|
+          stats_a = []
+          par = self.params(dimensions)
+          opt_space.repeat.times {
+            stats_a.push kernel.run(*par)
+          }
+          stats_a.sort_by! { |a| a[:duration] }
+          stats = stats_a.first
+          if BOAST::get_verbose then
+            puts optim
+          end
+          puts "#{indx} - [#{dimensions.join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} us #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
+          t_mean += stats[:duration]
+          dimensions.rotate!(1)
         }
-        stats_a.sort_by! { |a| a[:duration] }
-        stats = stats_a.first
-        if BOAST::get_verbose then
-          puts optim
-        end
-        puts "#{kernel.procedure.name}: #{stats[:duration]*1.0e3} us #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops" 
-        if t_best > stats[:duration] then
-          t_best = stats[:duration]
+        t_mean /= dimensions.length
+        puts "#{kernel.procedure.name}: #{t_mean*1.0e3} us #{self.cost(*par[0...@dims.length]) / (t_mean*1.0e9)} GFlops"
+        if t_best > t_mean then
+          t_best = t_mean
           p_best = p
         end
       }
