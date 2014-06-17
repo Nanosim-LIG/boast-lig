@@ -143,7 +143,7 @@ module BOAST
       @repeat = 3
       @repeat = options[:repeat] if options[:repeat]
       @dimensions = [124,132,130]
-      @dimensions = options[:dimensions] if options[:dimensions]
+      @dimensions = [options[:dimensions]].flatten if options[:dimensions]
 
       unrl_rng=[unroll_range].flatten
       if unrl_rng.length == 2 then
@@ -266,31 +266,41 @@ module BOAST
       @base_name += "_acc" if @accumulate
     end
 
-    def params(dimensions)
+    def params(dim, index=0)
       vars=[]
       varsin=[]
       varsout=[]
-      @dims.each_index{ |indx|
-        if @dims[indx].name.match("ndat") and @dims.length==2 then
-          ndat = dimensions[1] * dimensions[2]
-          varsin.push(ndat)
-          varsout.push(ndat)
-          vars.push(ndat)
-        else
-          n = dimensions[indx]
-          vars.push(n)
+      nd = { "n" => dim[index], "ndat" => 1, "ndat1" => 1, "ndat2" => 1 }
+      if @dims.length==2 then
+        dim.each_index { |indx|
+          nd["ndat"] *= dim[indx] if indx != index
+        }
+      else
+        dim.each_index { |indx|
+          nd["ndat1"] *= dim[indx] if indx < index
+          nd["ndat2"] *= dim[indx] if indx > index
+        }
+      end
+      @dims.each { |dim|
+
+        vars.push(nd[dim.name])
+        if dim.name == "n" then
           if @bc.grow then
-            varsin.push(n)
-            varsout.push(n + @filter.length - 1)
+            varsin.push(nd["n"])
+            varsout.push(nd["n"] + @filter.length - 1)
           elsif @bc.shrink
-            varsout.push(n)
-            varsin.push(n + @filter.length - 1)
+            varsin.push(nd["n"] + @filter.length - 1)
+            varsout.push(nd["n"])
           else
-            varsin.push(n)
-            varsout.push(n)
+            varsin.push(nd["n"])
+            varsout.push(nd["n"])
           end
+        else
+          varsin.push(nd[dim.name])
+          varsout.push(nd[dim.name])
         end
       }
+      varsout.rotate!(@transpose)
       #input and output arrays
       vars.push(NArray.float(*varsin).random)
       vars.push(NArray.float(*varsout))
@@ -325,22 +335,24 @@ module BOAST
         kernel.procedure = p
         kernel.build(:openmp => true)
         t_mean = 0
-        dimensions = opt_space.dimensions.dup
+        dimensions = opt_space.dimensions
         par = nil
+        if dimensions.length < @dims.length then
+          dimensions += [dimensions[0]]*(@dims.length-dimensions.length)
+        end
 	dimensions.length.times { |indx|
           stats_a = []
-          par = self.params(dimensions)
+          par = self.params(dimensions, indx)
           opt_space.repeat.times {
             stats_a.push kernel.run(*par)
           }
           stats_a.sort_by! { |a| a[:duration] }
           stats = stats_a.first
           if BOAST::get_verbose then
-            puts "#{indx} - [#{dimensions.join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} us #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
+            puts "#{indx} - [#{par[0...@dims.length].join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} us #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
             puts optim
           end
           t_mean += stats[:duration]
-          dimensions.rotate!(1)
         }
         t_mean /= dimensions.length
         puts "#{kernel.procedure.name}: #{t_mean*1.0e3} us #{self.cost(*par[0...@dims.length]) / (t_mean*1.0e9)} GFlops"
