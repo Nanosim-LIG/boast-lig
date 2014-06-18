@@ -45,7 +45,7 @@ puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[
 conv_filter = BOAST::ConvolutionFilter::new('sfrf',FILTER,8)
 optims = BOAST::GenericOptimization::new(:unroll_range => 12, :mod_arr_test => true,:tt_arr_test => true)
 k = BOAST::MFG(conv_filter, optims)
-k.print
+#k.print
 k.build(:openmp => true)
 
 bc[0] = BOAST::BC::PERIODIC

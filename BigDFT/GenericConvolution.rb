@@ -207,46 +207,68 @@ module BOAST
     #
     # * +:alpha+ -  Convolution constant of the operation out <- [out +] alpha conv(in) + beta in
     # * +:beta+ -  Convolution constant of the operation out <- [out +] alpha conv(in) + beta in
+    # * +:ld+ - leading dimensions enable
     def initialize(filter,bc,transpose,dim_indexes,init,options={})
       @filter = filter
       @bc = bc
       @transpose = transpose
       @dim_indexes = dim_indexes
+      @ld = options[:ld]
       @dim_n = BOAST::Int("n",:dir =>:in)
-      #growed dimension, to be used either for extremes or for mod_arr
-      @dim_ngs = BOAST::Dim(@filter.lowfil,@dim_n+@filter.upfil - 1)
-      #dimensions corresponding to the output of a grow operation
-      dim_nsg = BOAST::Dim(-@filter.upfil,@dim_n-@filter.lowfil - 1)
-      @dims = [@dim_n]
-      if (dim_indexes.length == 3) then
-        @dims = [BOAST::Int("ndat1",:dir =>:in)] + @dims + [BOAST::Int("ndat2",:dir =>:in)]
-        #shrinked and growed dimensions to be used for non-periodic bcs
-        dimss = [ BOAST::Dim(0, @dims[0] -1) , @dim_ngs, BOAST::Dim(0, @dims[-1] - 1) ] 
-        dimsg = [ BOAST::Dim(0, @dims[0] -1) , dim_nsg, BOAST::Dim(0, @dims[-1] - 1) ] 
-      elsif dim_indexes.last == 0
-        @dims = @dims + [BOAST::Int("ndat",:dir =>:in)]
-        dimss = [ @dim_ngs, BOAST::Dim(0, @dims[-1] - 1) ] 
-        dimsg = [ dim_nsg, BOAST::Dim(0, @dims[-1] - 1) ] 
+      if @ld then
+        @ld_in = BOAST::Int("ld_in",:dir =>:in)
+        @ld_out = BOAST::Int("ld_out",:dir =>:in)
       else
-        @dims = [BOAST::Int("ndat",:dir =>:in)] + @dims
-        dimss = [ BOAST::Dim(0, @dims[0] - 1) , @dim_ngs ] 
-        dimsg = [ BOAST::Dim(0, @dims[0] - 1) , dim_nsg ] 
+        @ld_in = @dim_n
+        @ld_out = @dim_n
+      end
+      @dims = [@dim_n]
+      @dims_in = [@ld_in]
+      @dims_out = [@ld_out]
+      if (dim_indexes.length == 3) then
+        ndat1 = BOAST::Int("ndat1",:dir =>:in)
+        ndat2 = BOAST::Int("ndat2",:dir =>:in)
+        @dims     = [ndat1] + @dims     + [ndat2]
+        @dims_in  = [ndat1] + @dims_in  + [ndat2]
+        @dims_out = [ndat1] + @dims_out + [ndat2]
+      elsif dim_indexes.last == 0
+        ndat = BOAST::Int("ndat",:dir =>:in)
+        @dims     = @dims     + [ndat]
+        @dims_in  = @dims_in  + [ndat]
+        @dims_out = @dims_out + [ndat]
+      else
+        ndat = BOAST::Int("ndat",:dir =>:in)
+        @dims     = [ndat] + @dims
+        @dims_in  = [ndat] + @dims_in
+        @dims_out = [ndat] + @dims_out
       end
       @vars = @dims.dup
+      if @ld then
+        @vars.push( @ld_in )
+        @vars.push( @ld_out )
+      end
+      #growed dimension, to be used either for extremes or for mod_arr
+      @dim_ngs = BOAST::Dim( @filter.lowfil, @dim_n + @filter.upfil  - 1)
+      #dimensions corresponding to the output of a grow operation
+      @dim_nsg = BOAST::Dim(-@filter.upfil,  @dim_n - @filter.lowfil - 1)
       # dimension of the problem
       dim_data = @dims.collect{ |dim|
         BOAST::Dim(0, dim - 1)
-      } 
-      if bc.shrink then
-        dimx = dimss
-      else
-        dimx = dim_data
-      end
-      if bc.grow then
-        dimy = dimsg
-      else
-        dimy = dim_data
-      end
+      }
+      dimx = @dims_in.collect{ |dim|
+        if not dim.name.match("ndat") and bc.shrink and not @ld then
+          @dim_ngs
+        else
+          BOAST::Dim(0, dim - 1)
+        end
+      }
+      dimy = @dims_out.collect{ |dim|
+        if not dim.name.match("ndat") and bc.grow and not @ld then
+          @dim_nsg
+        else
+          BOAST::Dim(0, dim - 1)
+        end
+      }
       if transpose !=0  then
         dimy = dimy.rotate(transpose)
       end
@@ -264,6 +286,7 @@ module BOAST
       @base_name += "_beta" if @beta
       @base_name += "_dotp" if @dotp
       @base_name += "_acc" if @accumulate
+      @base_name += "_ld" if @ld
     end
 
     def params(dim, index=0)
