@@ -258,6 +258,8 @@ module BOAST
       dimx = @dims_in.collect{ |dim|
         if not dim.name.match("ndat") and bc.shrink and not @ld then
           @dim_ngs
+        elsif not dim.name.match("ndat") and bc.shrink
+          BOAST::Dim(@filter.lowfil, dim + @filter.lowfil - 1)
         else
           BOAST::Dim(0, dim - 1)
         end
@@ -265,6 +267,8 @@ module BOAST
       dimy = @dims_out.collect{ |dim|
         if not dim.name.match("ndat") and bc.grow and not @ld then
           @dim_nsg
+        elsif not dim.name.match("ndat") and bc.grow then
+          BOAST::Dim( -@filter.upfil, dim - @filter.lowfil - 1)
         else
           BOAST::Dim(0, dim - 1)
         end
@@ -325,6 +329,18 @@ module BOAST
       }
       varsout.rotate!(@transpose)
       #input and output arrays
+      if @ld then
+        if @bc.grow then
+          vars.push(nd["n"])
+          vars.push(nd["n"] + @filter.length - 1)
+        elsif @bc.shrink
+          vars.push(nd["n"] + @filter.length - 1)
+          vars.push(nd["n"])
+        else
+          vars.push(nd["n"])
+          vars.push(nd["n"])
+        end
+      end
       vars.push(NArray.float(*varsin).random)
       vars.push(NArray.float(*varsout))
       #accessory scalars
@@ -357,6 +373,7 @@ module BOAST
         BOAST::print p
         kernel.procedure = p
         kernel.build(:openmp => true)
+        #kernel.print if @bc.free
         t_mean = 0
         dimensions = opt_space.dimensions
         par = nil
@@ -366,6 +383,7 @@ module BOAST
 	dimensions.length.times { |indx|
           stats_a = []
           par = self.params(dimensions, indx)
+          #puts par.inspect
           opt_space.repeat.times {
             stats_a.push kernel.run(*par)
           }
@@ -633,11 +651,16 @@ module BOAST
     attr_reader :needed_subops
     def initialize(filter,options={})
       @filter = filter
+      @ld = options[:ld]
 
       @vars = []
       @vars.push @ndim  = BOAST::Int( "d",  :dir => :in )
       @vars.push @dims  = BOAST::Int( "n",  :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
       @vars.push @bc    = BOAST::Int( "bc", :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
+      if @ld then
+        @vars.push @ld_in  = BOAST::Int( "ld_in", :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
+        @vars.push @ld_out = BOAST::Int( "ld_out", :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
+      end
       @vars.push @x     = BOAST::Real("x",  :dir => :in,  :restrict => true, :dim => [ BOAST::Dim() ] )
       @vars.push @y     = BOAST::Real("y",  :dir => :out, :restrict => true, :dim => [ BOAST::Dim() ] )
       @vars.push @w1 = BOAST::Real("w1", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim() ] ) if options[:work]
@@ -753,11 +776,15 @@ module BOAST
         dim_indexes = []
         BOAST::print dims_left === @ndim
         BOAST::print BOAST::For( i, 0, @ndim - 1 ) {
-          BOAST::print BOAST::If(@bc[i] == BOAST::BC::SHRINK, lambda {
-            BOAST::print dims_actual[i] === @dims[i] + @filter.length - 1
-          }, lambda {
-            BOAST::print dims_actual[i] === @dims[i]
-          })
+          if @ld then
+            BOAST::print dims_actual[i] === @ld_in[i]
+          else
+            BOAST::print BOAST::If(@bc[i] == BOAST::BC::SHRINK, lambda {
+              BOAST::print dims_actual[i] === @dims[i] + @filter.length - 1
+            }, lambda {
+              BOAST::print dims_actual[i] === @dims[i]
+            })
+          end
         }
         compute_ni_ndat = lambda { |indx|
           indx = @ndim - 1 - indx if @transpose == -1
@@ -789,7 +816,12 @@ module BOAST
         }
 
         print_call = lambda { |indx, init, datas|
-          vars = dims + datas
+          vars = dims
+          if @ld then
+            vars.push @ld_in[indx]
+            vars.push @ld_out[indx]
+          end
+          vars += datas
           indx = @ndim - 1 - indx if @transpose == -1
           vars.push( @alpha[indx] ) if @options[:alpha]
           vars.push( @beta ) if (init and @options[:beta])
@@ -797,14 +829,23 @@ module BOAST
           BOAST::print BOAST::Case( @bc[indx], BOAST::BC::PERIODIC, lambda {
             procname = ConvolutionOperator1d::new(@filter, BOAST::BC::new(BOAST::BC::PERIODIC), @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
             BOAST::print @procs[procname].call( *vars )
+            BOAST::print dims_actual[indx] === @ld_out[indx]  if @ld
           }, BOAST::BC::GROW, lambda {
             procname = ConvolutionOperator1d::new(@filter, BOAST::BC::new(BOAST::BC::GROW),     @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
             BOAST::print @procs[procname].call( *vars )
-            BOAST::print dims_actual[indx] === dims_actual[indx] + @filter.length - 1
+            if @ld then
+              BOAST::print dims_actual[indx] === @ld_out[indx]  if @ld
+            else
+              BOAST::print dims_actual[indx] === dims_actual[indx] + @filter.length - 1
+            end
           }, BOAST::BC::SHRINK, lambda {
             procname = ConvolutionOperator1d::new(@filter, BOAST::BC::new(BOAST::BC::SHRINK),    @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
             BOAST::print @procs[procname].call( *vars )
-            BOAST::print dims_actual[indx] === dims_actual[indx] - @filter.length + 1
+            if @ld then
+              BOAST::print dims_actual[indx] === @ld_out[indx]  if @ld
+            else
+              BOAST::print dims_actual[indx] === dims_actual[indx] - @filter.length + 1
+            end
           })
         }
  

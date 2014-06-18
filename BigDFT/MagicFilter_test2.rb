@@ -21,17 +21,29 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 n1 = 124
 n2 = 132
 n3 = 130
-input = NArray.float(n1,n2,n3).random
-work1 = NArray.float(n1,n2,n3)
-work2 = NArray.float(n1,n2,n3)
+pad_in = 0
+pad_out = 2
+input = NArray.float(n1+pad_in,n2+pad_in,n3+pad_in).random
+work1 = NArray.float(n1+pad_out,n2+pad_out,n3+pad_out)
+work2 = NArray.float(n1+pad_out,n2+pad_out,n3+pad_out)
 output_ref = NArray.float(n1,n2,n3)
-output = NArray.float(n1,n2,n3)
+output = NArray.float(n1+pad_out,n2+pad_out,n3+pad_out)
 epsilon = 10e-15
 
 n = NArray.int(3)
 n[0] = n1
 n[1] = n2
 n[2] = n3
+
+ld_in = NArray.int(3)
+ld_in[0] = n1+pad_in
+ld_in[1] = n2+pad_in
+ld_in[2] = n3+pad_in
+
+ld_out = NArray.int(3)
+ld_out[0] = n1+pad_out
+ld_out[1] = n2+pad_out
+ld_out[2] = n3+pad_out
 
 bc = NArray.int(3)
 
@@ -43,7 +55,7 @@ stats = k_ref.run(n3, n2*n1, work1, output_ref)
 puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
 conv_filter = BOAST::ConvolutionFilter::new('sfrf',FILTER,8)
-optims = BOAST::GenericOptimization::new(:unroll_range => 12, :mod_arr_test => true,:tt_arr_test => true)
+optims = BOAST::GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true,:tt_arr_test => true)
 k = BOAST::MFG(conv_filter, optims)
 #k.print
 k.build(:openmp => true)
@@ -56,7 +68,7 @@ repeat = 5
 begin
   stats_a = []
   repeat.times { 
-    stats_a.push k.run(3, n, bc, input, output, work1, work2)
+    stats_a.push k.run(3, n, bc, ld_in, ld_out, input, output, work1, work2)
   }
 rescue Exception => e
   puts e.inspect
@@ -64,7 +76,7 @@ end
 stats_a.sort_by! { |a| a[:duration] }
 stats = stats_a.first
 
-diff = (output_ref - output).abs
+diff = (output_ref - output[0..(n1-1), 0..(n2-1), 0..(n3-1)]).abs
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{k.cost(n, bc) / (stats[:duration]*1.0e9)} GFlops"
 diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
@@ -88,10 +100,14 @@ bc[0] = BOAST::BC::GROW
 bc[1] = BOAST::BC::GROW
 bc[2] = BOAST::BC::GROW
 
+ld_out[0] = n1+15
+ld_out[1] = n2+15
+ld_out[2] = n3+15
+
 begin
   stats_a = []
   repeat.times { 
-    stats_a.push k.run(3, n, bc, input, output, work1, work2)
+    stats_a.push k.run(3, n, bc, ld_in, ld_out, input, output, work1, work2)
   }
 rescue Exception => e
   puts e.inspect
@@ -127,10 +143,18 @@ bc[0] = BOAST::BC::SHRINK
 bc[1] = BOAST::BC::SHRINK
 bc[2] = BOAST::BC::SHRINK
 
+ld_in[0] = n1+15
+ld_in[1] = n2+15
+ld_in[2] = n3+15
+
+ld_out[0] = n1
+ld_out[1] = n2
+ld_out[2] = n3
+
 begin
   stats_a = []
   repeat.times { 
-    stats_a.push k.run(3, n, bc, input, output, work1, work2)
+    stats_a.push k.run(3, n, bc, ld_in, ld_out, input, output, work1, work2)
   }
 rescue Exception => e
   puts e.inspect
