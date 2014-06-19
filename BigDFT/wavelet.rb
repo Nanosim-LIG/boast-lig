@@ -26,44 +26,26 @@ L.each_with_index { |e,i|
 }
 
 H = h.reverse
-#H = [-0.0018899503327594609,
-#     -0.0003029205147213668,
-#      0.01495225833704823,
-#      0.003808752013890615,
-#     -0.049137179673607506,
-#     -0.027219029917056003,
-#      0.05194583810770904,
-#      0.3644418948353314,
-#     -0.7771857517005235,
-#      0.4813596512583722,
-#      0.061273359067658524,
-#     -0.1432942383508097,
-#     -0.007607487324917605,
-#      0.03169508781149298,
-#      0.0005421323317911481,
-#     -0.0033824159510061256]
 
-R = L.reverse
-RE = R.values_at(*(0..(R.length-1)).step(2).collect)
-RU = R.values_at(*(1..(R.length-1)).step(2).collect)
-SE = L.values_at(*(0..(R.length-1)).step(2).collect)
-SU = L.values_at(*(1..(R.length-1)).step(2).collect).collect { |e| -e }
+LRE = L.reverse.values_at(*(0..(L.length-1)).step(2).collect)
+LRO = L.reverse.values_at(*(1..(L.length-1)).step(2).collect)
+HRE = H.reverse.values_at(*(0..(L.length-1)).step(2).collect)
+HRO = H.reverse.values_at(*(1..(L.length-1)).step(2).collect)
 
-LE = L.values_at(*(0..(L.length-1)).step(2).collect).reverse
-LO = L.values_at(*(1..(L.length-1)).step(2).collect).reverse
-HE = H.values_at(*(0..(H.length-1)).step(2).collect).reverse
-HO = H.values_at(*(1..(H.length-1)).step(2).collect).reverse
 
 a=[]
-32.times { |i|
-  if i == 0 then
-    a[i] = 1.0
-  elsif i == 31 then
-    a[i] = 2.0
-  else
-    a[i] = 0.0
-  end
+34.times { |i|
+  a[i] = Random.rand
 }
+#32.times { |i|
+#  if i == 0 then
+#    a[i] = 1.0
+#  elsif i == 31 then
+#    a[i] = 2.0
+#  else
+#    a[i] = 0.0
+#  end
+#}
 def dwt(data, center)
   l = []
   h = []
@@ -90,15 +72,14 @@ def idwt(l,h,c)
     h1oi = 0.0
     h2ei = 0.0
     h2oi = 0.0
-#    center -= c - (c/2)*2
     
-    RE.length.times { |indx|
+    LRE.length.times { |indx|
       e_indx = (indx - center + i) % l.length
      
-      h1ei += l[e_indx]*RE[indx]
-      h1oi += l[e_indx]*RU[indx]
-      h2ei += h[e_indx]*SE[indx]
-      h2oi += h[e_indx]*SU[indx]
+      h1ei += l[e_indx]*LRE[indx]
+      h1oi += l[e_indx]*LRO[indx]
+      h2ei += h[e_indx]*HRE[indx]
+      h2oi += h[e_indx]*HRO[indx]
     }
     if c % 2 == 0 then
       ind = (2*i-1) % (l.length*2)
@@ -111,28 +92,16 @@ def idwt(l,h,c)
   }
   return d
 end
-#puts a.inspect
+
+
 EPSILON = 1e-15
-l, h = dwt(a,8)
-d = idwt(l, h, 8)
-d.each_index { |i|
-  raise "Error!" if (d[i]-a[i]).abs > EPSILON
+d = nil
+H.length.times { |j|
+puts "center: #{j}"
+  l, h = dwt(a, j)
+  d = idwt(l, h, j)
+  d.each_index { |i|
+    raise "Error!" if (d[i]-a[i]).abs > EPSILON
+  }
 }
 
-l, h = dwt(a,6)
-d = idwt(l, h, 6)
-d.each_index { |i|
-  raise "Error!" if (d[i]-a[i]).abs > EPSILON
-}
-
-l, h = dwt(a,9)
-d = idwt(l, h, 9)
-d.each_index { |i|
-  raise "Error!" if (d[i]-a[i]).abs > EPSILON
-}
-
-l, h = dwt(a,7)
-d = idwt(l, h, 7)
-d.each_index { |i|
-  raise "Error!" if (d[i]-a[i]).abs > EPSILON
-}
