@@ -57,14 +57,13 @@ HO = H.values_at(*(1..(H.length-1)).step(2).collect).reverse
 a=[]
 32.times { |i|
   if i == 0 then
-    a[i] = 1
+    a[i] = 1.0
   elsif i == 31 then
-    a[i] = 2
+    a[i] = 2.0
   else
-    a[i] = 0
+    a[i] = 0.0
   end
 }
-puts a.inspect
 def dwt(data, center)
   l = []
   h = []
@@ -85,28 +84,23 @@ end
 
 def idwt(l,h,c)
   d = []
+  center = (L.length - c)/2
   l.length.times { |i|
     h1ei = 0.0
     h1oi = 0.0
     h2ei = 0.0
     h2oi = 0.0
-    center = c/2
-    center -= c - (c/2)*2
+#    center -= c - (c/2)*2
     
     RE.length.times { |indx|
       e_indx = (indx - center + i) % l.length
-#      puts RE[indx]
-#      puts RU[indx]
-#      puts SE[indx]
-#      puts SU[indx]
-#      puts
      
       h1ei += l[e_indx]*RE[indx]
       h1oi += l[e_indx]*RU[indx]
       h2ei += h[e_indx]*SE[indx]
       h2oi += h[e_indx]*SU[indx]
     }
-    if center % 2 == 0 then
+    if c % 2 == 0 then
       ind = (2*i-1) % (l.length*2)
       d[2*i] = h1ei + h2ei
       d[ind] = h1oi + h2oi
@@ -118,12 +112,27 @@ def idwt(l,h,c)
   return d
 end
 #puts a.inspect
+EPSILON = 1e-15
 l, h = dwt(a,8)
-puts l.inspect
-puts h.inspect
-puts idwt(l, h, 8).inspect
+d = idwt(l, h, 8)
+d.each_index { |i|
+  raise "Error!" if (d[i]-a[i]).abs > EPSILON
+}
+
+l, h = dwt(a,6)
+d = idwt(l, h, 6)
+d.each_index { |i|
+  raise "Error!" if (d[i]-a[i]).abs > EPSILON
+}
 
 l, h = dwt(a,9)
-puts l.inspect
-puts h.inspect
-puts idwt(l, h, 9).inspect
+d = idwt(l, h, 9)
+d.each_index { |i|
+  raise "Error!" if (d[i]-a[i]).abs > EPSILON
+}
+
+l, h = dwt(a,7)
+d = idwt(l, h, 7)
+d.each_index { |i|
+  raise "Error!" if (d[i]-a[i]).abs > EPSILON
+}
