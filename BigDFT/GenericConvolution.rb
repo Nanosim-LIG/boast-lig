@@ -16,20 +16,62 @@ module BOAST
     # name of the filter
     attr_reader :name
 
-    def initialize(name,filt,center)
-      arr = ConstArray::new(filt,Real)
-      @fil=BOAST::Real("fil",:constant => arr,:dim => [ BOAST::Dim((-center),(filt.length - center -1)) ])
+    def initialize(name, filt, center)
+      @fil_array = filt.dup
+      arr = ConstArray::new(@fil_array,Real)
+      @fil = BOAST::Real("#{name}_fil",:constant => arr,:dim => [ BOAST::Dim((-center),(@fil_array.length - center -1)) ])
       @lowfil_val = -center
-      @upfil_val = filt.length - center - 1
+      @upfil_val = @fil_array.length - center - 1
       @lowfil = BOAST::Int("lowfil",:constant => @lowfil_val)
       @upfil = BOAST::Int("upfil",:constant => @upfil_val)
-      @fil_array = filt
       @center = center
       @name = name
-      @length = filt.length
+      @length = @fil_array.length
     end
 
   end #class ConvolutionFilter
+
+  class WaveletFilter
+    attr_reader :low, :high
+    attr_reader :low_reverse_even, :low_reverse_odd
+    attr_reader :high_reverse_even, :high_reverse_odd
+    attr_reader :name
+    attr_reader :center
+    attr_reader :fil_array
+    attr_reader :length
+    def initialize(name, filt1, center = nil)
+      @fil_array = filt1.dup
+      @center = @fil_array.length/2 +1
+      @center = center if center
+      @low = ConvolutionFilter::new(name+"_low", @fil_array, @center)
+      filt2 = []
+      @fil_array.each_with_index { |e,i|
+        if i % 2 == 0 then
+          filt2.push(e)
+        else
+          filt2.push(-e)
+        end
+      }
+      filt2.reverse!
+      @high = ConvolutionFilter::new(name+"_high", filt2, @center)
+      center_half = (filt1.length - @center)/2
+
+      filt3 = @fil_array.reverse.values_at(*(0..(@fil_array.length-1)).step(2).collect)
+      @low_reverse_even = ConvolutionFilter::new(name+"_low_reverse_even", filt3, center_half)
+
+      filt4 = @fil_array.reverse.values_at(*(1..(@fil_array.length-1)).step(2).collect)
+      @low_reverse_odd = ConvolutionFilter::new(name+"_low_reverse_odd", filt4, center_half)
+
+      filt5 = filt2.reverse.values_at(*(0..(filt2.length-1)).step(2).collect)
+      @high_reverse_even = ConvolutionFilter::new(name+"_high_reverse_even", filt4, center_half)
+
+      filt6 = filt2.reverse.values_at(*(1..(filt2.length-1)).step(2).collect)
+      @high_reverse_even = ConvolutionFilter::new(name+"_high_reverse_odd", filt5, center_half)
+
+      @length = @fil_array.length
+      @name = name
+    end
+  end
 
   # determine the BC of the convolutions
   #        Typical values are 0 : periodic BC, the size of input and output arrays are identical
