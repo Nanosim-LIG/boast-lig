@@ -799,10 +799,9 @@ module BOAST
           BOAST::print ni === @dims[indx]
           BOAST::print ndat === 1
           BOAST::print BOAST::For(j, 0, @ndim - 1) {
-            BOAST::print BOAST::If( j != indx, lambda {
+            BOAST::print BOAST::If( j != indx ) {
               BOAST::print ndat === ndat * dims_actual[j]
-            }, lambda {
-            })
+            }
           }
           d = [ ni, ndat ]
           d_indexes = [ 1, 0]

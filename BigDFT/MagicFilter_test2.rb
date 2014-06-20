@@ -62,7 +62,6 @@ optims = BOAST::GenericOptimization::new(:unroll_range => 6, :mod_arr_test => tr
 k = BOAST::MFG(conv_filter, optims)
 #k.print
 k.build(:openmp => true)
-
 bc[0] = BOAST::BC::PERIODIC
 bc[1] = BOAST::BC::PERIODIC
 bc[2] = BOAST::BC::PERIODIC
