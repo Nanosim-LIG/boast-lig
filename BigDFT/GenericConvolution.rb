@@ -652,6 +652,7 @@ module BOAST
     def initialize(filter,options={})
       @filter = filter
       @ld = options[:ld]
+      @m = options[:m]
 
       @vars = []
       @vars.push @ndim  = BOAST::Int( "d",  :dir => :in )
@@ -661,6 +662,7 @@ module BOAST
         @vars.push @ld_in  = BOAST::Int( "ld_in", :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
         @vars.push @ld_out = BOAST::Int( "ld_out", :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
       end
+      @vars.push @m     = BOAST::Int( "m", :dir => :in ) if @m
       @vars.push @x     = BOAST::Real("x",  :dir => :in,  :restrict => true, :dim => [ BOAST::Dim() ] )
       @vars.push @y     = BOAST::Real("y",  :dir => :out, :restrict => true, :dim => [ BOAST::Dim() ] )
       @vars.push @w1 = BOAST::Real("w1", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim() ] ) if options[:work]
@@ -702,7 +704,7 @@ module BOAST
       }
     end
 
-    def cost(n, bc)
+    def cost(n, bc, m = 1)
       dims_actual = []
       compute_ni_ndat = lambda { |indx|
         indx = n.length - indx - 1 if @transpose == -1
@@ -740,7 +742,7 @@ module BOAST
         d_indexes = [ 1, 0 ]
         dims.reverse! if @transpose == -1
         dim_indexes.reverse! if @transpose == -1
-        return ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, d_indexes, (true and @options[:beta]), @options).cost( *d )
+        cost = ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, d_indexes, (true and @options[:beta]), @options).cost( *d )
       else
         cost = 0
         dims, dim_indexes = compute_ni_ndat.call(0)
@@ -758,10 +760,13 @@ module BOAST
         dims, dim_indexes = compute_ni_ndat.call(n.length-1)
         cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, dim_indexes, false, @options).cost( *dims )
       end
+      return cost * m
     end
 
     def procedure
       function_name = @filter.name
+      function_name += "_ld" if @ld
+      function_name += "_m" if @m
       p = BOAST::Procedure(function_name,@vars) {
         dims_actual = BOAST::Int( "dims_actual", :allocate => true, :dim => [ BOAST::Dim(0, @ndim - 1) ] ) if BOAST::get_lang == FORTRAN
         dims_actual = BOAST::Int( "dims_actual", :allocate => true, :dim => [ BOAST::Dim(0, 16) ] ) if BOAST::get_lang == C
@@ -769,9 +774,12 @@ module BOAST
         ni = BOAST::Int "ni"
         ndat = BOAST::Int "ndat"
         ndat2 = BOAST::Int "ndat2"
+        ndat_tot_in = BOAST::Int "nti" if @m
+        ndat_tot_out = BOAST::Int "nto" if @m
         i = BOAST::Int "i"
         j = BOAST::Int "j"
         BOAST::decl i, j, dims_actual, dims_left, ni, ndat, ndat2
+        BOAST::decl ndat_tot_in, ndat_tot_out if @m
         dims = []
         dim_indexes = []
         BOAST::print dims_left === @ndim
@@ -791,14 +799,16 @@ module BOAST
           BOAST::print ni === @dims[indx]
           BOAST::print ndat === 1
           BOAST::print BOAST::For(j, 0, @ndim - 1) {
-            BOAST::print BOAST::If( j != indx ) {
+            BOAST::print BOAST::If( j != indx, lambda {
               BOAST::print ndat === ndat * dims_actual[j]
-            }
+            }, lambda {
+            })
           }
-          dims = [ ni, ndat ]
-          dim_indexes = [ 1, 0]
-          dims.reverse! if @transpose == -1
-          dim_indexes.reverse! if @transpose == -1
+          d = [ ni, ndat ]
+          d_indexes = [ 1, 0]
+          d.reverse! if @transpose == -1
+          d_indexes.reverse! if @transpose == -1
+          return [ d, d_indexes ]
         }
         compute_ndat_ni_ndat2 = lambda { |indx|
           BOAST::print ni === @dims[indx]
@@ -811,28 +821,60 @@ module BOAST
               BOAST::print ndat2 === ndat2 * dims_actual[j]
             })
           }
-          dims = [ndat, ni, ndat2]
-          dim_indexes = [2, 0, 1]
+          return [ [ndat, ni, ndat2], [2, 0, 1] ]
         }
 
-        print_call = lambda { |indx, init, datas|
+        print_call = lambda { |indx, init, datas, multi_conv|
           vars = dims
+          if multi_conv then
+            if dim_indexes.length == 2 then
+              BOAST::print ndat_tot_in === dims[dim_indexes[0]]
+            else
+              BOAST::print ndat_tot_in === dims[dim_indexes[0]] * dims[dim_indexes[1]]
+            end
+            BOAST::print ndat_tot_out === ndat_tot_in
+            BOAST::print ndat_tot_in === ndat_tot_in * dims_actual[indx]
+            BOAST::print ndat_tot_out === ndat_tot_out * @ld_out[indx] if @ld
+            f = BOAST::For(j, 0, @m-1)
+          end
           if @ld then
             vars.push @ld_in[indx]
             vars.push @ld_out[indx]
           end
-          vars += datas
           indx = @ndim - 1 - indx if @transpose == -1
-          vars.push( @alpha[indx] ) if @options[:alpha]
-          vars.push( @beta ) if (init and @options[:beta])
-          vars.push( @eks[indx] ) if @options[:eks]
+          vars2 = []
+          vars2.push( @alpha[indx] ) if @options[:alpha]
+          vars2.push( @beta ) if (init and @options[:beta])
+          vars2.push( @eks[indx] ) if @options[:eks]
+          dats = []
           BOAST::print BOAST::Case( @bc[indx], BOAST::BC::PERIODIC, lambda {
             procname = ConvolutionOperator1d::new(@filter, BOAST::BC::new(BOAST::BC::PERIODIC), @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
-            BOAST::print @procs[procname].call( *vars )
+
+            if multi_conv then
+              BOAST::print ndat_tot_out === ndat_tot_out * dims_actual[indx] if not @ld
+              dats[0] = (datas[0][ndat_tot_in*j+1]).address
+              dats[1] = (datas[1][ndat_tot_out*j+1]).address
+              f.print
+            else
+              dats = datas.dup
+            end
+            BOAST::print @procs[procname].call( *vars, *dats, *vars2 )
+            f.close if multi_conv
             BOAST::print dims_actual[indx] === @ld_out[indx]  if @ld
+
           }, BOAST::BC::GROW, lambda {
             procname = ConvolutionOperator1d::new(@filter, BOAST::BC::new(BOAST::BC::GROW),     @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
-            BOAST::print @procs[procname].call( *vars )
+
+            if multi_conv then
+              BOAST::print ndat_tot_out === ndat_tot_out * ( dims_actual[indx] + @filter.length - 1 ) if not @ld
+              dats[0] = (datas[0][ndat_tot_in*j+1]).address
+              dats[1] = (datas[1][ndat_tot_out*j+1]).address
+              f.print
+            else
+              dats = datas.dup
+            end
+            BOAST::print @procs[procname].call( *vars, *dats, *vars2 )
+            f.close if multi_conv
             if @ld then
               BOAST::print dims_actual[indx] === @ld_out[indx]  if @ld
             else
@@ -840,7 +882,17 @@ module BOAST
             end
           }, BOAST::BC::SHRINK, lambda {
             procname = ConvolutionOperator1d::new(@filter, BOAST::BC::new(BOAST::BC::SHRINK),    @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
-            BOAST::print @procs[procname].call( *vars )
+
+            if multi_conv then
+              BOAST::print ndat_tot_out === ndat_tot_out * ( dims_actual[indx] - @filter.length + 1 )  if not @ld
+              dats[0] = (datas[0][ndat_tot_in*j+1]).address
+              dats[1] = (datas[1][ndat_tot_out*j+1]).address
+              f.print
+            else
+              dats = datas.dup
+            end
+            BOAST::print @procs[procname].call( *vars, *dats, *vars2 )
+            f.close if multi_conv
             if @ld then
               BOAST::print dims_actual[indx] === @ld_out[indx]  if @ld
             else
@@ -848,69 +900,71 @@ module BOAST
             end
           })
         }
- 
-        BOAST::print BOAST::If( @ndim == 1 , lambda { 
-          dims = [ @dims[0], 1 ]
+
+        BOAST::print BOAST::If( @ndim == 1 , lambda {
+          conv_number = 1
+          conv_number = @m if @m
+          dims = [ @dims[0], conv_number ]
           dim_indexes = [ 1, 0 ]
           dims.reverse! if @transpose == -1
           dim_indexes.reverse! if @transpose == -1
           datas = [ @x, @y ]
-          print_call.call( 0, true, datas )
+          print_call.call( 0, true, datas, false )
         }, lambda {
-          compute_ni_ndat.call( 0 )
+          dims, dim_indexes = compute_ni_ndat.call( 0 )
           datas = [ @x, @w1 ]
           datas = [ @x, @y ] if not @options[:work]
-          print_call.call( 0, true, datas )
+          print_call.call( 0, true, datas, @m )
           BOAST::print dims_left === dims_left - 1
           BOAST::print i === 1
           BOAST::print BOAST::While( dims_left > 2 ) {
             if @transpose == 0 then
-              compute_ndat_ni_ndat2.call( i )
+              dims, dim_indexes = compute_ndat_ni_ndat2.call( i )
             else
-              compute_ni_ndat.call( i )
+              dims, dim_indexes = compute_ni_ndat.call( i )
             end
             datas = [ @w1, @w2 ]
             datas = [ @x, @y ] if not @options[:work]
-            print_call.call( i, false, datas )
+            print_call.call( i, false, datas, @m )
             BOAST::print i === i + 1
             if @transpose == 0 then
-              compute_ndat_ni_ndat2.call( i )
+              dims, dim_indexes = compute_ndat_ni_ndat2.call( i )
             else
-              compute_ni_ndat.call( i )
+              dims, dim_indexes = compute_ni_ndat.call( i )
             end
             datas = [ @w2, @w1 ]
             datas = [ @x, @y ] if not @options[:work]
-            print_call.call( i, false, datas )
+            print_call.call( i, false, datas, @m )
             BOAST::print i === i + 1
             BOAST::print dims_left === dims_left - 2
           }
           BOAST::print BOAST::If( dims_left == 2, lambda {
             if @transpose == 0 then
-              compute_ndat_ni_ndat2.call( i )
+              dims, dim_indexes = compute_ndat_ni_ndat2.call( i )
             else
-              compute_ni_ndat.call( i )
+              dims, dim_indexes = compute_ni_ndat.call( i )
             end
             datas = [ @w1, @w2 ]
             datas = [ @x, @y ] if not @options[:work]
-            print_call.call( i, false, datas )
+            print_call.call( i, false, datas, @m )
             BOAST::print i === i + 1
-            compute_ni_ndat.call( i )
+            dims, dim_indexes = compute_ni_ndat.call( i )
             if @transpose == 0 then
               dims.reverse!
               dim_indexes.reverse!
             end
             datas = [ @w2, @y ]
             datas = [ @x, @y ] if not @options[:work]
-            print_call.call( i, false, datas )
+            print_call.call( i, false, datas, @m )
           }, lambda {
-            compute_ni_ndat.call( i )
+            dims, dim_indexes = compute_ni_ndat.call( i )
             if @transpose == 0 then
               dims.reverse! 
               dim_indexes.reverse!
             end
             datas = [ @w1, @y ]
             datas = [ @x, @y ] if not @options[:work]
-            print_call.call( i, false, datas )
+            print_call.call( i, false, datas, @m )
           })
         })
       }

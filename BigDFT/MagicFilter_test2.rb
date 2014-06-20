@@ -17,17 +17,20 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
        "-0.5185986881173432922848639136911487e-4",
        "2.72734492911979659657715313017228e-6" ]
 
-
+m = 2
 n1 = 124
 n2 = 132
 n3 = 130
 pad_in = 0
 pad_out = 2
-input = NArray.float(n1+pad_in,n2+pad_in,n3+pad_in).random
-work1 = NArray.float(n1+pad_out,n2+pad_out,n3+pad_out)
-work2 = NArray.float(n1+pad_out,n2+pad_out,n3+pad_out)
+input = NArray.float(n1+pad_in,n2+pad_in,n3+pad_in,m).random
+(1..(m-1)).each { |i|
+  input[0..(n1+pad_in-1), 0..(n2+pad_in-1), 0..(n3+pad_in-1), i] = input[0..(n1+pad_in-1), 0..(n2+pad_in-1), 0..(n3+pad_in-1), 0]
+}
+work1 = NArray.float(n1+pad_out,n2+pad_out,n3+pad_out,m)
+work2 = NArray.float(n1+pad_out,n2+pad_out,n3+pad_out,m)
 output_ref = NArray.float(n1,n2,n3)
-output = NArray.float(n1+pad_out,n2+pad_out,n3+pad_out)
+output = NArray.float(n1+pad_out,n2+pad_out,n3+pad_out,m)
 epsilon = 10e-15
 
 n = NArray.int(3)
@@ -68,7 +71,7 @@ repeat = 5
 begin
   stats_a = []
   repeat.times { 
-    stats_a.push k.run(3, n, bc, ld_in, ld_out, input, output, work1, work2)
+    stats_a.push k.run(3, n, bc, ld_in, ld_out, m, input, output, work1, work2)
   }
 rescue Exception => e
   puts e.inspect
@@ -76,18 +79,23 @@ end
 stats_a.sort_by! { |a| a[:duration] }
 stats = stats_a.first
 
-diff = (output_ref - output[0..(n1-1), 0..(n2-1), 0..(n3-1)]).abs
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{k.cost(n, bc) / (stats[:duration]*1.0e9)} GFlops"
-diff.each { |elem|
-  raise "Warning: residue too big: #{elem}" if elem > epsilon
+m.times { |i|
+  diff = (output_ref - output[0..(n1-1), 0..(n2-1), 0..(n3-1), i]).abs
+  diff.each { |elem|
+    raise "Warning: residue too big: #{elem}" if elem > epsilon
+  }
 }
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{k.cost(n, bc, m) / (stats[:duration]*1.0e9)} GFlops"
 
 puts 'again, grow'
-input = NArray.float(n1,n2,n3).random
-work1 = NArray.float(n1+15,n2+15,n3+15)
-work2 = NArray.float(n1+15,n2+15,n3+15)
+input = NArray.float(n1,n2,n3,m).random
+work1 = NArray.float(n1+15,n2+15,n3+15,m)
+work2 = NArray.float(n1+15,n2+15,n3+15,m)
 output_ref = NArray.float(n1+15,n2+15,n3+15)
-output = NArray.float(n1+15,n2+15,n3+15)
+output = NArray.float(n1+15,n2+15,n3+15,m)
+(1..(m-1)).each { |i|
+  input[0..(n1-1), 0..(n2-1), 0..(n3-1),i] = input[0..(n1-1), 0..(n2-1), 0..(n3-1),0]
+}
 
 k_ref = BOAST::magicfilter_per_ref(false,true)
 stats = k_ref.run(n1, n2*n3, input, work2)
@@ -107,7 +115,7 @@ ld_out[2] = n3+15
 begin
   stats_a = []
   repeat.times { 
-    stats_a.push k.run(3, n, bc, ld_in, ld_out, input, output, work1, work2)
+    stats_a.push k.run(3, n, bc, ld_in, ld_out, m, input, output, work1, work2)
   }
 rescue Exception => e
   puts e.inspect
@@ -115,19 +123,24 @@ end
 stats_a.sort_by! { |a| a[:duration] }
 stats = stats_a.first
 
-diff = (output_ref - output).abs
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{k.cost(n, bc) / (stats[:duration]*1.0e9)} GFlops"
-diff.each { |elem|
-  raise "Warning: residue too big: #{elem}" if elem > epsilon
+m.times { |i|
+  diff = (output_ref - output[0..(n1+15-1), 0..(n2+15-1), 0..(n3+15-1), i]).abs
+  diff.each { |elem|
+    raise "Warning: residue too big: #{elem}" if elem > epsilon
+  }
 }
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{k.cost(n, bc, m) / (stats[:duration]*1.0e9)} GFlops"
 
 
 puts 'again, shrink'
-input = NArray.float(n1+15,n2+15,n3+15).random
-work1 = NArray.float(n1+15,n2+15,n3+15)
-work2 = NArray.float(n1+15,n2+15,n3+15)
+input = NArray.float(n1+15,n2+15,n3+15,m).random
+work1 = NArray.float(n1+15,n2+15,n3+15,m)
+work2 = NArray.float(n1+15,n2+15,n3+15,m)
 output_ref = NArray.float(n1,n2,n3)
-output = NArray.float(n1,n2,n3)
+output = NArray.float(n1,n2,n3,m)
+(1..(m-1)).each { |i|
+  input[0..(n1+15-1), 0..(n2+15-1), 0..(n3+15-1), i] = input[0..(n1+15-1), 0..(n2+15-1), 0..(n3+15-1), 0]
+}
 
 k_ref = BOAST::magicfilter_per_ref(true,true)
 stats = k_ref.run(n1, (n2+15)*(n3+15), input, work2)
@@ -154,7 +167,7 @@ ld_out[2] = n3
 begin
   stats_a = []
   repeat.times { 
-    stats_a.push k.run(3, n, bc, ld_in, ld_out, input, output, work1, work2)
+    stats_a.push k.run(3, n, bc, ld_in, ld_out, m, input, output, work1, work2)
   }
 rescue Exception => e
   puts e.inspect
@@ -162,9 +175,11 @@ end
 stats_a.sort_by! { |a| a[:duration] }
 stats = stats_a.first
 
-diff = (output_ref - output).abs
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{k.cost(n, bc) / (stats[:duration]*1.0e9)} GFlops"
-diff.each { |elem|
-  raise "Warning: residue too big: #{elem}" if elem > epsilon
+m.times { |i|
+  diff = (output_ref - output[0..(n1-1), 0..(n2-1), 0..(n3-1), i]).abs
+  diff.each { |elem|
+    raise "Warning: residue too big: #{elem}" if elem > epsilon
+  }
 }
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{k.cost(n, bc, m) / (stats[:duration]*1.0e9)} GFlops"
 

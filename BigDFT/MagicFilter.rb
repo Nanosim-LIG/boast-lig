@@ -205,7 +205,7 @@ module BOAST
   def BOAST::MFG(conv_filter, optims=GenericOptimization::new)
       
 
-    conv_operation = GenericConvolutionOperator::new(conv_filter, :transpose => 1, :work => true, :ld => true)
+    conv_operation = GenericConvolutionOperator::new(conv_filter, :transpose => 1, :work => true, :ld => true, :m => true)
 
     #test of 1d kernels optimizations in view of many-d
     conv_operation.optimize(optims)
