@@ -310,7 +310,7 @@ module BOAST
         if not dim.name.match("ndat") and bc.grow and not @ld then
           @dim_nsg
         elsif not dim.name.match("ndat") and bc.grow then
-          BOAST::Dim( -@filter.upfil, dim - @filter.lowfil - 1)
+          BOAST::Dim( -@filter.upfil, dim - @filter.upfil - 1)
         else
           BOAST::Dim(0, dim - 1)
         end
