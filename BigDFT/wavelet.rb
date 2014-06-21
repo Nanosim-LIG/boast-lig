@@ -83,7 +83,7 @@ def dwt(data, center)
     li = 0.0
     hi = 0.0
     L.length.times { |indx|
-      e_indx = (indx - center + 1 + 2*i) % data.length
+      e_indx = (indx - center + 2*i) % data.length
       li += L[indx]*data[e_indx]
       hi += H[indx]*data[e_indx]
     }
@@ -95,7 +95,7 @@ end
 
 def idwt(l,h,c)
   d = []
-  center = (L.length - c)/2
+  center = (L.length - c - 1)/2
   l.length.times { |i|
     h1ei = 0.0
     h1oi = 0.0
@@ -110,7 +110,7 @@ def idwt(l,h,c)
       h2ei += h[e_indx]*HRE[indx]
       h2oi += h[e_indx]*HRO[indx]
     }
-    if c % 2 == 0 then
+    if c % 2 == 1 then
       ind = (2*i-1) % (l.length*2)
       d[2*i] = h1ei + h2ei
       d[ind] = h1oi + h2oi
@@ -131,6 +131,7 @@ puts "center: #{j}"
   d = idwt(l, h, j)
   puts l.inspect
   puts h.inspect
+#  puts d.inspect
   d.each_index { |i|
     raise "Error!#{d[i]-a[i]}" if (d[i]-a[i]).abs > EPSILON
   }
