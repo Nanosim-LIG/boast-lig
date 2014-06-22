@@ -688,10 +688,10 @@ module BOAST
           if @dim_indexes.length == 3 then
             ises1 = startendpoints(@dims[@dim_indexes[1]], unro == @dim_indexes[1], unrolling_length, reliq)
             For::new(iters[@dim_indexes[1]], *ises1) {
-              conv_lines(iters, l, t, tlen, @dim_indexes[-1], unro, mods, unroll_inner)
+              conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
             }.print
           else
-            conv_lines(iters, l, t, tlen, @dim_indexes[-1], unro, mods, unroll_inner)
+            conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
           end
         }.print
         BOAST::get_output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
@@ -710,26 +710,28 @@ module BOAST
       return [istart,iend,istep]
     end
 
-    def conv_lines(iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
+    def conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
       # the shrink operation contains the central part only
+      iter = iters[@dim_indexes[-1]]
       if @bc.shrink then
-        BOAST::For(iters[processed_dim], @line_start, @line_end) {
-          for_conv(:center, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
+        BOAST::For(iter, @line_start, @line_end) {
+          for_conv(:center, iters, l, t, tlen, unro, mods, unroll_inner)
         }.print
       else
-        BOAST::For(iters[processed_dim], @line_start, @border_low - 1) {
-          for_conv(:begin, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
+        BOAST::For(iter, @line_start, @border_low - 1) {
+          for_conv(:begin, iters, l, t, tlen, unro, mods, unroll_inner)
         }.print
-        BOAST::For(iters[processed_dim], @border_low, @border_high - 1) {
-          for_conv(:center, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
+        BOAST::For(iter, @border_low, @border_high - 1) {
+          for_conv(:center, iters, l, t, tlen, unro, mods, unroll_inner)
         }.print
-        BOAST::For(iters[processed_dim], @border_high, @line_end) {
-          for_conv(:end, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
+        BOAST::For(iter, @border_high, @line_end) {
+          for_conv(:end, iters, l, t, tlen, unro, mods, unroll_inner)
         }.print
       end
     end
 
-    def get_loop_start_end( side, i_in, processed_dim)
+    def get_loop_start_end( side, i_in )
+      processed_dim = @dim_indexes[-1]
       if ( @bc.free and side != :center) then
         if @wavelet then
           if @wavelet == :decompose then
@@ -760,7 +762,8 @@ module BOAST
       return [loop_start, loop_end]
     end
 
-    def for_conv(side, i_in, l, t, tlen, processed_dim, unro, mods, unroll_inner)
+    def for_conv(side, i_in, l, t, tlen, unro, mods, unroll_inner)
+      processed_dim = @dim_indexes[-1]
       #t.each_index { |ind|
       (0...tlen).each{ |ind|
         #WARNING: the eks conditional here can be relaxed
@@ -772,7 +775,7 @@ module BOAST
           BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_out] / @alpha : 0.0)
         end
       }
-      loop_start, loop_end = get_loop_start_end( side, i_in, processed_dim)
+      loop_start, loop_end = get_loop_start_end( side, i_in)
       f = BOAST::For( l, loop_start, loop_end) {
         (0...tlen).each{ |ind|
          #t.each_index { |ind|
