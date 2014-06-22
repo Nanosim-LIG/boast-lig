@@ -33,16 +33,18 @@ module BOAST
 
   class WaveletFilter
     attr_reader :low, :high
+    attr_reader :low_even, :low_odd
+    attr_reader :high_even, :high_odd
     attr_reader :low_reverse_even, :low_reverse_odd
     attr_reader :high_reverse_even, :high_reverse_odd
     attr_reader :name
     attr_reader :center
     attr_reader :fil_array
     attr_reader :length
-    def initialize(name, filt1, center = nil)
+    def initialize(name, filt1)
       @fil_array = filt1.dup
-      @center = @fil_array.length/2 +1
-      @center = center if center
+      @center = @fil_array.length/2
+      @center -= @center%2
       @low = ConvolutionFilter::new(name+"_low", @fil_array, @center)
       filt2 = []
       @fil_array.each_with_index { |e,i|
@@ -54,19 +56,34 @@ module BOAST
       }
       filt2.reverse!
       @high = ConvolutionFilter::new(name+"_high", filt2, @center)
-      center_half = (filt1.length - @center)/2
 
-      filt3 = @fil_array.reverse.values_at(*(0..(@fil_array.length-1)).step(2).collect)
-      @low_reverse_even = ConvolutionFilter::new(name+"_low_reverse_even", filt3, center_half)
+      center_half = @center / 2
 
-      filt4 = @fil_array.reverse.values_at(*(1..(@fil_array.length-1)).step(2).collect)
-      @low_reverse_odd = ConvolutionFilter::new(name+"_low_reverse_odd", filt4, center_half)
+      filt_3 = @fil_array.values_at(*(0..(@fil_array.length-1)).step(2).collect)
+      @low_even = ConvolutionFilter::new(name+"_low_even", filt_3, center_half)
 
-      filt5 = filt2.reverse.values_at(*(0..(filt2.length-1)).step(2).collect)
-      @high_reverse_even = ConvolutionFilter::new(name+"_high_reverse_even", filt4, center_half)
+      filt_4 = @fil_array.values_at(*(1..(@fil_array.length-1)).step(2).collect)
+      @low_odd = ConvolutionFilter::new(name+"_low_odd", filt_4, center_half)
 
-      filt6 = filt2.reverse.values_at(*(1..(filt2.length-1)).step(2).collect)
-      @high_reverse_even = ConvolutionFilter::new(name+"_high_reverse_odd", filt5, center_half)
+      filt_5 = filt2.values_at(*(0..(filt2.length-1)).step(2).collect)
+      @high_even = ConvolutionFilter::new(name+"_high_even", filt_5, center_half)
+
+      filt_6 = filt2.values_at(*(1..(filt2.length-1)).step(2).collect)
+      @high_even = ConvolutionFilter::new(name+"_high_odd", filt_6, center_half)
+
+      center_half = (filt1.length - @center - 1)/2
+
+      filt_r_3 = @fil_array.reverse.values_at(*(0..(@fil_array.length-1)).step(2).collect)
+      @low_reverse_even = ConvolutionFilter::new(name+"_low_reverse_even", filt_r_3, center_half)
+
+      filt_r_4 = @fil_array.reverse.values_at(*(1..(@fil_array.length-1)).step(2).collect)
+      @low_reverse_odd = ConvolutionFilter::new(name+"_low_reverse_odd", filt_r_4, center_half)
+
+      filt_r_5 = filt2.reverse.values_at(*(0..(filt2.length-1)).step(2).collect)
+      @high_reverse_even = ConvolutionFilter::new(name+"_high_reverse_even", filt_r_5, center_half)
+
+      filt_r_6 = filt2.reverse.values_at(*(1..(filt2.length-1)).step(2).collect)
+      @high_reverse_even = ConvolutionFilter::new(name+"_high_reverse_odd", filt_r_6, center_half)
 
       @length = @fil_array.length
       @name = name
@@ -250,12 +267,14 @@ module BOAST
     # * +:alpha+ -  Convolution constant of the operation out <- [out +] alpha conv(in) + beta in
     # * +:beta+ -  Convolution constant of the operation out <- [out +] alpha conv(in) + beta in
     # * +:ld+ - leading dimensions enable
+    # * +:wavelet+ - specify a wavelet operation, :decompose or :recompose
     def initialize(filter,bc,transpose,dim_indexes,init,options={})
       @filter = filter
       @bc = bc
       @transpose = transpose
       @dim_indexes = dim_indexes
       @ld = options[:ld]
+      @wavelet = options[:wavelet]
       @dim_n = BOAST::Int("n",:dir =>:in)
       if @ld then
         @ld_in = BOAST::Int("ld_in",:dir =>:in)
@@ -289,28 +308,80 @@ module BOAST
         @vars.push( @ld_in )
         @vars.push( @ld_out )
       end
-      #growed dimension, to be used either for extremes or for mod_arr
-      @dim_ngs = BOAST::Dim( @filter.lowfil, @dim_n + @filter.upfil  - 1)
-      #dimensions corresponding to the output of a grow operation
-      @dim_nsg = BOAST::Dim(-@filter.upfil,  @dim_n - @filter.lowfil - 1)
-      # dimension of the problem
-      dim_data = @dims.collect{ |dim|
-        BOAST::Dim(0, dim - 1)
-      }
+      if @wavelet then
+        if @wavelet == :decompose then
+          @dim_ngs = [ BOAST::Dim(2), BOAST::Dim( @filter.low_even.lowfil, @dim_n + @filter.low_even.upfil - 1 ) ]
+          @dim_nsg = [ BOAST::Dim( -@filter.low_reverse_even.upfil, @dim_n - @filter.low_reverse_even.lowfil - 1 ), BOAST::Dim(2) ] 
+        else
+          @dim_ngs = [ BOAST::Dim( @filter.low_reverse_even.lowfil, @dim_n + @filter.low_reverse_even.upfil - 1 ), BOAST::Dim(2) ]
+          @dim_nsg = [ BOAST::Dim(2), BOAST::Dim( -@filter.low_even.upfil, @dim_n - @filter.low_even.lowfil - 1 ) ]
+        end
+      else
+        #growed dimension, to be used either for extremes or for mod_arr
+        @dim_ngs = BOAST::Dim( @filter.lowfil, @dim_n + @filter.upfil  - 1)
+        #dimensions corresponding to the output of a grow operation
+        @dim_nsg = BOAST::Dim(-@filter.upfil,  @dim_n - @filter.lowfil - 1)
+      end
+      if @bc.grow then
+        if @wavelet then
+          if @wavelet == :decompose then
+            @line_start = -@filter.low_reverse_even.upfil
+            @line_end = @dim_n - @filter.low_reverse_even.lowfil - 1
+          else
+            @line_start = -@filter.low_even.upfil
+            @line_end = @dim_n - @filter.low_even.lowfil - 1
+          end
+        else
+          @line_start = -@filter.upfil
+          @line_end = @dim_n - @filter.lowfil - 1
+        end
+      else
+        @line_start = 0
+        @line_end = @dim_n - 1
+      end
+      if @wavelet then
+        if @wavelet == :decompose then
+          @border_low = -@filter.low_even.lowfil
+          @border_high = @dim_n - @filter.low_even.upfil
+        else
+          @border_low = -@filter.low_reverse_even.lowfil
+          @border_high = @dim_n - @filter.low_reverse_even.upfil
+        end
+      else
+        @border_low = -@filter.lowfil
+        @border_high = @dim_n - @filter.upfil
+      end
       dimx = @dims_in.collect{ |dim|
         if not dim.name.match("ndat") and bc.shrink and not @ld then
           @dim_ngs
         elsif not dim.name.match("ndat") and bc.shrink
-          BOAST::Dim(@filter.lowfil, dim + @filter.lowfil - 1)
+          if @wavelet then
+            if @wavelet == :decompose then
+              [ BOAST::Dim(2), BOAST::Dim( @filter.low_even.lowfil, dim + @filter.low_even.lowfil - 1 ) ]
+            else
+              [ BOAST::Dim( @filter.low_reverse_even.lowfil, dim + @filter.low_reverse_even.lowfil - 1 ), BOAST::Dim(2) ]
+            end
+          else
+            BOAST::Dim(@filter.lowfil, dim + @filter.lowfil - 1)
+          end
         else
           BOAST::Dim(0, dim - 1)
         end
       }
+      dimx.flatten!
       dimy = @dims_out.collect{ |dim|
         if not dim.name.match("ndat") and bc.grow and not @ld then
           @dim_nsg
         elsif not dim.name.match("ndat") and bc.grow then
-          BOAST::Dim( -@filter.upfil, dim - @filter.upfil - 1)
+          if @wavelet then
+            if @wavelet == :decompose then
+              [ BOAST::Dim( -@filter.low_reverse_even.upfil, dim - @filter.low_reverse_even.upfil - 1 ), BOAST::Dim(2) ]
+            else
+              [ BOAST::Dim(2), BOAST::Dim( -@filter.low_even.upfil, dim - @filter.low_even.upfil - 1 ) ]
+            end
+          else
+            BOAST::Dim( -@filter.upfil, dim - @filter.upfil - 1)
+          end
         else
           BOAST::Dim(0, dim - 1)
         end
@@ -318,6 +389,7 @@ module BOAST
       if transpose !=0  then
         dimy = dimy.rotate(transpose)
       end
+      dimy.flatten!
       @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
       @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
       @vars.push @alpha = BOAST::Real("alpha",:dir => :in) if options[:alpha]
@@ -350,20 +422,30 @@ module BOAST
           nd["ndat2"] *= dim[indx] if indx > index
         }
       end
+      n_push = lambda { |varsi, varso|
+        if @bc.grow then
+          varsi.push(nd["n"])
+          if @wavelet then
+            varso.push(nd["n"] + @filter.low.length - 2)
+          else
+            varso.push(nd["n"] + @filter.length - 1)
+          end
+        elsif @bc.shrink
+          if @wavelet then
+            varsi.push(nd["n"] + @filter.low.length - 2)
+          else
+            varsi.push(nd["n"] + @filter.length - 1)
+          end
+          varso.push(nd["n"])
+        else
+          varsi.push(nd["n"])
+          varso.push(nd["n"])
+        end
+      }
       @dims.each { |dim|
-
         vars.push(nd[dim.name])
         if dim.name == "n" then
-          if @bc.grow then
-            varsin.push(nd["n"])
-            varsout.push(nd["n"] + @filter.length - 1)
-          elsif @bc.shrink
-            varsin.push(nd["n"] + @filter.length - 1)
-            varsout.push(nd["n"])
-          else
-            varsin.push(nd["n"])
-            varsout.push(nd["n"])
-          end
+          n_push.call(varsin, varsout)
         else
           varsin.push(nd[dim.name])
           varsout.push(nd[dim.name])
@@ -372,19 +454,15 @@ module BOAST
       varsout.rotate!(@transpose)
       #input and output arrays
       if @ld then
-        if @bc.grow then
-          vars.push(nd["n"])
-          vars.push(nd["n"] + @filter.length - 1)
-        elsif @bc.shrink
-          vars.push(nd["n"] + @filter.length - 1)
-          vars.push(nd["n"])
-        else
-          vars.push(nd["n"])
-          vars.push(nd["n"])
-        end
+        n_push.call(vars, vars)
       end
-      vars.push(NArray.float(*varsin).random)
-      vars.push(NArray.float(*varsout))
+      if @wavelet then
+        vars.push(NArray.float(*varsin,2).random)
+        vars.push(NArray.float(*varsout,2))
+      else
+        vars.push(NArray.float(*varsin).random)
+        vars.push(NArray.float(*varsout))
+      end
       #accessory scalars
       nscal=0
       nscal+=1 if @alpha
@@ -453,7 +531,96 @@ module BOAST
       @dim_indexes[0...-1].each { |indx|
         ndat *= dimens[indx]
       }
-      return n * ( 2 * @filter.length ) * ndat
+      if @wavelet then
+        return 2 * n * ( 2 * @filter.low.length ) * ndat
+      else
+        return n * ( 2 * @filter.length ) * ndat
+      end
+    end
+
+    def get_tt(tt_arr, unroll)
+      #try to modify tt scalars into arrays of size unroll
+      if tt_arr then
+        if @wavelet then
+          if @wavelet == :decompose then
+            tt = [ BOAST::Real("lt", :dim => [ BOAST::Dim(0,unroll-1)], :allocate => true),
+                   BOAST::Real("ht", :dim => [ BOAST::Dim(0,unroll-1)], :allocate => true) ]
+          else
+            tt = [ BOAST::Real("et", :dim => [ BOAST::Dim(0,unroll-1)], :allocate => true),
+                   BOAST::Real("ot", :dim => [ BOAST::Dim(0,unroll-1)], :allocate => true) ]
+          end
+        else
+          tt = BOAST::Real("tt", :dim => [ BOAST::Dim(0,unroll-1)], :allocate => true)
+        end
+      else
+        if @wavelet then
+          if @wavelet == :decompose then
+            tt = [ (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("lt#{index}") },
+                   (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("ht#{index}") } ]
+          else
+            tt = [ (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("et#{index}") },
+                   (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("ot#{index}") } ]
+          end
+        else
+          tt = (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("tt#{index}") }
+        end
+      end
+      return tt
+    end
+
+    def get_mods(mod_arr)
+      if mod_arr then
+        # the mod_arr behaves as a shrink operation
+        #mods=BOAST::Int("mod_arr", :allocate => true, :dim => [@dim_ngs])
+        if @wavelet then
+          if @wavelet == :decompose then
+            mods = BOAST::Int("mod_arr", :allocate => true, 
+                              :dim => [BOAST::Dim( @filter.low_even.lowfil - @filter.low_even.upfil,
+                                                   @filter.low_even.upfil - @filter.low_even.lowfil - 1)])
+          else
+            mods = BOAST::Int("mod_arr", :allocate => true,
+                              :dim => [BOAST::Dim( @filter.low_reverse_even.lowfil - @filter.low_reverse_even.upfil, 
+                                                   @filter.low_reverse_even.upfil - @filter.low_reverse_even.lowfil - 1 )])
+          end
+        else
+          mods=BOAST::Int("mod_arr", :allocate => true, 
+                          :dim => [BOAST::Dim(@filter.lowfil - @filter.upfil,
+                                              @filter.upfil - @filter.lowfil - 1)])
+        end
+      else
+        mods=nil
+      end
+      return mods
+    end
+
+    def get_constants
+      if @wavelet then
+        if @wavelet == :decompose then
+          [@filter.low_even.lowfil, @filter.low_even.upfil]
+        else
+          [@filter.low_reverse_even.lowfil, @filter.low_reverse_even.upfil]
+        end
+      else
+        return [@filter.lowfil, @filter.upfil]
+      end
+    end
+
+    def decl_filters
+      if @wavelet then
+        if @wavelet == :decompose then
+          BOAST::decl @filter.low_even.fil
+          BOAST::decl @filter.low_odd.fil
+          BOAST::decl @filter.high_even.fil
+          BOAST::decl @filter.high_odd.fil
+        else
+          BOAST::decl @filter.low_reverse_even
+          BOAST::decl @filter.low_reverse_odd
+          BOAST::decl @filter.high_reverse_even
+          BOAST::decl @filter.high_reverse_odd
+        end
+      else
+        BOAST::decl @filter.fil
+      end
     end
 
     def procedure(options={})
@@ -477,35 +644,20 @@ module BOAST
         "_u#{unroll}_#{unrolled_dim}_#{mod_arr}_#{tt_arr}_#{unroll_inner}"
 
       l = BOAST::Int("l")
-      #try to modify tt scalars into arrays of size unroll
-      if tt_arr then
-        tt = BOAST::Real("tt", :dim => [ BOAST::Dim(0,unroll-1)], :allocate => true)
-      else
-        tt = (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("tt#{index}") }
-      end
+      tt = get_tt(tt_arr, unroll)
       iters =  (1..@dims.length).collect{ |index| BOAST::Int("i#{index}")}
-      
-      if mod_arr then
-        # the mod_arr behaves as a shrink operation
-        #mods=BOAST::Int("mod_arr", :allocate => true, :dim => [@dim_ngs])
-        mods=BOAST::Int("mod_arr", :allocate => true, 
-                        :dim => [BOAST::Dim(@filter.lowfil - @filter.upfil, @filter.upfil - @filter.lowfil - 1)])
-      else
-        mods=nil
-      end
-      return BOAST::Procedure(function_name, vars, [@filter.lowfil, @filter.upfil] ){
-        BOAST::decl @filter.fil
+      mods = get_mods(mod_arr)
+      constants = get_constants
+
+      return BOAST::Procedure(function_name, vars, constants ){
+        decl_filters
         BOAST::decl *iters
         BOAST::decl l
-        if tt_arr then
-          BOAST::decl tt
-        else
-          BOAST::decl *tt
-        end
+        BOAST::decl *([tt].flatten)
         if mod_arr then
           BOAST::decl mods 
           #BOAST::print BOAST::For(l, @filter.lowfil, @dim_n -1 + @filter.upfil) {
-          BOAST::print BOAST::For(l, @filter.lowfil - @filter.upfil, @filter.upfil - @filter.lowfil - 1) {
+          BOAST::print BOAST::For(l, mods.dimension.first.val1, mods.dimension.first.val2) {
             BOAST::print mods[l] === BOAST::modulo(l, @dim_n)
           }
         end
@@ -514,17 +666,9 @@ module BOAST
           BOAST::get_output.print("!$omp parallel default(shared)&\n")
           BOAST::get_output.print("!$omp reduction(+:#{dotp})&\n") if @options[:dotp]
           BOAST::get_output.print("!$omp private(#{iters.join(",")},#{l})&\n")
-          if tt_arr then
-            BOAST::get_output.print("!$omp private(#{tt})\n")
-          else
-            BOAST::get_output.print("!$omp private(#{tt.join(",")})\n")
-          end
+          BOAST::get_output.print("!$omp private(#{([tt].flatten).join(",")})\n")
         elsif BOAST::get_lang == BOAST::C then
-          if tt_arr then
-            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt})\n{\n")
-          else
-            BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{tt.join(",")})\n{\n")
-          end
+          BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dotp] ? "reduction(+:#{dotp})" : ""} private(#{iters.join(",")},#{l},#{([tt].flatten).join(",")})\n{\n")
         end
 
         convolution1d(iters, l, tt, mods, unrolled_dim, unroll, unroll_inner)
@@ -567,28 +711,19 @@ module BOAST
     end
 
     def conv_lines(iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
-      # the only difference holds for the grow operation
-      if @bc.grow then
-        line_start = -@filter.upfil
-        line_end = @dims[processed_dim]-1-@filter.lowfil
-      else
-        #for the periodic or constant operation the loop is between 0 and n-1
-        line_start = 0
-        line_end = @dims[processed_dim]-1
-      end
       # the shrink operation contains the central part only
       if @bc.shrink then
-        BOAST::For(iters[processed_dim], line_start, line_end) {
+        BOAST::For(iters[processed_dim], @line_start, @line_end) {
           for_conv(:center, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
         }.print
       else
-        BOAST::For(iters[processed_dim], line_start, -@filter.lowfil-1) {
+        BOAST::For(iters[processed_dim], @line_start, @border_low - 1) {
           for_conv(:begin, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
         }.print
-        BOAST::For(iters[processed_dim], -@filter.lowfil, @dims[processed_dim]-1 - @filter.upfil) {
+        BOAST::For(iters[processed_dim], @border_low, @border_high - 1) {
           for_conv(:center, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
         }.print
-        BOAST::For(iters[processed_dim], @dims[processed_dim] - @filter.upfil, line_end) {
+        BOAST::For(iters[processed_dim], @border_high, @line_end) {
           for_conv(:end, iters, l, t, tlen, processed_dim, unro, mods, unroll_inner)
         }.print
       end
@@ -597,16 +732,41 @@ module BOAST
     def for_conv(side, i_in, l, t, tlen, processed_dim, unro, mods, unroll_inner)
       #t.each_index { |ind|
       (0...tlen).each{ |ind|
-        i_out = output_index(unro, i_in, ind)
         #WARNING: the eks conditional here can be relaxed
-        BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_out] / @alpha : 0.0)
+        if @wavelet then
+          BOAST::print t[0][ind] === 0
+          BOAST::print t[1][ind] === 0
+        else
+          i_out = output_index(unro, i_in, ind)
+          BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_out] / @alpha : 0.0)
+        end
       }
       if ( @bc.free and side != :center) then
-        loop_start = BOAST::max(-i_in[processed_dim], @filter.lowfil)
-        loop_end   = BOAST::min(@filter.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
-      elsif
-        loop_start=@filter.lowfil
-        loop_end=@filter.upfil
+        if @wavelet then
+          if @wavelet == :decompose then
+            loop_start = BOAST::max(-i_in[processed_dim], @filter.low_even.lowfil)
+            loop_end   = BOAST::min(@filter.low_even.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
+          else
+            loop_start = BOAST::max(-i_in[processed_dim], @filter.low_reverse_even.lowfil)
+            loop_end   = BOAST::min(@filter.low_reverse_even.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
+          end
+        else
+          loop_start = BOAST::max(-i_in[processed_dim], @filter.lowfil)
+          loop_end   = BOAST::min(@filter.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
+        end
+      else
+        if @wavelet then
+          if @wavelet == :decompose then
+            loop_start = @filter.low_even.lowfil
+            loop_end   = @filter.low_even.upfil
+          else
+            loop_start = @filter.low_reverse_even.lowfil
+            loop_end   = @filter.low_reverse_even.upfil
+          end
+        else
+          loop_start=@filter.lowfil
+          loop_end=@filter.upfil
+        end
       end
       f = BOAST::For( l,loop_start,loop_end) {
         (0...tlen).each{ |ind|
@@ -618,7 +778,17 @@ module BOAST
           else
             i_out = output_index(unro, i_in, ind,processed_dim,l,@dims[processed_dim])
           end
-          BOAST::print t[ind] === t[ind] + @in[*i_out]*@filter.fil[l]
+          if @wavelet then
+            if @wavelet == :decompose then
+              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_out[0])]*@filter.low_even[l]  + @in[*(i_out[1])]*@filter.low_odd[l]
+              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_out[0])]*@filter.high_even[l] + @in[*(i_out[1])]*@filter.high_odd[l]
+            else
+              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_out[0])]*@filter.low_reverse_odd[l]  + @in[*(i_out[1])]*@filter.high_reverse_odd[l]
+              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_out[0])]*@filter.low_reverse_even[l] + @in[*(i_out[1])]*@filter.high_reverse_even[l]
+            end
+          else
+            BOAST::print t[ind] === t[ind] + @in[*i_out]*@filter.fil[l]
+          end
         }
       }
       if unroll_inner then
@@ -630,15 +800,26 @@ module BOAST
       #t.each_index { |ind|
       (0...tlen).each{ |ind|
         i_out = output_index(unro, i_in, ind)
-        BOAST::print t[ind] === t[ind] * @alpha if @alpha
-        BOAST::print @dotp === @dotp + t[ind] * @in[*i_out] if @dotp
-        if not @accumulate then
-          BOAST::print @out[*i_out.rotate(@transpose)] === t[ind]
+        if @wavelet then
+          BOAST::print t[0][ind] === t[0][ind] * @alpha if @alpha
+          BOAST::print t[1][ind] === t[1][ind] * @alpha if @alpha
+          if not @accumulate then
+            BOAST::print @out[*(i_out[0].rotate(@transpose))] === t[0][ind]
+            BOAST::print @out[*(i_out[1].rotate(@transpose))] === t[1][ind]
+          else
+            BOAST::print @out[*(i_out[0].rotate(@transpose))] === (@init ? t[0][ind] : @out[*(i_out[0].rotate(@transpose))] + t[0][ind])
+            BOAST::print @out[*(i_out[1].rotate(@transpose))] === (@init ? t[1][ind] : @out[*(i_out[1].rotate(@transpose))] + t[1][ind])
+          end
         else
-          BOAST::print @out[*i_out.rotate(@transpose)] === 
-            (@init ? t[ind] : @out[*i_out.rotate(@transpose)] + t[ind] )
+          BOAST::print t[ind] === t[ind] * @alpha if @alpha
+          BOAST::print @dotp === @dotp + t[ind] * @in[*i_out] if @dotp
+          if not @accumulate then
+            BOAST::print @out[*i_out.rotate(@transpose)] === t[ind]
+          else
+            BOAST::print @out[*i_out.rotate(@transpose)] === 
+              (@init ? t[ind] : @out[*i_out.rotate(@transpose)] + t[ind] )
+          end
         end
-          
       }
     end
 
