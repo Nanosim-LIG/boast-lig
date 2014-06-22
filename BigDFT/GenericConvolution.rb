@@ -729,18 +729,7 @@ module BOAST
       end
     end
 
-    def for_conv(side, i_in, l, t, tlen, processed_dim, unro, mods, unroll_inner)
-      #t.each_index { |ind|
-      (0...tlen).each{ |ind|
-        #WARNING: the eks conditional here can be relaxed
-        if @wavelet then
-          BOAST::print t[0][ind] === 0
-          BOAST::print t[1][ind] === 0
-        else
-          i_out = output_index(unro, i_in, ind)
-          BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_out] / @alpha : 0.0)
-        end
-      }
+    def get_loop_start_end( side, i_in, processed_dim)
       if ( @bc.free and side != :center) then
         if @wavelet then
           if @wavelet == :decompose then
@@ -768,7 +757,23 @@ module BOAST
           loop_end=@filter.upfil
         end
       end
-      f = BOAST::For( l,loop_start,loop_end) {
+      return [loop_start, loop_end]
+    end
+
+    def for_conv(side, i_in, l, t, tlen, processed_dim, unro, mods, unroll_inner)
+      #t.each_index { |ind|
+      (0...tlen).each{ |ind|
+        #WARNING: the eks conditional here can be relaxed
+        if @wavelet then
+          BOAST::print t[0][ind] === 0
+          BOAST::print t[1][ind] === 0
+        else
+          i_out = output_index(unro, i_in, ind)
+          BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_out] / @alpha : 0.0)
+        end
+      }
+      loop_start, loop_end = get_loop_start_end( side, i_in, processed_dim)
+      f = BOAST::For( l, loop_start, loop_end) {
         (0...tlen).each{ |ind|
          #t.each_index { |ind|
           if @bc.free or (side == :center) then
@@ -824,7 +829,7 @@ module BOAST
     end
 
     #returns the indices of the output array according to the starting point in the input and of the
-    ## processed dimension as well as th eposition in the convolution
+    ## processed dimension as well as the position in the convolution
     def output_index(unrolling_dim, i_in,unroll_index,processed_dim=nil,lconv_index=nil,
                           ndim_processed=nil,wrapping_array=nil,side=nil)
       if ndim_processed then
