@@ -787,6 +787,8 @@ module BOAST
             i_in = input_index(unro, iters, ind,processed_dim,l,@dims[processed_dim])
           end
           if @wavelet then
+            i_in[0].flatten!
+            i_in[1].flatten!
             if @wavelet == :decompose then
               BOAST::print t[0][ind] === t[0][ind] + @in[*(i_in[0])]*@filter.low_even[l]  + @in[*(i_in[1])]*@filter.low_odd[l]
               BOAST::print t[1][ind] === t[1][ind] + @in[*(i_in[0])]*@filter.high_even[l] + @in[*(i_in[1])]*@filter.high_odd[l]
@@ -809,23 +811,28 @@ module BOAST
       (0...tlen).each{ |ind|
         i_out = output_index(unro, iters, ind)
         if @wavelet then
+          i_out[0].rotate!(@transpose)
+          i_out[1].rotate!(@transpose)
+          i_out[0].flatten!
+          i_out[1].flatten!
           BOAST::print t[0][ind] === t[0][ind] * @alpha if @alpha
           BOAST::print t[1][ind] === t[1][ind] * @alpha if @alpha
           if not @accumulate then
-            BOAST::print @out[*(i_out[0].rotate(@transpose))] === t[0][ind]
-            BOAST::print @out[*(i_out[1].rotate(@transpose))] === t[1][ind]
+            BOAST::print @out[*i_out[0]] === t[0][ind]
+            BOAST::print @out[*i_out[1]] === t[1][ind]
           else
-            BOAST::print @out[*(i_out[0].rotate(@transpose))] === (@init ? t[0][ind] : @out[*(i_out[0].rotate(@transpose))] + t[0][ind])
-            BOAST::print @out[*(i_out[1].rotate(@transpose))] === (@init ? t[1][ind] : @out[*(i_out[1].rotate(@transpose))] + t[1][ind])
+            BOAST::print @out[*i_out[0]] === (@init ? t[0][ind] : @out[*i_out[0]] + t[0][ind])
+            BOAST::print @out[*i_out[1]] === (@init ? t[1][ind] : @out[*i_out[1]] + t[1][ind])
           end
         else
+          i_out.rotate!(@transpose)
           BOAST::print t[ind] === t[ind] * @alpha if @alpha
           BOAST::print @dotp === @dotp + t[ind] * @in[*i_out] if @dotp
           if not @accumulate then
-            BOAST::print @out[*i_out.rotate(@transpose)] === t[ind]
+            BOAST::print @out[*i_out] === t[ind]
           else
-            BOAST::print @out[*i_out.rotate(@transpose)] === 
-              (@init ? t[ind] : @out[*i_out.rotate(@transpose)] + t[ind] )
+            BOAST::print @out[*i_out] === 
+              (@init ? t[ind] : @out[*i_out] + t[ind] )
           end
         end
       }
@@ -837,15 +844,34 @@ module BOAST
     def input_index(unrolling_dim, iters,unroll_index,processed_dim=nil,lconv_index=nil,
                           ndim_processed=nil,wrapping_array=nil,side=nil)
       if ndim_processed then
-        i_out=output_index_k_mod(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,ndim_processed)
+        i_in = output_index_k_mod(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,ndim_processed)
       elsif wrapping_array then
-        i_out=output_index_k_mod_arr(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
+        i_in = output_index_k_mod_arr(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
       elsif processed_dim then
-        i_out=output_index_k(unrolling_dim, iters,unroll_index,processed_dim,lconv_index)
+        i_in = output_index_k(unrolling_dim, iters,unroll_index,processed_dim,lconv_index)
       else
-        i_out=output_index_unroll(unrolling_dim, iters,unroll_index)
+        i_in = output_index_unroll(unrolling_dim, iters,unroll_index)
       end
-      return i_out
+      if @wavelet then
+        tmp = [[], []]
+        (0...iters.length).each { |indx|
+          if indx == @dim_indexes[-1] then
+            if @wavelet == :decompose then
+              tmp[0][indx] = [0, i_in[indx]]
+              tmp[1][indx] = [1, i_in[indx]]
+            else
+              tmp[0][indx] = [i_in[indx], 0]
+              tmp[1][indx] = [i_in[indx], 1]
+            end
+          else
+            tmp[0][indx] = i_in[indx]
+            tmp[1][indx] = i_in[indx]
+          end
+        }
+        return tmp
+      else
+        return i_in
+      end
     end
 
 
@@ -854,15 +880,34 @@ module BOAST
     def output_index(unrolling_dim, iters,unroll_index,processed_dim=nil,lconv_index=nil,
                           ndim_processed=nil,wrapping_array=nil,side=nil)
       if ndim_processed then
-        i_out=output_index_k_mod(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,ndim_processed)
+        i_out = output_index_k_mod(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,ndim_processed)
       elsif wrapping_array then
-        i_out=output_index_k_mod_arr(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
+        i_out = output_index_k_mod_arr(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
       elsif processed_dim then
-        i_out=output_index_k(unrolling_dim, iters,unroll_index,processed_dim,lconv_index)
+        i_out = output_index_k(unrolling_dim, iters,unroll_index,processed_dim,lconv_index)
       else
-        i_out=output_index_unroll(unrolling_dim, iters,unroll_index)
+        i_out = output_index_unroll(unrolling_dim, iters,unroll_index)
       end
-      return i_out
+      if @wavelet then
+        tmp = [[], []]
+        (0...iters.length).each { |indx|
+          if indx == @dim_indexes[-1] then
+            if @wavelet == :decompose then
+              tmp[0][indx] = [i_out[indx], 0]
+              tmp[1][indx] = [i_out[indx], 1]
+            else
+              tmp[0][indx] = [0, i_out[indx]]
+              tmp[1][indx] = [1, i_out[indx]]
+            end
+          else
+            tmp[0][indx] = i_out[indx]
+            tmp[1][indx] = i_out[indx]
+          end
+        }
+        return tmp
+      else
+        return i_out
+      end
     end
 
     #returns the indices of the output according to which of the directions is unrolled
