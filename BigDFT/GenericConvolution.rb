@@ -680,26 +680,26 @@ module BOAST
 
     #here follows the internal operations for the convolution 1d
     def convolution1d(iters, l, t, mods, unro, unrolling_length, unroll_inner)
-      convgen= lambda { |dim,t,tlen,reliq|
-        ises0 = startendpoints(@dims[dim[0]], unro == dim[0], unrolling_length, reliq)
+      convgen= lambda { |t,tlen,reliq|
+        ises0 = startendpoints(@dims[@dim_indexes[0]], unro == @dim_indexes[0], unrolling_length, reliq)
         BOAST::get_output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
         BOAST::get_output.print("#pragma omp for\n") if BOAST::get_lang == BOAST::C
-        For::new(iters[dim[0]], *ises0 ) {
-          if dim.length == 3 then
-            ises1 = startendpoints(@dims[dim[1]], unro == dim[1], unrolling_length, reliq)
-            For::new(iters[dim[1]], *ises1) {
-              conv_lines(iters, l, t, tlen, dim[-1], unro, mods, unroll_inner)
+        For::new(iters[@dim_indexes[0]], *ises0 ) {
+          if @dim_indexes.length == 3 then
+            ises1 = startendpoints(@dims[@dim_indexes[1]], unro == @dim_indexes[1], unrolling_length, reliq)
+            For::new(iters[@dim_indexes[1]], *ises1) {
+              conv_lines(iters, l, t, tlen, @dim_indexes[-1], unro, mods, unroll_inner)
             }.print
           else
-            conv_lines(iters, l, t, tlen, dim[-1], unro, mods, unroll_inner)
+            conv_lines(iters, l, t, tlen, @dim_indexes[-1], unro, mods, unroll_inner)
           end
         }.print
         BOAST::get_output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
       }
       #first without the reliq
-      convgen.call(@dim_indexes,t,unrolling_length,false)
+      convgen.call(t,unrolling_length,false)
       #then with the reliq but only if the unrolling patterns need it
-      convgen.call(@dim_indexes,t,1,true) if (unrolling_length > 1)
+      convgen.call(t,1,true) if (unrolling_length > 1)
     end
 
     #returns the starting and ending points of the convolutions according to unrolling and unrolled dimension
