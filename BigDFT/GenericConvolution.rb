@@ -730,20 +730,20 @@ module BOAST
       end
     end
 
-    def get_loop_start_end( side, i_in )
+    def get_loop_start_end( side, iters )
       processed_dim = @dim_indexes[-1]
       if ( @bc.free and side != :center) then
         if @wavelet then
           if @wavelet == :decompose then
-            loop_start = BOAST::max(-i_in[processed_dim], @filter.low_even.lowfil)
-            loop_end   = BOAST::min(@filter.low_even.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
+            loop_start = BOAST::max(-iters[processed_dim], @filter.low_even.lowfil)
+            loop_end   = BOAST::min(@filter.low_even.upfil, @dims[processed_dim] - 1 - iters[processed_dim])
           else
-            loop_start = BOAST::max(-i_in[processed_dim], @filter.low_reverse_even.lowfil)
-            loop_end   = BOAST::min(@filter.low_reverse_even.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
+            loop_start = BOAST::max(-iters[processed_dim], @filter.low_reverse_even.lowfil)
+            loop_end   = BOAST::min(@filter.low_reverse_even.upfil, @dims[processed_dim] - 1 - iters[processed_dim])
           end
         else
-          loop_start = BOAST::max(-i_in[processed_dim], @filter.lowfil)
-          loop_end   = BOAST::min(@filter.upfil, @dims[processed_dim] - 1 - i_in[processed_dim])
+          loop_start = BOAST::max(-iters[processed_dim], @filter.lowfil)
+          loop_end   = BOAST::min(@filter.upfil, @dims[processed_dim] - 1 - iters[processed_dim])
         end
       else
         if @wavelet then
@@ -762,7 +762,7 @@ module BOAST
       return [loop_start, loop_end]
     end
 
-    def for_conv(side, i_in, l, t, tlen, unro, mods, unroll_inner)
+    def for_conv(side, iters, l, t, tlen, unro, mods, unroll_inner)
       processed_dim = @dim_indexes[-1]
       #t.each_index { |ind|
       (0...tlen).each{ |ind|
@@ -771,31 +771,31 @@ module BOAST
           BOAST::print t[0][ind] === 0
           BOAST::print t[1][ind] === 0
         else
-          i_out = output_index(unro, i_in, ind)
-          BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_out] / @alpha : 0.0)
+          i_in = input_index(unro, iters, ind)
+          BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_in] / @alpha : 0.0)
         end
       }
-      loop_start, loop_end = get_loop_start_end( side, i_in)
+      loop_start, loop_end = get_loop_start_end( side, iters)
       f = BOAST::For( l, loop_start, loop_end) {
         (0...tlen).each{ |ind|
          #t.each_index { |ind|
           if @bc.free or (side == :center) then
-            i_out = output_index(unro, i_in, ind,processed_dim,l)
+            i_in = input_index(unro, iters, ind,processed_dim,l)
           elsif mods then
-            i_out = output_index(unro, i_in, ind,processed_dim,l,nil,mods,side) 
+            i_in = input_index(unro, iters, ind,processed_dim,l,nil,mods,side) 
           else
-            i_out = output_index(unro, i_in, ind,processed_dim,l,@dims[processed_dim])
+            i_in = input_index(unro, iters, ind,processed_dim,l,@dims[processed_dim])
           end
           if @wavelet then
             if @wavelet == :decompose then
-              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_out[0])]*@filter.low_even[l]  + @in[*(i_out[1])]*@filter.low_odd[l]
-              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_out[0])]*@filter.high_even[l] + @in[*(i_out[1])]*@filter.high_odd[l]
+              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_in[0])]*@filter.low_even[l]  + @in[*(i_in[1])]*@filter.low_odd[l]
+              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_in[0])]*@filter.high_even[l] + @in[*(i_in[1])]*@filter.high_odd[l]
             else
-              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_out[0])]*@filter.low_reverse_odd[l]  + @in[*(i_out[1])]*@filter.high_reverse_odd[l]
-              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_out[0])]*@filter.low_reverse_even[l] + @in[*(i_out[1])]*@filter.high_reverse_even[l]
+              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_in[0])]*@filter.low_reverse_odd[l]  + @in[*(i_in[1])]*@filter.high_reverse_odd[l]
+              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_in[0])]*@filter.low_reverse_even[l] + @in[*(i_in[1])]*@filter.high_reverse_even[l]
             end
           else
-            BOAST::print t[ind] === t[ind] + @in[*i_out]*@filter.fil[l]
+            BOAST::print t[ind] === t[ind] + @in[*i_in]*@filter.fil[l]
           end
         }
       }
@@ -807,7 +807,7 @@ module BOAST
 
       #t.each_index { |ind|
       (0...tlen).each{ |ind|
-        i_out = output_index(unro, i_in, ind)
+        i_out = output_index(unro, iters, ind)
         if @wavelet then
           BOAST::print t[0][ind] === t[0][ind] * @alpha if @alpha
           BOAST::print t[1][ind] === t[1][ind] * @alpha if @alpha
@@ -831,49 +831,67 @@ module BOAST
       }
     end
 
+
     #returns the indices of the output array according to the starting point in the input and of the
     ## processed dimension as well as the position in the convolution
-    def output_index(unrolling_dim, i_in,unroll_index,processed_dim=nil,lconv_index=nil,
+    def input_index(unrolling_dim, iters,unroll_index,processed_dim=nil,lconv_index=nil,
                           ndim_processed=nil,wrapping_array=nil,side=nil)
       if ndim_processed then
-        i_out=output_index_k_mod(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,ndim_processed)
+        i_out=output_index_k_mod(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,ndim_processed)
       elsif wrapping_array then
-        i_out=output_index_k_mod_arr(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,wrapping_array,side)
+        i_out=output_index_k_mod_arr(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
       elsif processed_dim then
-        i_out=output_index_k(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index)
+        i_out=output_index_k(unrolling_dim, iters,unroll_index,processed_dim,lconv_index)
       else
-        i_out=output_index_unroll(unrolling_dim, i_in,unroll_index)
+        i_out=output_index_unroll(unrolling_dim, iters,unroll_index)
+      end
+      return i_out
+    end
+
+
+    #returns the indices of the output array according to the starting point in the input and of the
+    ## processed dimension as well as the position in the convolution
+    def output_index(unrolling_dim, iters,unroll_index,processed_dim=nil,lconv_index=nil,
+                          ndim_processed=nil,wrapping_array=nil,side=nil)
+      if ndim_processed then
+        i_out=output_index_k_mod(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,ndim_processed)
+      elsif wrapping_array then
+        i_out=output_index_k_mod_arr(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
+      elsif processed_dim then
+        i_out=output_index_k(unrolling_dim, iters,unroll_index,processed_dim,lconv_index)
+      else
+        i_out=output_index_unroll(unrolling_dim, iters,unroll_index)
       end
       return i_out
     end
 
     #returns the indices of the output according to which of the directions is unrolled
-    def output_index_unroll(unrolling_dim, i_in,unroll_index)
-      i_out=(0...i_in.length).collect { |indx| unrolling_dim == indx ? i_in[unrolling_dim] + (unroll_index) : i_in[indx]}
+    def output_index_unroll(unrolling_dim, iters,unroll_index)
+      i_out=(0...iters.length).collect { |indx| unrolling_dim == indx ? iters[unrolling_dim] + (unroll_index) : iters[indx]}
       return i_out
     end
     # index of the convolution in the internal region, k=i+l, otherwise the index in the unrolling dimension
-    def output_index_k(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index)
-      i_out=output_index_unroll(unrolling_dim, i_in,unroll_index)
-      return (0...i_in.length).collect { |indx| processed_dim == indx ? lconv_index +i_in[processed_dim] : i_out[indx]}
+    def output_index_k(unrolling_dim, iters,unroll_index,processed_dim,lconv_index)
+      i_out=output_index_unroll(unrolling_dim, iters,unroll_index)
+      return (0...iters.length).collect { |indx| processed_dim == indx ? lconv_index +iters[processed_dim] : i_out[indx]}
     end
     # index in the external region wrapped around (periodic BC), thanks to the presence of the wrapping_array
     # if the side is :begin, the recipe is the usual, otherwise (:end) the recipe is subtracted
     # the the value of the processed dim. In this way the size of mod_arr is only dependent by the size of the 
     # filter which makes life easier for the compiler
-    def output_index_k_mod_arr(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,wrapping_array,side)
-      i_out=output_index_unroll(unrolling_dim, i_in,unroll_index)
+    def output_index_k_mod_arr(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
+      i_out=output_index_unroll(unrolling_dim, iters,unroll_index)
       if (side == :end) then
-        return (0...i_in.length).collect { |indx| 
-          processed_dim == indx ? wrapping_array[lconv_index +i_in[processed_dim] - @dims[processed_dim]] : i_out[indx]}
+        return (0...iters.length).collect { |indx| 
+          processed_dim == indx ? wrapping_array[lconv_index +iters[processed_dim] - @dims[processed_dim]] : i_out[indx]}
       else
-        return (0...i_in.length).collect { |indx| processed_dim == indx ? wrapping_array[lconv_index +i_in[processed_dim]] : i_out[indx]}
+        return (0...iters.length).collect { |indx| processed_dim == indx ? wrapping_array[lconv_index +iters[processed_dim]] : i_out[indx]}
       end
     end
     # index in the external region wrapped around (periodic BC), where the wrapping is given by the integer division
-    def output_index_k_mod(unrolling_dim, i_in,unroll_index,processed_dim,lconv_index,ndim_processed)
-      i_out=output_index_unroll(unrolling_dim, i_in,unroll_index)
-      return (0...i_in.length).collect { |indx| processed_dim == indx ?  lconv_index + i_in[processed_dim] - ((i_in[processed_dim]+lconv_index +  ndim_processed * 2 )/ndim_processed - 2) *ndim_processed  : i_out[indx]}
+    def output_index_k_mod(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,ndim_processed)
+      i_out=output_index_unroll(unrolling_dim, iters,unroll_index)
+      return (0...iters.length).collect { |indx| processed_dim == indx ?  lconv_index + iters[processed_dim] - ((iters[processed_dim]+lconv_index +  ndim_processed * 2 )/ndim_processed - 2) *ndim_processed  : i_out[indx]}
     end
   end
 
