@@ -1,3 +1,6 @@
+require 'BOAST'
+require 'narray'
+
 module BOAST
 
   class ConvolutionFilter
@@ -45,7 +48,7 @@ module BOAST
       @fil_array = filt1.dup
       @center = @fil_array.length/2
       @center -= @center%2
-      @low = ConvolutionFilter::new(name+"_low", @fil_array, @center)
+      @low = BOAST::ConvolutionFilter::new(name+"_l", @fil_array, @center)
       filt2 = []
       @fil_array.each_with_index { |e,i|
         if i % 2 == 0 then
@@ -55,35 +58,35 @@ module BOAST
         end
       }
       filt2.reverse!
-      @high = ConvolutionFilter::new(name+"_high", filt2, @center)
+      @high = BOAST::ConvolutionFilter::new(name+"_h", filt2, @center)
 
       center_half = @center / 2
 
       filt_3 = @fil_array.values_at(*(0..(@fil_array.length-1)).step(2).collect)
-      @low_even = ConvolutionFilter::new(name+"_low_even", filt_3, center_half)
+      @low_even = BOAST::ConvolutionFilter::new(name+"_le", filt_3, center_half)
 
       filt_4 = @fil_array.values_at(*(1..(@fil_array.length-1)).step(2).collect)
-      @low_odd = ConvolutionFilter::new(name+"_low_odd", filt_4, center_half)
+      @low_odd = BOAST::ConvolutionFilter::new(name+"_lo", filt_4, center_half)
 
       filt_5 = filt2.values_at(*(0..(filt2.length-1)).step(2).collect)
-      @high_even = ConvolutionFilter::new(name+"_high_even", filt_5, center_half)
+      @high_even = BOAST::ConvolutionFilter::new(name+"_he", filt_5, center_half)
 
       filt_6 = filt2.values_at(*(1..(filt2.length-1)).step(2).collect)
-      @high_even = ConvolutionFilter::new(name+"_high_odd", filt_6, center_half)
+      @high_odd = BOAST::ConvolutionFilter::new(name+"_ho", filt_6, center_half)
 
       center_half = (filt1.length - @center - 1)/2
 
       filt_r_3 = @fil_array.reverse.values_at(*(0..(@fil_array.length-1)).step(2).collect)
-      @low_reverse_even = ConvolutionFilter::new(name+"_low_reverse_even", filt_r_3, center_half)
+      @low_reverse_even = BOAST::ConvolutionFilter::new(name+"_lre", filt_r_3, center_half)
 
       filt_r_4 = @fil_array.reverse.values_at(*(1..(@fil_array.length-1)).step(2).collect)
-      @low_reverse_odd = ConvolutionFilter::new(name+"_low_reverse_odd", filt_r_4, center_half)
+      @low_reverse_odd = BOAST::ConvolutionFilter::new(name+"_lro", filt_r_4, center_half)
 
       filt_r_5 = filt2.reverse.values_at(*(0..(filt2.length-1)).step(2).collect)
-      @high_reverse_even = ConvolutionFilter::new(name+"_high_reverse_even", filt_r_5, center_half)
+      @high_reverse_even = BOAST::ConvolutionFilter::new(name+"_hre", filt_r_5, center_half)
 
       filt_r_6 = filt2.reverse.values_at(*(1..(filt2.length-1)).step(2).collect)
-      @high_reverse_even = ConvolutionFilter::new(name+"_high_reverse_odd", filt_r_6, center_half)
+      @high_reverse_odd = BOAST::ConvolutionFilter::new(name+"_hro", filt_r_6, center_half)
 
       @length = @fil_array.length
       @name = name
@@ -310,11 +313,11 @@ module BOAST
       end
       if @wavelet then
         if @wavelet == :decompose then
-          @dim_ngs = [ BOAST::Dim(2), BOAST::Dim( @filter.low_even.lowfil, @dim_n + @filter.low_even.upfil - 1 ) ]
-          @dim_nsg = [ BOAST::Dim( -@filter.low_reverse_even.upfil, @dim_n - @filter.low_reverse_even.lowfil - 1 ), BOAST::Dim(2) ] 
+          @dim_ngs = [ BOAST::Dim(0, 1), BOAST::Dim( @filter.low_even.lowfil, @dim_n + @filter.low_even.upfil - 1 ) ]
+          @dim_nsg = [ BOAST::Dim( -@filter.low_even.upfil, @dim_n - @filter.low_even.lowfil - 1 ), BOAST::Dim(0, 1) ] 
         else
-          @dim_ngs = [ BOAST::Dim( @filter.low_reverse_even.lowfil, @dim_n + @filter.low_reverse_even.upfil - 1 ), BOAST::Dim(2) ]
-          @dim_nsg = [ BOAST::Dim(2), BOAST::Dim( -@filter.low_even.upfil, @dim_n - @filter.low_even.lowfil - 1 ) ]
+          @dim_ngs = [ BOAST::Dim( @filter.low_reverse_even.lowfil, @dim_n + @filter.low_reverse_even.upfil - 1 ), BOAST::Dim(0, 1) ]
+          @dim_nsg = [ BOAST::Dim(0, 1), BOAST::Dim( -@filter.low_reverse_even.upfil, @dim_n - @filter.low_reverse_even.lowfil - 1 ) ]
         end
       else
         #growed dimension, to be used either for extremes or for mod_arr
@@ -325,11 +328,11 @@ module BOAST
       if @bc.grow then
         if @wavelet then
           if @wavelet == :decompose then
-            @line_start = -@filter.low_reverse_even.upfil
-            @line_end = @dim_n - @filter.low_reverse_even.lowfil - 1
-          else
             @line_start = -@filter.low_even.upfil
             @line_end = @dim_n - @filter.low_even.lowfil - 1
+          else
+            @line_start = -@filter.low_reverse_even.upfil
+            @line_end = @dim_n - @filter.low_reverse_even.lowfil - 1
           end
         else
           @line_start = -@filter.upfil
@@ -357,12 +360,22 @@ module BOAST
         elsif not dim.name.match("ndat") and bc.shrink
           if @wavelet then
             if @wavelet == :decompose then
-              [ BOAST::Dim(2), BOAST::Dim( @filter.low_even.lowfil, dim + @filter.low_even.lowfil - 1 ) ]
+              [ BOAST::Dim(0, 1), BOAST::Dim( @filter.low_even.lowfil, dim + @filter.low_even.lowfil - 1 ) ]
             else
-              [ BOAST::Dim( @filter.low_reverse_even.lowfil, dim + @filter.low_reverse_even.lowfil - 1 ), BOAST::Dim(2) ]
+              [ BOAST::Dim( @filter.low_reverse_even.lowfil, dim + @filter.low_reverse_even.lowfil - 1 ), BOAST::Dim(0, 1) ]
             end
           else
             BOAST::Dim(@filter.lowfil, dim + @filter.lowfil - 1)
+          end
+        elsif not dim.name.match("ndat")
+          if @wavelet then
+            if @wavelet == :decompose then
+              [ BOAST::Dim(0, 1), BOAST::Dim(0, dim - 1) ]
+            else
+              [ BOAST::Dim(0, dim - 1), BOAST::Dim(0, 1) ]
+            end
+          else
+            BOAST::Dim(0, dim - 1)
           end
         else
           BOAST::Dim(0, dim - 1)
@@ -375,12 +388,22 @@ module BOAST
         elsif not dim.name.match("ndat") and bc.grow then
           if @wavelet then
             if @wavelet == :decompose then
-              [ BOAST::Dim( -@filter.low_reverse_even.upfil, dim - @filter.low_reverse_even.upfil - 1 ), BOAST::Dim(2) ]
+              [ BOAST::Dim( -@filter.low_reverse_even.upfil, dim - @filter.low_reverse_even.upfil - 1 ), BOAST::Dim(0, 1) ]
             else
-              [ BOAST::Dim(2), BOAST::Dim( -@filter.low_even.upfil, dim - @filter.low_even.upfil - 1 ) ]
+              [ BOAST::Dim(0, 1), BOAST::Dim( -@filter.low_even.upfil, dim - @filter.low_even.upfil - 1 ) ]
             end
           else
             BOAST::Dim( -@filter.upfil, dim - @filter.upfil - 1)
+          end
+        elsif not dim.name.match("ndat")
+          if @wavelet then
+            if @wavelet == :decompose then
+              [ BOAST::Dim(0, dim - 1), BOAST::Dim(0, 1) ]
+            else
+              [ BOAST::Dim(0, 1), BOAST::Dim(0, dim - 1) ]
+            end
+          else
+            BOAST::Dim(0, dim - 1)
           end
         else
           BOAST::Dim(0, dim - 1)
@@ -416,6 +439,9 @@ module BOAST
     end
 
     def params(dim, index=0)
+      if @wavelet then
+        dim[index] /= 2
+      end
       vars=[]
       varsin=[]
       varsout=[]
@@ -500,8 +526,8 @@ module BOAST
         p = self.procedure(optim)
         BOAST::print p
         kernel.procedure = p
+        #kernel.print #if @bc.free
         kernel.build(:openmp => true)
-        #kernel.print if @bc.free
         t_mean = 0
         dimensions = opt_space.dimensions
         par = nil
@@ -510,13 +536,14 @@ module BOAST
         end
 	dimensions.length.times { |indx|
           stats_a = []
-          par = self.params(dimensions, indx)
+          par = self.params(dimensions.dup, indx)
           #puts par.inspect
           opt_space.repeat.times {
             stats_a.push kernel.run(*par)
           }
           stats_a.sort_by! { |a| a[:duration] }
           stats = stats_a.first
+          #puts *par[0...@dims.length]
           if BOAST::get_verbose then
             puts "#{indx} - [#{par[0...@dims.length].join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} us #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
             puts optim
@@ -621,10 +648,10 @@ module BOAST
           BOAST::decl @filter.high_even.fil
           BOAST::decl @filter.high_odd.fil
         else
-          BOAST::decl @filter.low_reverse_even
-          BOAST::decl @filter.low_reverse_odd
-          BOAST::decl @filter.high_reverse_even
-          BOAST::decl @filter.high_reverse_odd
+          BOAST::decl @filter.low_reverse_even.fil
+          BOAST::decl @filter.low_reverse_odd.fil
+          BOAST::decl @filter.high_reverse_even.fil
+          BOAST::decl @filter.high_reverse_odd.fil
         end
       else
         BOAST::decl @filter.fil
@@ -798,11 +825,15 @@ module BOAST
             i_in[0].flatten!
             i_in[1].flatten!
             if @wavelet == :decompose then
-              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_in[0])]*@filter.low_even[l]  + @in[*(i_in[1])]*@filter.low_odd[l]
-              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_in[0])]*@filter.high_even[l] + @in[*(i_in[1])]*@filter.high_odd[l]
+              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_in[0])]*@filter.low_even.fil[l]
+              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_in[0])]*@filter.high_even.fil[l]
+              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_in[1])]*@filter.low_odd.fil[l]
+              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_in[1])]*@filter.high_odd.fil[l]
             else
-              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_in[0])]*@filter.low_reverse_odd[l]  + @in[*(i_in[1])]*@filter.high_reverse_odd[l]
-              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_in[0])]*@filter.low_reverse_even[l] + @in[*(i_in[1])]*@filter.high_reverse_even[l]
+              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_in[0])]*@filter.low_reverse_odd.fil[l]
+              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_in[0])]*@filter.low_reverse_even.fil[l]
+              BOAST::print t[0][ind] === t[0][ind] + @in[*(i_in[1])]*@filter.high_reverse_odd.fil[l]
+              BOAST::print t[1][ind] === t[1][ind] + @in[*(i_in[1])]*@filter.high_reverse_even.fil[l]
             end
           else
             BOAST::print t[ind] === t[ind] + @in[*i_in]*@filter.fil[l]
@@ -955,6 +986,7 @@ module BOAST
       @filter = filter
       @ld = options[:ld]
       @m = options[:m]
+      @wavelet = options[:wavelet]
 
       @vars = []
       @vars.push @ndim  = BOAST::Int( "d",  :dir => :in )
@@ -1012,7 +1044,7 @@ module BOAST
         indx = n.length - indx - 1 if @transpose == -1
         ndat = 1
         (0..(n.length - 1)).each { |i|
-          ndat *= n[i] if i != indx
+          ndat *= dims_actual[i] if i != indx
         }
         ni_ndat = [ n[indx], ndat ]
         ni_ndat.reverse! if @transpose == -1 or (@transpose == 0 and indx = n.length - 1 )
@@ -1024,8 +1056,8 @@ module BOAST
         ndat = 1
         ndat2 = 1
         (0..(n.length - 1)).each { |i|
-          ndat *= n[i] if i < indx
-          ndat2 *= n[i] if i > indx
+          ndat *= dims_actual[i] if i < indx
+          ndat2 *= dims_actual[i] if i > indx
         }
         ni = n[indx]
         ndat_ni_ndat2 = [ndat, ni, ndat2]
@@ -1034,9 +1066,32 @@ module BOAST
       }
       (0...n.length).each { |indx|
         if bc[indx] == BOAST::BC::SHRINK then
-          dims_actual[indx] = n[indx] + @filter.length - 1
+          if @wavelet then
+            dims_actual[indx] = n[indx] * 2 + @filter.length - 2
+          else
+            dims_actual[indx] = n[indx] + @filter.length - 1
+          end
         else
-          dims_actual[indx] = n[indx]
+          if @wavelet then
+            dims_actual[indx] = n[indx] * 2
+          else
+            dims_actual[indx] = n[indx]
+          end
+        end
+      }
+      change_dims = lambda { |indx|
+        if bc[indx] == BOAST::BC::GROW then
+          if @wavelet then
+            dims_actual[indx] = n[indx] * 2 + @filter.length  - 2
+          else
+            dims_actual[indx] = n[indx] + @filter.length - 1
+          end
+        else
+          if @wavelet then
+            dims_actual[indx] = n[indx] * 2
+          else
+            dims_actual[indx] = n[indx]
+          end
         end
       }
       if n.length == 1 then
@@ -1049,6 +1104,7 @@ module BOAST
         cost = 0
         dims, dim_indexes = compute_ni_ndat.call(0)
         cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, dim_indexes, (true and @options[:beta]), @options).cost( *dims )
+        change_dims.call(0)
         dims_left = n.length - 1
         while dims_left > 1 do
           if @transpose == 0 then
@@ -1056,17 +1112,26 @@ module BOAST
           else
             dims, dim_indexes = compute_ni_ndat.call(n.length-dims_left)
           end
-          cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, dim_indexes, false, @options).cost( *dims )
+          cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[n.length-dims_left]), @transpose, dim_indexes, false, @options).cost( *dims )
+          change_dims.call(n.length-dims_left)
           dims_left -= 1
         end
         dims, dim_indexes = compute_ni_ndat.call(n.length-1)
-        cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[0]), @transpose, dim_indexes, false, @options).cost( *dims )
+        cost += ConvolutionOperator1d::new(@filter, BOAST::BC::new(bc[n.length-dims_left]), @transpose, dim_indexes, false, @options).cost( *dims )
       end
       return cost * m
     end
 
     def procedure
-      function_name = @filter.name
+      function_name = ""
+      if @wavelet then
+        if @wavelet == :decompose then
+          function_name += "dwt_"
+        else
+          function_name += "idwt_"
+        end
+      end
+      function_name += @filter.name
       function_name += "_ld" if @ld
       function_name += "_m" if @m
       p = BOAST::Procedure(function_name,@vars) {
@@ -1087,12 +1152,24 @@ module BOAST
         BOAST::print dims_left === @ndim
         BOAST::print BOAST::For( i, 0, @ndim - 1 ) {
           if @ld then
-            BOAST::print dims_actual[i] === @ld_in[i]
+            if @wavelet then
+              BOAST::print dims_actual[i] === @ld_in[i] * 2
+            else
+              BOAST::print dims_actual[i] === @ld_in[i]
+            end
           else
             BOAST::print BOAST::If(@bc[i] == BOAST::BC::SHRINK, lambda {
-              BOAST::print dims_actual[i] === @dims[i] + @filter.length - 1
+              if @wavelet then
+                BOAST::print dims_actual[i] === @dims[i] * 2 + @filter.length - 2
+              else
+                BOAST::print dims_actual[i] === @dims[i] + @filter.length - 1
+              end
             }, lambda {
-              BOAST::print dims_actual[i] === @dims[i]
+              if @wavelet then
+                BOAST::print dims_actual[i] === @dims[i] * 2
+              else
+                BOAST::print dims_actual[i] === @dims[i]
+              end
             })
           end
         }
@@ -1135,7 +1212,13 @@ module BOAST
             end
             BOAST::print ndat_tot_out === ndat_tot_in
             BOAST::print ndat_tot_in === ndat_tot_in * dims_actual[indx]
-            BOAST::print ndat_tot_out === ndat_tot_out * @ld_out[indx] if @ld
+            if @ld then
+              if @wavelet then
+                BOAST::print ndat_tot_out === ndat_tot_out * @ld_out[indx] * 2
+              else
+                BOAST::print ndat_tot_out === ndat_tot_out * @ld_out[indx]
+              end
+            end
             f = BOAST::For(j, 0, @m-1)
           end
           if @ld then
@@ -1167,7 +1250,13 @@ module BOAST
             procname = ConvolutionOperator1d::new(@filter, BOAST::BC::new(BOAST::BC::GROW),     @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
 
             if multi_conv then
-              BOAST::print ndat_tot_out === ndat_tot_out * ( dims_actual[indx] + @filter.length - 1 ) if not @ld
+              if not @ld then
+                if @wavelet then
+                  BOAST::print ndat_tot_out === ndat_tot_out * ( dims_actual[indx] + @filter.length - 2 )
+                else
+                  BOAST::print ndat_tot_out === ndat_tot_out * ( dims_actual[indx] + @filter.length - 1 )
+                end
+              end
               dats[0] = (datas[0][ndat_tot_in*j+1]).address
               dats[1] = (datas[1][ndat_tot_out*j+1]).address
               f.print
@@ -1179,13 +1268,23 @@ module BOAST
             if @ld then
               BOAST::print dims_actual[indx] === @ld_out[indx]  if @ld
             else
-              BOAST::print dims_actual[indx] === dims_actual[indx] + @filter.length - 1
+              if @wavelet then
+                BOAST::print dims_actual[indx] === dims_actual[indx] + @filter.length - 2
+              else
+                BOAST::print dims_actual[indx] === dims_actual[indx] + @filter.length - 1
+              end
             end
           }, BOAST::BC::SHRINK, lambda {
             procname = ConvolutionOperator1d::new(@filter, BOAST::BC::new(BOAST::BC::SHRINK),    @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
 
             if multi_conv then
-              BOAST::print ndat_tot_out === ndat_tot_out * ( dims_actual[indx] - @filter.length + 1 )  if not @ld
+              if not @ld then
+                if @wavelet then
+                  BOAST::print ndat_tot_out === ndat_tot_out * ( dims_actual[indx] - @filter.length + 2 )
+                else
+                  BOAST::print ndat_tot_out === ndat_tot_out * ( dims_actual[indx] - @filter.length + 1 )
+                end
+              end
               dats[0] = (datas[0][ndat_tot_in*j+1]).address
               dats[1] = (datas[1][ndat_tot_out*j+1]).address
               f.print
@@ -1197,7 +1296,11 @@ module BOAST
             if @ld then
               BOAST::print dims_actual[indx] === @ld_out[indx]  if @ld
             else
-              BOAST::print dims_actual[indx] === dims_actual[indx] - @filter.length + 1
+              if @wavelet then
+                BOAST::print dims_actual[indx] === dims_actual[indx] - @filter.length + 2
+              else
+                BOAST::print dims_actual[indx] === dims_actual[indx] - @filter.length + 1
+              end
             end
           })
         }
