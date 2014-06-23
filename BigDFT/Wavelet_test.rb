@@ -44,7 +44,7 @@ L = [-0.0033824159510050025955,
 
 
 optims = BOAST::GenericOptimization::new()#:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
-wave_filter = BOAST::WaveletFilter::new("sym16", L)
+wave_filter = BOAST::WaveletFilter::new("sym#{L.length/2}", L)
 n1 = 62
 n2 = 66
 n3 = 65
@@ -174,9 +174,9 @@ puts "#{k1.procedure.name}: #{stats[:duration]*1.0e3} #{k1.cost(n, bc) / (stats[
 bc[0] = BOAST::BC::GROW
 bc[1] = BOAST::BC::GROW
 bc[2] = BOAST::BC::GROW
-n[0] = n1 - L.length/2 + 1
-n[1] = n2 - L.length/2 + 1
-n[2] = n3 - L.length/2 + 1
+n[0] = n1
+n[1] = n2
+n[2] = n3
 
 
 
@@ -192,14 +192,10 @@ end
 stats_a.sort_by! { |a| a[:duration] }
 stats = stats_a.first
 puts "#{k2.procedure.name}: #{stats[:duration]*1.0e3} #{k2.cost(n, bc) / (stats[:duration]*1.0e9)} GFlops"
-lowbound = L.length+2
-highbound = -L.length-2
+lowbound = L.length
+highbound = -L.length
 area = [lowbound..highbound]*3
 diff = (input[*area] - output2[*area]).abs
-puts input[32,32,32]
-puts output2[32,32,32]
-puts input[33,32,32]
-puts output2[33,32,32]
 diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
