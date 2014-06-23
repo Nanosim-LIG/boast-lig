@@ -43,7 +43,7 @@ L = [-0.0033824159510050025955,
       0.0018899503327676891843]
 
 
-optims = BOAST::GenericOptimization::new()#:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
+optims = BOAST::GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
 wave_filter = BOAST::WaveletFilter::new("sym#{L.length/2}", L)
 n1 = 62
 n2 = 66
