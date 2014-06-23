@@ -42,8 +42,9 @@ L = [-0.0033824159510050025955,
      -0.00030292051472413308126,
       0.0018899503327676891843]
 
+epsilon = 10e-12
 
-optims = BOAST::GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
+optims = BOAST::GenericOptimization::new()#:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
 wave_filter = BOAST::WaveletFilter::new("sym#{L.length/2}", L)
 n1 = 62
 n2 = 66
@@ -63,7 +64,6 @@ bc[0] = BOAST::BC::PERIODIC
 bc[1] = BOAST::BC::PERIODIC
 bc[2] = BOAST::BC::PERIODIC
 
-epsilon = 10e-12
 
 k1 = BOAST::Wavelet(wave_filter, :decompose, optims)
 k1.build(:openmp => true)
@@ -192,8 +192,8 @@ end
 stats_a.sort_by! { |a| a[:duration] }
 stats = stats_a.first
 puts "#{k2.procedure.name}: #{stats[:duration]*1.0e3} #{k2.cost(n, bc) / (stats[:duration]*1.0e9)} GFlops"
-lowbound = L.length
-highbound = -L.length
+lowbound = L.length - 2
+highbound = -L.length + 1
 area = [lowbound..highbound]*3
 diff = (input[*area] - output2[*area]).abs
 diff.each { |elem|
