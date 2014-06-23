@@ -388,9 +388,9 @@ module BOAST
         elsif not dim.name.match("ndat") and bc.grow then
           if @wavelet then
             if @wavelet == :decompose then
-              [ BOAST::Dim( -@filter.low_reverse_even.upfil, dim - @filter.low_reverse_even.upfil - 1 ), BOAST::Dim(0, 1) ]
+              [ BOAST::Dim( -@filter.low_even.upfil, dim - @filter.low_even.upfil - 1 ), BOAST::Dim(0, 1) ]
             else
-              [ BOAST::Dim(0, 1), BOAST::Dim( -@filter.low_even.upfil, dim - @filter.low_even.upfil - 1 ) ]
+              [ BOAST::Dim(0, 1), BOAST::Dim( -@filter.low_reverse_even.upfil, dim - @filter.low_reverse_even.upfil - 1 ) ]
             end
           else
             BOAST::Dim( -@filter.upfil, dim - @filter.upfil - 1)

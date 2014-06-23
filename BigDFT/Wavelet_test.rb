@@ -67,6 +67,9 @@ epsilon = 10e-12
 
 k1 = BOAST::Wavelet(wave_filter, :decompose, optims)
 k1.build(:openmp => true)
+k2 = BOAST::Wavelet(wave_filter, :recompose, optims)
+k2.build(:openmp => true)
+
 repeat = 5
 begin
   stats_a = []
@@ -79,9 +82,6 @@ end
 stats_a.sort_by! { |a| a[:duration] }
 stats = stats_a.first
 puts "#{k1.procedure.name}: #{stats[:duration]*1.0e3} #{k1.cost(n, bc) / (stats[:duration]*1.0e9)} GFlops"
-
-k2 = BOAST::Wavelet(wave_filter, :recompose, optims)
-k2.build(:openmp => true)
 
 begin
   stats_a = []
@@ -104,16 +104,13 @@ puts "again grow then shrink"
 
 input   = NArray.float(n1*2, n2*2, n3*2).random
 work1   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
-work1   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+work2   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
 output  = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
 output2 = NArray.float(n1*2, n2*2, n3*2)
 
 bc[0] = BOAST::BC::GROW
 bc[1] = BOAST::BC::GROW
 bc[2] = BOAST::BC::GROW
-
-k1.print
-exit
 
 begin
   stats_a = []
@@ -126,6 +123,7 @@ end
 stats_a.sort_by! { |a| a[:duration] }
 stats = stats_a.first
 puts "#{k1.procedure.name}: #{stats[:duration]*1.0e3} #{k1.cost(n, bc) / (stats[:duration]*1.0e9)} GFlops"
+
 
 bc[0] = BOAST::BC::SHRINK
 bc[1] = BOAST::BC::SHRINK
@@ -148,8 +146,6 @@ diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
 
-exit
-
 puts "again shrink then grow"
 
 input   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2).random
@@ -157,6 +153,7 @@ work1   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length
 work2   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
 output  = NArray.float(n1*2, n2*2, n3*2)
 output2 = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+
 
 bc[0] = BOAST::BC::SHRINK
 bc[1] = BOAST::BC::SHRINK
@@ -195,10 +192,15 @@ end
 stats_a.sort_by! { |a| a[:duration] }
 stats = stats_a.first
 puts "#{k2.procedure.name}: #{stats[:duration]*1.0e3} #{k2.cost(n, bc) / (stats[:duration]*1.0e9)} GFlops"
-
-diff = (input[4..-5,4..-5,4..-5] - output2[4..-5,4..-5,4..-5]).abs
+lowbound = L.length+2
+highbound = -L.length-2
+area = [lowbound..highbound]*3
+diff = (input[*area] - output2[*area]).abs
+puts input[32,32,32]
+puts output2[32,32,32]
+puts input[33,32,32]
+puts output2[33,32,32]
 diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
-
 
