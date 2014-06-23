@@ -44,8 +44,8 @@ L = [-0.0033824159510050025955,
 
 epsilon = 10e-12
 
-optims = BOAST::GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
-wave_filter = BOAST::WaveletFilter::new("sym#{L.length/2}", L)
+optims = GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
+wave_filter = WaveletFilter::new("sym#{L.length/2}", L)
 n1 = 62
 n2 = 66
 n3 = 65
@@ -60,14 +60,14 @@ n[0] = n1
 n[1] = n2
 n[2] = n3
 bc = NArray.int(3)
-bc[0] = BOAST::BC::PERIODIC
-bc[1] = BOAST::BC::PERIODIC
-bc[2] = BOAST::BC::PERIODIC
+bc[0] = BC::PERIODIC
+bc[1] = BC::PERIODIC
+bc[2] = BC::PERIODIC
 
 
-k1 = BOAST::Wavelet(wave_filter, :decompose, optims)
+k1 = Wavelet(wave_filter, :decompose, optims)
 k1.build(:openmp => true)
-k2 = BOAST::Wavelet(wave_filter, :recompose, optims)
+k2 = Wavelet(wave_filter, :recompose, optims)
 k2.build(:openmp => true)
 
 repeat = 5
@@ -108,9 +108,9 @@ work2   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length
 output  = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
 output2 = NArray.float(n1*2, n2*2, n3*2)
 
-bc[0] = BOAST::BC::GROW
-bc[1] = BOAST::BC::GROW
-bc[2] = BOAST::BC::GROW
+bc[0] = BC::GROW
+bc[1] = BC::GROW
+bc[2] = BC::GROW
 
 begin
   stats_a = []
@@ -125,9 +125,9 @@ stats = stats_a.first
 puts "#{k1.procedure.name}: #{stats[:duration]*1.0e3} #{k1.cost(n, bc) / (stats[:duration]*1.0e9)} GFlops"
 
 
-bc[0] = BOAST::BC::SHRINK
-bc[1] = BOAST::BC::SHRINK
-bc[2] = BOAST::BC::SHRINK
+bc[0] = BC::SHRINK
+bc[1] = BC::SHRINK
+bc[2] = BC::SHRINK
 
 begin
   stats_a = []
@@ -155,9 +155,9 @@ output  = NArray.float(n1*2, n2*2, n3*2)
 output2 = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
 
 
-bc[0] = BOAST::BC::SHRINK
-bc[1] = BOAST::BC::SHRINK
-bc[2] = BOAST::BC::SHRINK
+bc[0] = BC::SHRINK
+bc[1] = BC::SHRINK
+bc[2] = BC::SHRINK
 
 begin
   stats_a = []
@@ -171,9 +171,9 @@ stats_a.sort_by! { |a| a[:duration] }
 stats = stats_a.first
 puts "#{k1.procedure.name}: #{stats[:duration]*1.0e3} #{k1.cost(n, bc) / (stats[:duration]*1.0e9)} GFlops"
 
-bc[0] = BOAST::BC::GROW
-bc[1] = BOAST::BC::GROW
-bc[2] = BOAST::BC::GROW
+bc[0] = BC::GROW
+bc[1] = BC::GROW
+bc[2] = BC::GROW
 n[0] = n1
 n[1] = n2
 n[2] = n3

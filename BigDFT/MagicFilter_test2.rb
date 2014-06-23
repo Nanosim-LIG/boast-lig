@@ -50,21 +50,21 @@ ld_out[2] = n3+pad_out
 
 bc = NArray.int(3)
 
-k_ref = BOAST::magicfilter_per_ref
+k_ref = magicfilter_ref
 stats = k_ref.run(n1, n2*n3, input, output_ref)
 stats = k_ref.run(n2, n1*n3, output_ref, work1)
 stats = k_ref.run(n3, n2*n1, work1, output_ref)
 
 puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
-conv_filter = BOAST::ConvolutionFilter::new('sfrf',FILTER,8)
-optims = BOAST::GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true,:tt_arr_test => true)
-k = BOAST::MFG(conv_filter, optims)
+conv_filter = ConvolutionFilter::new('sfrf',FILTER,8)
+optims = GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true,:tt_arr_test => true)
+k = MagicFilter(conv_filter, optims)
 #k.print
 k.build(:openmp => true)
-bc[0] = BOAST::BC::PERIODIC
-bc[1] = BOAST::BC::PERIODIC
-bc[2] = BOAST::BC::PERIODIC
+bc[0] = BC::PERIODIC
+bc[1] = BC::PERIODIC
+bc[2] = BC::PERIODIC
 
 repeat = 5
 begin
@@ -96,16 +96,16 @@ output = NArray.float(n1+15,n2+15,n3+15,m)
   input[ true, true, true, i ] = input[ true, true, true, 0 ]
 }
 
-k_ref = BOAST::magicfilter_per_ref(false,true)
+k_ref = magicfilter_ref(false,true)
 stats = k_ref.run(n1, n2*n3, input, work2)
 stats = k_ref.run(n2, (n1+15)*n3, work2, work1)
 stats = k_ref.run(n3, (n2+15)*(n1+15), work1, output_ref)
 
 puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
-bc[0] = BOAST::BC::GROW
-bc[1] = BOAST::BC::GROW
-bc[2] = BOAST::BC::GROW
+bc[0] = BC::GROW
+bc[1] = BC::GROW
+bc[2] = BC::GROW
 
 ld_out[0] = n1+15
 ld_out[1] = n2+15
@@ -141,19 +141,19 @@ output = NArray.float(n1,n2,n3,m)
   input[ true, true, true, i ] = input[ true, true, true, 0 ]
 }
 
-k_ref = BOAST::magicfilter_per_ref(true,true)
+k_ref = magicfilter_ref(true,true)
 stats = k_ref.run(n1, (n2+15)*(n3+15), input, work2)
 stats = k_ref.run(n2, n1*(n3+15), work2, work1)
 stats = k_ref.run(n3, n2*n1, work1, output_ref)
 puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
-conv_filter = BOAST::ConvolutionFilter::new('rfsf',FILTER.reverse,7)
-k = BOAST::MFG(conv_filter, optims)
+conv_filter = ConvolutionFilter::new('rfsf',FILTER.reverse,7)
+k = MagicFilter(conv_filter, optims)
 k.build(:openmp => true)
 
-bc[0] = BOAST::BC::SHRINK
-bc[1] = BOAST::BC::SHRINK
-bc[2] = BOAST::BC::SHRINK
+bc[0] = BC::SHRINK
+bc[1] = BC::SHRINK
+bc[2] = BC::SHRINK
 
 ld_in[0] = n1+15
 ld_in[1] = n2+15
@@ -210,16 +210,16 @@ ld_out[2] = n3+pad_out
 
 bc = NArray.int(3)
 
-k_ref = BOAST::magicfilter_per_ref( true )
+k_ref = magicfilter_ref( true )
 stats = k_ref.run(n1, n2*n3, input, output_ref)
 stats = k_ref.run(n2, n1*n3, output_ref, work1)
 stats = k_ref.run(n3, n2*n1, work1, output_ref)
 
 puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
 
-bc[0] = BOAST::BC::PERIODIC
-bc[1] = BOAST::BC::PERIODIC
-bc[2] = BOAST::BC::PERIODIC
+bc[0] = BC::PERIODIC
+bc[1] = BC::PERIODIC
+bc[2] = BC::PERIODIC
 
 repeat = 5
 begin

@@ -2,24 +2,22 @@ require 'rubygems'
 require 'BOAST'
 require 'narray'
 require "./GenericConvolution.rb" 
-module BOAST
 
-  def BOAST::kinetic_per_ref_optim_ekin
-    lang = BOAST::get_lang
-    BOAST::set_lang(BOAST::FORTRAN)
-    kernel = CKernel::new
-    kernel.lang = BOAST::FORTRAN
-    function_name = "kinetic_per_ref_optim"
-    n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
-    n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
-    n3 = Variable::new("n3",Int,{:direction => :in, :signed => false})
-    hgrid = Variable::new("hgrid",Real,{:direction => :in, :dimension => [3]})
-    kstrten = Variable::new("kstrten",Real,{:direction => :out, :dimension => [3]})
-    x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(0, n1),  Dimension::new(0, n2), Dimension::new(0, n3)] })
-    y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(0, n1),  Dimension::new(0, n2), Dimension::new(0, n3)] })
-    
-    p = Procedure::new(function_name, [n1,n2,n3,hgrid,x,y,kstrten])
-    kernel.code.print <<EOF
+def BOAST::kinetic_per_ref_optim_ekin
+  lang = BOAST::get_lang
+  BOAST::set_lang(BOAST::FORTRAN)
+  kernel = BOAST::CKernel::new
+  function_name = "kinetic_per_ref_optim_ekin"
+  n1 = BOAST::Int("n1", :dir => :in)
+  n2 = BOAST::Int("n2", :dir => :in)
+  n3 = BOAST::Int("n3", :dir => :in)
+  hgrid = BOAST::Real("hgrid", :dir => :in, :dim => [BOAST::Dim(3)] )
+  kstrten = BOAST::Real("kstrten", :dir => :out, :dim => [BOAST::Dim(3)] )
+  x = BOAST::Real("x", :dir => :in,  :dim => [ BOAST::Dim(0, n1),  BOAST::Dim(0, n2), BOAST::Dim(0, n3)] )
+  y = BOAST::Real("y", :dir => :out, :dim => [ BOAST::Dim(0, n1),  BOAST::Dim(0, n2), BOAST::Dim(0, n3)] )
+  
+  p = BOAST::Procedure::new(function_name, [n1,n2,n3,hgrid,x,y,kstrten])
+  kernel.code.print <<EOF
 subroutine kinetic_per_ref_optim_ekin(n1,n2,n3,hgrid,x,y,kstrten)
   !   applies the kinetic energy operator onto x to get y. Works for periodic BC
   !   y:=y-1/2Delta x
@@ -373,28 +371,27 @@ subroutine fill_mod_arr(arr,nleft,nright,n)
   endif
 END SUBROUTINE fill_mod_arr
 EOF
-    kernel.procedure = p
-    BOAST::set_lang(lang)
-    return kernel
-  end
+  kernel.procedure = p
+  BOAST::set_lang(lang)
+  return kernel
+end
 
 
-  def BOAST::kinetic_per_ref_optim
-    lang = BOAST::get_lang
-    BOAST::set_lang(BOAST::FORTRAN)
-    kernel = CKernel::new
-    kernel.lang = BOAST::FORTRAN
-    function_name = "kinetic_per_ref_optim"
-    n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
-    n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
-    n3 = Variable::new("n3",Int,{:direction => :in, :signed => false})
-    hgrid = Variable::new("hgrid",Real,{:direction => :in, :dimension => [3]})
-    c = Variable::new("c",Real,{:direction => :in})
-    x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(0, n1),  Dimension::new(0, n2), Dimension::new(0, n3)] })
-    y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(0, n1),  Dimension::new(0, n2), Dimension::new(0, n3)] })
-    
-    p = Procedure::new(function_name, [n1,n2,n3,hgrid,x,y,c])
-    kernel.code.print <<EOF
+def kinetic_per_ref_optim
+  lang = BOAST::get_lang
+  BOAST::set_lang(BOAST::FORTRAN)
+  kernel = BOAST::CKernel::new
+  function_name = "kinetic_per_ref_optim"
+  n1 = BOAST::Int("n1", :dir => :in)
+  n2 = BOAST::Int("n2", :dir => :in)
+  n3 = BOAST::Int("n3", :dir => :in)
+  hgrid = BOAST::Real("hgrid", :dir => :in, :dim => [BOAST::Dim(3)] )
+  c = BOAST::Real("c", :dir => :in)
+  x = BOAST::Real("x", :dir => :in,  :dim => [ BOAST::Dim(0, n1),  BOAST::Dim(0, n2), BOAST::Dim(0, n3)] )
+  y = BOAST::Real("y", :dir => :out, :dim => [ BOAST::Dim(0, n1),  BOAST::Dim(0, n2), BOAST::Dim(0, n3)] )
+  
+  p = BOAST::Procedure::new(function_name, [n1,n2,n3,hgrid,x,y,c])
+  kernel.code.print <<EOF
 subroutine kinetic_per_ref_optim(n1,n2,n3,hgrid,x,y,c)
   implicit none
   integer, parameter :: wp=kind(1.0d0), gp=kind(1.0d0)
@@ -960,28 +957,27 @@ subroutine fill_mod_arr(arr,nleft,nright,n)
 END SUBROUTINE fill_mod_arr
 
 EOF
-    kernel.procedure = p
-    BOAST::set_lang(lang)
-    return kernel
-  end
+  kernel.procedure = p
+  BOAST::set_lang(lang)
+  return kernel
+end
 
 
-  def BOAST::kinetic_per_ref
-    lang = BOAST::get_lang
-    BOAST::set_lang(BOAST::FORTRAN)
-    kernel = CKernel::new
-    kernel.lang = BOAST::FORTRAN
-    function_name = "kinetic_per_ref"
-    n1 = Variable::new("n1",Int,{:direction => :in, :signed => false})
-    n2 = Variable::new("n2",Int,{:direction => :in, :signed => false})
-    n3 = Variable::new("n3",Int,{:direction => :in, :signed => false})
-    hgrid = Variable::new("hgrid",Real,{:direction => :in, :dimension => [3]})
-    c = Variable::new("c",Real,{:direction => :in})
-    x = Variable::new("x",Real,{:direction => :in, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
-    y = Variable::new("y",Real,{:direction => :out, :dimension => [ Dimension::new(0, n1-1),  Dimension::new(0, n2-1), Dimension::new(0, n3-1)] })
-    
-    p = Procedure::new(function_name, [n1,n2,n3,hgrid,x,y,c])
-    kernel.code.print <<EOF
+def kinetic_per_ref
+  lang = BOAST::get_lang
+  BOAST::set_lang(BOAST::FORTRAN)
+  kernel = BOAST::CKernel::new
+  function_name = "kinetic_per_ref"
+  n1 = BOAST::Int("n1", :dir => :in)
+  n2 = BOAST::Int("n2", :dir => :in)
+  n3 = BOAST::Int("n3", :dir => :in)
+  hgrid = BOAST::Real("hgrid", :dir => :in, :dim => [BOAST::Dim(3)] )
+  c = BOAST::Real("c", :dir => :in)
+  x = BOAST::Real("x", :dir => :in,  :dim => [ BOAST::Dim(0, n1 - 1),  BOAST::Dim(0, n2 - 1), BOAST::Dim(0, n3 - 1)] )
+  y = BOAST::Real("y", :dir => :out, :dim => [ BOAST::Dim(0, n1 - 1),  BOAST::Dim(0, n2 - 1), BOAST::Dim(0, n3 - 1)] )
+  
+  p = BOAST::Procedure::new(function_name, [n1,n2,n3,hgrid,x,y,c])
+  kernel.code.print <<EOF
 subroutine kinetic_per_ref(n1,n2,n3,hgrid,x,y,c)
 !   applies the kinetic energy operator onto x to get y. Works for periodic BC
   implicit none
@@ -1064,65 +1060,32 @@ subroutine kinetic_per_ref(n1,n2,n3,hgrid,x,y,c)
   
 END SUBROUTINE kinetic_per_ref
 EOF
-    kernel.procedure = p
-    BOAST::set_lang(lang)
-    return kernel
-  end
+  kernel.procedure = p
+  BOAST::set_lang(lang)
+  return kernel
+end
 
-#  BOAST::set_verbose true
-  def BOAST::kinetic(filt, center, unroll, ekin = false, free=[BOAST::BC::PERIODIC]*3)
-    kernel = CKernel::new
-    BOAST::set_output( kernel.code )
-    kernel.lang = BOAST::get_lang
-
-    if BOAST::get_lang == C then
-      @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
-      @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
-      @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
-    end
-
-    conv_filter = ConvolutionFilter::new('kinetic',filt,center)
-    
-    kinetic_operation = ConvolutionOperator::new(conv_filter, 3, free, :accumulate => true, :beta =>(not ekin), :eks => ekin, :alpha => true)
-
-    optim = ConvolutionOptimization::new(kinetic_operation,:use_mod => true,:unroll => unroll,:tt_arr => [true,false,true])
-
-    p, subops= kinetic_operation.procedure(optim)
-    subops.each{ | ops| ops.print}
-    p.print
-    
-    kernel.procedure = p
-    return kernel
-  end
-
-  def BOAST::kineticG(conv_filter, optims = GenericOptimization::new, ekin = false)
+def Kinetic(conv_filter, optims = GenericOptimization::new, ekin = false)
 
 
-    kinetic_operation = GenericConvolutionOperator::new(conv_filter, :accumulate => true, :transpose => 0, :beta =>(not ekin), :eks => ekin, :alpha => true)
-    kinetic_operation.optimize(optims)
+  kinetic_operation = GenericConvolutionOperator::new(conv_filter, :accumulate => true, :transpose => 0, :beta =>(not ekin), :eks => ekin, :alpha => true)
+  kinetic_operation.optimize(optims)
 
-    p, subops= kinetic_operation.procedure()
-    
-    kernel = CKernel::new
-    BOAST::set_output( kernel.code )
-    kernel.lang = BOAST::get_lang
+  p, subops= kinetic_operation.procedure()
+  
+  kernel = BOAST::CKernel::new
 
-    if BOAST::get_lang == C then
-      @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
-      @@output.print "inline #{Int::new.decl} min( #{Int::new.decl} a, #{Int::new.decl} b) { return a < b ? a : b;}\n"
-      @@output.print "inline #{Int::new.decl} max( #{Int::new.decl} a, #{Int::new.decl} b) { return a > b ? a : b;}\n"
-    end
+  print_header
 
-    subops.each_value { |op| 
-      print op 
-      puts "chosen:"+ op.name
-    }
-    print p
+  subops.each_value { |op| 
+    BOAST::print op 
+    puts "chosen:"+ op.name
+  }
+  BOAST::print p
 
-    kernel.procedure = p
-    kernel.cost_function = lambda { |*args| kinetic_operation.cost(*args) }
-    return kernel
-
-  end
+  kernel.procedure = p
+  kernel.cost_function = lambda { |*args| kinetic_operation.cost(*args) }
+  return kernel
 
 end
+

@@ -30,7 +30,7 @@ FILTER= ["-6.924474940639200152025730585882e-18",
         " 2.70800493626319438269856689037647576e-13",   # ---------------------
         "-6.924474940639200152025730585882e-18"]
 
-conv_filter = BOAST::ConvolutionFilter::new('kin',FILTER,14)
+conv_filter = ConvolutionFilter::new('kin',FILTER,14)
 
 n1 = 124
 n2 = 132
@@ -53,10 +53,10 @@ scal=NArray.float(3)
 kstrten_ref = NArray.float(3)
 kstrten = NArray.float(3)
 epsilon = 10e-13
-k = BOAST::kinetic_per_ref
+k = kinetic_per_ref
 stats = k.run(n1, n2, n3, hgrid, input, output_ref, 0.5)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-k = BOAST::kinetic_per_ref_optim
+k = kinetic_per_ref_optim
 k.build(:openmp => true)
 #k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -axSSE4.2 -openmp",:LDFLAGS => "-openmp"})
 stats = k.run(n1-1, n2-1, n3-1, hgrid, input, output, 0.5)
@@ -73,15 +73,15 @@ n[0] = n1
 n[1] = n2
 n[2] = n3
 
-optims = BOAST::GenericOptimization::new(:unroll_range => [2,6,2], :mod_arr_test => true, :tt_arr_test => true, :unrolled_dim_index_test => true)
-k = BOAST::kineticG(conv_filter, optims)
+optims = GenericOptimization::new(:unroll_range => [2,6,2], :mod_arr_test => true, :tt_arr_test => true, :unrolled_dim_index_test => true)
+k = Kinetic(conv_filter, optims)
 #k.print
 k.build(:openmp => true)
 
 bc = NArray.int(3)
-bc[0] = BOAST::BC::PERIODIC
-bc[1] = BOAST::BC::PERIODIC
-bc[2] = BOAST::BC::PERIODIC
+bc[0] = BC::PERIODIC
+bc[1] = BC::PERIODIC
+bc[2] = BC::PERIODIC
 
 repeat = 5
 
