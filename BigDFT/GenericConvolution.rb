@@ -327,7 +327,15 @@ module BOAST
       @accumulate = false
       @accumulate = options[:accumulate] if options[:accumulate]
       @options = options
-      @base_name = @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}"
+      @base_name = ""
+      if @wavelet then
+        if @wavelet == :decompose then
+          @base_name += "dwt_"
+        else
+          @base_name += "idwt_"
+        end
+      end
+      @base_name += @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}"
       @base_name += "_alpha" if @alpha
       @base_name += "_beta" if @beta
       @base_name += "_dotp" if @dotp
@@ -340,7 +348,7 @@ module BOAST
       varsin=[]
       varsout=[]
       nd = { "n" => dim[index], "ndat" => 1, "ndat1" => 1, "ndat2" => 1 }
-      if @dims.length==2 then
+      if @dims.length == 2 then
         dim.each_index { |indx|
           nd["ndat"] *= dim[indx] if indx != index
         }
