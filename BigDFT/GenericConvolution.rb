@@ -90,6 +90,29 @@ module BOAST
 
       @length = @fil_array.length
       @name = name
+      @default_wavelet=:decompose
+    end
+
+    def default_wavelet=(wavelet)
+      @default_wavelet = wavelet
+    end
+
+    def lowfil(wavelet=nil)
+      wavelet = @default_wavelet if not wavelet
+      if wavelet == :decompose then
+        return @low_even.lowfil
+      else
+        return @low_reverse_even.lowfil
+      end
+    end
+
+    def upfil(wavelet=nil)
+      wavelet = @default_wavelet if not wavelet
+      if wavelet == :decompose then
+        return @low_even.upfil
+      else
+        return @low_reverse_even.upfil
+      end
     end
   end
 
@@ -278,6 +301,9 @@ module BOAST
       @dim_indexes = dim_indexes
       @ld = options[:ld]
       @wavelet = options[:wavelet]
+      if @wavelet then
+        @filter.default_wavelet = @wavelet
+      end
 
       self.compute_dims
 
@@ -348,11 +374,11 @@ module BOAST
 
       if @wavelet then
         if @wavelet == :decompose then
-          @dim_ngs = [ BOAST::Dim(0, 1), BOAST::Dim( @filter.low_even.lowfil, @dim_n + @filter.low_even.upfil - 1 ) ]
-          @dim_nsg = [ BOAST::Dim( -@filter.low_even.upfil, @dim_n - @filter.low_even.lowfil - 1 ), BOAST::Dim(0, 1) ] 
+          @dim_ngs = [ BOAST::Dim(0, 1), BOAST::Dim( @filter.lowfil, @dim_n + @filter.upfil - 1 ) ]
+          @dim_nsg = [ BOAST::Dim( -@filter.upfil, @dim_n - @filter.lowfil - 1 ), BOAST::Dim(0, 1) ] 
         else
-          @dim_ngs = [ BOAST::Dim( @filter.low_reverse_even.lowfil, @dim_n + @filter.low_reverse_even.upfil - 1 ), BOAST::Dim(0, 1) ]
-          @dim_nsg = [ BOAST::Dim(0, 1), BOAST::Dim( -@filter.low_reverse_even.upfil, @dim_n - @filter.low_reverse_even.lowfil - 1 ) ]
+          @dim_ngs = [ BOAST::Dim( @filter.lowfil, @dim_n + @filter.upfil - 1 ), BOAST::Dim(0, 1) ]
+          @dim_nsg = [ BOAST::Dim(0, 1), BOAST::Dim( -@filter.upfil, @dim_n - @filter.lowfil - 1 ) ]
         end
       else
         #growed dimension, to be used either for extremes or for mod_arr
@@ -370,9 +396,9 @@ module BOAST
         elsif not dim.name.match("ndat") and @bc.shrink
           if @wavelet then
             if @wavelet == :decompose then
-              [ BOAST::Dim(0, 1), BOAST::Dim( @filter.low_even.lowfil, dim + @filter.low_even.lowfil - 1 ) ]
+              [ BOAST::Dim(0, 1), BOAST::Dim( @filter.lowfil, dim + @filter.lowfil - 1 ) ]
             else
-              [ BOAST::Dim( @filter.low_reverse_even.lowfil, dim + @filter.low_reverse_even.lowfil - 1 ), BOAST::Dim(0, 1) ]
+              [ BOAST::Dim( @filter.lowfil, dim + @filter.lowfil - 1 ), BOAST::Dim(0, 1) ]
             end
           else
             BOAST::Dim(@filter.lowfil, dim + @filter.lowfil - 1)
@@ -398,9 +424,9 @@ module BOAST
         elsif not dim.name.match("ndat") and @bc.grow then
           if @wavelet then
             if @wavelet == :decompose then
-              [ BOAST::Dim( -@filter.low_even.upfil, dim - @filter.low_even.upfil - 1 ), BOAST::Dim(0, 1) ]
+              [ BOAST::Dim( -@filter.upfil, dim - @filter.upfil - 1 ), BOAST::Dim(0, 1) ]
             else
-              [ BOAST::Dim(0, 1), BOAST::Dim( -@filter.low_reverse_even.upfil, dim - @filter.low_reverse_even.upfil - 1 ) ]
+              [ BOAST::Dim(0, 1), BOAST::Dim( -@filter.upfil, dim - @filter.upfil - 1 ) ]
             end
           else
             BOAST::Dim( -@filter.upfil, dim - @filter.upfil - 1)
@@ -428,34 +454,14 @@ module BOAST
 
     def compute_inner_loop_boundaries
       if @bc.grow then
-        if @wavelet then
-          if @wavelet == :decompose then
-            @line_start = -@filter.low_even.upfil
-            @line_end = @dim_n - @filter.low_even.lowfil - 1
-          else
-            @line_start = -@filter.low_reverse_even.upfil
-            @line_end = @dim_n - @filter.low_reverse_even.lowfil - 1
-          end
-        else
-          @line_start = -@filter.upfil
-          @line_end = @dim_n - @filter.lowfil - 1
-        end
+        @line_start = -@filter.upfil
+        @line_end = @dim_n - @filter.lowfil - 1
       else
         @line_start = 0
         @line_end = @dim_n - 1
       end
-      if @wavelet then
-        if @wavelet == :decompose then
-          @border_low = -@filter.low_even.lowfil
-          @border_high = @dim_n - @filter.low_even.upfil
-        else
-          @border_low = -@filter.low_reverse_even.lowfil
-          @border_high = @dim_n - @filter.low_reverse_even.upfil
-        end
-      else
-        @border_low = -@filter.lowfil
-        @border_high = @dim_n - @filter.upfil
-      end
+      @border_low = -@filter.lowfil
+      @border_high = @dim_n - @filter.upfil
     end
 
     def params(dim, index=0)
