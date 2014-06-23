@@ -486,13 +486,13 @@ module BOAST
         if @bc.grow then
           varsi.push(nd["n"])
           if @wavelet then
-            varso.push(nd["n"] + @filter.low.length - 2)
+            varso.push(nd["n"] + @filter.low.length - 1)
           else
             varso.push(nd["n"] + @filter.length - 1)
           end
         elsif @bc.shrink
           if @wavelet then
-            varsi.push(nd["n"] + @filter.low.length - 2)
+            varsi.push(nd["n"] + @filter.low.length - 1)
           else
             varsi.push(nd["n"] + @filter.length - 1)
           end
@@ -633,21 +633,9 @@ module BOAST
       if mod_arr then
         # the mod_arr behaves as a shrink operation
         #mods=BOAST::Int("mod_arr", :allocate => true, :dim => [@dim_ngs])
-        if @wavelet then
-          if @wavelet == :decompose then
-            mods = BOAST::Int("mod_arr", :allocate => true, 
-                              :dim => [BOAST::Dim( @filter.low_even.lowfil - @filter.low_even.upfil,
-                                                   @filter.low_even.upfil - @filter.low_even.lowfil - 1)])
-          else
-            mods = BOAST::Int("mod_arr", :allocate => true,
-                              :dim => [BOAST::Dim( @filter.low_reverse_even.lowfil - @filter.low_reverse_even.upfil, 
-                                                   @filter.low_reverse_even.upfil - @filter.low_reverse_even.lowfil - 1 )])
-          end
-        else
-          mods=BOAST::Int("mod_arr", :allocate => true, 
-                          :dim => [BOAST::Dim(@filter.lowfil - @filter.upfil,
-                                              @filter.upfil - @filter.lowfil - 1)])
-        end
+        mods=BOAST::Int("mod_arr", :allocate => true, 
+                        :dim => [BOAST::Dim(@filter.lowfil - @filter.upfil,
+                                            @filter.upfil - @filter.lowfil - 1)])
       else
         mods=nil
       end
@@ -655,15 +643,7 @@ module BOAST
     end
 
     def get_constants
-      if @wavelet then
-        if @wavelet == :decompose then
-          [@filter.low_even.lowfil, @filter.low_even.upfil]
-        else
-          [@filter.low_reverse_even.lowfil, @filter.low_reverse_even.upfil]
-        end
-      else
-        return [@filter.lowfil, @filter.upfil]
-      end
+      return [@filter.lowfil, @filter.upfil]
     end
 
     def decl_filters
@@ -794,31 +774,11 @@ module BOAST
     def get_loop_start_end( side, iters )
       processed_dim = @dim_indexes[-1]
       if ( @bc.free and side != :center) then
-        if @wavelet then
-          if @wavelet == :decompose then
-            loop_start = BOAST::max(-iters[processed_dim], @filter.low_even.lowfil)
-            loop_end   = BOAST::min(@filter.low_even.upfil, @dims[processed_dim] - 1 - iters[processed_dim])
-          else
-            loop_start = BOAST::max(-iters[processed_dim], @filter.low_reverse_even.lowfil)
-            loop_end   = BOAST::min(@filter.low_reverse_even.upfil, @dims[processed_dim] - 1 - iters[processed_dim])
-          end
-        else
-          loop_start = BOAST::max(-iters[processed_dim], @filter.lowfil)
-          loop_end   = BOAST::min(@filter.upfil, @dims[processed_dim] - 1 - iters[processed_dim])
-        end
+        loop_start = BOAST::max(-iters[processed_dim], @filter.lowfil)
+        loop_end   = BOAST::min(@filter.upfil, @dims[processed_dim] - 1 - iters[processed_dim])
       else
-        if @wavelet then
-          if @wavelet == :decompose then
-            loop_start = @filter.low_even.lowfil
-            loop_end   = @filter.low_even.upfil
-          else
-            loop_start = @filter.low_reverse_even.lowfil
-            loop_end   = @filter.low_reverse_even.upfil
-          end
-        else
-          loop_start=@filter.lowfil
-          loop_end=@filter.upfil
-        end
+        loop_start=@filter.lowfil
+        loop_end=@filter.upfil
       end
       return [loop_start, loop_end]
     end
