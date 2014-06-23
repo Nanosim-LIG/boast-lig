@@ -278,6 +278,45 @@ module BOAST
       @dim_indexes = dim_indexes
       @ld = options[:ld]
       @wavelet = options[:wavelet]
+
+      self.compute_dims
+
+      @vars = @dims.dup
+      if @ld then
+        @vars.push( @ld_in )
+        @vars.push( @ld_out )
+      end
+
+      self.compute_inner_loop_boundaries
+
+      dimx, dimy = self.compute_dimx_dimy
+
+      @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
+      @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
+      @vars.push @alpha = BOAST::Real("alpha",:dir => :in) if options[:alpha]
+      @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta] and init
+      @vars.push @dotp = BOAST::Real("dotp",:dir => :out) if options[:dotp]
+      @init = init
+      @accumulate = false
+      @accumulate = options[:accumulate] if options[:accumulate]
+      @options = options
+      @base_name = ""
+      if @wavelet then
+        if @wavelet == :decompose then
+          @base_name += "dwt_"
+        else
+          @base_name += "idwt_"
+        end
+      end
+      @base_name += @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}"
+      @base_name += "_alpha" if @alpha
+      @base_name += "_beta" if @beta
+      @base_name += "_dotp" if @dotp
+      @base_name += "_acc" if @accumulate
+      @base_name += "_ld" if @ld
+    end
+
+    def compute_dims
       @dim_n = BOAST::Int("n",:dir =>:in)
       if @ld then
         @ld_in = BOAST::Int("ld_in",:dir =>:in)
@@ -306,11 +345,7 @@ module BOAST
         @dims_in  = [ndat] + @dims_in
         @dims_out = [ndat] + @dims_out
       end
-      @vars = @dims.dup
-      if @ld then
-        @vars.push( @ld_in )
-        @vars.push( @ld_out )
-      end
+
       if @wavelet then
         if @wavelet == :decompose then
           @dim_ngs = [ BOAST::Dim(0, 1), BOAST::Dim( @filter.low_even.lowfil, @dim_n + @filter.low_even.upfil - 1 ) ]
@@ -325,6 +360,73 @@ module BOAST
         #dimensions corresponding to the output of a grow operation
         @dim_nsg = BOAST::Dim(-@filter.upfil,  @dim_n - @filter.lowfil - 1)
       end
+
+    end
+
+    def compute_dimx_dimy
+      dimx = @dims_in.collect{ |dim|
+        if not dim.name.match("ndat") and @bc.shrink and not @ld then
+          @dim_ngs
+        elsif not dim.name.match("ndat") and @bc.shrink
+          if @wavelet then
+            if @wavelet == :decompose then
+              [ BOAST::Dim(0, 1), BOAST::Dim( @filter.low_even.lowfil, dim + @filter.low_even.lowfil - 1 ) ]
+            else
+              [ BOAST::Dim( @filter.low_reverse_even.lowfil, dim + @filter.low_reverse_even.lowfil - 1 ), BOAST::Dim(0, 1) ]
+            end
+          else
+            BOAST::Dim(@filter.lowfil, dim + @filter.lowfil - 1)
+          end
+        elsif not dim.name.match("ndat")
+          if @wavelet then
+            if @wavelet == :decompose then
+              [ BOAST::Dim(0, 1), BOAST::Dim(0, dim - 1) ]
+            else
+              [ BOAST::Dim(0, dim - 1), BOAST::Dim(0, 1) ]
+            end
+          else
+            BOAST::Dim(0, dim - 1)
+          end
+        else
+          BOAST::Dim(0, dim - 1)
+        end
+      }
+      dimx.flatten!
+      dimy = @dims_out.collect{ |dim|
+        if not dim.name.match("ndat") and @bc.grow and not @ld then
+          @dim_nsg
+        elsif not dim.name.match("ndat") and @bc.grow then
+          if @wavelet then
+            if @wavelet == :decompose then
+              [ BOAST::Dim( -@filter.low_even.upfil, dim - @filter.low_even.upfil - 1 ), BOAST::Dim(0, 1) ]
+            else
+              [ BOAST::Dim(0, 1), BOAST::Dim( -@filter.low_reverse_even.upfil, dim - @filter.low_reverse_even.upfil - 1 ) ]
+            end
+          else
+            BOAST::Dim( -@filter.upfil, dim - @filter.upfil - 1)
+          end
+        elsif not dim.name.match("ndat")
+          if @wavelet then
+            if @wavelet == :decompose then
+              [ BOAST::Dim(0, dim - 1), BOAST::Dim(0, 1) ]
+            else
+              [ BOAST::Dim(0, 1), BOAST::Dim(0, dim - 1) ]
+            end
+          else
+            BOAST::Dim(0, dim - 1)
+          end
+        else
+          BOAST::Dim(0, dim - 1)
+        end
+      }
+      if @transpose !=0  then
+        dimy = dimy.rotate(@transpose)
+      end
+      dimy.flatten!
+      return [dimx, dimy]
+    end
+
+    def compute_inner_loop_boundaries
       if @bc.grow then
         if @wavelet then
           if @wavelet == :decompose then
@@ -354,88 +456,6 @@ module BOAST
         @border_low = -@filter.lowfil
         @border_high = @dim_n - @filter.upfil
       end
-      dimx = @dims_in.collect{ |dim|
-        if not dim.name.match("ndat") and bc.shrink and not @ld then
-          @dim_ngs
-        elsif not dim.name.match("ndat") and bc.shrink
-          if @wavelet then
-            if @wavelet == :decompose then
-              [ BOAST::Dim(0, 1), BOAST::Dim( @filter.low_even.lowfil, dim + @filter.low_even.lowfil - 1 ) ]
-            else
-              [ BOAST::Dim( @filter.low_reverse_even.lowfil, dim + @filter.low_reverse_even.lowfil - 1 ), BOAST::Dim(0, 1) ]
-            end
-          else
-            BOAST::Dim(@filter.lowfil, dim + @filter.lowfil - 1)
-          end
-        elsif not dim.name.match("ndat")
-          if @wavelet then
-            if @wavelet == :decompose then
-              [ BOAST::Dim(0, 1), BOAST::Dim(0, dim - 1) ]
-            else
-              [ BOAST::Dim(0, dim - 1), BOAST::Dim(0, 1) ]
-            end
-          else
-            BOAST::Dim(0, dim - 1)
-          end
-        else
-          BOAST::Dim(0, dim - 1)
-        end
-      }
-      dimx.flatten!
-      dimy = @dims_out.collect{ |dim|
-        if not dim.name.match("ndat") and bc.grow and not @ld then
-          @dim_nsg
-        elsif not dim.name.match("ndat") and bc.grow then
-          if @wavelet then
-            if @wavelet == :decompose then
-              [ BOAST::Dim( -@filter.low_even.upfil, dim - @filter.low_even.upfil - 1 ), BOAST::Dim(0, 1) ]
-            else
-              [ BOAST::Dim(0, 1), BOAST::Dim( -@filter.low_reverse_even.upfil, dim - @filter.low_reverse_even.upfil - 1 ) ]
-            end
-          else
-            BOAST::Dim( -@filter.upfil, dim - @filter.upfil - 1)
-          end
-        elsif not dim.name.match("ndat")
-          if @wavelet then
-            if @wavelet == :decompose then
-              [ BOAST::Dim(0, dim - 1), BOAST::Dim(0, 1) ]
-            else
-              [ BOAST::Dim(0, 1), BOAST::Dim(0, dim - 1) ]
-            end
-          else
-            BOAST::Dim(0, dim - 1)
-          end
-        else
-          BOAST::Dim(0, dim - 1)
-        end
-      }
-      if transpose !=0  then
-        dimy = dimy.rotate(transpose)
-      end
-      dimy.flatten!
-      @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
-      @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
-      @vars.push @alpha = BOAST::Real("alpha",:dir => :in) if options[:alpha]
-      @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta] and init
-      @vars.push @dotp = BOAST::Real("dotp",:dir => :out) if options[:dotp]
-      @init = init
-      @accumulate = false
-      @accumulate = options[:accumulate] if options[:accumulate]
-      @options = options
-      @base_name = ""
-      if @wavelet then
-        if @wavelet == :decompose then
-          @base_name += "dwt_"
-        else
-          @base_name += "idwt_"
-        end
-      end
-      @base_name += @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}"
-      @base_name += "_alpha" if @alpha
-      @base_name += "_beta" if @beta
-      @base_name += "_dotp" if @dotp
-      @base_name += "_acc" if @accumulate
-      @base_name += "_ld" if @ld
     end
 
     def params(dim, index=0)
