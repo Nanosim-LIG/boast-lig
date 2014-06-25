@@ -426,6 +426,7 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void crust_man
   int K;\n\
   int J;\n\
   int I;\n\
+  int l;\n\
   ushort active;\n\
   int offset;\n\
   int iglob;\n\
@@ -612,7 +613,6 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void crust_man
     tempy3l = tempy3l + (s_dummyy_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (fac3);\n\
     tempz3l = tempz3l + (s_dummyz_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (fac3);\n\
 #else\n\
-    int l;\n\
     for(l=0; l<=NGLLX - (1); l+=1){\n\
       fac1 = sh_hprime_xx[(l) * (NGLLX) + I - (0)];\n\
       tempx1l = tempx1l + (s_dummyx_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);\n\

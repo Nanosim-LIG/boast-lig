@@ -412,6 +412,7 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
   int K;
   int J;
   int I;
+  int l;
   unsigned short active;
   int offset;
   int iglob;
@@ -598,7 +599,6 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
     tempy3l = tempy3l + (s_dummyy_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (fac3);
     tempz3l = tempz3l + (s_dummyz_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (fac3);
 #else
-    int l;
     for(l=0; l<=NGLLX - (1); l+=1){
       fac1 = sh_hprime_xx[(l) * (NGLLX) + I - (0)];
       tempx1l = tempx1l + (s_dummyx_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);
