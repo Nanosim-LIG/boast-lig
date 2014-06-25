@@ -1,6 +1,17 @@
 require 'BOAST'
 require 'narray'
 
+def BOAST.modulo(*args)
+  return BOAST::FuncCall("modulo",*args)
+end
+
+def BOAST.min(*args)
+  return BOAST::FuncCall("min",*args)
+end
+
+def BOAST.max(*args)
+  return BOAST::FuncCall("max",*args)
+end
 
 class ConvolutionFilter
   # List of the floating point values of the convolution filter
