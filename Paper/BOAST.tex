@@ -1,0 +1,120 @@
+\documentclass[review]{elsarticle}
+
+\usepackage{lineno,hyperref}
+\modulolinenumbers[5]
+
+\journal{Journal of Parallel and Distributed Computing}
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%% Elsevier bibliography styles
+%%%%%%%%%%%%%%%%%%%%%%%
+%% To change the style, put a % in front of the second line of the current style and
+%% remove the % from the second line of the style you would like to use.
+%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Numbered
+%\bibliographystyle{model1-num-names}
+
+%% Numbered without titles
+%\bibliographystyle{model1a-num-names}
+
+%% Harvard
+%\bibliographystyle{model2-names.bst}\biboptions{authoryear}
+
+%% Vancouver numbered
+%\usepackage{numcompress}\bibliographystyle{model3-num-names}
+
+%% Vancouver name/year
+%\usepackage{numcompress}\bibliographystyle{model4-names}\biboptions{authoryear}
+
+%% APA style
+%\bibliographystyle{model5-names}\biboptions{authoryear}
+
+%% AMA style
+%\usepackage{numcompress}\bibliographystyle{model6-num-names}
+
+%% `Elsevier LaTeX' style
+\bibliographystyle{elsarticle-num}
+%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{BOAST: a Metaprogramming Framework to Write Portable and Efficient Computing Kernels for HPC Applications}
+
+%% or include affiliations in footnotes:
+\author[mymainaddress]{Brice Videau}
+\ead{brice.videau@imag.fr}
+
+\address[mymainaddress]{LIG/CNRS}
+
+\begin{abstract}
+The Abstract.
+\end{abstract}
+
+\begin{keyword}
+BOAST \sep HPC \sep SPECFEM3D \sep BigDFT
+\end{keyword}
+
+\end{frontmatter}
+
+\linenumbers
+
+\section{Introduction}
+
+Human ressources cost
+
+\cite{videau2013boast}
+
+\section{Problematic and State of the Art}
+
+
+  \subsection{Performance Portability}
+
+    An increasing concern for HPC Applications
+
+
+  \subsection{One extreme case: the Mont-Blanc prototype}
+
+
+  \subsection{State of the Art: Application Autotuning}
+
+
+\section{Use Cases}
+
+  \subsection{BigDFT}
+
+
+  \subsection{SPECFEM3D}
+
+
+\section{Using Code Generation in Application Autotuning}
+
+  \subsection{General Principles}
+
+
+  \subsection{Our Contribution: BOAST}
+     + dumper pour tests de non régression
+
+
+\section{Creating an Auto-Tuned Convolution Library for BigDFT using BOAST}
+
+
+
+\section{Porting SPECFEM3D to OpenCL using BOAST}
+
+
+
+\section{Feedback and Future Works}
+
+
+
+\section{Conclusion}
+
+
+\section*{References}
+
+\bibliography{BOAST}
+
+\end{document}
