@@ -323,10 +323,15 @@ class ConvolutionOperator1d
     @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
     @vars.push @a_scal = BOAST::Real("a_scal",:dir => :in) if options[:a_scal]
     @vars.push @a_in = BOAST::Real("a_in",:dir => :in) if options[:a_in] and init
+    if options[:a_out] then
+      if options[:a_out] == 1 then
+        @accumulate = true
+      else
+        @vars.push @a_out = BOAST::Real("a_in",:dir => :in) if options[:a_out]
+      end
+    end
     @vars.push @dotp = BOAST::Real("dotp",:dir => :out) if options[:dotp]
     @init = init
-    @accumulate = false
-    @accumulate = options[:accumulate] if options[:accumulate]
     @options = options
     @base_name = ""
     if @wavelet then
@@ -339,8 +344,9 @@ class ConvolutionOperator1d
     @base_name += @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}"
     @base_name += "_ascal" if @a_scal
     @base_name += "_ain" if @a_in
-    @base_name += "_dotp" if @dotp
+    @base_name += "_aout" if @a_out
     @base_name += "_acc" if @accumulate
+    @base_name += "_dotp" if @dotp
     @base_name += "_ld" if @ld
   end
 
@@ -790,8 +796,7 @@ class ConvolutionOperator1d
         BOAST::print t[0][ind] === 0
         BOAST::print t[1][ind] === 0
       else
-        i_in = input_index(unro, iters, ind)
-        BOAST::print t[ind] === ((@init and not @dotp) ? @a_in * @in[*i_in] / @a_scal : 0.0)
+        BOAST::print t[ind] === 0.0
       end
     }
     loop_start, loop_end = get_loop_start_end( side, iters)
@@ -833,6 +838,7 @@ class ConvolutionOperator1d
     #t.each_index { |ind|
     (0...tlen).each{ |ind|
       i_out = output_index(unro, iters, ind)
+      i_in = input_index(unro, iters, ind)
       if @wavelet then
         i_out[0].rotate!(@transpose)
         i_out[1].rotate!(@transpose)
@@ -840,23 +846,28 @@ class ConvolutionOperator1d
         i_out[1].flatten!
         BOAST::print t[0][ind] === t[0][ind] * @a_scal if @a_scal
         BOAST::print t[1][ind] === t[1][ind] * @a_scal if @a_scal
-        if not @accumulate then
-          BOAST::print @out[*i_out[0]] === t[0][ind]
-          BOAST::print @out[*i_out[1]] === t[1][ind]
-        else
-          BOAST::print @out[*i_out[0]] === (@init ? t[0][ind] : @out[*i_out[0]] + t[0][ind])
-          BOAST::print @out[*i_out[1]] === (@init ? t[1][ind] : @out[*i_out[1]] + t[1][ind])
+        if @accumulate and not @init then
+          BOAST::print t[0][ind] === @out[*i_out[0]] + t[0][ind]
+          BOAST::print t[1][ind] === @out[*i_out[1]] + t[1][ind]
+        elsif @a_out and not @init then
+          BOAST::print t[0][ind] === @a_out * @out[*i_out[0]] + t[0][ind]
+          BOAST::print t[1][ind] === @a_out * @out[*i_out[1]] + t[1][ind]
         end
+        BOAST::print @out[*i_out[0]] === t[0][ind]
+        BOAST::print @out[*i_out[1]] === t[1][ind]
       else
         i_out.rotate!(@transpose)
         BOAST::print t[ind] === t[ind] * @a_scal if @a_scal
         BOAST::print @dotp === @dotp + t[ind] * @in[*i_out] if @dotp
-        if not @accumulate then
-          BOAST::print @out[*i_out] === t[ind]
-        else
-          BOAST::print @out[*i_out] === 
-            (@init ? t[ind] : @out[*i_out] + t[ind] )
+        if @init and not @dotp then
+          BOAST::print t[ind] === t[ind] + @a_in * @in[*i_in]
         end
+        if @accumulate and not @init then
+          BOAST::print t[ind] === t[ind] + @out[*i_out]
+        elsif @a_out and not @init then
+          BOAST::print t[ind] === t[ind] + @a_out * @out[*i_out]
+        end
+        BOAST::print @out[*i_out] === t[ind]
       end
     }
   end
