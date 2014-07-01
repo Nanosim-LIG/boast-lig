@@ -263,13 +263,14 @@ class ConvolutionOperator1d
   attr_reader :dims, :dim_n
   # input array, unchanged on exit
   attr_reader :in
-  # output array, reduced on exit
+  # output array
+  # wavelet:     out <- a_scal wt_fil (x) in + [ a_out * out ]
+  # convolution: out <- a_scal    fil (x) in + [ a_out * out ] + [ a_in * in ]
   attr_reader :out
-  # out <- [out +] alpha conv(in) + beta in
   # reduce the array or not
   attr_reader :reduce
   # constants of the convolution
-  attr_reader :beta, :alpha
+  attr_reader :a_in, :a_scal, :a_out
   # value of <in | conv (in)>
   attr_reader :dotp
   # order of the dimensions to be convolved (las one is the processed dim)
@@ -290,8 +291,9 @@ class ConvolutionOperator1d
   #
   # ==== Options
   #
-  # * +:alpha+ -  Convolution constant of the operation out <- [out +] alpha conv(in) + beta in
-  # * +:beta+ -  Convolution constant of the operation out <- [out +] alpha conv(in) + beta in
+  # * +:a_scal+ - constant of out <- a_scal wt_fil (x) in + [ a_out * out ] or out <- a_scal    fil (x) in + [ a_out * out ] + [ a_in * in ], default 1
+  # * +:a_out+ - constant of out <- a_scal wt_fil (x) in + [ a_out * out ] or out <- a_scal    fil (x) in + [ a_out * out ] + [ a_in * in ], default 0
+  # * +:a_in+ - constant of out <- a_scal    fil (x) in + [ a_out * out ] + [ a_in * in ], default 0
   # * +:ld+ - leading dimensions enable
   # * +:wavelet+ - specify a wavelet operation, :decompose or :recompose
   def initialize(filter,bc,transpose,dim_indexes,init,options={})
@@ -319,8 +321,8 @@ class ConvolutionOperator1d
 
     @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
     @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
-    @vars.push @alpha = BOAST::Real("alpha",:dir => :in) if options[:alpha]
-    @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta] and init
+    @vars.push @a_scal = BOAST::Real("a_scal",:dir => :in) if options[:a_scal]
+    @vars.push @a_in = BOAST::Real("a_in",:dir => :in) if options[:a_in] and init
     @vars.push @dotp = BOAST::Real("dotp",:dir => :out) if options[:dotp]
     @init = init
     @accumulate = false
@@ -335,8 +337,8 @@ class ConvolutionOperator1d
       end
     end
     @base_name += @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}"
-    @base_name += "_alpha" if @alpha
-    @base_name += "_beta" if @beta
+    @base_name += "_ascal" if @a_scal
+    @base_name += "_ain" if @a_in
     @base_name += "_dotp" if @dotp
     @base_name += "_acc" if @accumulate
     @base_name += "_ld" if @ld
@@ -525,8 +527,8 @@ class ConvolutionOperator1d
     end
     #accessory scalars
     nscal=0
-    nscal+=1 if @alpha
-    nscal+=1 if @beta
+    nscal+=1 if @a_scal
+    nscal+=1 if @a_in
     nscal.times{vars.push(0.5)}
     vars.push(NArray.float(1).random) if @dotp
     return vars
@@ -789,7 +791,7 @@ class ConvolutionOperator1d
         BOAST::print t[1][ind] === 0
       else
         i_in = input_index(unro, iters, ind)
-        BOAST::print t[ind] === ((@init and not @dotp) ? @beta * @in[*i_in] / @alpha : 0.0)
+        BOAST::print t[ind] === ((@init and not @dotp) ? @a_in * @in[*i_in] / @a_scal : 0.0)
       end
     }
     loop_start, loop_end = get_loop_start_end( side, iters)
@@ -836,8 +838,8 @@ class ConvolutionOperator1d
         i_out[1].rotate!(@transpose)
         i_out[0].flatten!
         i_out[1].flatten!
-        BOAST::print t[0][ind] === t[0][ind] * @alpha if @alpha
-        BOAST::print t[1][ind] === t[1][ind] * @alpha if @alpha
+        BOAST::print t[0][ind] === t[0][ind] * @a_scal if @a_scal
+        BOAST::print t[1][ind] === t[1][ind] * @a_scal if @a_scal
         if not @accumulate then
           BOAST::print @out[*i_out[0]] === t[0][ind]
           BOAST::print @out[*i_out[1]] === t[1][ind]
@@ -847,7 +849,7 @@ class ConvolutionOperator1d
         end
       else
         i_out.rotate!(@transpose)
-        BOAST::print t[ind] === t[ind] * @alpha if @alpha
+        BOAST::print t[ind] === t[ind] * @a_scal if @a_scal
         BOAST::print @dotp === @dotp + t[ind] * @in[*i_out] if @dotp
         if not @accumulate then
           BOAST::print @out[*i_out] === t[ind]
@@ -983,8 +985,8 @@ class GenericConvolutionOperator
     @vars.push @y     = BOAST::Real("y",  :dir => :out, :restrict => true, :dim => [ BOAST::Dim() ] )
     @vars.push @w1 = BOAST::Real("w1", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim() ] ) if options[:work]
     @vars.push @w2 = BOAST::Real("w2", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim() ] ) if options[:work]
-    @vars.push @alpha = BOAST::Real("alpha",:dir => :in,:dim => [ BOAST::Dim(0, @ndim - 1)]) if options[:alpha]
-    @vars.push @beta = BOAST::Real("beta",:dir => :in) if options[:beta]
+    @vars.push @a_scal = BOAST::Real("a_scal",:dir => :in,:dim => [ BOAST::Dim(0, @ndim - 1)]) if options[:a_scal]
+    @vars.push @a_in = BOAST::Real("a_in",:dir => :in) if options[:a_in]
     @vars.push @eks = BOAST::Real("eks",:dir => :out,:dim =>[ BOAST::Dim(0, @ndim - 1)]) if options[:eks]
 
     @transpose = 0
@@ -1005,7 +1007,7 @@ class GenericConvolutionOperator
         p = ConvolutionOperator1d::new(@filter, BC::new(bc), @transpose, dim_indexes, false, @options)
         @needed_subops[p.base_name] = p
         @procs[p.base_name] = p.procedure
-        if @options[:beta] then
+        if @options[:a_in] then
           p = ConvolutionOperator1d::new(@filter, BC::new(bc), @transpose, dim_indexes, true, @options)
           @needed_subops[p.base_name] = p
           @procs[p.base_name] = p.procedure
@@ -1081,11 +1083,11 @@ class GenericConvolutionOperator
       d_indexes = [ 1, 0 ]
       dims.reverse! if @transpose == -1
       dim_indexes.reverse! if @transpose == -1
-      cost = ConvolutionOperator1d::new(@filter, BC::new(bc[0]), @transpose, d_indexes, (true and @options[:beta]), @options).cost( *d )
+      cost = ConvolutionOperator1d::new(@filter, BC::new(bc[0]), @transpose, d_indexes, (true and @options[:a_in]), @options).cost( *d )
     else
       cost = 0
       dims, dim_indexes = compute_ni_ndat.call(0)
-      cost += ConvolutionOperator1d::new(@filter, BC::new(bc[0]), @transpose, dim_indexes, (true and @options[:beta]), @options).cost( *dims )
+      cost += ConvolutionOperator1d::new(@filter, BC::new(bc[0]), @transpose, dim_indexes, (true and @options[:a_in]), @options).cost( *dims )
       change_dims.call(0)
       dims_left = n.length - 1
       while dims_left > 1 do
@@ -1209,12 +1211,12 @@ class GenericConvolutionOperator
         end
         indx = @ndim - 1 - indx if @transpose == -1
         vars2 = []
-        vars2.push( @alpha[indx] ) if @options[:alpha]
-        vars2.push( @beta ) if (init and @options[:beta])
+        vars2.push( @a_scal[indx] ) if @options[:a_scal]
+        vars2.push( @a_in ) if (init and @options[:a_in])
         vars2.push( @eks[indx] ) if @options[:eks]
         dats = []
         BOAST::print BOAST::Case( @bc[indx], BC::PERIODIC, lambda {
-          procname = ConvolutionOperator1d::new(@filter, BC::new(BC::PERIODIC), @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
+          procname = ConvolutionOperator1d::new(@filter, BC::new(BC::PERIODIC), @transpose, dim_indexes, (init and @options[:a_in]), @options).base_name
 
           if multi_conv then
             BOAST::print ndat_tot_out === ndat_tot_out * dims_actual[indx] if not @ld
@@ -1229,7 +1231,7 @@ class GenericConvolutionOperator
           BOAST::print dims_actual[indx] === @ld_out[indx]  if @ld
 
         }, BC::GROW, lambda {
-          procname = ConvolutionOperator1d::new(@filter, BC::new(BC::GROW),     @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
+          procname = ConvolutionOperator1d::new(@filter, BC::new(BC::GROW),     @transpose, dim_indexes, (init and @options[:a_in]), @options).base_name
 
           if multi_conv then
             if not @ld then
@@ -1257,7 +1259,7 @@ class GenericConvolutionOperator
             end
           end
         }, BC::SHRINK, lambda {
-          procname = ConvolutionOperator1d::new(@filter, BC::new(BC::SHRINK),    @transpose, dim_indexes, (init and @options[:beta]), @options).base_name
+          procname = ConvolutionOperator1d::new(@filter, BC::new(BC::SHRINK),    @transpose, dim_indexes, (init and @options[:a_in]), @options).base_name
 
           if multi_conv then
             if not @ld then

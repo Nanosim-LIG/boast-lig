@@ -1068,7 +1068,7 @@ end
 def Kinetic(conv_filter, optims = GenericOptimization::new, ekin = false)
 
 
-  kinetic_operation = GenericConvolutionOperator::new(conv_filter, :accumulate => true, :transpose => 0, :beta =>(not ekin), :eks => ekin, :alpha => true)
+  kinetic_operation = GenericConvolutionOperator::new(conv_filter, :accumulate => true, :transpose => 0, :a_in =>(not ekin), :eks => ekin, :a_scal => true)
   kinetic_operation.optimize(optims)
 
   p, subops= kinetic_operation.procedure()
