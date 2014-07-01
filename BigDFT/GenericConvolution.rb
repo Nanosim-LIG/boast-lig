@@ -858,8 +858,8 @@ class ConvolutionOperator1d
       else
         i_out.rotate!(@transpose)
         BOAST::print t[ind] === t[ind] * @a_scal if @a_scal
-        BOAST::print @dotp === @dotp + t[ind] * @in[*i_out] if @dotp
-        if @init and not @dotp then
+        BOAST::print @dotp === @dotp + t[ind] * @in[*i_in] if @dotp
+        if @init then
           BOAST::print t[ind] === t[ind] + @a_in * @in[*i_in]
         end
         if @accumulate and not @init then
