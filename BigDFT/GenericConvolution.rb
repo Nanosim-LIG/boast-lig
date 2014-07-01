@@ -322,10 +322,13 @@ class ConvolutionOperator1d
     #@init = init
 
     @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
-#    if @kinetic and not @init then
-#      @vars.push @in2 = BOAST::Real("x2",:dir => :in, :dim => dimx, :restrict => true)
-#    end
+    if @kinetic and @kinetic != :inplace and @options[:zero_out] then
+      @vars.push @in2 = BOAST::Real("x2",:dir => :in, :dim => dimx, :restrict => true)
+    end
     @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
+    if @kinetic and @transpose != 0 then
+      @vars.push @out2 =  BOAST::Real("y2", :dir => :out, :dim => dimy, :restrict => true)
+    end
     @vars.push @a_scal = BOAST::Real("a_scal",:dir => :in) if options[:a_scal]
     @vars.push @a_in = BOAST::Real("a_in",:dir => :in) if options[:a_in] #and init
     if options[:a_out] then
@@ -533,13 +536,15 @@ class ConvolutionOperator1d
       vars.push(NArray.float(*varsout,2))
     else
       vars.push(NArray.float(*varsin).random)
-#      vars.push(NArray.float(*varsin).random) if @kinetic and not @init
+      vars.push(NArray.float(*varsin).random) if @kinetic and @kinetic != :inplace
       vars.push(NArray.float(*varsout))
+      vars.push(NArray.float(*varsout)) if @kinetic and @transpose != 0
     end
     #accessory scalars
     nscal=0
     nscal+=1 if @a_scal
     nscal+=1 if @a_in
+    nscal+=1 if @a_out
     nscal.times{vars.push(0.5)}
     vars.push(NArray.float(1).random) if @dotp
     return vars
@@ -863,20 +868,48 @@ class ConvolutionOperator1d
       else
         i_out.rotate!(@transpose)
         BOAST::print t[ind] === t[ind] * @a_scal if @a_scal
-        BOAST::print @dotp === @dotp + t[ind] * @in[*i_in] if @dotp
-        if @a_in then
-          BOAST::print t[ind] === t[ind] + @a_in * @in[*i_in]
+        if @bc.grow and (@dotp or @a_in) and side != :center then
+          if side == :begin then
+            BOAST::print BOAST::If(iters[processed_dim] > 0) {
+              BOAST::print @dotp === @dotp + t[ind] * @in[*i_in] if @dotp
+              BOAST::print t[ind] === t[ind] + @a_in * @in[*i_in] if @a_in
+            }
+          elsif side == :end then
+            BOAST::print BOAST::If(iters[processed_dim] > @dims[processed_dim]) {
+              BOAST::print @dotp === @dotp + t[ind] * @in[*i_in] if @dotp
+              BOAST::print t[ind] === t[ind] + @a_in * @in[*i_in] if @a_in
+            }
+          end
+        else
+          BOAST::print @dotp === @dotp + t[ind] * @in[*i_in] if @dotp
+          BOAST::print t[ind] === t[ind] + @a_in * @in[*i_in] if @a_in
         end
-        if @accumulate then #and not @init then
-#          if @kinetic then
-#            BOAST::print t[ind] === t[ind] + @in2[*i_in]
-#          else
+        if @kinetic then
+          if @inplace then
+            if @accumulate or not @options[:zero_out] then
+              BOAST::print t[ind] === t[ind] + @out[*i_out]
+            elsif @a_out then
+              BOAST::print t[ind] === t[ind] + @a_out * @out[*i_out]
+            end
+          else
+            if not @options[:zero_out] then
+              BOAST::print t[ind] === t[ind] + @in2[*i_in]
+            end
+            if @accumulate then
+              BOAST::print t[ind] === t[ind] + @out[*i_out]
+            elsif @a_out then
+              BOAST::print t[ind] === t[ind] + @a_out * @out[*i_out]
+            end
+          end
+        else
+          if @accumulate then
             BOAST::print t[ind] === t[ind] + @out[*i_out]
-#          end
-        elsif @a_out then #and not @init then
-          BOAST::print t[ind] === t[ind] + @a_out * @out[*i_out]
+          elsif @a_out then
+            BOAST::print t[ind] === t[ind] + @a_out * @out[*i_out]
+          end
         end
         BOAST::print @out[*i_out] === t[ind]
+        BOAST::print @out2[*i_out] === @in[*i_in] if @kinetic and @transpose
       end
     }
   end
