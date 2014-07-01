@@ -302,6 +302,7 @@ class ConvolutionOperator1d
     @transpose = transpose
     @dim_indexes = dim_indexes
     @ld = options[:ld]
+    @kinetic = options[:kinetic]
     @wavelet = options[:wavelet]
     if @wavelet then
       @filter.default_wavelet = @wavelet
@@ -318,8 +319,12 @@ class ConvolutionOperator1d
     self.compute_inner_loop_boundaries
 
     dimx, dimy = self.compute_dimx_dimy
+    @init = init
 
     @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
+    if @kinetic and not @init then
+      @vars.push @in2 = BOAST::Real("x2",:dir => :in, :dim => dimx, :restrict => true)
+    end
     @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
     @vars.push @a_scal = BOAST::Real("a_scal",:dir => :in) if options[:a_scal]
     @vars.push @a_in = BOAST::Real("a_in",:dir => :in) if options[:a_in] and init
@@ -331,7 +336,6 @@ class ConvolutionOperator1d
       end
     end
     @vars.push @dotp = BOAST::Real("dotp",:dir => :out) if options[:dotp]
-    @init = init
     @options = options
     @base_name = ""
     if @wavelet then
@@ -529,6 +533,7 @@ class ConvolutionOperator1d
       vars.push(NArray.float(*varsout,2))
     else
       vars.push(NArray.float(*varsin).random)
+      vars.push(NArray.float(*varsin).random) if @kinetic and not @init
       vars.push(NArray.float(*varsout))
     end
     #accessory scalars
@@ -863,7 +868,11 @@ class ConvolutionOperator1d
           BOAST::print t[ind] === t[ind] + @a_in * @in[*i_in]
         end
         if @accumulate and not @init then
-          BOAST::print t[ind] === t[ind] + @out[*i_out]
+          if @kinetic then
+            BOAST::print t[ind] === t[ind] + @in2[*i_in]
+          else
+            BOAST::print t[ind] === t[ind] + @out[*i_out]
+          end
         elsif @a_out and not @init then
           BOAST::print t[ind] === t[ind] + @a_out * @out[*i_out]
         end
@@ -982,6 +991,7 @@ class GenericConvolutionOperator
     @ld = options[:ld]
     @m = options[:m]
     @wavelet = options[:wavelet]
+    @kinetic = options[:kinetic]
 
     @vars = []
     @vars.push @ndim  = BOAST::Int( "d",  :dir => :in )
@@ -1322,7 +1332,11 @@ class GenericConvolutionOperator
           else
             dims, dim_indexes = compute_ni_ndat.call( i )
           end
-          datas = [ @w1, @w2 ]
+          if @kinetic then
+            datas = [ @x, @w1, @w2 ]
+          else
+            datas = [ @w1, @w2 ]
+          end
           datas = [ @x, @y ] if not @options[:work]
           print_call.call( i, false, datas, @m )
           BOAST::print i === i + 1
@@ -1331,7 +1345,11 @@ class GenericConvolutionOperator
           else
             dims, dim_indexes = compute_ni_ndat.call( i )
           end
-          datas = [ @w2, @w1 ]
+          if @kinetic then
+            datas = [ @x, @w2, @w1 ]
+          else
+            datas = [ @w2, @w1 ]
+          end
           datas = [ @x, @y ] if not @options[:work]
           print_call.call( i, false, datas, @m )
           BOAST::print i === i + 1
@@ -1343,7 +1361,11 @@ class GenericConvolutionOperator
           else
             dims, dim_indexes = compute_ni_ndat.call( i )
           end
-          datas = [ @w1, @w2 ]
+          if @kinetic then
+            datas = [ @x, @w1, @w2 ]
+          else
+            datas = [ @w1, @w2 ]
+          end
           datas = [ @x, @y ] if not @options[:work]
           print_call.call( i, false, datas, @m )
           BOAST::print i === i + 1
@@ -1352,7 +1374,11 @@ class GenericConvolutionOperator
             dims.reverse!
             dim_indexes.reverse!
           end
-          datas = [ @w2, @y ]
+          if @kinetic then
+            datas = [ @x, @w2, @y ]
+          else
+            datas = [ @w2, @y ]
+          end
           datas = [ @x, @y ] if not @options[:work]
           print_call.call( i, false, datas, @m )
         }, lambda {
@@ -1361,7 +1387,11 @@ class GenericConvolutionOperator
             dims.reverse! 
             dim_indexes.reverse!
           end
-          datas = [ @w1, @y ]
+          if @kinetic then
+            datas = [ @x, @w1, @y ]
+          else
+            datas = [ @w1, @y ]
+          end
           datas = [ @x, @y ] if not @options[:work]
           print_call.call( i, false, datas, @m )
         })
