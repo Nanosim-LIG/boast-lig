@@ -766,8 +766,11 @@ class ConvolutionOperator1d
 
   def get_loop_start_end( side, iters )
     processed_dim = @dim_indexes[-1]
-    if ( @bc.free and side != :center) then
+    if ( @bc.free and side == :begin) then
       loop_start = BOAST::max(-iters[processed_dim], @filter.lowfil)
+      loop_end   = @filter.upfil
+    elsif ( @bc.free and side == :end) then
+      loop_start = @filter.lowfil
       loop_end   = BOAST::min(@filter.upfil, @dims[processed_dim] - 1 - iters[processed_dim])
     else
       loop_start=@filter.lowfil
