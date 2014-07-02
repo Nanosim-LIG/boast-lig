@@ -1092,7 +1092,7 @@ class GenericConvolutionOperator
     opt_base.push( { :a_x => @options[:a_x] } ) if @options[:a_x]
     opt_base.push( { :a_y => @options[:a_y] } ) if @options[:a_y]
     opts_bases = []
-    1...opt_base.length { |indx|
+    0..opt_base.length { |indx|
       opt_base.combination(indx) { |c|
         ch = {}
         c.each { |item|
