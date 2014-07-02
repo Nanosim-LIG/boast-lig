@@ -1087,7 +1087,7 @@ class GenericConvolutionOperator
     elsif @transpose == -1
       dim_indexes_a = [ [0, 1] ]
     end
-    opt_base = [{}]
+    opt_base = []
     opt_base.push( { :a => @options[:a] } ) if @options[:a]
     opt_base.push( { :a_x => @options[:a_x] } ) if @options[:a_x]
     opt_base.push( { :a_y => @options[:a_y] } ) if @options[:a_y]
