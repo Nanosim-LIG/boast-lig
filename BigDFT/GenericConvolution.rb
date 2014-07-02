@@ -322,7 +322,7 @@ class ConvolutionOperator1d
     #@init = init
 
     @vars.push @in = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
-    if @kinetic and @kinetic != :inplace and @options[:zero_out] then
+    if @kinetic and @kinetic != :inplace and not @options[:zero_out] then
       @vars.push @in2 = BOAST::Real("x2",:dir => :in, :dim => dimx, :restrict => true)
     end
     @vars.push @out = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
@@ -870,12 +870,12 @@ class ConvolutionOperator1d
         BOAST::print t[ind] === t[ind] * @a_scal if @a_scal
         if @bc.grow and (@dotp or @a_in) and side != :center then
           if side == :begin then
-            BOAST::print BOAST::If(iters[processed_dim] > 0) {
+            BOAST::print BOAST::If(iters[processed_dim] >= 0) {
               BOAST::print @dotp === @dotp + t[ind] * @in[*i_in] if @dotp
               BOAST::print t[ind] === t[ind] + @a_in * @in[*i_in] if @a_in
             }
           elsif side == :end then
-            BOAST::print BOAST::If(iters[processed_dim] > @dims[processed_dim]) {
+            BOAST::print BOAST::If(iters[processed_dim] < @dims[processed_dim]) {
               BOAST::print @dotp === @dotp + t[ind] * @in[*i_in] if @dotp
               BOAST::print t[ind] === t[ind] + @a_in * @in[*i_in] if @a_in
             }
@@ -884,30 +884,15 @@ class ConvolutionOperator1d
           BOAST::print @dotp === @dotp + t[ind] * @in[*i_in] if @dotp
           BOAST::print t[ind] === t[ind] + @a_in * @in[*i_in] if @a_in
         end
-        if @kinetic then
-          if @inplace then
-            if @accumulate or not @options[:zero_out] then
-              BOAST::print t[ind] === t[ind] + @out[*i_out]
-            elsif @a_out then
-              BOAST::print t[ind] === t[ind] + @a_out * @out[*i_out]
-            end
-          else
-            if not @options[:zero_out] then
-              BOAST::print t[ind] === t[ind] + @in2[*i_in]
-            end
-            if @accumulate then
-              BOAST::print t[ind] === t[ind] + @out[*i_out]
-            elsif @a_out then
-              BOAST::print t[ind] === t[ind] + @a_out * @out[*i_out]
-            end
-          end
-        else
-          if @accumulate then
-            BOAST::print t[ind] === t[ind] + @out[*i_out]
-          elsif @a_out then
-            BOAST::print t[ind] === t[ind] + @a_out * @out[*i_out]
-          end
+
+        #to be controlled in the case of non-orthorhombic cells for kinetic operations
+        BOAST::print t[ind] === t[ind] + @in2[*i_in] if @in2
+        if @accumulate or (@kinetic == :inplace and not @options[:zero_out])  then
+          BOAST::print t[ind] === t[ind] + @out[*i_out]
+        elsif @a_out then
+          BOAST::print t[ind] === t[ind] +  @a_out * @out[*i_out]
         end
+
         BOAST::print @out[*i_out] === t[ind]
         BOAST::print @out2[*i_out] === @in[*i_in] if @kinetic and @transpose
       end
