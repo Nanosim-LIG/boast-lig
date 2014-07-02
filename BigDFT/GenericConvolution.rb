@@ -133,6 +133,8 @@ class BoundaryConditions
   PERIODIC = 0
   GROW = 1
   SHRINK = -1
+  FREE = 2
+  CONDITIONS = [PERIODIC, GROW, SHRINK]
   # determine if the boundary condition is free or not
   attr_reader :free 
   # name of the boundary condition, used for the name of the routines
@@ -149,6 +151,7 @@ class BoundaryConditions
     @free   = (ibc != PERIODIC)
     @grow   = (ibc == GROW)
     @shrink = (ibc == SHRINK)
+    @discard = (idc == FREE)
     if not @free then
       @name = 'p'
     else
@@ -157,6 +160,8 @@ class BoundaryConditions
         @name += 'g'
       elsif @shrink then
         @name += 's'
+      elsif @discard then
+        @name += 'd'
       end
     end
   end
@@ -1001,6 +1006,43 @@ class ConvolutionOperator1d
   end
 end
 
+class GenericConvolutionOperator1d
+  attr_accessor :procs
+  attr_reader :needed_subops
+  def initialize(filter,options={})
+    @filter = filter
+    @ld = options[:ld]
+    @m = options[:m]
+    @wavelet = options[:wavelet]
+    @kinetic = options[:kinetic]
+
+    @vars = []
+    @vars.push @ndim  = BOAST::Int( "d",    :dir => :in )
+    @vars.push @idim  = BOAST::Int( "idim", :dir => :in )
+    @vars.push @dims  = BOAST::Int( "n",    :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
+    @vars.push @bc    = BOAST::Int( "bc",   :dir => :in )
+    if @ld then
+      @vars.push @nx  = BOAST::Int( "nx", :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
+      @vars.push @ny = BOAST::Int( "ny", :dir => :in, :dim => [ BOAST::Dim(0, @ndim - 1) ] )
+    end
+    @vars.push @m     = BOAST::Int( "m", :dir => :in ) if @m
+    @vars.push @x     = BOAST::Real("x",  :dir => :in,  :restrict => true, :dim => [ BOAST::Dim() ] )
+    @vars.push @y     = BOAST::Real("y",  :dir => :out, :restrict => true, :dim => [ BOAST::Dim() ] )
+    @vars.push @a = BOAST::Real("a",:dir => :in,:dim => [ BOAST::Dim(0, @ndim - 1)]) if options[:a]
+    @vars.push @a_x = BOAST::Real("a_x",:dir => :in) if options[:a_x]
+    @vars.push @a_y = BOAST::Real("a_y",:dir => :in) if options[:a_y]
+
+    @transpose = 0
+    @options=options
+    @procs = {}
+    @needed_subops = {}
+    opts = @options.dup
+    opts.delete(:a_x)
+    opts.delete(:a_y)
+    dim_indexes_a = [ [1, 0], [0, 1], [2, 0, 1] ]
+  end
+end
+
 class GenericConvolutionOperator
   attr_accessor :procs
   attr_reader :needed_subops
@@ -1026,6 +1068,7 @@ class GenericConvolutionOperator
     @vars.push @w2 = BOAST::Real("w2", :dir => :inout, :restrict => true, :dim => [ BOAST::Dim() ] ) if options[:work]
     @vars.push @a = BOAST::Real("a",:dir => :in,:dim => [ BOAST::Dim(0, @ndim - 1)]) if options[:a]
     @vars.push @a_x = BOAST::Real("a_x",:dir => :in) if options[:a_x]
+    @vars.push @a_y = BOAST::Real("a_y",:dir => :in) if options[:a_y]
     @vars.push @eks = BOAST::Real("eks",:dir => :out,:dim =>[ BOAST::Dim(0, @ndim - 1)]) if options[:eks]
 
     @transpose = 0
@@ -1044,32 +1087,29 @@ class GenericConvolutionOperator
     elsif @transpose == -1
       dim_indexes_a = [ [0, 1] ]
     end
-    [BC::PERIODIC, BC::GROW, BC::SHRINK].each { |bc|
+    opt_base = [{}]
+    opt_base.push( { :a => @options[:a] } ) if @options[:a]
+    opt_base.push( { :a_x => @options[:a_x] } ) if @options[:a_x]
+    opt_base.push( { :a_y => @options[:a_y] } ) if @options[:a_y]
+    opts_bases = []
+    1...opt_base.length { |indx|
+      opt_base.combination(indx) { |c|
+        ch = {}
+        c.each { |item|
+          ch.update(item)
+        }
+        opt_bases.push(ch)
+      }
+    }
+    BC::CONDITIONS.each { |bc|
       dim_indexes_a.each{ |dim_indexes|
-        p = ConvolutionOperator1d::new(@filter, BC::new(bc), @transpose, dim_indexes, opts)
-        @needed_subops[p.base_name] = p
-        @procs[p.base_name] = p.procedure
-        if @options[:a_x] then
-          opt = { :a_x => @options[:a_x] }
-          opt.update(opts)
-          p = ConvolutionOperator1d::new(@filter, BC::new(bc), @transpose, dim_indexes, opt)
+        opts_bases.each { |opt|
+          op = opt.dup
+          op.update(opts)
+          p = ConvolutionOperator1d::new(@filter, BC::new(bc), @transpose, dim_indexes, opts)
           @needed_subops[p.base_name] = p
           @procs[p.base_name] = p.procedure
-        end
-        if @options[:a_y] then
-          opt = { :a_y => @options[:a_y] }
-          opt.update(opts)
-          p = ConvolutionOperator1d::new(@filter, BC::new(bc), @transpose, dim_indexes, opt)
-          @needed_subops[p.base_name] = p
-          @procs[p.base_name] = p.procedure
-        end
-        if @options[:a_x] and @options[:a_y] then
-          opt = { :a_x => @options[:a_x], :a_y => @options[:a_y] }
-          opt.update(opts)
-          p = ConvolutionOperator1d::new(@filter, BC::new(bc), @transpose, dim_indexes, opt)
-          @needed_subops[p.base_name] = p
-          @procs[p.base_name] = p.procedure
-        end
+        }
       }
     }
   end
