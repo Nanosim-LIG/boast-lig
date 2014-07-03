@@ -46,7 +46,7 @@ end
 def MagicFilter(conv_filter, optims=GenericOptimization::new)
     
 
-  conv_operation = GenericConvolutionOperator::new(conv_filter, :transpose => 1, :work => true, :ld => true, :m => true)
+  conv_operation = GenericConvolutionOperator::new(conv_filter, :transpose => 1, :work => true, :ld => true, :narr => true)
 
   #test of 1d kernels optimizations in view of many-d
   conv_operation.optimize(optims)
