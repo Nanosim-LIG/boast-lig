@@ -41,7 +41,7 @@
 
 \begin{frontmatter}
 
-\title{BOAST: a Metaprogramming Framework to Write Portable and Efficient Computing Kernels for HPC Applications}
+\title{BOAST: a Metaprogramming Framework to Produce Portable and Efficient Computing Kernels for HPC Applications}
 
 %% or include affiliations in footnotes:
 \author[mymainaddress]{Brice Videau}
@@ -54,7 +54,8 @@ The Abstract.
 \end{abstract}
 
 \begin{keyword}
-BOAST \sep HPC \sep SPECFEM3D \sep BigDFT
+Code Generation \sep Portability \sep High Performance Computing \sep
+Autotuning \sep Non Regression Testing
 \end{keyword}
 
 \end{frontmatter}
@@ -63,17 +64,45 @@ BOAST \sep HPC \sep SPECFEM3D \sep BigDFT
 
 \section{Introduction}
 
-Human ressources cost
+Porting and tuning HPC applications to new platforms is tedious and costly
+in term of human resources. Portability efforts are often lost when
+migrating to a new architecture, or code lose maintainability because
+several versions of the code coexist, usually with a lot of duplication.
+Thus productivity of porting and tuning efforts is low as a huge fraction
+of those developments are never used after the platform they were intended
+for is decommissioned.
 
-\cite{videau2013boast}
+\section{Background and Motivation}
 
-\section{Problematic and State of the Art}
+  \subsection{Evolution of HPC Architectures}
 
+Evolution of HPC Architectures is rapid and also diverse: in the last 5
+years no less than 6 architectures have been number one in the Top500:
+\begin{itemize}
+\item Intel Processor + Xeon Phi (Tianhe-2)
+\item AMD Processor + NVIDIA GPU (Titan)
+\item IBM BlueGene/Q (Sequoia)
+\item Fujitsu SPARC64 (K computer)
+\item Intel Processor + NVIDIA GPU (Tianhe-1)
+\item AMD Processor (Jaguar)
+\end{itemize}
+Being able to efficiently use those architectures on such a small
+time-frame is challenging.
 
-  \subsection{Performance Portability}
+The race to exascale is not going to simplify the environment. All of the
+above architectures can be considered. For instance European FP7 project Deep
+considers using Accelerators (XEON Phi) while the European FP7 project
+Mont-Blanc considers using low-power embedded processor with integrated
+GPU. Network architectures are also part of the architecture and can be
+very diverse.
 
-    An increasing concern for HPC Applications
+  \subsection{HPC Applications}
 
+Developed by physicist, chemist, meteorologist. Usually in FORTRAN for
+historical and performance reason. Codes can be quite huge (several
+thousands lines of code) with lots of functionalities. Nonetheless they are
+usually based on computing kernels. Computing kernels are resource
+intensive well defined parts of a program.
 
   \subsection{One extreme case: the Mont-Blanc prototype}
 
@@ -95,6 +124,7 @@ Human ressources cost
 
 
   \subsection{Our Contribution: BOAST}
+  \cite{videau2013boast}
      + dumper pour tests de non régression
 
 
@@ -106,11 +136,11 @@ Human ressources cost
 
 
 
-\section{Feedback and Future Works}
+\section{Related Work}
 
 
 
-\section{Conclusion}
+\section{Conclusion and Future Works}
 
 
 \section*{References}
