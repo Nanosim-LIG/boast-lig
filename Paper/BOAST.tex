@@ -1,6 +1,9 @@
 \documentclass[review]{elsarticle}
 
 \usepackage{lineno,hyperref}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{url}
 \modulolinenumbers[5]
 
 \journal{Journal of Parallel and Distributed Computing}
@@ -102,41 +105,106 @@ Developed by physicist, chemist, meteorologist. Usually in FORTRAN for
 historical and performance reason. Codes can be quite huge (several
 thousands lines of code) with lots of functionalities. Nonetheless they are
 usually based on computing kernels. Computing kernels are resource
-intensive well defined parts of a program with a limited set of input and
-output. Those kernels are the time consuming part of an HPC application.
+intensive and well defined parts of a program with a limited set of input
+and output. Those kernels are the time consuming part of an HPC
+application. They are thus the prime target for optimization.
 
-
+In Section~\ref{use_cases} we will present two HPC application that we used
+as use cases: SPECFEM3D and BigDFT. They are both based on computing
+kernels.
 
   \subsection{Performance Portability of Computing Kernels}
 
+The problematic here is to obtain computing kernels that present good
+performances on the architectures encountered by the application while
+still being portable after the optimization process took place. Indeed the
+application might encounter one of the other architectures presented
+before. Investing manpower to optimize the application for a new
+architecture is reasonable, suffering hindrance from previous optimization
+work is not. Thus optimizations have to be as orthogonal as possible from
+one another so as to be easily activated and deactivated.
+
+If this paradigm is followed by developers then they will rapidly be
+confronted with a huge optimization space to search. They will need to
+be able to test easily the performance impact of the chosen optimizations
+without running the full application. The same reasoning implies that
+kernels should be tested for non regression without running the full
+application.
 
 
+\section{BOAST: Using Code Generation in Application Autotuning}
 
-\section{Use Cases}
-
-  \subsection{BigDFT}
-
-
-  \subsection{SPECFEM3D}
-
-
-\section{Using Code Generation in Application Autotuning}
-
-  \subsection{General Principles}
-
-
-  \subsection{Our Contribution: BOAST}
   \cite{videau2013boast}
+
+  \subsection{Kernel Description Language}
+
+
+  \subsection{BOAST Runtime}
      + dumper pour tests de non régression
 
+\section{Use Cases}
+\label{use_cases}
 
-\section{Creating an Auto-Tuned Convolution Library for BigDFT using BOAST}
+  \subsection{Creating an Auto-Tuned Convolution Library for BigDFT using BOAST}
+
+    \subsubsection{BigDFT}
+
+BigDFT~\cite{bigdft} is a scientific application computing the electronic
+structure of systems using density functional
+theory (DFT). The application is mainly written in Fortran and currently
+includes some 193,000 lines of Fortran code, which accounts for more than 50 \% 
+% VANIA la plupart c'est Fortran et ensuite juste un peu plus de 50%, c'est quoi le reste?
+of the code base. It is a parallel application based on the standards
+MPI~\cite{mpi} and OpenMP~\cite{openmp}.  It also supports CUDA~\cite{cuda} and
+OpenCL~\cite{opencl}.  As it is used on systems that may
+have very different architectures, it is of great importance to be able to
+optimize and run the application according to the specific underlying platform.
+
+
+BigDFT is characterized by its extensive use of
+convolution operators~\cite{nussbaumer1982fast} applied on large arrays of
+data.  One example of a specific convolution, called
+MagicFilter~\cite{Genovese|CAS2010}, can be seen in Listing~\ref{lst:conv_example}. 
+It applies a filter $filt$ to the data set $in$ and then stores the result in the data set $out$ with a
+transposition~\cite{Goedecker1993}.
+
+\lstset{	language=C, 
+		basicstyle=\scriptsize, 
+		backgroundcolor=\color{white}, 
+		frame=single, 
+		captionpos=b,
+		caption={MagicFilter}, 
+		label={lst:conv_example}}
+		
+\begin{lstlisting}
+double filt[16] = {F0, F1, ... , F15};
+void magicfilter(int n, int ndat, double* in, double* out){
+  double temp;
+  int m;
+  for( j = 0; j < ndat; j++) {
+    for( i = 0; i < n; i++) {
+      temp = 0;
+      for( k = 0; k < 16; k++) {
+        m = (i-7+k)%n
+        temp += in[m + j*n] * filt[k];
+      }
+      out [j + i*ndat] = temp ;
+    } 
+  }
+} 
+\end{lstlisting}
+
+As we can see, there are three nested loops working on arrays whose sizes
+vary.  Various optimizations can be applied to this treatment and
+may focus on the loop structure, as well as on the size of the data.  In this
+paper we focus on this particular convolution and explore different
+optimizations whose nature is presented in detail in the next section.
 
 
 
-\section{Porting SPECFEM3D to OpenCL using BOAST}
+  \subsection{Porting SPECFEM3D to OpenCL using BOAST}
 
-
+    \subsubsection{SPECFEM3D}
 
 \section{Related Work}
 
