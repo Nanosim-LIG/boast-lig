@@ -344,6 +344,7 @@ class ConvolutionOperator1d
       end
     end
     @vars.push @dot_in = BOAST::Real("dot_in",:dir => :out) if options[:dot_in]
+    @cost = BOAST::Int("cost", :dir => :out)
     @options = options
     @base_name = ""
     if @wavelet then
@@ -696,9 +697,26 @@ class ConvolutionOperator1d
     unrolled_dim=@dim_indexes[options[:unrolled_dim_index]] if @dim_indexes.length > 2 and options[:unrolled_dim_index]
    
     mod_arr = false if @bc.free
+    util = options[:util]
 
     function_name = @base_name + 
       "_u#{unroll}_#{unrolled_dim}_#{mod_arr}_#{tt_arr}_#{unroll_inner}"
+    function_name += "_" + util.to_s if util
+
+    if util == :cost then
+      return BOAST::Procedure(function_name, @dims + [@cost] ){
+        BOAST::decl ndat_t = BOAST::Int("ndat_t")
+        BOAST::print ndat_t === 1
+        @dim_indexes[0...-1].each { |indx|
+          BOAST::print ndat_t === ndat_t * @dims[indx]
+        }
+        if @wavelet then
+          BOAST::print @cost === @dims[@dim_indexes.last] * 2 * 2 * @filter.low.length * ndat_t
+        else
+          BOAST::print @cost === @dims[@dim_indexes.last] * 2 * @filter.length * ndat_t
+        end
+      }
+    end
 
     l = BOAST::Int("l")
     tt = get_tt(tt_arr, unroll)
@@ -1032,6 +1050,7 @@ class GenericConvolutionOperator1d
     @vars.push @a_x = BOAST::Real("a_x",:dir => :in) if options[:a_x]
     @vars.push @a_y = BOAST::Real("a_y",:dir => :in) if options[:a_y]
     @vars.push @dot_in = BOAST::Real("dot_in",:dir => :out) if options[:dot_in]
+    @cost = BOAST::Int( "cost", :dir => :out )
 
     @transpose = 0
     @options=options.dup
@@ -1065,9 +1084,12 @@ class GenericConvolutionOperator1d
           p = ConvolutionOperator1d::new(@filter, BC::new(bc), dim_indexes, op)
           @needed_subops[p.base_name] = p
           @procs[p.base_name] = p.procedure
+          @procs[p.base_name+"_cost"] = p.procedure( :util => :cost )
         }
       }
     }
+    p = self.procedure(:cost).first
+    @procs[p.name] = p
   end
 
   def optimize(opt_space=nil)
@@ -1111,7 +1133,7 @@ class GenericConvolutionOperator1d
     return cost * m
   end
 
-  def procedure
+  def procedure(util = nil)
     function_name = ""
     function_name += "d_" if BOAST::default_real_size == 8
     function_name += "s_" if BOAST::default_real_size == 4
@@ -1126,8 +1148,12 @@ class GenericConvolutionOperator1d
     end
     function_name += @filter.name
     function_name += "dotin" if @dot_in
+    function_name += "_" + util.to_s if util
+
+    vv = @vars
+    vv += [ @cost ] if util == :cost
     
-    p = BOAST::Procedure(function_name,@vars) {
+    p = BOAST::Procedure( function_name, vv ) {
       ni = BOAST::Int "ni"
       ndat_left = BOAST::Int "ndat_left"
       ndat_right = BOAST::Int "ndat_right"
@@ -1135,6 +1161,7 @@ class GenericConvolutionOperator1d
       nto = BOAST::Int "nto" if @narr
       i = BOAST::Int "i"
       j = BOAST::Int "j"
+      tmp_cost = BOAST::Int "c"
       BOAST::decl i, j, ni, ndat_left, ndat_right
       BOAST::decl nti, nto if @narr
       if @narr and @ld then
@@ -1185,9 +1212,17 @@ class GenericConvolutionOperator1d
         vars.push( @a_x ) if a_x
         vars.push( @a_y ) if a_y
         vars.push( @dot_in ) if @dot_in
+        vars.push( tmp_cost.address ) if util == :cost
         procname = ConvolutionOperator1d::new(@filter, BC::new(bc), dim_indexes, opts).base_name
+        procname += "_" + util.to_s if util
+        args = dims + dats + vars
+        if util == :cost then
+          BOAST::print @cost === 0
+          args = dims + [tmp_cost]
+        end
         f.print if @narr
-        BOAST::print @procs[procname].call( *dims, *dats, *vars )
+          BOAST::print @procs[procname].call( *args )
+          BOAST::print @cost === @cost + tmp_cost if util == :cost
         f.close if @narr
       }
 
@@ -1239,7 +1274,7 @@ class GenericConvolutionOperator1d
       BOAST::print BOAST::If( @idim == 0, lambda {
         BOAST::print ndat_right === 1
         BOAST::print BOAST::For( i, 1, @ndim - 1 ) {
-          if @ld then
+          if @ld and util != :cost then
             BOAST::print ndat_right === ndat_right * @nx[i]
           else
             BOAST::print ndat_right === ndat_right * @dims[i]
@@ -1256,7 +1291,7 @@ class GenericConvolutionOperator1d
       }, @idim == @ndim - 1, lambda {
         BOAST::print ndat_left === 1
         BOAST::print BOAST::For( i, 0, @ndim - 2 ) {
-          if @ld then
+          if @ld and util != :cost then
             BOAST::print ndat_left === ndat_left * @nx[i]
           else
             BOAST::print ndat_left === ndat_left * @dims[i]
@@ -1274,7 +1309,7 @@ class GenericConvolutionOperator1d
         BOAST::print ndat_left === 1
         BOAST::print ndat_right === 1
         BOAST::print BOAST::For( i, 0, @idim - 1 ) {
-          if @ld then
+          if @ld and util != :cost then
             BOAST::print ndat_left === ndat_left * @nx[i]
           else
             BOAST::print ndat_left === ndat_left * @dims[i]
@@ -1282,7 +1317,7 @@ class GenericConvolutionOperator1d
           BOAST::print ndat_left === ndat_left * 2 if @wavelet
         }
         BOAST::print BOAST::For( i, @idim + 1, @ndim - 1 ) {
-          if @ld then
+          if @ld and util != :cost then
             BOAST::print ndat_right === ndat_right * @nx[i]
           else
             BOAST::print ndat_right === ndat_right * @dims[i]
