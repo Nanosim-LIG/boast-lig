@@ -49,6 +49,11 @@
 %% or include affiliations in footnotes:
 \author[mymainaddress]{Brice Videau}
 \ead{brice.videau@imag.fr}
+\author{Kevin Pouget}
+\author{Luigi Genovese}
+\author{Thierry Deutsch}
+\author{Dimitri Komatitsch}
+\author{Jean-François Méhaut}
 
 \address[mymainaddress]{LIG/CNRS}
 
@@ -57,8 +62,9 @@ The Abstract.
 \end{abstract}
 
 \begin{keyword}
-Code Generation \sep Portability \sep High Performance Computing \sep
-Autotuning \sep Non Regression Testing
+Code Generation \sep Portability \sep Genericity \sep Productivity and Software
+Design \sep High Performance Computing \sep Autotuning \sep Non Regression
+Testing
 \end{keyword}
 
 \end{frontmatter}
@@ -68,14 +74,23 @@ Autotuning \sep Non Regression Testing
 \section{Introduction}
 
 Porting and tuning HPC applications to new platforms is tedious and costly
-in term of human resources. Portability efforts are often lost when
+in term of human resources.
+
+Portability efforts are often lost when
 migrating to a new architecture, or code lose maintainability because
 several versions of the code coexist, usually with a lot of duplication.
+
 Thus productivity of porting and tuning efforts is low as a huge fraction
 of those developments are never used after the platform they were intended
 for is decommissioned.
 
+Généricité
+ et
+fonctionalités
+
 \section{Background and Motivation}
+
+
 
   \subsection{Evolution of HPC Architectures}
 
@@ -90,7 +105,7 @@ years no less than 6 architectures have been number one in the Top500:
 \item AMD Processor (Jaguar)
 \end{itemize}
 Being able to efficiently use those architectures on such a small
-time-frame is challenging.
+time-frame is challenging. Stress frequency of architecture changes.
 
 The race to exascale is not going to simplify the environment. All of the
 above architectures can be considered. For instance European FP7 project Deep
@@ -99,7 +114,9 @@ Mont-Blanc considers using low-power embedded processor with integrated
 GPU. Network architectures are also part of the architecture and can be
 very diverse.
 
-  \subsection{HPC Applications}
+transition architecture application
+
+  \subsection{Scientific Computing Applications}
 
 Developed by physicist, chemist, meteorologist. Usually in FORTRAN for
 historical and performance reason. Codes can be quite huge (several
@@ -108,6 +125,8 @@ usually based on computing kernels. Computing kernels are resource
 intensive and well defined parts of a program with a limited set of input
 and output. Those kernels are the time consuming part of an HPC
 application. They are thus the prime target for optimization.
+
+Ajouter Multiplicité des devs et donc problèmatique de maintenabilité ++
 
 In Section~\ref{use_cases} we will present two HPC application that we used
 as use cases: SPECFEM3D and BigDFT. They are both based on computing
@@ -138,9 +157,19 @@ application.
 
   \subsection{Kernel Description Language}
 
+  \begin{itemize}
+  \item Abstraction of programming concepts: variables, procedures
+  \item Operator overloading: simpler syntax
+  \item Two languages in one
+  \end{itemize}
+
 
   \subsection{BOAST Runtime}
-     + dumper pour tests de non régression
+
+   multitarget generation
+   compilation
+   execution
+  + dumper et replay pour tests de non régression
 
 \section{Use Cases}
 \label{use_cases}
@@ -202,6 +231,9 @@ optimizations whose nature is presented in detail in the next section.
 
     \subsubsection{A Generic Convolution Library}
 
+  characteristique use case driven
+
+  bibliotheque premier pas vers un dsl
 
   \subsection{Porting SPECFEM3D to OpenCL using BOAST}
 
