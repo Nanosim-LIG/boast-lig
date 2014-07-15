@@ -180,10 +180,12 @@ portability, productivity )
 
   \subsection{BOAST Runtime}
 
-   multi target language generation ( performance, portability )
-   compilation ( productivity, performance )
-   execution ( productivity, performance )
-  + dumper et replay pour tests de non régression ( productivity )
+  \begin{itemize}
+  \item multi target language generation ( performance, portability )
+  \item compilation ( productivity, performance )
+  \item execution ( productivity, performance )
+  \item tracer, dumper and replay for non regression tests ( productivity )
+  \end{itemize}
 
 \section{Use Cases}
 \label{use_cases}
@@ -196,7 +198,6 @@ BigDFT~\cite{bigdft} is a scientific application computing the electronic
 structure of systems using density functional
 theory (DFT). The application is mainly written in Fortran and currently
 includes some 193,000 lines of Fortran code, which accounts for more than 50 \% 
-% VANIA la plupart c'est Fortran et ensuite juste un peu plus de 50%, c'est quoi le reste?
 of the code base. It is a parallel application based on the standards
 MPI~\cite{mpi} and OpenMP~\cite{openmp}.  It also supports CUDA~\cite{cuda} and
 OpenCL~\cite{opencl}.  As it is used on systems that may
