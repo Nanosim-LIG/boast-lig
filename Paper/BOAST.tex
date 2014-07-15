@@ -73,20 +73,22 @@ Testing
 
 \section{Introduction}
 
-Porting and tuning HPC applications to new platforms is tedious and costly
-in term of human resources.
+Porting and tuning HPC applications to new platforms is tedious and costly in
+term of human resources.
 
-Portability efforts are often lost when
-migrating to a new architecture, or code lose maintainability because
-several versions of the code coexist, usually with a lot of duplication.
+Portability efforts are often lost when migrating to a new architecture, or code
+lose maintainability because several versions of the code coexist, usually with
+a lot of duplication.
 
-Thus productivity of porting and tuning efforts is low as a huge fraction
-of those developments are never used after the platform they were intended
-for is decommissioned.
+Thus productivity of porting and tuning efforts is low as a huge fraction of
+those developments are never used after the platform they were intended for is
+decommissioned.
 
-Généricité
- et
-fonctionalités
+Genericity of HPC codes is often limited. Producing generic code in FORTRAN
+90/95 is difficult as the language is not really  fit for it.
+
+Functionality of HPC codes is tied to the previous point. Without genericity,
+adding new functionalities can be quite costly.
 
 \section{Background and Motivation}
 
@@ -107,15 +109,18 @@ years no less than 6 architectures have been number one in the Top500:
 Being able to efficiently use those architectures on such a small
 time-frame is challenging. Stress frequency of architecture changes.
 
-The race to exascale is not going to simplify the environment. All of the
-above architectures can be considered. For instance European FP7 project Deep
+The race to exascale is not going to simplify the environment. All of the above
+architectures can be considered. Network architectures are also part of the
+architecture and can be very diverse.  For instance European FP7 project DEEP
 considers using Accelerators (XEON Phi) while the European FP7 project
-Mont-Blanc considers using low-power embedded processor with integrated
-GPU. Network architectures are also part of the architecture and can be
-very diverse.
+Mont-Blanc considers using low-power embedded processor with integrated GPU.
 
-transition architecture application
-
+Running axisting applications on those new architectures is an open project.
+Thus, those projects have work packages dedicated to applications. Those
+workpackages are dedicated to porting and optimizing Scientific applications on
+those new architectures. In the DEEP project six applications were selected for
+porting and optimizing, eleven were selected in the Mont-Blanc project.
+ 
   \subsection{Scientific Computing Applications}
 
 Developed by physicist, chemist, meteorologist. Usually in FORTRAN for
@@ -126,13 +131,15 @@ intensive and well defined parts of a program with a limited set of input
 and output. Those kernels are the time consuming part of an HPC
 application. They are thus the prime target for optimization.
 
-Ajouter Multiplicité des devs et donc problèmatique de maintenabilité ++
+Those applications are often developed by several individuals. Sometimes some of
+those developers only work a few month on the application. Maintaining optimized
+code written by someone else is quite a challenge.
 
 In Section~\ref{use_cases} we will present two HPC application that we used
 as use cases: SPECFEM3D and BigDFT. They are both based on computing
-kernels.
+kernels and were selected as candidate applications in the Mont-Blanc project.
 
-  \subsection{Performance Portability of Computing Kernels}
+  \subsection{How Should Computing Kernels be Written?}
 
 The problematic here is to obtain computing kernels that present good
 performances on the architectures encountered by the application while
@@ -150,6 +157,12 @@ without running the full application. The same reasoning implies that
 kernels should be tested for non regression without running the full
 application.
 
+What we want is computing kernels that are:
+\begin{itemize}
+\item Written in a portable manner,
+\item Written in a way that raise developer productivity,
+\item Written to present good performance.
+\end{itemize}
 
 \section{BOAST: Using Code Generation in Application Autotuning}
 

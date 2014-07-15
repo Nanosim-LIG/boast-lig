@@ -75,7 +75,7 @@ n[2] = n3
 
 optims = GenericOptimization::new(:unroll_range => [2,6,2], :mod_arr_test => true, :tt_arr_test => true, :unrolled_dim_index_test => true)
 k = Kinetic(conv_filter, optims)
-#k.print
+k.print
 k.build(:openmp => true)
 
 bc = NArray.int(3)

@@ -1263,7 +1263,7 @@ class GenericConvolutionOperator1d
       }
 
       print_call = lambda {
-        BOAST::print BOAST::Case( @bc[@idim], BC::PERIODIC, lambda {
+        BOAST::print BOAST::Case( @bc, BC::PERIODIC, lambda {
           print_call_param_a.call( BC::PERIODIC )
         }, BC::GROW, lambda {
           print_call_param_a.call( BC::GROW )
