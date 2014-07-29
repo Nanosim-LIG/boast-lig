@@ -115,7 +115,7 @@ architecture and can be very diverse.  For instance European FP7 project DEEP
 considers using Accelerators (XEON Phi) while the European FP7 project
 Mont-Blanc considers using low-power embedded processor with integrated GPU.
 
-Running axisting applications on those new architectures is an open project.
+Running existing applications on those new architectures is an open project.
 Thus, those projects have work packages dedicated to applications. Those
 workpackages are dedicated to porting and optimizing Scientific applications on
 those new architectures. In the DEEP project six applications were selected for
@@ -159,12 +159,19 @@ application.
 
 What we want is computing kernels that are:
 \begin{itemize}
-\item Written in a portable manner,
-\item Written in a way that raise developer productivity,
-\item Written to present good performance.
+\item Written in a \emph{portable} manner,
+\item Written in a way that raise developer \emph{productivity},
+\item Written to present good \emph{performance}.
 \end{itemize}
 
 \section{BOAST: Using Code Generation in Application Autotuning}
+
+  Provide scientific application developers with a framework to develop and test
+application computing kernels. Two aspects should be considered:
+\begin{itemize}
+\item code description,
+\item code generation and kernel execution runtime.
+\end{itemize}
 
   \cite{videau2013boast}
 
@@ -246,20 +253,82 @@ optimizations whose nature is presented in detail in the next section.
 
     \subsubsection{A Generic Convolution Library}
 
-  characteristique use case driven
+  BigDFT implementation of convolution/wavelets is a reference but is limited in scope (1 wavelet family ands its derived operators).
+  Generalizing to other wavelet families long and difficult if performance are to remain good.
 
-  bibliotheque premier pas vers un dsl
+Idea:
+\begin{itemize}
+\item write a generic convolution library in BOAST
+\item BLAS like interface
+\item Provide a wide variety of building blocks
+\item Optimize thos blocks using BOAST
+\item Build either from source or directly link with binary
+\item Release complete library
+\end{itemize}
+
+
+  Characteristic use case driven
+
+  Convolution Library: first step toward a dsl dedicated to wavelet processing for Physics computing.
 
   \subsection{Porting SPECFEM3D to OpenCL using BOAST}
 
     \subsubsection{SPECFEM3D}
 
+\begin{itemize}
+
+\item Wave propagation research software
+
+\item HPC application (benchmark on supercomputers)
+
+\item Complex GPU (CUDA) code, 40+ kernels.
+
+\item 80+ parameters for kernels. Difficult to validate.
+\end{itemize}
+
     \subsubsection{Porting to OpenCL}
+
+  Idea:
+\begin{itemize}
+\item write kernels in BOAST,
+\item generate kernels in CUDA,
+\item validate kernels by comparing CUDA/generated CUDA executions using comparator
+\item generate kernels in OpenCL,
+\item develop OpenCL runtime backend using previously validated OpenCL kernels
+\item validate OpenCL version by comparing CUDA/OpenCL executions using comparator
+\end{itemize}
+
+  Evaluation:
+\begin{itemize}
+\item Similar CUDA/OpenCL
+\item Factoring : more compact code
+\item Integrated non regression support
+\item Integrated Kernel performance evaluation
+\end{itemize}
 
 \section{Related Work}
 
-  \subsection{State of the Art: Application Autotuning}
+  \subsection{Kernel Description DSL}
 
+  Orio
+
+  Halide
+
+  Spiral
+
+  \subsection{Application Autotuning}
+
+  Atlas
+
+  Orio
+
+  Halide
+
+  \subsection{Optimization Space Pruner}
+
+  Collective Mind
+
+  Adaptive Sampling Kit (ASK)
 
 \section{Conclusion and Future Works}
 
