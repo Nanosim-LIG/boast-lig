@@ -142,20 +142,19 @@ kernels and were selected as candidate applications in the Mont-Blanc project.
   \subsection{How Should Computing Kernels be Written?}
 
 The problematic here is to obtain computing kernels that present good
-performances on the architectures encountered by the application while
-still being portable after the optimization process took place. Indeed the
-application might encounter one of the other architectures presented
-before. Investing manpower to optimize the application for a new
-architecture is reasonable, suffering hindrance from previous optimization
-work is not. Thus optimizations have to be as orthogonal as possible from
-one another so as to be easily activated and deactivated.
+performances on the architectures encountered by the application while still
+being portable after the optimization process took place. Indeed the application
+might encounter one of the other architectures presented before. Investing
+manpower to optimize the application for a new architecture is reasonable,
+suffering hindrance from previous optimization work is not. Thus optimizations
+have to be as orthogonal as possible from one another so as to be easily
+activated and deactivated.
 
-If this paradigm is followed by developers then they will rapidly be
-confronted with a huge optimization space to search. They will need to
-be able to test easily the performance impact of the chosen optimizations
-without running the full application. The same reasoning implies that
-kernels should be tested for non regression without running the full
-application.
+If this paradigm is followed by developers then they will rapidly be confronted
+with a huge optimization space to search. They will need to be able to test
+easily the performance impact of the chosen optimizations without running the
+full application. The same reasoning implies that kernels should be tested for
+non regression without running the full application.
 
 What we want is computing kernels that are:
 \begin{itemize}
@@ -184,6 +183,61 @@ portability, productivity )
   \item Two languages in one ( productivity, performance ) 
   \end{itemize}
 
+Usually computing kernels are hotspots of an HPC application, and are most of
+the time based on a loop nest. A lot of effort is dedicated to their tuning and
+the obtained result is often quite different than the original procedure.
+Several transformations can be applied to such kernels. And those optimization
+are often applied manually as compiler may fail to recognise the opportunity.
+
+There are many different loop optimization techniques~\cite{wolf1991loop}. We
+can cite loop skewing~\cite{wolfe1986loops} (derives nested loops wavefronts)
+or loop interchange~\cite{allen1984automatic} (loop variables change places).
+
+The importance of  correct loop imbrication on BLAS~\cite{lawson1979basic}
+operations is studied in~\cite{soliman2009performance}, and shows performance
+increase of a factor up to 5 when using correct loop imbrication. The importance
+of code transformation is stressed in~\cite{ye2011porting}, where a selection of GPU
+kernels are ported to CPU and optimized.
+
+BOAST kernel description language should be able to express all these
+optimizations. This gives us a set of constraints to implement in the language:
+\begin{itemize}
+\item Arbitrary number of variables have to be created and manipulated (types,
+attributes...).
+\item Procedures have to be abstracted (reunite FORTRAN and C like languages,
+attributes...).
+\item Functions must be available.
+\item Variables, constants and functions must be composed in complex
+Expressions.
+\item Basic control structures (for, while, if/else...) have to be abstracted.
+\item Powerful array management (several dimensions, transformations,
+indexing...).
+\end{itemize}
+
+In order to manipulate those abstractions we want to have a syntax resembling
+what programmers use. For instance commonly used operator have to be available
+and behave as expected. It must also be possible to differentiate an action on
+an abstraction in the context of an expression and in the context of the
+management of this expression. This is why an embedded domain specific language
+approach was selected~\cite{hudak1996building}. This allows for the coexistence
+of two languages: the host language and the DSL. In our case the DSL allows the
+description of the kernel while the host language provides the meta programming
+of the kernel. Operator overloading of the host language will provide the
+familiar syntax programmers are accustomed to.
+
+It was also important to have our construct like for loops to have a syntax
+approaching those commonly found in programming languages. For this we needed a
+language which could seamlessly pass a block of code to a function.
+Ruby~\cite{matsumoto2002ruby} is one such language. It has deep introspection
+capabilities as well.
+  
+%Considering source-to-source transformations that we investigate with the BOAST
+%tool in this paper, we can compare ourselves to POET~\cite{POET2012}  and
+%ABCLibScript~\cite{ABCLib2006}. However, both tools apply transformations
+%to the syntaxic tree of a program while BOAST intervenes well before in the
+%transformation process. Indeed, one may first use BOAST on order to generate a
+%program (a specific syntaxic tree) and then benefit from the transformation
+%facilities offered by one of the above tools.
 
   \subsection{BOAST Runtime}
 
