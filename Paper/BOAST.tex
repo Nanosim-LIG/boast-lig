@@ -230,6 +230,31 @@ approaching those commonly found in programming languages. For this we needed a
 language which could seamlessly pass a block of code to a function.
 Ruby~\cite{matsumoto2002ruby} is one such language. It has deep introspection
 capabilities as well.
+
+    \subsubsection{BOAST keywords}
+
+  In order to clearly differentiate what is going to be generated from what is
+related to manipulations in the host language the \emph{print} method was
+redefined in the BOAST namespace. This print method only insures that the object
+it is called on implements a public print method. Each BOAST object is
+responsible for printing itself correctly depending on the BOAST configuration
+at the time the print public method is called.
+
+  
+
+    \subsubsection{BOAST Abstractions}
+
+  Variable
+
+  Expression
+
+  If
+
+  For
+
+  While
+
+  Case
   
 %Considering source-to-source transformations that we investigate with the BOAST
 %tool in this paper, we can compare ourselves to POET~\cite{POET2012}  and
@@ -369,6 +394,8 @@ Idea:
   Halide
 
   Spiral
+
+  POET
 
   \subsection{Application Autotuning}
 
