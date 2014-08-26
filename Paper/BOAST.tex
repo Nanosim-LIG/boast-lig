@@ -172,6 +172,14 @@ application computing kernels. Two aspects should be considered:
 \item code generation and kernel execution runtime.
 \end{itemize}
 
+\begin{center}
+\begin{figure}
+\includegraphics[width=\textwidth]{BOAST_Workflow.pdf}
+\caption{Structure and Workflow of the BOAST framework.}
+\label{fig:boast_workflow}
+\end{figure}
+\end{center}
+
   \cite{videau2013boast}
 
   \subsection{Kernel Description Language}
@@ -225,9 +233,9 @@ description of the kernel while the host language provides the meta programming
 of the kernel. Operator overloading of the host language will provide the
 familiar syntax programmers are accustomed to.
 
-It was also important to have our construct like for loops to have a syntax
-approaching those commonly found in programming languages. For this we needed a
-language which could seamlessly pass a block of code to a function.
+It was also important to have our constructs like \emph{for loops} to have a
+syntax approaching those commonly found in programming languages. For this we
+needed a language which could seamlessly pass a block of code to a function.
 Ruby~\cite{matsumoto2002ruby} is one such language. It has deep introspection
 capabilities as well.
 
