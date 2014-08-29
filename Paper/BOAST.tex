@@ -3,6 +3,33 @@
 \usepackage{lineno,hyperref}
 \usepackage{listings}
 \usepackage{color}
+
+\lstdefinestyle{customc}{
+  language=C,
+  basicstyle=\scriptsize,
+  backgroundcolor=\color{white},
+  frame=single,
+  captionpos=b,
+  morekeywords={int64_t, int32_t}
+}
+
+\lstdefinestyle{BOAST}{
+  language=Ruby, 
+  basicstyle=\scriptsize, 
+  backgroundcolor=\color{white}, 
+  frame=single, 
+  captionpos=b,
+  morekeywords={BOAST, print, decl, close}
+}
+
+\lstdefinestyle{customf}{
+  language=FORTRAN,
+  basicstyle=\scriptsize,
+  backgroundcolor=\color{white},
+  frame=single,
+  captionpos=b
+}
+
 \usepackage{url}
 \modulolinenumbers[5]
 
@@ -289,11 +316,84 @@ to close a control structure without an associated code block.
 
     \subsubsection{BOAST Abstractions}
 
+BOAST defines several class that are used to represent the structure of the
+code. These classes can be sorted in two groups:
 
+      \paragraph{Algebra}
 
-  Variable
+\begin{figure}
+\lstset{style=BOAST,
+        caption={BOAST code}, 
+        label={lst:BOAST_algebra}
+}
+		
+\begin{lstlisting}
+i = BOAST::Int("i") # or BOAST::Variable::new(Int, "i")
+k = BOAST::Int("k", :size => 8)
+l = BOAST::Real("l", :dim => [ BOAST::Dim(-5, 20) ], :local => true )
+BOAST::decl i, k, l
+BOAST::print i === 5
+j = i + 5
+BOAST::print k === j * 2
+BOAST::print l[k] === 1.0
+\end{lstlisting}
 
-  Expression
+\begin{minipage}[b]{0.50\linewidth}
+\centering
+\lstset{style=customf,
+        caption={FORTRAN output.},
+        label={lst:BOAST_algebra_FORTRAN} }
+
+\begin{lstlisting}
+integer(kind=4) :: i
+integer(kind=8) :: k
+real(kind=8), dimension(-5:20) :: l
+i = 5
+k = (i + 5) * (2)
+l(k) = 1.0_wp
+\end{lstlisting}
+\end{minipage}
+\hspace{0.04\linewidth}
+\begin{minipage}[b]{0.44\linewidth}
+\centering
+\lstset{style=customc,
+        caption={C output.},
+        label={lst:BOAST_algebra_C} }
+
+\begin{lstlisting}
+int32_t i;
+int64_t k;
+double l[26];
+i = 5;
+k = (i + 5) * (2);
+l[k - (-5)] = 1.0;
+\end{lstlisting}
+\end{minipage}
+\caption{BOAST Code Snippet for Variables and Expressions}
+\label{fig:BOAST_algebra}
+\end{figure}
+The first and most fundamental abstraction is named Variable. Variables have a
+type, a name and a set of named attributes. The existing attributes are mainly
+inspired from FORTRAN. Those attributes are not limited and can be arbitrarily
+enriched, allowing a lot of flexibility in Variable management.
+
+The second abstraction is named Expression. It is used to combine variables into
+algebraic or logic expressions. Most of the classical operators are overloaded
+for those two abstractions and thus the syntax of the expressions are rather
+straightforward. The exception is the assignment operator as it is important to
+differentiate between assigning an Expression or a Variable in the ruby context
+and the assignment operator in the context of a BOAST Expression. Thus the
+assignment in a BOAST Expression is represented as the \emph{===} operator,
+while the classical assignment is kept as the \emph{=} operator.
+
+Figure~\ref{fig:BOAST_algebra} shows some basic usage of both Variables and
+Expressions as well as the \emph{print} and \emph{decl} keywords. For clarity we
+stayed out of BOAST namespace so BOAST related class and methods are prefixed by
+\emph{BOAST::}. Listing~\ref{lst:BOAST_algebra} shows the BOAST code that when
+run produces the FORTRAN (Listing~\ref{lst:BOAST_algebra_FORTRAN}) and C
+(Listing~\ref{lst:BOAST_algebra_C}) output.
+
+      \paragraph{Control Structures}
 
   If
 
