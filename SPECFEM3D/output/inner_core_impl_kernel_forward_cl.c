@@ -68,7 +68,7 @@ static void compute_element_ic_att_stress(const int tx, const int working_elemen
   int i_sls;\n\
   float R_xx_val;\n\
   float R_yy_val;\n\
-  for(i_sls=0; i_sls<=N_SLS - (1); i_sls+=1){\n\
+  for (i_sls = 0; i_sls <= N_SLS - (1); i_sls += 1) {\n\
     offset = i_sls + (N_SLS) * (tx + (NGLL3) * (working_element));\n\
     R_xx_val = R_xx[offset - (0)];\n\
     R_yy_val = R_yy[offset - (0)];\n\
@@ -169,7 +169,7 @@ static void compute_element_ic_att_memory(const int tx, const int working_elemen
   float sn;\n\
   float snp1;\n\
   mul = d_muv[tx + (NGLL3_PADDED) * (working_element) - (0)];\n\
-  for(i_sls=0; i_sls<=N_SLS - (1); i_sls+=1){\n\
+  for (i_sls = 0; i_sls <= N_SLS - (1); i_sls += 1) {\n\
     offset = i_sls + (N_SLS) * (tx + (NGLL3) * (working_element));\n\
     if (USE_3D_ATTENUATION_ARRAYS) {\n\
       factor_loc = (mul) * (factor_common[offset - (0)]);\n\
@@ -410,7 +410,7 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void inner_cor
     tempy3l = tempy3l + (s_dummyy_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (fac3);\n\
     tempz3l = tempz3l + (s_dummyz_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (fac3);\n\
 #else\n\
-    for(l=0; l<=NGLLX - (1); l+=1){\n\
+    for (l = 0; l <= NGLLX - (1); l += 1) {\n\
       fac1 = sh_hprime_xx[(l) * (NGLLX) + I - (0)];\n\
       tempx1l = tempx1l + (s_dummyx_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);\n\
       tempy1l = tempy1l + (s_dummyy_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);\n\
@@ -613,7 +613,7 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void inner_cor
     tempy3l = tempy3l + (s_tempy3[offset - (0)]) * (fac3);\n\
     tempz3l = tempz3l + (s_tempz3[offset - (0)]) * (fac3);\n\
 #else\n\
-    for(l=0; l<=NGLLX - (1); l+=1){\n\
+    for (l = 0; l <= NGLLX - (1); l += 1) {\n\
       fac1 = sh_hprimewgll_xx[(I) * (NGLLX) + l - (0)];\n\
       offset = (K) * (NGLL2) + (J) * (NGLLX) + l;\n\
       tempx1l = tempx1l + (s_tempx1[offset - (0)]) * (fac1);\n\

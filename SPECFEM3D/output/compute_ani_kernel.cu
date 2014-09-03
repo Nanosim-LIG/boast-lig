@@ -68,8 +68,8 @@ static __device__ void compute_strain_product(float * prod, const float eps_trac
   b_eps[4 - (0)] = b_epsdev[3 - (0)];
   b_eps[5 - (0)] = b_epsdev[2 - (0)];
   p = 0;
-  for(i=0; i<=5; i+=1){
-    for(j=0; j<=5; j+=1){
+  for (i = 0; i <= 5; i += 1) {
+    for (j = 0; j <= 5; j += 1) {
       prod[p - (0)] = (eps[i - (0)]) * (b_eps[j - (0)]);
       if (j > i) {
         prod[p - (0)] = prod[p - (0)] + (eps[j - (0)]) * (b_eps[i - (0)]);
@@ -109,7 +109,7 @@ __global__ void compute_ani_kernel(const float * epsilondev_xx, const float * ep
     eps_trace_over_3 = epsilon_trace_over_3[ijk_ispec - (0)];
     b_eps_trace_over_3 = b_epsilon_trace_over_3[ijk_ispec - (0)];
     compute_strain_product(prod, eps_trace_over_3, epsdev, b_eps_trace_over_3, b_epsdev);
-    for(i=0; i<=20; i+=1){
+    for (i = 0; i <= 20; i += 1) {
       cijkl_kl[i - (0) + (ijk_ispec - (0)) * (21)] = cijkl_kl[i - (0) + (ijk_ispec - (0)) * (21)] + (deltat) * (prod[i - (0)]);
     }
   }

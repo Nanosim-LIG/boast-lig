@@ -176,7 +176,7 @@ __global__ void outer_core_impl_kernel_adjoint(const int nb_blocks_to_compute, c
     temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (4) * (NGLLX) + I - (0)]) * (sh_hprime_xx[(4) * (NGLLX) + J - (0)]);
     temp3l = temp3l + (s_dummy_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (sh_hprime_xx[(4) * (NGLLX) + K - (0)]);
 #else
-    for(l=0; l<=NGLLX - (1); l+=1){
+    for (l = 0; l <= NGLLX - (1); l += 1) {
       temp1l = temp1l + (s_dummy_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (sh_hprime_xx[(l) * (NGLLX) + I - (0)]);
       temp2l = temp2l + (s_dummy_loc[(K) * (NGLL2) + (l) * (NGLLX) + I - (0)]) * (sh_hprime_xx[(l) * (NGLLX) + J - (0)]);
       temp3l = temp3l + (s_dummy_loc[(l) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (sh_hprime_xx[(l) * (NGLLX) + K - (0)]);
@@ -247,7 +247,7 @@ __global__ void outer_core_impl_kernel_adjoint(const int nb_blocks_to_compute, c
     temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (4) * (NGLLX) + I - (0)]) * (sh_hprimewgll_xx[(J) * (NGLLX) + 4 - (0)]);
     temp3l = temp3l + (s_temp3[(4) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (sh_hprimewgll_xx[(K) * (NGLLX) + 4 - (0)]);
 #else
-    for(l=0; l<=NGLLX - (1); l+=1){
+    for (l = 0; l <= NGLLX - (1); l += 1) {
       temp1l = temp1l + (s_temp1[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (sh_hprimewgll_xx[(I) * (NGLLX) + l - (0)]);
       temp2l = temp2l + (s_temp2[(K) * (NGLL2) + (l) * (NGLLX) + I - (0)]) * (sh_hprimewgll_xx[(J) * (NGLLX) + l - (0)]);
       temp3l = temp3l + (s_temp3[(l) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (sh_hprimewgll_xx[(K) * (NGLLX) + l - (0)]);

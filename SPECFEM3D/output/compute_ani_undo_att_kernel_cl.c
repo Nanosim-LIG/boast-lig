@@ -111,7 +111,7 @@ static void compute_element_strain_undo_att(const int ispec, const int ijk_ispec
   tempz1l = 0.0f;\n\
   tempz2l = 0.0f;\n\
   tempz3l = 0.0f;\n\
-  for(l=0; l<=NGLLX - (1); l+=1){\n\
+  for (l = 0; l <= NGLLX - (1); l += 1) {\n\
     fac1 = sh_hprime_xx[(l) * (NGLLX) + I - (0)];\n\
     tempx1l = tempx1l + (s_dummyx_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);\n\
     tempy1l = tempy1l + (s_dummyy_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);\n\
@@ -171,8 +171,8 @@ static void compute_strain_product(float * prod, const float eps_trace_over_3, c
   b_eps[4 - (0)] = b_epsdev[3 - (0)];\n\
   b_eps[5 - (0)] = b_epsdev[2 - (0)];\n\
   p = 0;\n\
-  for(i=0; i<=5; i+=1){\n\
-    for(j=0; j<=5; j+=1){\n\
+  for (i = 0; i <= 5; i += 1) {\n\
+    for (j = 0; j <= 5; j += 1) {\n\
       prod[p - (0)] = (eps[i - (0)]) * (b_eps[j - (0)]);\n\
       if (j > i) {\n\
         prod[p - (0)] = prod[p - (0)] + (eps[j - (0)]) * (b_eps[i - (0)]);\n\
@@ -224,7 +224,7 @@ __kernel void compute_ani_undo_att_kernel(const __global float * epsilondev_xx, 
     eps_trace_over_3 = epsilon_trace_over_3[ijk_ispec - (0)];\n\
     compute_element_strain_undo_att(ispec, ijk_ispec, d_ibool, s_dummyx_loc, s_dummyy_loc, s_dummyz_loc, d_xix, d_xiy, d_xiz, d_etax, d_etay, d_etaz, d_gammax, d_gammay, d_gammaz, sh_hprime_xx, b_epsdev,  &b_eps_trace_over_3);\n\
     compute_strain_product(prod, eps_trace_over_3, epsdev, b_eps_trace_over_3, b_epsdev);\n\
-    for(i=0; i<=20; i+=1){\n\
+    for (i = 0; i <= 20; i += 1) {\n\
       cijkl_kl[i - (0) + (ijk_ispec - (0)) * (21)] = cijkl_kl[i - (0) + (ijk_ispec - (0)) * (21)] + (deltat) * (prod[i - (0)]);\n\
     }\n\
   }\n\

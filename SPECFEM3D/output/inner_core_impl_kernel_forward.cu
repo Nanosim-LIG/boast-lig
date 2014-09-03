@@ -57,7 +57,7 @@ static __device__ void compute_element_ic_att_stress(const int tx, const int wor
   int i_sls;
   float R_xx_val;
   float R_yy_val;
-  for(i_sls=0; i_sls<=N_SLS - (1); i_sls+=1){
+  for (i_sls = 0; i_sls <= N_SLS - (1); i_sls += 1) {
     offset = i_sls + (N_SLS) * (tx + (NGLL3) * (working_element));
     R_xx_val = R_xx[offset - (0)];
     R_yy_val = R_yy[offset - (0)];
@@ -158,7 +158,7 @@ static __device__ void compute_element_ic_att_memory(const int tx, const int wor
   float sn;
   float snp1;
   mul = d_muv[tx + (NGLL3_PADDED) * (working_element) - (0)];
-  for(i_sls=0; i_sls<=N_SLS - (1); i_sls+=1){
+  for (i_sls = 0; i_sls <= N_SLS - (1); i_sls += 1) {
     offset = i_sls + (N_SLS) * (tx + (NGLL3) * (working_element));
     if (USE_3D_ATTENUATION_ARRAYS) {
       factor_loc = (mul) * (factor_common[offset - (0)]);
@@ -396,7 +396,7 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
     tempy3l = tempy3l + (s_dummyy_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (fac3);
     tempz3l = tempz3l + (s_dummyz_loc[(4) * (NGLL2) + (J) * (NGLLX) + I - (0)]) * (fac3);
 #else
-    for(l=0; l<=NGLLX - (1); l+=1){
+    for (l = 0; l <= NGLLX - (1); l += 1) {
       fac1 = sh_hprime_xx[(l) * (NGLLX) + I - (0)];
       tempx1l = tempx1l + (s_dummyx_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);
       tempy1l = tempy1l + (s_dummyy_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);
@@ -599,7 +599,7 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
     tempy3l = tempy3l + (s_tempy3[offset - (0)]) * (fac3);
     tempz3l = tempz3l + (s_tempz3[offset - (0)]) * (fac3);
 #else
-    for(l=0; l<=NGLLX - (1); l+=1){
+    for (l = 0; l <= NGLLX - (1); l += 1) {
       fac1 = sh_hprimewgll_xx[(I) * (NGLLX) + l - (0)];
       offset = (K) * (NGLL2) + (J) * (NGLLX) + l;
       tempx1l = tempx1l + (s_tempx1[offset - (0)]) * (fac1);

@@ -79,8 +79,8 @@ static void compute_strain_product(float * prod, const float eps_trace_over_3, c
   b_eps[4 - (0)] = b_epsdev[3 - (0)];\n\
   b_eps[5 - (0)] = b_epsdev[2 - (0)];\n\
   p = 0;\n\
-  for(i=0; i<=5; i+=1){\n\
-    for(j=0; j<=5; j+=1){\n\
+  for (i = 0; i <= 5; i += 1) {\n\
+    for (j = 0; j <= 5; j += 1) {\n\
       prod[p - (0)] = (eps[i - (0)]) * (b_eps[j - (0)]);\n\
       if (j > i) {\n\
         prod[p - (0)] = prod[p - (0)] + (eps[j - (0)]) * (b_eps[i - (0)]);\n\
@@ -120,7 +120,7 @@ __kernel void compute_ani_kernel(const __global float * epsilondev_xx, const __g
     eps_trace_over_3 = epsilon_trace_over_3[ijk_ispec - (0)];\n\
     b_eps_trace_over_3 = b_epsilon_trace_over_3[ijk_ispec - (0)];\n\
     compute_strain_product(prod, eps_trace_over_3, epsdev, b_eps_trace_over_3, b_epsdev);\n\
-    for(i=0; i<=20; i+=1){\n\
+    for (i = 0; i <= 20; i += 1) {\n\
       cijkl_kl[i - (0) + (ijk_ispec - (0)) * (21)] = cijkl_kl[i - (0) + (ijk_ispec - (0)) * (21)] + (deltat) * (prod[i - (0)]);\n\
     }\n\
   }\n\

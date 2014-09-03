@@ -100,7 +100,7 @@ static __device__ void compute_element_strain_undo_att(const int ispec, const in
   tempz1l = 0.0f;
   tempz2l = 0.0f;
   tempz3l = 0.0f;
-  for(l=0; l<=NGLLX - (1); l+=1){
+  for (l = 0; l <= NGLLX - (1); l += 1) {
     fac1 = sh_hprime_xx[(l) * (NGLLX) + I - (0)];
     tempx1l = tempx1l + (s_dummyx_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);
     tempy1l = tempy1l + (s_dummyy_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);

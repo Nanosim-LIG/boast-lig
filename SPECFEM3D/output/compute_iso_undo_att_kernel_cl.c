@@ -111,7 +111,7 @@ static void compute_element_strain_undo_att(const int ispec, const int ijk_ispec
   tempz1l = 0.0f;\n\
   tempz2l = 0.0f;\n\
   tempz3l = 0.0f;\n\
-  for(l=0; l<=NGLLX - (1); l+=1){\n\
+  for (l = 0; l <= NGLLX - (1); l += 1) {\n\
     fac1 = sh_hprime_xx[(l) * (NGLLX) + I - (0)];\n\
     tempx1l = tempx1l + (s_dummyx_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);\n\
     tempy1l = tempy1l + (s_dummyy_loc[(K) * (NGLL2) + (J) * (NGLLX) + l - (0)]) * (fac1);\n\
