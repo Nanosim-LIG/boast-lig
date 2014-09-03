@@ -71,12 +71,12 @@ static __device__ void compute_strain_product(float * prod, const float eps_trac
   for(i=0; i<=5; i+=1){
     for(j=0; j<=5; j+=1){
       prod[p - (0)] = (eps[i - (0)]) * (b_eps[j - (0)]);
-      if(j > i){
+      if (j > i) {
         prod[p - (0)] = prod[p - (0)] + (eps[j - (0)]) * (b_eps[i - (0)]);
-        if(j > 2 && i < 3){
+        if (j > 2 && i < 3) {
           prod[p - (0)] = (prod[p - (0)]) * (2.0f);
         }
-        if(i > 2){
+        if (i > 2) {
           prod[p - (0)] = (prod[p - (0)]) * (4.0f);
         }
         p = p + 1;
@@ -94,7 +94,7 @@ __global__ void compute_ani_kernel(const float * epsilondev_xx, const float * ep
   float epsdev[5];
   float b_epsdev[5];
   ispec = blockIdx.x + (blockIdx.y) * (gridDim.x);
-  if(ispec < NSPEC){
+  if (ispec < NSPEC) {
     ijk_ispec = threadIdx.x + (NGLL3) * (ispec);
     epsdev[0 - (0)] = epsilondev_xx[ijk_ispec - (0)];
     epsdev[1 - (0)] = epsilondev_yy[ijk_ispec - (0)];

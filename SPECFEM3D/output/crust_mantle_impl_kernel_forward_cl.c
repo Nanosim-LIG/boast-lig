@@ -109,7 +109,7 @@ static void compute_element_cm_gravity(const int tx, const int iglob, const __gl
   float factor;\n\
   int int_radius;\n\
   radius = d_xstore[iglob - (0)];\n\
-  if(radius < 1.5696123057604773e-05f){\n\
+  if (radius < 1.5696123057604773e-05f) {\n\
     radius = 1.5696123057604773e-05f;\n\
   }\n\
   theta = d_ystore[iglob - (0)];\n\
@@ -117,7 +117,7 @@ static void compute_element_cm_gravity(const int tx, const int iglob, const __gl
   sin_theta = sincos(theta,  &cos_theta);\n\
   sin_phi = sincos(phi,  &cos_phi);\n\
   int_radius = rint(((radius) * (6371.0f)) * (10.0f)) - (1);\n\
-  if(int_radius < 0){\n\
+  if (int_radius < 0) {\n\
     int_radius = 0;\n\
   }\n\
   minus_g = d_minus_gravity_table[int_radius - (0)];\n\
@@ -165,14 +165,14 @@ static void compute_element_cm_att_memory(const int tx, const int working_elemen
   float factor_loc;\n\
   float sn;\n\
   float snp1;\n\
-  if(ANISOTROPY){\n\
+  if (ANISOTROPY) {\n\
     mul = d_c44store[tx + (NGLL3_PADDED) * (working_element) - (0)];\n\
   } else {\n\
     mul = d_muv[tx + (NGLL3_PADDED) * (working_element) - (0)];\n\
   }\n\
   for(i_sls=0; i_sls<=N_SLS - (1); i_sls+=1){\n\
     offset = i_sls + (N_SLS) * (tx + (NGLL3) * (working_element));\n\
-    if(USE_3D_ATTENUATION_ARRAYS){\n\
+    if (USE_3D_ATTENUATION_ARRAYS) {\n\
       factor_loc = (mul) * (factor_common[offset - (0)]);\n\
     } else {\n\
       factor_loc = (mul) * (factor_common[i_sls + (N_SLS) * (working_element) - (0)]);\n\
@@ -242,7 +242,7 @@ static void compute_element_cm_aniso(const int offset, const __global float * d_
   c55 = d_c55store[offset - (0)];\n\
   c56 = d_c56store[offset - (0)];\n\
   c66 = d_c66store[offset - (0)];\n\
-  if(ATTENUATION){\n\
+  if (ATTENUATION) {\n\
     minus_sum_beta = one_minus_sum_beta_use - (1.0f);\n\
     mul = (c44) * (minus_sum_beta);\n\
     c11 = c11 + (mul) * (1.3333333333333333f);\n\
@@ -269,7 +269,7 @@ static void compute_element_cm_iso(const int offset, const __global float * d_ka
   float kappal;\n\
   kappal = d_kappavstore[offset - (0)];\n\
   mul = d_muvstore[offset - (0)];\n\
-  if(ATTENUATION){\n\
+  if (ATTENUATION) {\n\
     mul = (mul) * (one_minus_sum_beta_use);\n\
   }\n\
   lambdalplus2mul = kappal + (mul) * (1.3333333333333333f);\n\
@@ -348,7 +348,7 @@ static void compute_element_cm_tiso(const int offset, const __global float * d_k
   muvl = d_muvstore[offset - (0)];\n\
   kappahl = d_kappahstore[offset - (0)];\n\
   muhl = d_muhstore[offset - (0)];\n\
-  if(ATTENUATION){\n\
+  if (ATTENUATION) {\n\
     muvl = (muvl) * (one_minus_sum_beta_use);\n\
     muhl = (muhl) * (one_minus_sum_beta_use);\n\
   }\n\
@@ -510,11 +510,11 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void crust_man
   J = (tx - ((K) * (NGLL2))) / (NGLLX);\n\
   I = tx - ((K) * (NGLL2)) - ((J) * (NGLLX));\n\
   active = (tx < NGLL3 && bx < nb_blocks_to_compute ? 1 : 0);\n\
-  if(active){\n\
+  if (active) {\n\
 #ifdef USE_MESH_COLORING_GPU\n\
     working_element = bx;\n\
 #else\n\
-    if(use_mesh_coloring_gpu){\n\
+    if (use_mesh_coloring_gpu) {\n\
       working_element = bx;\n\
     } else {\n\
       working_element = d_phase_ispec_inner[bx + (num_phase_ispec) * (d_iphase - (1)) - (0)] - (1);\n\
@@ -531,7 +531,7 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void crust_man
     s_dummyz_loc[tx - (0)] = d_displ[2 - (0) + (iglob - (0)) * (3)];\n\
 #endif\n\
   }\n\
-  if(tx < NGLL2){\n\
+  if (tx < NGLL2) {\n\
 #ifdef USE_TEXTURES_CONSTANTS\n\
     sh_hprime_xx[tx - (0)] = as_float(read_imageui(d_hprime_xx_tex, sampler_d_hprime_xx_tex, int2(tx,0)).x);\n\
     sh_hprimewgll_xx[tx - (0)] = as_float(read_imageui(d_hprimewgll_xx_tex, sampler_d_hprimewgll_xx_tex, int2(tx,0)).x);\n\
@@ -541,7 +541,7 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void crust_man
 #endif\n\
   }\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if(active){\n\
+  if (active) {\n\
     tempx1l = 0.0f;\n\
     tempx2l = 0.0f;\n\
     tempx3l = 0.0f;\n\
@@ -653,43 +653,43 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void crust_man
     duxdyl_plus_duydxl = duxdyl + duydxl;\n\
     duzdxl_plus_duxdzl = duzdxl + duxdzl;\n\
     duzdyl_plus_duydzl = duzdyl + duydzl;\n\
-    if(COMPUTE_AND_STORE_STRAIN){\n\
+    if (COMPUTE_AND_STORE_STRAIN) {\n\
       templ = (duxdxl + duydyl + duzdzl) * (0.3333333333333333f);\n\
       epsilondev_xx_loc = duxdxl - (templ);\n\
       epsilondev_yy_loc = duydyl - (templ);\n\
       epsilondev_xy_loc = (duxdyl_plus_duydxl) * (0.5f);\n\
       epsilondev_xz_loc = (duzdxl_plus_duxdzl) * (0.5f);\n\
       epsilondev_yz_loc = (duzdyl_plus_duydzl) * (0.5f);\n\
-      if(NSPEC_CRUST_MANTLE_STRAIN_ONLY == 1){\n\
+      if (NSPEC_CRUST_MANTLE_STRAIN_ONLY == 1) {\n\
         epsilon_trace_over_3[tx - (0)] = templ;\n\
       } else {\n\
         epsilon_trace_over_3[tx + (working_element) * (NGLL3) - (0)] = templ;\n\
       }\n\
     }\n\
-    if(ATTENUATION){\n\
-      if(USE_3D_ATTENUATION_ARRAYS){\n\
+    if (ATTENUATION) {\n\
+      if (USE_3D_ATTENUATION_ARRAYS) {\n\
         one_minus_sum_beta_use = one_minus_sum_beta[tx + (working_element) * (NGLL3) - (0)];\n\
       } else {\n\
         one_minus_sum_beta_use = one_minus_sum_beta[working_element - (0)];\n\
       }\n\
     }\n\
-    if(ANISOTROPY){\n\
+    if (ANISOTROPY) {\n\
       compute_element_cm_aniso(offset, d_c11store, d_c12store, d_c13store, d_c14store, d_c15store, d_c16store, d_c22store, d_c23store, d_c24store, d_c25store, d_c26store, d_c33store, d_c34store, d_c35store, d_c36store, d_c44store, d_c45store, d_c46store, d_c55store, d_c56store, d_c66store, ATTENUATION, one_minus_sum_beta_use, duxdxl, duxdyl, duxdzl, duydxl, duydyl, duydzl, duzdxl, duzdyl, duzdzl, duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,  &sigma_xx,  &sigma_yy,  &sigma_zz,  &sigma_xy,  &sigma_xz,  &sigma_yz);\n\
     } else {\n\
-      if( ! d_ispec_is_tiso[working_element - (0)]){\n\
+      if ( ! d_ispec_is_tiso[working_element - (0)]) {\n\
         compute_element_cm_iso(offset, d_kappavstore, d_muvstore, ATTENUATION, one_minus_sum_beta_use, duxdxl, duydyl, duzdzl, duxdxl_plus_duydyl, duxdxl_plus_duzdzl, duydyl_plus_duzdzl, duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,  &sigma_xx,  &sigma_yy,  &sigma_zz,  &sigma_xy,  &sigma_xz,  &sigma_yz);\n\
       } else {\n\
         compute_element_cm_tiso(offset, d_kappavstore, d_muvstore, d_kappahstore, d_muhstore, d_eta_anisostore, ATTENUATION, one_minus_sum_beta_use, duxdxl, duxdyl, duxdzl, duydxl, duydyl, duydzl, duzdxl, duzdyl, duzdzl, duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl, iglob, d_ystore, d_zstore,  &sigma_xx,  &sigma_yy,  &sigma_zz,  &sigma_xy,  &sigma_xz,  &sigma_yz);\n\
       }\n\
     }\n\
-    if(ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY){\n\
+    if (ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY) {\n\
       compute_element_cm_att_stress(tx, working_element, R_xx, R_yy, R_xy, R_xz, R_yz,  &sigma_xx,  &sigma_yy,  &sigma_zz,  &sigma_xy,  &sigma_xz,  &sigma_yz);\n\
     }\n\
     sigma_yx = sigma_xy;\n\
     sigma_zx = sigma_xz;\n\
     sigma_zy = sigma_yz;\n\
     jacobianl = (1.0f) / ((xixl) * ((etayl) * (gammazl) - ((etazl) * (gammayl))) - ((xiyl) * ((etaxl) * (gammazl) - ((etazl) * (gammaxl)))) + (xizl) * ((etaxl) * (gammayl) - ((etayl) * (gammaxl))));\n\
-    if(GRAVITY){\n\
+    if (GRAVITY) {\n\
       compute_element_cm_gravity(tx, iglob, d_xstore, d_ystore, d_zstore, d_minus_gravity_table, d_minus_deriv_gravity_table, d_density_table, wgll_cube, jacobianl, s_dummyx_loc, s_dummyy_loc, s_dummyz_loc,  &sigma_xx,  &sigma_yy,  &sigma_zz,  &sigma_xy,  &sigma_yx,  &sigma_xz,  &sigma_zx,  &sigma_yz,  &sigma_zy,  &rho_s_H1,  &rho_s_H2,  &rho_s_H3);\n\
     }\n\
     s_tempx1[tx - (0)] = (jacobianl) * ((sigma_xx) * (xixl) + (sigma_yx) * (xiyl) + (sigma_zx) * (xizl));\n\
@@ -703,7 +703,7 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void crust_man
     s_tempz3[tx - (0)] = (jacobianl) * ((sigma_xz) * (gammaxl) + (sigma_yz) * (gammayl) + (sigma_zz) * (gammazl));\n\
   }\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if(active){\n\
+  if (active) {\n\
     tempx1l = 0.0f;\n\
     tempx2l = 0.0f;\n\
     tempx3l = 0.0f;\n\
@@ -814,7 +814,7 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void crust_man
     sum_terms1 =  -((fac1) * (tempx1l) + (fac2) * (tempx2l) + (fac3) * (tempx3l));\n\
     sum_terms2 =  -((fac1) * (tempy1l) + (fac2) * (tempy2l) + (fac3) * (tempy3l));\n\
     sum_terms3 =  -((fac1) * (tempz1l) + (fac2) * (tempz2l) + (fac3) * (tempz3l));\n\
-    if(GRAVITY){\n\
+    if (GRAVITY) {\n\
       sum_terms1 = sum_terms1 + rho_s_H1;\n\
       sum_terms2 = sum_terms2 + rho_s_H2;\n\
       sum_terms3 = sum_terms3 + rho_s_H3;\n\
@@ -830,7 +830,7 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void crust_man
     d_accel[2 - (0) + (iglob - (0)) * (3)] = d_accel[2 - (0) + (iglob - (0)) * (3)] + sum_terms3;\n\
 #endif\n\
 #else\n\
-    if(use_mesh_coloring_gpu){\n\
+    if (use_mesh_coloring_gpu) {\n\
 #ifdef USE_TEXTURES_FIELDS\n\
       d_accel[0 - (0) + (iglob - (0)) * (3)] = as_float(read_imageui(d_accel_cm_tex, sampler_d_accel_cm_tex, int2((iglob) * (3) + 0,0)).x) + sum_terms1;\n\
       d_accel[1 - (0) + (iglob - (0)) * (3)] = as_float(read_imageui(d_accel_cm_tex, sampler_d_accel_cm_tex, int2((iglob) * (3) + 1,0)).x) + sum_terms2;\n\
@@ -846,10 +846,10 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void crust_man
       atomicAdd(d_accel + (iglob) * (3) + 2, sum_terms3);\n\
     }\n\
 #endif\n\
-    if(ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY){\n\
+    if (ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY) {\n\
       compute_element_cm_att_memory(tx, working_element, d_muvstore, factor_common, alphaval, betaval, gammaval, R_xx, R_yy, R_xy, R_xz, R_yz, epsilondev_xx, epsilondev_yy, epsilondev_xy, epsilondev_xz, epsilondev_yz, epsilondev_xx_loc, epsilondev_yy_loc, epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc, d_c44store, ANISOTROPY, USE_3D_ATTENUATION_ARRAYS);\n\
     }\n\
-    if(COMPUTE_AND_STORE_STRAIN){\n\
+    if (COMPUTE_AND_STORE_STRAIN) {\n\
       epsilondev_xx[tx + (working_element) * (NGLL3) - (0)] = epsilondev_xx_loc;\n\
       epsilondev_yy[tx + (working_element) * (NGLL3) - (0)] = epsilondev_yy_loc;\n\
       epsilondev_xy[tx + (working_element) * (NGLL3) - (0)] = epsilondev_xy_loc;\n\

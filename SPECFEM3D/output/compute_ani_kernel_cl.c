@@ -82,12 +82,12 @@ static void compute_strain_product(float * prod, const float eps_trace_over_3, c
   for(i=0; i<=5; i+=1){\n\
     for(j=0; j<=5; j+=1){\n\
       prod[p - (0)] = (eps[i - (0)]) * (b_eps[j - (0)]);\n\
-      if(j > i){\n\
+      if (j > i) {\n\
         prod[p - (0)] = prod[p - (0)] + (eps[j - (0)]) * (b_eps[i - (0)]);\n\
-        if(j > 2 && i < 3){\n\
+        if (j > 2 && i < 3) {\n\
           prod[p - (0)] = (prod[p - (0)]) * (2.0f);\n\
         }\n\
-        if(i > 2){\n\
+        if (i > 2) {\n\
           prod[p - (0)] = (prod[p - (0)]) * (4.0f);\n\
         }\n\
         p = p + 1;\n\
@@ -105,7 +105,7 @@ __kernel void compute_ani_kernel(const __global float * epsilondev_xx, const __g
   float epsdev[5];\n\
   float b_epsdev[5];\n\
   ispec = get_group_id(0) + (get_group_id(1)) * (get_num_groups(0));\n\
-  if(ispec < NSPEC){\n\
+  if (ispec < NSPEC) {\n\
     ijk_ispec = get_local_id(0) + (NGLL3) * (ispec);\n\
     epsdev[0 - (0)] = epsilondev_xx[ijk_ispec - (0)];\n\
     epsdev[1 - (0)] = epsilondev_yy[ijk_ispec - (0)];\n\

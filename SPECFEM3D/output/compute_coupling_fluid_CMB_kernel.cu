@@ -70,7 +70,7 @@ __global__ void compute_coupling_fluid_CMB_kernel(const float * displ_crust_mant
   i = threadIdx.x;
   j = threadIdx.y;
   iface = blockIdx.x + (gridDim.x) * (blockIdx.y);
-  if(iface < NSPEC2D_TOP_OC){
+  if (iface < NSPEC2D_TOP_OC) {
     ispec = ibelm_top_outer_core[iface - (0)] - (1);
     ispec_selected = ibelm_bottom_crust_mantle[iface - (0)] - (1);
     k = NGLLX - (1);

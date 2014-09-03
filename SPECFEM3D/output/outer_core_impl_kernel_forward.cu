@@ -128,11 +128,11 @@ __global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, c
   J = (tx - ((K) * (NGLL2))) / (NGLLX);
   I = tx - ((K) * (NGLL2)) - ((J) * (NGLLX));
   active = (tx < NGLL3 && bx < nb_blocks_to_compute ? 1 : 0);
-  if(active){
+  if (active) {
 #ifdef USE_MESH_COLORING_GPU
     working_element = bx;
 #else
-    if(use_mesh_coloring_gpu){
+    if (use_mesh_coloring_gpu) {
       working_element = bx;
     } else {
       working_element = d_phase_ispec_inner[bx + (num_phase_ispec) * (d_iphase - (1)) - (0)] - (1);
@@ -145,7 +145,7 @@ __global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, c
     s_dummy_loc[tx - (0)] = d_potential[iglob - (0)];
 #endif
   }
-  if(tx < NGLL2){
+  if (tx < NGLL2) {
 #ifdef USE_TEXTURES_CONSTANTS
     sh_hprime_xx[tx - (0)] = tex1Dfetch(d_hprime_xx_oc_tex,tx);
     sh_hprimewgll_xx[tx - (0)] = tex1Dfetch(d_hprimewgll_xx_oc_tex,tx);
@@ -155,7 +155,7 @@ __global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, c
 #endif
   }
   __syncthreads();
-  if(active){
+  if (active) {
     temp1l = 0.0f;
     temp2l = 0.0f;
     temp3l = 0.0f;
@@ -196,7 +196,7 @@ __global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, c
     dpotentialdxl = (xixl) * (temp1l) + (etaxl) * (temp2l) + (gammaxl) * (temp3l);
     dpotentialdyl = (xiyl) * (temp1l) + (etayl) * (temp2l) + (gammayl) * (temp3l);
     dpotentialdzl = (xizl) * (temp1l) + (etazl) * (temp2l) + (gammazl) * (temp3l);
-    if(ROTATION){
+    if (ROTATION) {
       compute_element_oc_rotation(tx, working_element, time, two_omega_earth, deltat, d_A_array_rotation, d_B_array_rotation, dpotentialdxl, dpotentialdyl,  &dpotentialdx_with_rot,  &dpotentialdy_with_rot);
     } else {
       dpotentialdx_with_rot = dpotentialdxl;
@@ -208,7 +208,7 @@ __global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, c
     sincosf(theta,  &sin_theta,  &cos_theta);
     sincosf(phi,  &sin_phi,  &cos_phi);
     int_radius = rint(((radius) * (R_EARTH_KM)) * (10.0f)) - (1);
-    if( ! GRAVITY){
+    if ( ! GRAVITY) {
       grad_x_ln_rho = ((sin_theta) * (cos_phi)) * (d_d_ln_density_dr_table[int_radius - (0)]);
       grad_y_ln_rho = ((sin_theta) * (sin_phi)) * (d_d_ln_density_dr_table[int_radius - (0)]);
       grad_z_ln_rho = (cos_theta) * (d_d_ln_density_dr_table[int_radius - (0)]);
@@ -226,7 +226,7 @@ __global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, c
     s_temp3[tx - (0)] = (jacobianl) * ((gammaxl) * (dpotentialdx_with_rot) + (gammayl) * (dpotentialdy_with_rot) + (gammazl) * (dpotentialdzl));
   }
   __syncthreads();
-  if(active){
+  if (active) {
     temp1l = 0.0f;
     temp2l = 0.0f;
     temp3l = 0.0f;
@@ -254,7 +254,7 @@ __global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, c
     }
 #endif
     sum_terms =  -((wgllwgll_yz[(K) * (NGLLX) + J - (0)]) * (temp1l) + (wgllwgll_xz[(K) * (NGLLX) + I - (0)]) * (temp2l) + (wgllwgll_xy[(J) * (NGLLX) + I - (0)]) * (temp3l));
-    if(GRAVITY){
+    if (GRAVITY) {
       sum_terms = sum_terms + gravity_term;
     }
 #ifdef USE_MESH_COLORING_GPU
@@ -264,8 +264,8 @@ __global__ void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, c
     d_potential_dot_dot[iglob - (0)] = d_potential_dot_dot[iglob - (0)] + sum_terms;
 #endif
 #else
-    if(use_mesh_coloring_gpu){
-      if(NSPEC_OUTER_CORE > 1000){
+    if (use_mesh_coloring_gpu) {
+      if (NSPEC_OUTER_CORE > 1000) {
 #ifdef USE_TEXTURES_FIELDS
         d_potential_dot_dot[iglob - (0)] = tex1Dfetch(d_accel_oc_tex,iglob) + sum_terms;
 #else

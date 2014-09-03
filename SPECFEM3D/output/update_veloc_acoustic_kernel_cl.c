@@ -63,7 +63,7 @@ inline void atomicAdd(volatile __global float *source, const float val) {\n\
 __kernel void update_veloc_acoustic_kernel(__global float * veloc, const __global float * accel, const int size, const float deltatover2){\n\
   int id;\n\
   id = get_global_id(0) + (get_group_id(1)) * (get_global_size(0));\n\
-  if(id < size){\n\
+  if (id < size) {\n\
     veloc[id - (0)] = veloc[id - (0)] + (deltatover2) * (accel[id - (0)]);\n\
   }\n\
 }\n\

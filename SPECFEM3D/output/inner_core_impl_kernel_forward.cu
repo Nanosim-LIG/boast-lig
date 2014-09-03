@@ -101,7 +101,7 @@ static __device__ void compute_element_ic_gravity(const int tx, const int iglob,
   float factor;
   int int_radius;
   radius = d_xstore[iglob - (0)];
-  if(radius < 1.5696123057604773e-05f){
+  if (radius < 1.5696123057604773e-05f) {
     radius = 1.5696123057604773e-05f;
   }
   theta = d_ystore[iglob - (0)];
@@ -109,7 +109,7 @@ static __device__ void compute_element_ic_gravity(const int tx, const int iglob,
   sincosf(theta,  &sin_theta,  &cos_theta);
   sincosf(phi,  &sin_phi,  &cos_phi);
   int_radius = rint(((radius) * (6371.0f)) * (10.0f)) - (1);
-  if(int_radius < 0){
+  if (int_radius < 0) {
     int_radius = 0;
   }
   minus_g = d_minus_gravity_table[int_radius - (0)];
@@ -160,7 +160,7 @@ static __device__ void compute_element_ic_att_memory(const int tx, const int wor
   mul = d_muv[tx + (NGLL3_PADDED) * (working_element) - (0)];
   for(i_sls=0; i_sls<=N_SLS - (1); i_sls+=1){
     offset = i_sls + (N_SLS) * (tx + (NGLL3) * (working_element));
-    if(USE_3D_ATTENUATION_ARRAYS){
+    if (USE_3D_ATTENUATION_ARRAYS) {
       factor_loc = (mul) * (factor_common[offset - (0)]);
     } else {
       factor_loc = (mul) * (factor_common[i_sls + (N_SLS) * (working_element) - (0)]);
@@ -289,17 +289,17 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
   J = (tx - ((K) * (NGLL2))) / (NGLLX);
   I = tx - ((K) * (NGLL2)) - ((J) * (NGLLX));
   active = (tx < NGLL3 && bx < nb_blocks_to_compute ? 1 : 0);
-  if(active){
+  if (active) {
 #ifdef USE_MESH_COLORING_GPU
     working_element = bx;
 #else
-    if(use_mesh_coloring_gpu){
+    if (use_mesh_coloring_gpu) {
       working_element = bx;
     } else {
       working_element = d_phase_ispec_inner[bx + (num_phase_ispec) * (d_iphase - (1)) - (0)] - (1);
     }
 #endif
-    if(d_idoubling[working_element - (0)] == IFLAG_IN_FICTITIOUS_CUBE){
+    if (d_idoubling[working_element - (0)] == IFLAG_IN_FICTITIOUS_CUBE) {
       active = 0;
     } else {
       iglob = d_ibool[(working_element) * (NGLL3) + tx - (0)] - (1);
@@ -314,7 +314,7 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
 #endif
     }
   }
-  if(tx < NGLL2){
+  if (tx < NGLL2) {
 #ifdef USE_TEXTURES_CONSTANTS
     sh_hprime_xx[tx - (0)] = tex1Dfetch(d_hprime_xx_ic_tex,tx);
     sh_hprimewgll_xx[tx - (0)] = tex1Dfetch(d_hprimewgll_xx_ic_tex,tx);
@@ -324,7 +324,7 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
 #endif
   }
   __syncthreads();
-  if(active){
+  if (active) {
     tempx1l = 0.0f;
     tempx2l = 0.0f;
     tempx3l = 0.0f;
@@ -436,14 +436,14 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
     duxdyl_plus_duydxl = duxdyl + duydxl;
     duzdxl_plus_duxdzl = duzdxl + duxdzl;
     duzdyl_plus_duydzl = duzdyl + duydzl;
-    if(COMPUTE_AND_STORE_STRAIN){
+    if (COMPUTE_AND_STORE_STRAIN) {
       templ = (duxdxl + duydyl + duzdzl) * (0.3333333333333333f);
       epsilondev_xx_loc = duxdxl - (templ);
       epsilondev_yy_loc = duydyl - (templ);
       epsilondev_xy_loc = (duxdyl_plus_duydxl) * (0.5f);
       epsilondev_xz_loc = (duzdxl_plus_duxdzl) * (0.5f);
       epsilondev_yz_loc = (duzdyl_plus_duydzl) * (0.5f);
-      if(NSPEC_INNER_CORE_STRAIN_ONLY == 1){
+      if (NSPEC_INNER_CORE_STRAIN_ONLY == 1) {
         epsilon_trace_over_3[tx - (0)] = templ;
       } else {
         epsilon_trace_over_3[tx + (working_element) * (NGLL3) - (0)] = templ;
@@ -451,8 +451,8 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
     }
     kappal = d_kappavstore[offset - (0)];
     mul = d_muvstore[offset - (0)];
-    if(ATTENUATION){
-      if(USE_3D_ATTENUATION_ARRAYS){
+    if (ATTENUATION) {
+      if (USE_3D_ATTENUATION_ARRAYS) {
         mul_iso = (mul) * (one_minus_sum_beta[tx + (working_element) * (NGLL3) - (0)]);
         mul_aniso = (mul) * (one_minus_sum_beta[tx + (working_element) * (NGLL3) - (0)] - (1.0f));
       } else {
@@ -462,13 +462,13 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
     } else {
       mul_iso = mul;
     }
-    if(ANISOTROPY){
+    if (ANISOTROPY) {
       c11 = d_c11store[offset - (0)];
       c12 = d_c12store[offset - (0)];
       c13 = d_c13store[offset - (0)];
       c33 = d_c33store[offset - (0)];
       c44 = d_c44store[offset - (0)];
-      if(ATTENUATION){
+      if (ATTENUATION) {
         c11 = c11 + (mul_aniso) * (1.3333333333333333f);
         c12 = c12 - ((mul_aniso) * (0.6666666666666666f));
         c13 = c13 - ((mul_aniso) * (0.6666666666666666f));
@@ -491,14 +491,14 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
       sigma_xz = (mul) * (duzdxl_plus_duxdzl);
       sigma_yz = (mul) * (duzdyl_plus_duydzl);
     }
-    if(ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY){
+    if (ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY) {
       compute_element_ic_att_stress(tx, working_element, R_xx, R_yy, R_xy, R_xz, R_yz,  &sigma_xx,  &sigma_yy,  &sigma_zz,  &sigma_xy,  &sigma_xz,  &sigma_yz);
     }
     sigma_yx = sigma_xy;
     sigma_zx = sigma_xz;
     sigma_zy = sigma_yz;
     jacobianl = (1.0f) / ((xixl) * ((etayl) * (gammazl) - ((etazl) * (gammayl))) - ((xiyl) * ((etaxl) * (gammazl) - ((etazl) * (gammaxl)))) + (xizl) * ((etaxl) * (gammayl) - ((etayl) * (gammaxl))));
-    if(GRAVITY){
+    if (GRAVITY) {
       compute_element_ic_gravity(tx, iglob, d_xstore, d_ystore, d_zstore, d_minus_gravity_table, d_minus_deriv_gravity_table, d_density_table, wgll_cube, jacobianl, s_dummyx_loc, s_dummyy_loc, s_dummyz_loc,  &sigma_xx,  &sigma_yy,  &sigma_zz,  &sigma_xy,  &sigma_yx,  &sigma_xz,  &sigma_zx,  &sigma_yz,  &sigma_zy,  &rho_s_H1,  &rho_s_H2,  &rho_s_H3);
     }
     s_tempx1[tx - (0)] = (jacobianl) * ((sigma_xx) * (xixl) + (sigma_yx) * (xiyl) + (sigma_zx) * (xizl));
@@ -512,7 +512,7 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
     s_tempz3[tx - (0)] = (jacobianl) * ((sigma_xz) * (gammaxl) + (sigma_yz) * (gammayl) + (sigma_zz) * (gammazl));
   }
   __syncthreads();
-  if(active){
+  if (active) {
     tempx1l = 0.0f;
     tempx2l = 0.0f;
     tempx3l = 0.0f;
@@ -623,7 +623,7 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
     sum_terms1 =  -((fac1) * (tempx1l) + (fac2) * (tempx2l) + (fac3) * (tempx3l));
     sum_terms2 =  -((fac1) * (tempy1l) + (fac2) * (tempy2l) + (fac3) * (tempy3l));
     sum_terms3 =  -((fac1) * (tempz1l) + (fac2) * (tempz2l) + (fac3) * (tempz3l));
-    if(GRAVITY){
+    if (GRAVITY) {
       sum_terms1 = sum_terms1 + rho_s_H1;
       sum_terms2 = sum_terms2 + rho_s_H2;
       sum_terms3 = sum_terms3 + rho_s_H3;
@@ -639,8 +639,8 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
     d_accel[2 - (0) + (iglob - (0)) * (3)] = d_accel[2 - (0) + (iglob - (0)) * (3)] + sum_terms3;
 #endif
 #else
-    if(use_mesh_coloring_gpu){
-      if(NSPEC_INNER_CORE > 1000){
+    if (use_mesh_coloring_gpu) {
+      if (NSPEC_INNER_CORE > 1000) {
 #ifdef USE_TEXTURES_FIELDS
         d_accel[0 - (0) + (iglob - (0)) * (3)] = tex1Dfetch(d_accel_ic_tex,(iglob) * (3) + 0) + sum_terms1;
         d_accel[1 - (0) + (iglob - (0)) * (3)] = tex1Dfetch(d_accel_ic_tex,(iglob) * (3) + 1) + sum_terms2;
@@ -661,10 +661,10 @@ __launch_bounds__(NGLL3_PADDED, LAUNCH_MIN_BLOCKS)
       atomicAdd(d_accel + (iglob) * (3) + 2, sum_terms3);
     }
 #endif
-    if(ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY){
+    if (ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY) {
       compute_element_ic_att_memory(tx, working_element, d_muvstore, factor_common, alphaval, betaval, gammaval, R_xx, R_yy, R_xy, R_xz, R_yz, epsilondev_xx, epsilondev_yy, epsilondev_xy, epsilondev_xz, epsilondev_yz, epsilondev_xx_loc, epsilondev_yy_loc, epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc, USE_3D_ATTENUATION_ARRAYS);
     }
-    if(COMPUTE_AND_STORE_STRAIN){
+    if (COMPUTE_AND_STORE_STRAIN) {
       epsilondev_xx[tx + (working_element) * (NGLL3) - (0)] = epsilondev_xx_loc;
       epsilondev_yy[tx + (working_element) * (NGLL3) - (0)] = epsilondev_yy_loc;
       epsilondev_xy[tx + (working_element) * (NGLL3) - (0)] = epsilondev_xy_loc;

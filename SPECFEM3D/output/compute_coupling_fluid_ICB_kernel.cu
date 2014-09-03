@@ -70,7 +70,7 @@ __global__ void compute_coupling_fluid_ICB_kernel(const float * displ_inner_core
   i = threadIdx.x;
   j = threadIdx.y;
   iface = blockIdx.x + (gridDim.x) * (blockIdx.y);
-  if(iface < NSPEC2D_BOTTOM_OC){
+  if (iface < NSPEC2D_BOTTOM_OC) {
     ispec = ibelm_bottom_outer_core[iface - (0)] - (1);
     ispec_selected = ibelm_top_inner_core[iface - (0)] - (1);
     k = 0;

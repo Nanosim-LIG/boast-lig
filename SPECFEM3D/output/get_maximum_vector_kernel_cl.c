@@ -72,16 +72,16 @@ __kernel void get_maximum_vector_kernel(const __global float * array, const int 
   sdata[tid - (0)] = (i < size ? sqrt((array[(i) * (3) + 0 - (0)]) * (array[(i) * (3) + 0 - (0)]) + (array[(i) * (3) + 1 - (0)]) * (array[(i) * (3) + 1 - (0)]) + (array[(i) * (3) + 2 - (0)]) * (array[(i) * (3) + 2 - (0)])) : 0.0f);\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
   s = (get_local_size(0)) / (2);\n\
-  while(s > 0){\n\
-    if(tid < s){\n\
-      if(sdata[tid - (0)] < sdata[tid + s - (0)]){\n\
+  while (s > 0) {\n\
+    if (tid < s) {\n\
+      if (sdata[tid - (0)] < sdata[tid + s - (0)]) {\n\
         sdata[tid - (0)] = sdata[tid + s - (0)];\n\
       }\n\
     }\n\
     s = s >> 1;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
   }\n\
-  if(tid == 0){\n\
+  if (tid == 0) {\n\
     d_max[bx - (0)] = sdata[0 - (0)];\n\
   }\n\
 }\n\

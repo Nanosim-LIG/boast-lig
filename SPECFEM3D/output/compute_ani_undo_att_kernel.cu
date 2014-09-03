@@ -163,12 +163,12 @@ static __device__ void compute_strain_product(float * prod, const float eps_trac
   for(i=0; i<=5; i+=1){
     for(j=0; j<=5; j+=1){
       prod[p - (0)] = (eps[i - (0)]) * (b_eps[j - (0)]);
-      if(j > i){
+      if (j > i) {
         prod[p - (0)] = prod[p - (0)] + (eps[j - (0)]) * (b_eps[i - (0)]);
-        if(j > 2 && i < 3){
+        if (j > 2 && i < 3) {
           prod[p - (0)] = (prod[p - (0)]) * (2.0f);
         }
-        if(i > 2){
+        if (i > 2) {
           prod[p - (0)] = (prod[p - (0)]) * (4.0f);
         }
         p = p + 1;
@@ -194,17 +194,17 @@ __global__ void compute_ani_undo_att_kernel(const float * epsilondev_xx, const f
   ispec = blockIdx.x + (blockIdx.y) * (gridDim.x);
   ijk_ispec = threadIdx.x + (NGLL3) * (ispec);
   tx = threadIdx.x;
-  if(tx < NGLL2){
+  if (tx < NGLL2) {
     sh_hprime_xx[tx - (0)] = d_hprime_xx[tx - (0)];
   }
-  if(ispec < NSPEC){
+  if (ispec < NSPEC) {
     iglob = d_ibool[ijk_ispec - (0)] - (1);
     s_dummyx_loc[tx - (0)] = d_b_displ[0 - (0) + (iglob - (0)) * (3)];
     s_dummyy_loc[tx - (0)] = d_b_displ[1 - (0) + (iglob - (0)) * (3)];
     s_dummyz_loc[tx - (0)] = d_b_displ[2 - (0) + (iglob - (0)) * (3)];
   }
   __syncthreads();
-  if(ispec < NSPEC){
+  if (ispec < NSPEC) {
     epsdev[0 - (0)] = epsilondev_xx[ijk_ispec - (0)];
     epsdev[1 - (0)] = epsilondev_yy[ijk_ispec - (0)];
     epsdev[2 - (0)] = epsilondev_xy[ijk_ispec - (0)];

@@ -74,8 +74,8 @@ __kernel void compute_add_sources_kernel(__global float * accel, const __global 
   j = get_local_id(1);\n\
   k = get_local_id(2);\n\
   isource = get_group_id(0) + (get_num_groups(0)) * (get_group_id(1));\n\
-  if(isource < NSOURCES){\n\
-    if(myrank == islice_selected_source[isource - (0)]){\n\
+  if (isource < NSOURCES) {\n\
+    if (myrank == islice_selected_source[isource - (0)]) {\n\
       ispec = ispec_selected_source[isource - (0)] - (1);\n\
       stf = stf_pre_compute[isource - (0)];\n\
       iglob = ibool[INDEX4(NGLLX, NGLLX, NGLLX, i, j, k, ispec) - (0)] - (1);\n\

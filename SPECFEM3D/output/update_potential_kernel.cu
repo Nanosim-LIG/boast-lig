@@ -52,7 +52,7 @@
 __global__ void update_potential_kernel(float * potential_acoustic, float * potential_dot_acoustic, float * potential_dot_dot_acoustic, const int size, const float deltat, const float deltatsqover2, const float deltatover2){
   int id;
   id = threadIdx.x + (blockIdx.x) * (blockDim.x) + (blockIdx.y) * ((gridDim.x) * (blockDim.x));
-  if(id < size){
+  if (id < size) {
     potential_acoustic[id - (0)] = potential_acoustic[id - (0)] + (deltat) * (potential_dot_acoustic[id - (0)]) + (deltatsqover2) * (potential_dot_dot_acoustic[id - (0)]);
     potential_dot_acoustic[id - (0)] = potential_dot_acoustic[id - (0)] + (deltatover2) * (potential_dot_dot_acoustic[id - (0)]);
     potential_dot_dot_acoustic[id - (0)] = 0.0f;

@@ -174,12 +174,12 @@ static void compute_strain_product(float * prod, const float eps_trace_over_3, c
   for(i=0; i<=5; i+=1){\n\
     for(j=0; j<=5; j+=1){\n\
       prod[p - (0)] = (eps[i - (0)]) * (b_eps[j - (0)]);\n\
-      if(j > i){\n\
+      if (j > i) {\n\
         prod[p - (0)] = prod[p - (0)] + (eps[j - (0)]) * (b_eps[i - (0)]);\n\
-        if(j > 2 && i < 3){\n\
+        if (j > 2 && i < 3) {\n\
           prod[p - (0)] = (prod[p - (0)]) * (2.0f);\n\
         }\n\
-        if(i > 2){\n\
+        if (i > 2) {\n\
           prod[p - (0)] = (prod[p - (0)]) * (4.0f);\n\
         }\n\
         p = p + 1;\n\
@@ -205,17 +205,17 @@ __kernel void compute_ani_undo_att_kernel(const __global float * epsilondev_xx, 
   ispec = get_group_id(0) + (get_group_id(1)) * (get_num_groups(0));\n\
   ijk_ispec = get_local_id(0) + (NGLL3) * (ispec);\n\
   tx = get_local_id(0);\n\
-  if(tx < NGLL2){\n\
+  if (tx < NGLL2) {\n\
     sh_hprime_xx[tx - (0)] = d_hprime_xx[tx - (0)];\n\
   }\n\
-  if(ispec < NSPEC){\n\
+  if (ispec < NSPEC) {\n\
     iglob = d_ibool[ijk_ispec - (0)] - (1);\n\
     s_dummyx_loc[tx - (0)] = d_b_displ[0 - (0) + (iglob - (0)) * (3)];\n\
     s_dummyy_loc[tx - (0)] = d_b_displ[1 - (0) + (iglob - (0)) * (3)];\n\
     s_dummyz_loc[tx - (0)] = d_b_displ[2 - (0) + (iglob - (0)) * (3)];\n\
   }\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if(ispec < NSPEC){\n\
+  if (ispec < NSPEC) {\n\
     epsdev[0 - (0)] = epsilondev_xx[ijk_ispec - (0)];\n\
     epsdev[1 - (0)] = epsilondev_yy[ijk_ispec - (0)];\n\
     epsdev[2 - (0)] = epsilondev_xy[ijk_ispec - (0)];\n\

@@ -54,7 +54,7 @@ __global__ void noise_add_surface_movie_kernel(float * accel, const int * ibool,
   int iface;
   igll = threadIdx.x;
   iface = blockIdx.x + (blockIdx.y) * (gridDim.x);
-  if(iface < nspec_top){
+  if (iface < nspec_top) {
     int i;
     int j;
     int k;

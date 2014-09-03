@@ -119,7 +119,7 @@ __global__ void compute_acoustic_kernel(const int * ibool, const float * rhostor
   __shared__ float scalar_field_displ[NGLL3 + 0 - (1) - (0) + 1];
   __shared__ float scalar_field_accel[NGLL3 + 0 - (1) - (0) + 1];
   ispec = blockIdx.x + (blockIdx.y) * (gridDim.x);
-  if(ispec < NSPEC){
+  if (ispec < NSPEC) {
     ijk = threadIdx.x;
     ijk_ispec = ijk + (NGLL3) * (ispec);
     ijk_ispec_padded = ijk + (NGLL3_PADDED) * (ispec);

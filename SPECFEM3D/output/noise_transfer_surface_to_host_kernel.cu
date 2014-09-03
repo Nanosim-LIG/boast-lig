@@ -54,7 +54,7 @@ __global__ void noise_transfer_surface_to_host_kernel(const int * ibelm_top, con
   int iface;
   igll = threadIdx.x;
   iface = blockIdx.x + (blockIdx.y) * (gridDim.x);
-  if(iface < nspec_top){
+  if (iface < nspec_top) {
     int i;
     int j;
     int k;

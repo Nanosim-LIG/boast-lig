@@ -57,7 +57,7 @@ __global__ void write_seismograms_transfer_strain_from_device_kernel(const int *
   int blockID;
   blockID = blockIdx.x + (blockIdx.y) * (gridDim.x);
   tx = threadIdx.x;
-  if(blockID < nrec_local){
+  if (blockID < nrec_local) {
     irec = number_receiver_global[blockID - (0)] - (1);
     ispec = ispec_selected_rec[irec - (0)] - (1);
     iglob = ibool[tx + (NGLL3) * (ispec) - (0)] - (1);

@@ -130,7 +130,7 @@ __kernel void compute_acoustic_kernel(const __global int * ibool, const __global
   __local float scalar_field_displ[NGLL3 + 0 - (1) - (0) + 1];\n\
   __local float scalar_field_accel[NGLL3 + 0 - (1) - (0) + 1];\n\
   ispec = get_group_id(0) + (get_group_id(1)) * (get_num_groups(0));\n\
-  if(ispec < NSPEC){\n\
+  if (ispec < NSPEC) {\n\
     ijk = get_local_id(0);\n\
     ijk_ispec = ijk + (NGLL3) * (ispec);\n\
     ijk_ispec_padded = ijk + (NGLL3_PADDED) * (ispec);\n\

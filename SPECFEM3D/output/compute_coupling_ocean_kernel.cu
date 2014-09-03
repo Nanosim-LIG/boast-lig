@@ -61,7 +61,7 @@ __global__ void compute_coupling_ocean_kernel(float * accel_crust_mantle, const 
   float additional_term_y;
   float additional_term_z;
   ipoin = threadIdx.x + (blockIdx.x) * (blockDim.x) + ((gridDim.x) * (blockDim.x)) * (threadIdx.y + (blockIdx.y) * (blockDim.y));
-  if(ipoin < npoin_ocean_load){
+  if (ipoin < npoin_ocean_load) {
     iglob = ibool_ocean_load[ipoin - (0)] - (1);
     nx = normal_ocean_load[INDEX2(NDIM, 0, ipoin) - (0)];
     ny = normal_ocean_load[INDEX2(NDIM, 1, ipoin) - (0)];
