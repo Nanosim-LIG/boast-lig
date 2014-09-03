@@ -138,7 +138,7 @@ langs.each { |lang|
       require "./#{kern.to_s}.rb"
       BOAST::set_lang( BOAST::const_get(lang))
       k = BOAST::method(kern).call(false)
-      proto = k.procedure.decl(false)[0..-3]+";"
+      proto = k.procedure.declaration_s
       kern_proto_f.puts proto
       kern_mk_f.puts "\t$O/#{kern.to_s}.cuda-kernel.o \\"
     elsif lang == :CL
