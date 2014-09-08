@@ -19,7 +19,7 @@
   backgroundcolor=\color{white}, 
   frame=single, 
   captionpos=b,
-  morekeywords={BOAST, print, decl, close}
+  morekeywords={BOAST, print, decl, open, close}
 }
 
 \lstdefinestyle{customf}{
@@ -297,9 +297,9 @@ capabilities as well. This is the main reason it was selected.
 
 
 In order to clearly differentiate what is going to be generated from what is
-related to manipulations in the host language three keywords were defined. They
-are \emph{print}, \emph{decl} and \emph{close}. As the language is an EDSL,
-these three keywords are methods in the BOAST namespace.
+related to manipulations in the host language four keywords were defined. They
+are \emph{print}, \emph{decl}, \emph{open} and \emph{close}. As the language is
+an EDSL, these four keywords are methods in the BOAST namespace.
 
 The \emph{print} method calls the public \emph{print} method of Objects it is
 called on. Each BOAST object is responsible for printing itself correctly
@@ -307,26 +307,26 @@ depending on the BOAST configuration at the time the print public method is
 called. Calling directly the print method of a BOAST object yields the same
 result.
 
-The \emph{decl} method is used for two purposes. First, it can be used to
-declares a variable. Second, it can be used to print the beginning of a control
+The \emph{decl} method is used to declare variables or procedures and functions.
+
+The \emph{open} method can be used to print the beginning of a control
 structure without an associated code block.
 
-The \emph{close} method is the counterpart to the \emph{decl} method. It is used
+The \emph{close} method is the counterpart to the \emph{open} method. It is used
 to close a control structure without an associated code block.
 
     \subsubsection{BOAST Abstractions}
 
 BOAST defines several class that are used to represent the structure of the
-code. These classes can be sorted in two groups:
+code. These classes can be sorted in two groups, algebraic related and control
+flow related:
 
       \paragraph{Algebra}
 
 \begin{figure}
 \lstset{style=BOAST,
         caption={BOAST code}, 
-        label={lst:BOAST_algebra}
-}
-		
+        label={lst:BOAST_algebra} }
 \begin{lstlisting}
 i = BOAST::Int("i") # or BOAST::Variable::new(Int, "i")
 k = BOAST::Int("k", :size => 8)
@@ -336,6 +336,7 @@ BOAST::print i === 5
 j = i + 5
 BOAST::print k === j * 2
 BOAST::print l[k] === 1.0
+BOAST::print l[k-1] === BOAST::sin(l[k])
 \end{lstlisting}
 
 \begin{minipage}[b]{0.50\linewidth}
@@ -351,6 +352,7 @@ real(kind=8), dimension(-5:20) :: l
 i = 5
 k = (i + 5) * (2)
 l(k) = 1.0_wp
+l(k - (1)) = sin(l(k))
 \end{lstlisting}
 \end{minipage}
 \hspace{0.04\linewidth}
@@ -367,6 +369,7 @@ double l[26];
 i = 5;
 k = (i + 5) * (2);
 l[k - (-5)] = 1.0;
+l[k - (1) - (-5)] = sin(l[k - (-5)]);
 \end{lstlisting}
 \end{minipage}
 \caption{BOAST Code Snippet for Variables and Expressions}
@@ -384,28 +387,60 @@ straightforward. The exception is the assignment operator as it is important to
 differentiate between assigning an Expression or a Variable in the ruby context
 and the assignment operator in the context of a BOAST Expression. Thus the
 assignment in a BOAST Expression is represented as the \emph{===} operator,
-while the classical assignment is kept as the \emph{=} operator.
+while the classical assignment is kept as the \emph{=} operator. Function calls
+(FuncCall) are also abstracted and can be used in Expressions.
 
 Figure~\ref{fig:BOAST_algebra} shows some basic usage of both Variables and
 Expressions as well as the \emph{print} and \emph{decl} keywords. For clarity we
-stayed out of BOAST namespace so BOAST related class and methods are prefixed by
-\emph{BOAST::}. Listing~\ref{lst:BOAST_algebra} shows the BOAST code that when
-run produces the FORTRAN (Listing~\ref{lst:BOAST_algebra_FORTRAN}) and C
-(Listing~\ref{lst:BOAST_algebra_C}) output.
+stayed out of BOAST namespace so BOAST related class and methods are prefixed
+with \emph{BOAST::}. Listing~\ref{lst:BOAST_algebra} shows the BOAST code that
+when run produces the FORTRAN (Listing~\ref{lst:BOAST_algebra_FORTRAN}) and C
+(Listing~\ref{lst:BOAST_algebra_C}) output. On the last line, a call to the
+\emph{sin} function is made through the automatic creation of a FuncCall object.
+This automatic behaviors is limited to BOAST namespace, and thus, here, the
+function call has to be prefixed with \emph{BOAST::}.
 
       \paragraph{Control Structures}
 
-  If
+\begin{figure}
+\lstset{style=BOAST,
+        caption={BOAST code}, 
+        label={lst:BOAST_control} }
+\begin{lstlisting}
+\end{lstlisting}
 
-  For
+\begin{minipage}[b]{0.50\linewidth}
+\centering
+\lstset{style=customf,
+        caption={FORTRAN output.},
+        label={lst:BOAST_control_FORTRAN} }
 
-  While
+\begin{lstlisting}
+\end{lstlisting}
+\end{minipage}
+\hspace{0.04\linewidth}
+\begin{minipage}[b]{0.44\linewidth}
+\centering
+\lstset{style=customc,
+        caption={C output.},
+        label={lst:BOAST_control_C} }
 
-  Case
+\begin{lstlisting}
+\end{lstlisting}
+\end{minipage}
+\caption{BOAST Code Snippet for Variables and Expressions}
+\label{fig:BOAST_control}
+\end{figure}
+
+The classical control structures are implemented. If, For, While, Case are
+abstractions in BOAST matching the behavior of corresponding control structures
+in other languages. An exception is the For in BOAST more closely matches the
+for in FORTRAN than the one in C.
+
+Figure~\ref{fig:BOAST_control} show some basic usage of the control structures.
 
   Procedure
 
-  Function Call
   
 %Considering source-to-source transformations that we investigate with the BOAST
 %tool in this paper, we can compare ourselves to POET~\cite{POET2012}  and
