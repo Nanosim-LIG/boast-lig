@@ -11,10 +11,10 @@ def Wavelet1d(wavelet_filter, direction, optims=GenericOptimization::new)
   print_header
 
   subops.each_value { |op|
-    BOAST::print op
+    BOAST::pr op
     puts "chosen:"+ op.name
   }
-  BOAST::print p
+  BOAST::pr p
 
   kernel.procedure = p
   kernel.cost_function = lambda { |*args| conv_operation.cost(*args) }
@@ -24,6 +24,6 @@ end
 optims = nil #GenericOptimization::new()#:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
 wave_filter = WaveletFilter::new("sym#{SYM8.length/2}", SYM8)
 ksym8 = Wavelet1d( wave_filter, :decompose, optims )
-ksym8.print
+ksym8.pr
 ksym8i = Wavelet1d( wave_filter, :recompose, optims )
-ksym8i.print
+ksym8i.pr

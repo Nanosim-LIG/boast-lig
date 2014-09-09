@@ -1078,10 +1078,10 @@ def Kinetic(conv_filter, optims = GenericOptimization::new, ekin = false)
   print_header
 
   subops.each_value { |op| 
-    BOAST::print op 
+    BOAST::pr op 
     puts "chosen:"+ op.name
   }
-  BOAST::print p
+  BOAST::pr p
 
   kernel.procedure = p
   kernel.cost_function = lambda { |*args| kinetic_operation.cost(*args) }
