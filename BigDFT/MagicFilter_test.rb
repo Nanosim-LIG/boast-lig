@@ -60,7 +60,7 @@ puts "#{k_ref.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[
 conv_filter = ConvolutionFilter::new('sfrf',FILTER,8)
 optims = GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true,:tt_arr_test => true)
 k = MagicFilter(conv_filter, optims)
-#k.print
+#puts k
 k.build(:openmp => true)
 bc[0] = BC::PERIODIC
 bc[1] = BC::PERIODIC
