@@ -558,24 +558,24 @@ module BOAST
 
     p = Procedure(function_name, v, constants, :qualifiers => qualifiers)
     if(get_lang == CUDA and ref) then
-      @@output.print File::read("references/#{function_name}.cu".gsub("_forward","").gsub("_adjoint",""))
+      output.print File::read("references/#{function_name}.cu".gsub("_forward","").gsub("_adjoint",""))
     elsif(get_lang == CL or get_lang == CUDA) then
       make_specfem3d_header(:ngllx => n_gllx, :ngll2 => n_gll2, :ngll3 => n_gll3, :ngll3_padded => n_gll3_padded, :n_sls => n_sls, :r_earth_km => r_earth_km, :coloring_min_nspec_inner_core => coloring_min_nspec_inner_core, :iflag_in_fictitious_cube => i_flag_in_fictitious_cube)
       if type == :inner_core then
         #DEACTIVATE USE TEXTURES CONSTANTS
-        @@output.puts "#ifdef #{use_textures_constants}"
-        @@output.puts "#undef #{use_textures_constants}"
-        @@output.puts "#endif"
+        output.puts "#ifdef #{use_textures_constants}"
+        output.puts "#undef #{use_textures_constants}"
+        output.puts "#endif"
       end
 #      if get_lang == CUDA then
-#        @@output.puts "#ifdef #{use_textures_fields}"
+#        output.puts "#ifdef #{use_textures_fields}"
 #          decl d_displ_tex
 #          decl d_accel_tex
-#        @@output.puts "#endif"
-#        @@output.puts "#ifdef #{use_textures_constants}"
+#        output.puts "#endif"
+#        output.puts "#ifdef #{use_textures_constants}"
 #          decl d_hprime_xx_tex
 #          decl d_hprimewgll_xx_tex
-#        @@output.puts "#endif"
+#        output.puts "#endif"
 #      end
       if type == :inner_core then
         sub_compute_element_att_stress =  compute_element_ic_att_stress(n_gll3, n_sls)
@@ -599,13 +599,13 @@ module BOAST
       end
       open p
         if get_lang == CL then
-          @@output.puts "#ifdef #{use_textures_fields}"
+          output.puts "#ifdef #{use_textures_fields}"
             decl d_displ_tex.sampler
             decl d_accel_tex.sampler
-          @@output.puts "#endif"
-          @@output.puts "#ifdef #{use_textures_constants}"
+          output.puts "#endif"
+          output.puts "#ifdef #{use_textures_constants}"
             decl d_hprime_xx_tex.sampler
-          @@output.puts "#endif"
+          output.puts "#endif"
         end
         decl bx = Int("bx")
         decl tx = Int("tx")
@@ -699,27 +699,27 @@ module BOAST
   
         print active === Ternary( Expression("&&", tx < ngll3, bx < nb_blocks_to_compute), 1, 0)
         print If( active ) {
-          @@output.puts "#ifdef #{use_mesh_coloring}"
+          output.puts "#ifdef #{use_mesh_coloring}"
             print working_element === bx
-          @@output.puts "#else"
+          output.puts "#else"
             print If( use_mesh_coloring_gpu, lambda {
               print working_element === bx
             }, lambda {
               print working_element === d_phase_ispec_inner[bx + num_phase_ispec*(d_iphase-1)]-1
             })
-          @@output.puts "#endif"
+          output.puts "#endif"
           __texture_fetch = lambda {
             print iglob === d_ibool[working_element*ngll3 + tx]-1
 
-            @@output.puts "#ifdef #{use_textures_fields}"
+            output.puts "#ifdef #{use_textures_fields}"
               (0..2).each { |indx|
                 print s_dummy_loc[indx][tx] === d_displ_tex[iglob*3+indx]
               }
-            @@output.puts "#else"
+            output.puts "#else"
               (0..2).each { |indx|
                 print s_dummy_loc[indx][tx] === d_displ[indx, iglob]
               }
-            @@output.puts "#endif"
+            output.puts "#endif"
           }
           if type == :inner_core then
             print If( d_idoubling[working_element] == iflag_in_fictitious_cube, lambda {
@@ -731,13 +731,13 @@ module BOAST
         }
         #inner core and crust mantle differ here, but crust mantle implementation though more reccent seems odd...
         print If(tx < ngll2) {
-          @@output.puts "#ifdef #{use_textures_constants}"
+          output.puts "#ifdef #{use_textures_constants}"
             print sh_hprime_xx[tx] === d_hprime_xx_tex[tx]
             print sh_hprimewgll_xx[tx] === d_hprimewgll_xx_tex[tx]
-          @@output.puts "#else"
+          output.puts "#else"
             print sh_hprime_xx[tx] === d_hprime_xx[tx]
             print sh_hprimewgll_xx[tx] === d_hprimewgll_xx[tx]
-          @@output.puts "#endif"
+          output.puts "#endif"
         }
         print barrier(:local)
   
@@ -764,11 +764,11 @@ module BOAST
               print tempanl[indx1][2] === tempanl[indx1][2] + s_dummy_loc[indx1][l*ngll2 + j*ngllx + i]*fac[2]
             }
           }
-          @@output.puts "#ifdef #{manually_unrolled_loops}"
+          output.puts "#ifdef #{manually_unrolled_loops}"
             for_loop.unroll
-          @@output.puts "#else"
+          output.puts "#else"
             print for_loop
-          @@output.puts "#endif"
+          output.puts "#endif"
 
           print offset === working_element*ngll3_padded + tx
           (0..2).each { |indx|
@@ -952,11 +952,11 @@ module BOAST
               print tempanl[indx1][2] === tempanl[indx1][2] + s_temp[indx1][2][offset]*fac[2]
             }
           }
-          @@output.puts "#ifdef #{manually_unrolled_loops}"
+          output.puts "#ifdef #{manually_unrolled_loops}"
             for_loop.unroll
-          @@output.puts "#else"
+          output.puts "#else"
             print for_loop
-          @@output.puts "#endif"
+          output.puts "#endif"
           print fac[0] === d_wgllwgll_yz[k*ngllx+j]
           print fac[1] === d_wgllwgll_xz[k*ngllx+i]
           print fac[2] === d_wgllwgll_xy[j*ngllx+i]
@@ -969,29 +969,29 @@ module BOAST
               print sum_terms[indx] === sum_terms[indx] + rho_s_H[indx]
             }
           }
-          @@output.puts "#ifdef #{use_mesh_coloring}"
-            @@output.puts "#ifdef #{use_textures_fields}"
+          output.puts "#ifdef #{use_mesh_coloring}"
+            output.puts "#ifdef #{use_textures_fields}"
               (0..2).each { |indx|
                 print d_accel[indx,iglob] === d_accel_tex[iglob*3+indx] + sum_terms[indx]
               }
-            @@output.puts "#else"
+            output.puts "#else"
               (0..2).each { |indx|
                 print d_accel[indx,iglob] === d_accel[indx,iglob] + sum_terms[indx]
               }
-            @@output.puts "#endif"
-          @@output.puts "#else"
+            output.puts "#endif"
+          output.puts "#else"
             if type == :inner_core then
               __accel_update = lambda {
                 print If( nspec_inner_core > coloring_min_nspec_inner_core, lambda {
-                  @@output.puts "#ifdef #{use_textures_fields}"
+                  output.puts "#ifdef #{use_textures_fields}"
                     (0..2).each { |indx|
                       print d_accel[indx,iglob] === d_accel_tex[iglob*3+indx] + sum_terms[indx]
                     }
-                  @@output.puts "#else"
+                  output.puts "#else"
                     (0..2).each { |indx|
                       print d_accel[indx,iglob] === d_accel[indx,iglob] + sum_terms[indx]
                     }
-                  @@output.puts "#endif"
+                  output.puts "#endif"
                 }, lambda{
                   (0..2).each { |indx|
                     print atomicAdd(d_accel+ iglob*3 +indx, sum_terms[indx])
@@ -1000,15 +1000,15 @@ module BOAST
               }
             elsif type == :crust_mantle then
               __accel_update = lambda {
-                @@output.puts "#ifdef #{use_textures_fields}"
+                output.puts "#ifdef #{use_textures_fields}"
                   (0..2).each { |indx|
                     print d_accel[indx,iglob] === d_accel_tex[iglob*3+indx] + sum_terms[indx]
                   }
-                @@output.puts "#else"
+                output.puts "#else"
                   (0..2).each { |indx|
                     print d_accel[indx,iglob] === d_accel[indx,iglob] + sum_terms[indx]
                   }
-                @@output.puts "#endif"
+                output.puts "#endif"
               }
             end
             print If( use_mesh_coloring_gpu, __accel_update, lambda {
@@ -1016,7 +1016,7 @@ module BOAST
                 print atomicAdd(d_accel + iglob*3 + indx, sum_terms[indx])
               }
             })
-          @@output.puts "#endif"
+          output.puts "#endif"
           print If( Expression("&&", attenuation, !partial_phys_dispersion_only ) ) {
             __params = [tx, working_element,\
                         d_muvstore, factor_common,\
