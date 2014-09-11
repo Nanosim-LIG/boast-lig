@@ -326,17 +326,19 @@ flow related:
 \begin{figure}
 \lstset{style=BOAST,
         caption={BOAST code}, 
-        label={lst:BOAST_algebra} }
+        label={lst:BOAST_algebra},
+        numbers=left }
 \begin{lstlisting}
-i = BOAST::Int("i") # or BOAST::Variable::new(Int, "i")
+i = BOAST::Int("i") # or BOAST::Variable::new("i", Int)
 k = BOAST::Int("k", :size => 8)
-l = BOAST::Real("l", :dim => [ BOAST::Dim(-5, 20) ], :local => true )
+l = BOAST::Real("l", :dim => [ BOAST::Dim(-5, 21) ], :local => true )
 BOAST::decl i, k, l
 BOAST::pr i === 5
 j = i + 5
 BOAST::pr k === j * 2
 BOAST::pr l[k] === 1.0
-BOAST::pr l[k-1] === BOAST::sin(l[k])
+BOAST::register_funccall("sin")
+BOAST::pr l[k+1] === BOAST::sin(j)
 \end{lstlisting}
 
 \begin{minipage}[b]{0.50\linewidth}
@@ -348,11 +350,11 @@ BOAST::pr l[k-1] === BOAST::sin(l[k])
 \begin{lstlisting}
 integer(kind=4) :: i
 integer(kind=8) :: k
-real(kind=8), dimension(-5:20) :: l
+real(kind=8), dimension(-5:21) :: l
 i = 5
 k = (i + 5) * (2)
 l(k) = 1.0_wp
-l(k - (1)) = sin(l(k))
+l(k + 1) = sin(i + 5)
 \end{lstlisting}
 \end{minipage}
 \hspace{0.04\linewidth}
@@ -365,11 +367,11 @@ l(k - (1)) = sin(l(k))
 \begin{lstlisting}
 int32_t i;
 int64_t k;
-double l[26];
+double l[27];
 i = 5;
 k = (i + 5) * (2);
 l[k - (-5)] = 1.0;
-l[k - (1) - (-5)] = sin(l[k - (-5)]);
+l[k + 1 - (-5)] = sin(i + 5);
 \end{lstlisting}
 \end{minipage}
 \caption{BOAST Code Snippet for Variables and Expressions}
@@ -395,62 +397,161 @@ Expressions as well as the \emph{pr} and \emph{decl} keywords. For clarity we
 stayed out of BOAST namespace so BOAST related class and methods are prefixed
 with \emph{BOAST::}. Listing~\ref{lst:BOAST_algebra} shows the BOAST code that
 when run produces the FORTRAN (Listing~\ref{lst:BOAST_algebra_FORTRAN}) and C
-(Listing~\ref{lst:BOAST_algebra_C}) output. On the last line, a call to the
-\emph{sin} function is made through the automatic creation of a FuncCall object.
-This automatic behaviors is limited to BOAST namespace, and thus, here, the
-function call has to be prefixed with \emph{BOAST::}.
+(Listing~\ref{lst:BOAST_algebra_C}) output. At first we define 2 Variables
+\emph{i} and \emph{k} (note that \emph{k} is $64$ bit integer). The third variable
+named \emph{l} is a one dimensional local array of a length of $27$, it is indexed
+in the range $-5$ to $21$. All those Variables are affected to ruby variables
+of the corresponding name.
+
+On Line~4 we declare those three variables. Variable \emph{i} is then affected
+the value 5. On Line~6 the \emph{j} ruby variable is used to store the BOAST
+expression \emph{$i+5$}. This variable will the be used transparently through
+the rest of the program.
+
+On Line~8 we use the \emph{k} variable to index into the array \emph{l} using
+the bracket operator. Would the array be multidimensional the index would be
+coma separated, similar to FORTRAN notation.
+
+On the last line, a call to the \emph{sin} function is made through the creation
+of a FuncCall object.  The possibility to use this method is declared using the
+\emph{register\_funccall} method.
 
       \paragraph{Control Structures}
 
 \begin{figure}
 \lstset{style=BOAST,
         caption={BOAST code}, 
-        label={lst:BOAST_control} }
+        label={lst:BOAST_control},
+        numbers=left }
 \begin{lstlisting}
+BOAST::register_funccall("modulo")
+i = BOAST::Int("i")
+j = BOAST::Int("j")
+BOAST::pr j === 0
+BOAST::pr BOAST::For( i, 0, 100 ) {
+  BOAST::pr BOAST::If( BOAST::modulo(i,7) == 0 ) {
+    BOAST::pr j === j + 1
+  }
+}
 \end{lstlisting}
 
-\begin{minipage}[b]{0.50\linewidth}
+\begin{minipage}[b]{0.47\linewidth}
 \centering
 \lstset{style=customf,
         caption={FORTRAN output.},
         label={lst:BOAST_control_FORTRAN} }
 
 \begin{lstlisting}
+j = 0
+do i = 0, 100, 1
+  if (modulo(i, 7) == 0) then
+    j = j + 1
+  end if
+end do
 \end{lstlisting}
 \end{minipage}
 \hspace{0.04\linewidth}
-\begin{minipage}[b]{0.44\linewidth}
+\begin{minipage}[b]{0.47\linewidth}
 \centering
 \lstset{style=customc,
         caption={C output.},
         label={lst:BOAST_control_C} }
 
 \begin{lstlisting}
+j = 0;
+for (i = 0; i <= 100; i += 1) {
+  if (modulo(i, 7) == 0) {
+    j = j + 1;
+  }
+}
 \end{lstlisting}
 \end{minipage}
-\caption{BOAST Code Snippet for Variables and Expressions}
+\caption{BOAST Code Snippet for control structures}
 \label{fig:BOAST_control}
 \end{figure}
 
-The classical control structures are implemented. If, For, While, Case are
-abstractions in BOAST matching the behavior of corresponding control structures
-in other languages. An exception is the For in BOAST more closely matches the
-for in FORTRAN than the one in C.
+The classical control structures are implemented. \emph{If}, \emph{For},
+\emph{While}, \emph{Case} are abstractions in BOAST matching the behavior of
+corresponding control structures in other languages. An exception is the For in
+BOAST more closely matches the for in FORTRAN than the one in C.
 
 Figure~\ref{fig:BOAST_control} show some basic usage of the control structures.
+The example a C macro or function that behaves similarly to the FORTRAN modulo
+intrinsic. The sample script (inefficiently) computes and stores in \emph{j} the
+number of multiples of $7$ in the 0 to 100 range. It uses the For and If control
+structures. A Ruby block is passed to each of those constructs. This block is
+evaluated at the time the construct is printed. If several such constructs are
+needed (in an \emph{if elsif else} case for instance) they can be explicitly
+passed as parameters using the \emph{lambda} Ruby keyword.
 
-  Procedure
+\begin{figure}
+\lstset{style=BOAST,
+        caption={BOAST code}, 
+        label={lst:BOAST_procedure},
+        numbers=left }
+\begin{lstlisting}
+n = Int("n")
+ndat = Int("ndat")
+x = Real("x", :dir => :in, :dim => [ Dim(0, n-1), Dim(ndat) ])
+y = Real("y", :dir => :out, :dim => [ Dim(ndat), Dim(0, n-1) ])
+p = Procedure("magicfilter", [n, ndat, x, y])
+open p
+close p
+\end{lstlisting}
 
+\lstset{style=customf,
+        caption={FORTRAN output.},
+        label={lst:BOAST_procedure_FORTRAN} }
+
+\begin{lstlisting}
+SUBROUTINE magicfilter(n, ndat, x, y)
+  integer(kind=4) :: n
+  integer(kind=4) :: ndat
+  real(kind=8), intent(in), dimension(0:n - (1), 1:ndat + 1 - (1)) :: x
+  real(kind=8), intent(out), dimension(1:ndat + 1 - (1), 0:n - (1)) :: y
+END SUBROUTINE magicfilter
+\end{lstlisting}
+\lstset{style=customc,
+        caption={C output.},
+        label={lst:BOAST_procedure_C} }
+
+\begin{lstlisting}
+void magicfilter(int32_t n, int32_t ndat, const double * x, double * y){
+}
+\end{lstlisting}
+\caption{BOAST Code Snippet for Procedure}
+\label{fig:BOAST_procedure}
+\end{figure}
+
+The last control structure is Procedure. It is used to describe either procedure
+or functions. Figure~\ref{fig:BOAST_procedure} presents the use of this
+abstraction. It is the signature of a real kernel from BigDFT. This kernel uses
+an input array \emph{x} and an output array \emph{y} of double precision
+numbers. Those array have two dimensions which depend on input variables
+\emph{n} and \emph{ndat}. We can see here the use of the \emph{open} and
+\emph{close} keywords that are used to print a control structure without an
+associated Ruby block. This time we placed ourselves inside of BOAST namespace.
   
 %Considering source-to-source transformations that we investigate with the BOAST
 %tool in this paper, we can compare ourselves to POET~\cite{POET2012}  and
 %ABCLibScript~\cite{ABCLib2006}. However, both tools apply transformations
 %to the syntaxic tree of a program while BOAST intervenes well before in the
 %transformation process. Indeed, one may first use BOAST on order to generate a
-%program (a specific syntaxic tree) and then benefit from the transformation
+%program (a specific syntactic tree) and then benefit from the transformation
 %facilities offered by one of the above tools.
 
   \subsection{BOAST Runtime}
+
+In the previous Section we presented BOAST's language. This allows us to
+describe procedures and functions and to meta-program them using Ruby. But in
+order to find the best version of a computing kernel each version has to be
+compiled, linked and then executed to assess it's performance. This can be very
+time consuming if this process cannot be automated. By enabling more versions to
+be evaluated the automation will bring improved portability, better performance
+and in the end improve the productivity of the developer.
+
+In this section we will present the different aspects of BOAST runtime that
+allow this automation.
 
   \begin{itemize}
   \item multi target language generation ( performance, portability )
