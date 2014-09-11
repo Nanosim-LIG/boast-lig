@@ -52,7 +52,7 @@
 \author{Kevin Pouget, \textbf{Brice Videau}, Jean-François Méhaut\\
 (INRIA Grenoble - LIG - NANOSIM)}
 
-\date{\textbf{Tutorial BOAST}\\June 25, 2014}
+\date{\textbf{Tutorial BOAST}\\September 19, 2014}
 
 \begin{document}
 
@@ -439,7 +439,7 @@ showspaces=false,
 showstringspaces=false}
 \begin{lstlisting}
 p = Procedure("magic_filter", [n,ndat,x,y], [lowfil,upfil])
-decl p
+open p
 \end{lstlisting}
 \normalsize 
 Outputs Fortran:
@@ -496,9 +496,9 @@ showspaces=false,
 showstringspaces=false}
 \begin{lstlisting}
   unroll = 5
-  print For(j,1,ndat-(unroll-1), unroll) {
+  pr For(j,1,ndat-(unroll-1), unroll) {
   #.....
-    (tt2 === tt2 + x[k,j+1]*fil[l]).print
+    pr tt2 === tt2 + x[k,j+1]*fil[l]
   #.....
   }
 \end{lstlisting}

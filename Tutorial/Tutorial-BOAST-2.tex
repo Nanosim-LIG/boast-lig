@@ -47,12 +47,21 @@
 \definecolor{javadocblue}{rgb}{0.25,0.35,0.75} % java
 
 
+\lstdefinestyle{BOAST}{
+  language=Ruby,
+  basicstyle=\tiny\ttfamily,
+  backgroundcolor=\color{white},
+  frame=single,
+  captionpos=b,
+  morekeywords={BOAST, pr, decl, open, close}
+}
+
 \title{BOAST}
 \subtitle{Using BOAST: an Introduction }
 \author{Brice Videau\\
 (LIG - NANOSIM)}
 
-\date{\textbf{BOAST Tutorial}\\June 25, 2014}
+\date{\textbf{BOAST Tutorial}\\September 19, 2014}
 
 \begin{document}
 
@@ -107,16 +116,8 @@ Interactive Ruby:
 \begin{lstlisting}
 irb
 \end{lstlisting}
-\lstset{language=Ruby,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
 Simple BOAST commands:
+\lstset{style=BOAST}
 \begin{lstlisting}
 irb(main):001:0> require 'BOAST'
 => true
@@ -133,20 +134,12 @@ real(kind=8) :: b
 
 \begin{frame}[fragile]
 \frametitle{Defining a Procedure}
-\lstset{language=Ruby,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
 Simple BOAST Procedure:
+\lstset{style=BOAST}
 \footnotesize
 \begin{lstlisting}
 05:0> p = BOAST::Procedure( "test_proc", [a,b] )
-06:0> BOAST::decl p
+06:0> BOAST::open p
 SUBROUTINE test_proc(a, b)
   integer, parameter :: wp=kind(1.0d0)
   integer(kind=4) :: a
@@ -162,22 +155,16 @@ Available languages are FORTRAN, C, CUDA, CL (OpenCL)
 
 \begin{frame}[fragile]
 \frametitle{Defining a Full Procedure:}
-\lstset{language=Ruby,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
+\lstset{style=BOAST}
 \tiny
 \begin{lstlisting}
 010:0> a = BOAST::Real( "a", :dir => :in)
 011:0> b = BOAST::Real( "b", :dir => :out)
-012:0> p = BOAST::Procedure( "test_proc", [a,b] ) { BOAST::print b === a + 2 }
+012:0> p = BOAST::Procedure( "test_proc", [a,b] ) {
+012:1>   BOAST::pr b === a + 2
+012:2> }
 013:0> BOAST::lang = BOAST::FORTRAN
-014:0> BOAST::print p
+014:0> BOAST::pr p
 SUBROUTINE test_proc(a, b)
     integer, parameter :: wp=kind(1.0d0)
     real(kind=8), intent(in) :: a
@@ -189,15 +176,7 @@ END SUBROUTINE test_proc
 
 \begin{frame}[fragile]
 \frametitle{Creating a Computing Kernel}
-\lstset{language=Ruby,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
+\lstset{style=BOAST}
 \tiny
 \begin{lstlisting}
 n = BOAST::Int(  "n", :dir => :in )
@@ -205,33 +184,25 @@ a = BOAST::Real( "a", :dir => :in,  :dim => [BOAST::Dim(n)] )
 b = BOAST::Real( "b", :dir => :out, :dim => [BOAST::Dim(n)] )
 p = BOAST::Procedure( "test_proc", [n, a, b] ) {
   BOAST::decl i = BOAST::Int( "i" )
-  BOAST::For( i, 1, n ) {
-    BOAST::print b[i] === a[i] + 2
-  }.print
+  BOAST::pr BOAST::For( i, 1, n ) {
+    BOAST::pr b[i] === a[i] + 2
+  }
 }
 k = BOAST::CKernel::new
-BOAST::print p
+BOAST::pr p
 k.procedure = p
 k.build
 BOAST::verbose = true
 k.build
 > gcc -O2 -Wall -fPIC -I/usr/lib/ruby/1.9.1/x86_64-linux -I/usr/include/ruby-1.9.1 -I/usr/include/ruby-1.9.1/x86_64-linux -I/var/lib/gems/1.9.1/gems/narray-0.6.0.9 -DHAVE_NARRAY_H -c -o /tmp/Mod_test_proc20140624_19378_1qdep6u.o /tmp/Mod_test_proc20140624_19378_1qdep6u.c
 > gfortran -O2 -Wall -fPIC -c -o /tmp/test_proc20140624-19378-1qdep6u.o /tmp/test_proc20140624-19378-1qdep6u.f90
-> gcc -shared -o /tmp/Mod_test_proc20140624_19378_1qdep6u.so /tmp/Mod_test_proc20140624_19378_1qdep6u.o /tmp/test_proc20140624-19378-1qdep6u.o  -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic  -L/usr/lib -lruby-1.9.1 -lrt
+> gcc -shared -o /tmp/Mod_test_proc20140624_19378_1qdep6u.so /tmp/Mod_test_proc20140624_19378_1qdep6u.o /tmp/test_proc20140624-19378-1qdep6u.o -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic -L/usr/lib -lruby-1.9.1 -lrt
 \end{lstlisting}
 \end{frame}
 
 \begin{frame}[fragile]
 \frametitle{Running a Computing Kernel}
-\lstset{language=Ruby,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
+\lstset{style=BOAST}
 \tiny
 \begin{lstlisting}
 require 'narray'
@@ -242,15 +213,16 @@ a = BOAST::Real( "a", :dir => :in,  :dim => [BOAST::Dim(n)] )
 b = BOAST::Real( "b", :dir => :out, :dim => [BOAST::Dim(n)] )
 p = BOAST::Procedure( "test_proc", [n, a, b] ) {
   BOAST::decl i = BOAST::Int( "i" )
-  BOAST::For( i, 1, n ) {
-    BOAST::print b[i] === a[i] + 2
-  }.print
+  BOAST::pr BOAST::For( i, 1, n ) {
+    BOAST::pr b[i] === a[i] + 2
+  }
 }
 k = BOAST::CKernel::new
-BOAST::print p
+BOAST::pr p
 k.procedure = p
 k.run(input.length, input, output)
-(output - input).each { |val| raise "Error!" if (val-2).abs > 1e-15 }
+(output - input).each {
+  |val| raise "Error!" if (val-2).abs > 1e-15 }
 stats = k.run(input.length, input, output)
 puts "#{stats[:duration]} s"
 > 4.911e-06 s
@@ -267,15 +239,7 @@ puts "#{stats[:duration]} s"
 \begin{frame}[fragile]
 \frametitle{The Canonic Case: Vector Addition Kernel}
 \tiny
-\lstset{language=Ruby,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
+\lstset{style=BOAST}
 \begin{lstlisting}
 def BOAST::vector_add
   kernel = CKernel::new
@@ -285,14 +249,14 @@ def BOAST::vector_add
   b = Real("b",{:dir => :in, :dim => [ Dim(0,n-1)] })
   c = Real("c",{:dir => :out, :dim => [ Dim(0,n-1)] })
   i = Int("i",{:signed => false})
-  print p = Procedure(function_name, [n,a,b,c]) {
+  pr p = Procedure(function_name, [n,a,b,c]) {
     decl i
     if [CL, CUDA].include?(get_lang) then
-      print i === get_global_id(0)
-      print c[i] === a[i] + b[i]
+      pr i === get_global_id(0)
+      pr c[i] === a[i] + b[i]
     else
-      print For(i,0,n-1) {
-        print c[i] === a[i] + b[i]
+      pr For(i,0,n-1) {
+        pr c[i] === a[i] + b[i]
       }
     end
   }
@@ -304,29 +268,18 @@ end
 
 \begin{frame}[fragile]
 \frametitle{Running the Kernel}
+\lstset{style=BOAST}
 \tiny
-\lstset{language=Ruby,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
 \begin{lstlisting}
 n = 1024*1024
 a = NArray.float(n).random
 b = NArray.float(n).random
 c = NArray.float(n)
 c_ref = NArray.float(n)
-
 epsilon = 10e-15
-
 set_lang( FORTRAN )
 k = vector_add
 k.run(n,a,b,c_ref)
-
 [C, CL, CUDA].each { |lang|
   set_lang( lang )
   c.random
@@ -354,16 +307,8 @@ k.run(n,a,b,c_ref)
 \item Usual build parameters can be specified.
 \end{itemize}
 Sample:
+\lstset{style=BOAST}
 \tiny
-\lstset{language=Ruby,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
 \begin{lstlisting}
   k.build({:FC => 'gfortran', :CC => 'gcc',\
            :FCFLAGS => "-O2", :LDFLAGS => ""})
@@ -377,16 +322,8 @@ showstringspaces=false}
 \item Probes can be inserted at compile time.
 \item Default: high resolution timer.
 \end{itemize}
+\lstset{style=BOAST}
 \tiny
-\lstset{language=Ruby,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
 \begin{lstlisting}
   stats = k.run(...)
   puts stats[:duration]+" s"
@@ -440,16 +377,8 @@ __global__ void assemble_boundary_potential_on_device(realw* d_potential_dot_dot
 
 \begin{frame}[fragile]
 \frametitle{SPECFEM3D assemble\_boundary\_potential\_on\_device : BOAST (1)}
+\lstset{style=BOAST}
 \tiny
-\lstset{language=Ruby,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
 \begin{lstlisting}
 def BOAST::assemble_boundary_potential_on_device(ref = true)
   push_env( :array_start => 0 )
@@ -474,33 +403,25 @@ def BOAST::assemble_boundary_potential_on_device(ref = true)
 
 \begin{frame}[fragile]
 \frametitle{SPECFEM3D assemble\_boundary\_potential\_on\_device : BOAST (2)}
+\lstset{style=BOAST}
 \tiny
-\lstset{language=Ruby,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
 \begin{lstlisting}
   if(get_lang == CUDA and ref) then
     @@output.print File::read("specfem3D/#{function_name}.cu")
   elsif(get_lang == CUDA or get_lang == CL) then
-    decl p
+    open p
     id         = Int("id")
     iglob      = Int("iglob")
     iloc       = Int("iloc")
     iinterface = Int("iinterface")
     decl id, iglob, iloc, iinterface
-    print id === get_global_id(0) + get_global_size(0)*get_global_id(1)
-    print For(iinterface, 0, num_interfaces-1) {
-      print If(id<d_nibool_interfaces[iinterface]) {
-        print iloc === id + max_nibool_interfaces*iinterface
-        print iglob === d_ibool_interfaces[iloc] - 1
-        print atomicAdd(d_potential_dot_dot_acoustic + iglob, \
-                        d_send_potential_dot_dot_buffer[iloc])
+    pr id === get_global_id(0) + get_global_size(0)*get_global_id(1)
+    pr For(iinterface, 0, num_interfaces-1) {
+      pr If(id<d_nibool_interfaces[iinterface]) {
+        pr iloc === id + max_nibool_interfaces*iinterface
+        pr iglob === d_ibool_interfaces[iloc] - 1
+        pr atomicAdd(d_potential_dot_dot_acoustic + iglob, \
+                     d_send_potential_dot_dot_buffer[iloc])
       }
     }
     close p
@@ -577,13 +498,13 @@ __kernel void assemble_boundary_potential_on_device(__global float * d_potential
 }
 \end{lstlisting}
 \end{frame}
-\begin{frame}
-\frametitle{BigDFT Synthesis Kernel}
-\centering 
-\includegraphics[scale=0.5]{Res_synthesis}\\
-
-
-\end{frame}
+%\begin{frame}
+%\frametitle{BigDFT Synthesis Kernel}
+%\centering 
+%\includegraphics[scale=0.5]{Res_synthesis}\\
+%
+%
+%\end{frame}
 
 
 
