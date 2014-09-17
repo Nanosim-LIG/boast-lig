@@ -18,6 +18,7 @@ module BOAST
     header="immintrin.h"
     @@output.print "#include <immintrin.h>\n"
     @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
+    register_funccall("modulo")
     sum = Int("sum")
     print p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum , :headers => [header]}) {
 
