@@ -53,7 +53,7 @@
   backgroundcolor=\color{white},
   frame=single,
   captionpos=b,
-  morekeywords={BOAST, pr, decl, open, close}
+  morekeywords={BOAST, pr, decl, opn, close}
 }
 
 \title{BOAST}
@@ -139,7 +139,7 @@ Simple BOAST Procedure:
 \footnotesize
 \begin{lstlisting}
 05:0> p = BOAST::Procedure( "test_proc", [a,b] )
-06:0> BOAST::open p
+06:0> BOAST::opn p
 SUBROUTINE test_proc(a, b)
   integer, parameter :: wp=kind(1.0d0)
   integer(kind=4) :: a
@@ -409,7 +409,7 @@ def BOAST::assemble_boundary_potential_on_device(ref = true)
   if(get_lang == CUDA and ref) then
     @@output.print File::read("specfem3D/#{function_name}.cu")
   elsif(get_lang == CUDA or get_lang == CL) then
-    open p
+    opn p
     id         = Int("id")
     iglob      = Int("iglob")
     iloc       = Int("iloc")

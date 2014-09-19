@@ -19,7 +19,7 @@
   backgroundcolor=\color{white}, 
   frame=single, 
   captionpos=b,
-  morekeywords={BOAST, pr, decl, open, close}
+  morekeywords={BOAST, pr, decl, opn, close}
 }
 
 \lstdefinestyle{customf}{
@@ -298,7 +298,7 @@ capabilities as well. This is the main reason it was selected.
 
 In order to clearly differentiate what is going to be generated from what is
 related to manipulations in the host language four keywords were defined. They
-are \emph{pr}, \emph{decl}, \emph{open} and \emph{close}. As the language is
+are \emph{pr}, \emph{decl}, \emph{opn} and \emph{close}. As the language is
 an EDSL, these four keywords are methods in the BOAST namespace.
 
 The \emph{pr} method calls the public \emph{pr} method of Objects it is
@@ -309,10 +309,10 @@ result.
 
 The \emph{decl} method is used to declare variables or procedures and functions.
 
-The \emph{open} method can be used to print the beginning of a control
+The \emph{opn} method can be used to print the beginning of a control
 structure without an associated code block.
 
-The \emph{close} method is the counterpart to the \emph{open} method. It is used
+The \emph{close} method is the counterpart to the \emph{opn} method. It is used
 to close a control structure without an associated code block.
 
     \subsubsection{BOAST Abstractions}
@@ -495,7 +495,7 @@ ndat = Int("ndat")
 x = Real("x", :dir => :in, :dim => [ Dim(0, n-1), Dim(ndat) ])
 y = Real("y", :dir => :out, :dim => [ Dim(ndat), Dim(0, n-1) ])
 p = Procedure("magicfilter", [n, ndat, x, y])
-open p
+opn p
 close p
 \end{lstlisting}
 
@@ -528,7 +528,7 @@ or functions. Figure~\ref{fig:BOAST_procedure} presents the use of this
 abstraction. It is the signature of a real kernel from BigDFT. This kernel uses
 an input array \emph{x} and an output array \emph{y} of double precision
 numbers. Those array have two dimensions which depend on input variables
-\emph{n} and \emph{ndat}. We can see here the use of the \emph{open} and
+\emph{n} and \emph{ndat}. We can see here the use of the \emph{opn} and
 \emph{close} keywords that are used to print a control structure without an
 associated Ruby block. This time we placed ourselves inside of BOAST namespace.
   
