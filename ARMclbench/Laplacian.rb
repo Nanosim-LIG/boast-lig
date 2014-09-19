@@ -44,8 +44,8 @@ EOF
     decl x = Int("x")
     decl w
     
-    pr y === get_global_id(1)
     pr x === get_global_id(0) * x_component_number 
+    pr y === get_global_id(1) * y_component_number
     pr w === width * 3
 
     pr x === Ternary(x < 3, 3, Ternary( x > w      - x_component_number - 3, w      - x_component_number - 3, x ) )
@@ -104,9 +104,9 @@ EOF
     }
     (0...vector_number).each { |v_i|
       (0...y_component_number).each { |y_i|
-        pr rescnn[v_i][y_i] === - tempcnn[0][v_i][y_i]     - tempcnn[1][v_i][y_i]         - tempcnn[2][v_i][y_i]\
+        pr rescnn[v_i][y_i] === - tempcnn[0][v_i][y_i]     - tempcnn[1][v_i][y_i]                         - tempcnn[2][v_i][y_i]\
                                 - tempcnn[0][v_i][y_i + 1] + tempcnn[1][v_i][y_i + 1] * "(#{temp_type})9" - tempcnn[2][v_i][y_i + 1]\
-                                - tempcnn[0][v_i][y_i + 2] - tempcnn[1][v_i][y_i + 2]     - tempcnn[2][v_i][y_i + 2]
+                                - tempcnn[0][v_i][y_i + 2] - tempcnn[1][v_i][y_i + 2]                     - tempcnn[2][v_i][y_i + 2]
         pr resnn[v_i][y_i] === FuncCall("convert_#{tempnn[0][0][0].type.decl}", clamp(rescnn[v_i][y_i],"(#{temp_type})0","(#{temp_type})255"))
       }
     }
@@ -157,12 +157,14 @@ results = []
   [1,2,4,8,16].reject{ |v| v > x_component_number }.each{ |vector_length| # = 1, vector_length=1, y_component_number = 1, temporary_size = 4
     (1..4).each { |y_component_number|
       [2,4].each{ |temporary_size|
-        puts "x_component_number: #{x_component_number}, vector_length: #{vector_length}, y_component_number: #{y_component_number}, temporary_size: #{temporary_size}"
+        id = "x_component_number: #{x_component_number}, vector_length: #{vector_length}, y_component_number: #{y_component_number}, temporary_size: #{temporary_size}"
+        puts id
         k = laplacian(x_component_number, vector_length, y_component_number, temporary_size)
+        puts k
         output.random(256)
         durations=[]
         (0..3).each {
-          stats = k.run(input, output, width, height, :global_work_size => [rndup((width*3/x_component_number.to_f).ceil,32), height, 1], :local_work_size => [32, 1, 1])
+          stats = k.run(input, output, width, height, :global_work_size => [rndup((width*3/x_component_number.to_f).ceil,32), (height/y_component_number.to_f).ceil, 1], :local_work_size => [32, 1, 1])
           durations.push stats[:duration]
         }
         puts durations.min
@@ -174,7 +176,7 @@ results = []
           i += 1
           raise "Warning: residue too big: #{elem} #{i%3},#{(i / 3 ) % (width-2)},#{i / 3 / (width - 2)}" if elem > 0
         }
-        results.push( ["x_component_number: #{x_component_number}, vector_length: #{vector_length}, temporary_size #{temporary_size}", durations.min] )
+        results.push( [id, durations.min] )
       }
     }
   }
