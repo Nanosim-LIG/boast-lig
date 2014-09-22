@@ -53,7 +53,7 @@ def laplacian_c_ref
   return k
 end
 
-def laplacian(x_component_number = 1, vector_length=1, y_component_number = 1, temporary_size = 4)
+def laplacian(x_component_number = 1, vector_length=1, y_component_number = 1, temporary_size = 4, vector_recompute = false, load_overlap = true)
  
   k = CKernel::new
   height = Int("height", :dir => :in)
@@ -75,12 +75,15 @@ EOF
     pr y === get_global_id(1) * y_component_number
     pr w === width * 3
 
-    pr x === Ternary(x < 3, 3, Ternary( x > w      - x_component_number - 3, w      - x_component_number - 3, x ) )
-    pr y === Ternary(y < 1, 1, Ternary( y > height - y_component_number - 1, height - y_component_number - 1, y ) )
-
     vector_number = (x_component_number.to_f/vector_length).ceil
     vector_number = vector_number < 1 ?  1 : vector_number
-    total_x_size = vector_number * vector_length
+    total_x_size = vector_recompute ? vector_number * vector_length : x_component_number
+
+    x_offset = total_x_size + 3
+    y_offset = y_component_number + 1
+
+    pr x === Ternary(x < 3, 3, Ternary( x > w      - x_offset, w      - x_offset, x ) )
+    pr y === Ternary(y < 1, 1, Ternary( y > height - y_offset, height - y_offset, y ) )
 
     temp_type = "#{Int("dummy", :size => temporary_size).type.decl}"
     
@@ -139,7 +142,7 @@ EOF
     }
 
     (0...(y_component_number)).each { |y_i|
-      remaining_elem = x_component_number
+      remaining_elem = total_x_size
       (0...vector_number).each { |v_i|
         if remaining_elem >= vector_length then
           pr FuncCall("vstore#{vector_length}", resnn[v_i][y_i], 0, pdst[x + v_i * vector_length, y + y_i].address)
