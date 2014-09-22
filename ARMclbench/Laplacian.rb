@@ -53,7 +53,7 @@ def laplacian_c_ref
   return k
 end
 
-def laplacian(x_component_number = 1, vector_length=1, y_component_number = 1, temporary_size = 4, vector_recompute = false, load_overlap = true)
+def laplacian(x_component_number = 1, vector_length=1, y_component_number = 1, temporary_size = 4, vector_recompute = false, load_overlap = false)
  
   k = CKernel::new
   height = Int("height", :dir => :in)
@@ -86,16 +86,33 @@ EOF
     pr y === Ternary(y < 1, 1, Ternary( y > height - y_offset, height - y_offset, y ) )
 
     temp_type = "#{Int("dummy", :size => temporary_size).type.decl}"
-    
 
-    tempnn = (0..2).collect { |v_i|
-      (0...vector_number).collect { |x_i|
-        (0...(y_component_number+2)).collect { |y_i|
-          Int("temp#{x_i}#{v_i}#{y_i}", :size => 1, :vector_length => vector_length, :signed => false)
+    if not load_overlap then
+      total_load_window = total_x_size + 6
+      tempload = []
+      ranges = []
+      temp_vec_length = vector_length
+      temp_load_window = total_load_window
+      begin
+        if temp_vec_length <= temp_load_window then
+          tempload.push( Int("tempload#{total_load_window-temp_load_window}_#{total_load_window-temp_load_window+temp_vec_length-1}", :size => 1, :vector_length => temp_vec_length, :signed => false) )
+          ranges.push ((total_load_window-temp_load_window)..(total_load_window-temp_load_window+temp_vec_length-1))
+          temp_load_window -= temp_vec_length
+        else
+          temp_vec_length /= 2
+        end
+      end while temp_load_window > 0
+      decl *(tempload)
+    else
+      tempnn = (0..2).collect { |v_i|
+        (0...vector_number).collect { |x_i|
+          (0...(y_component_number+2)).collect { |y_i|
+            Int("temp#{x_i}#{v_i}#{y_i}", :size => 1, :vector_length => vector_length, :signed => false)
+          }
         }
       }
-    }
-    decl *(tempnn.flatten)
+      decl *(tempnn.flatten)
+    end
     resnn = (0...(vector_number)).collect { |v_i|
       (0...(y_component_number)).collect { |y_i|
         Int("res#{v_i}#{y_i}", :size => 1, :vector_length => vector_length, :signed => false)
@@ -118,26 +135,65 @@ EOF
     }
     decl *(rescnn.flatten)
 
-    (0..2).each { |x_i|
-      (0...(y_component_number+2)).each { |y_i|
-        (0...vector_number).each { |v_i|
-          pr tempnn[x_i][v_i][y_i] === FuncCall("vload#{vector_length}",0, psrc[x + v_i * vector_length + 3 * (x_i - 1), y + (y_i - 1)].address)
+    (0...(y_component_number+2)).each { |y_i|
+      if not load_overlap then
+        load_start = -3
+        temp_vec_length = vector_length
+        temp_load_window = total_load_window
+        vec_indx = 0
+        begin
+          if temp_vec_length <= temp_load_window then
+            pr tempload[vec_indx] === FuncCall("vload#{temp_vec_length}",0, psrc[x + load_start, y + (y_i - 1)].address)
+            temp_load_window -= temp_vec_length
+            load_start += temp_vec_length
+            vec_indx += 1
+          else
+            temp_vec_length /= 2
+          end
+        end while temp_load_window > 0
+        (0..2).each { |x_i|
+          (0...vector_number).each { |v_i|
+            start = v_i * vector_length + x_i * 3
+            end_indx = start + vector_length - 1
+            merge_expr = []
+            begin
+              vec_indx = ranges.find_index { |r| r.include?(start) }
+              if vec_indx then
+                vec = tempload[vec_indx]
+                r = ranges[vec_indx]
+                range = (start-r.begin)..(end_indx < r.end ? end_indx - r.begin : r.end - r.begin)
+                #beware valid component idexing length are 1,2,3,4,8,16
+                if not [1, 2, 3, 4, 8, 16].include?(range.end - range.begin + 1) then
+                  new_size = [1, 2, 3, 4, 8, 16].rindex { |e| e < (range.end - range.begin + 1) }
+                  range = range.begin..(range.begin+new_size-1)
+                end
+                merge_expr.push( "#{vec.components(range)}" )
+                start += range.end - range.begin + 1
+              else # in the case vectors have dummy elements...
+                (end_indx - start + 1).times {
+                  merge_expr.push( "0" )
+                }
+                start = end_indx + 1
+              end
+            end while start <= end_indx
+            pr tempcnn[x_i][v_i][y_i] === FuncCall("convert_#{tempcnn[0][0][0].type.decl}", "(#{tempload.first.type.decl})(#{merge_expr.join(",")})" )
+          }
         }
-      }
-    }
-    (0..2).each { |x_i|
-      (0...vector_number).each { |v_i|
-        (0...(y_component_number+2)).each { |y_i|
-          pr tempcnn[x_i][v_i][y_i] === FuncCall("convert_#{tempcnn[0][0][0].type.decl}", tempnn[x_i][v_i][y_i])
+      else
+        (0..2).each { |x_i|
+          (0...vector_number).each { |v_i|
+            pr tempnn[x_i][v_i][y_i] === FuncCall("vload#{vector_length}",0, psrc[x + v_i * vector_length + 3 * (x_i - 1), y + (y_i - 1)].address)
+            pr tempcnn[x_i][v_i][y_i] === FuncCall("convert_#{tempcnn[0][0][0].type.decl}", tempnn[x_i][v_i][y_i])
+          }
         }
-      }
+      end
     }
     (0...vector_number).each { |v_i|
       (0...y_component_number).each { |y_i|
         pr rescnn[v_i][y_i] === - tempcnn[0][v_i][y_i]     - tempcnn[1][v_i][y_i]                         - tempcnn[2][v_i][y_i]\
                                 - tempcnn[0][v_i][y_i + 1] + tempcnn[1][v_i][y_i + 1] * "(#{temp_type})9" - tempcnn[2][v_i][y_i + 1]\
                                 - tempcnn[0][v_i][y_i + 2] - tempcnn[1][v_i][y_i + 2]                     - tempcnn[2][v_i][y_i + 2]
-        pr resnn[v_i][y_i] === FuncCall("convert_#{tempnn[0][0][0].type.decl}", clamp(rescnn[v_i][y_i],"(#{temp_type})0","(#{temp_type})255"))
+        pr resnn[v_i][y_i] === FuncCall("convert_#{resnn[0][0].type.decl}", clamp(rescnn[v_i][y_i],"(#{temp_type})0","(#{temp_type})255"))
       }
     }
 
@@ -195,34 +251,39 @@ sizes.each { |width, height|
 
 set_lang(CL)
 
-(1..16).each{ |x_component_number|
-  [1,2,4,8,16].reject{ |v| v > x_component_number }.each{ |vector_length| # = 1, vector_length=1, y_component_number = 1, temporary_size = 4
+#(1..16).each { |x_component_number|
+[1,2,4,8,16].each { |x_component_number|
+  [1,2,4,8,16].reject{ |v| v > x_component_number }.each { |vector_length| # = 1, vector_length=1, y_component_number = 1, temporary_size = 4
     (1..4).each { |y_component_number|
-      [2,4].each{ |temporary_size|
-        id = "x_component_number: #{x_component_number}, vector_length: #{vector_length}, y_component_number: #{y_component_number}, temporary_size: #{temporary_size}"
-        puts id
-        k = laplacian(x_component_number, vector_length, y_component_number, temporary_size)
-        puts k
-        sizes.each_index { |indx|
-          width, height = sizes[indx]
-          puts "#{width} x #{height}"
-          output = NArray.byte(width*3,height)
-          output.random(256)
-          durations=[]
-          (0..3).each {
-            stats = k.run(inputs[indx], output, width, height, :global_work_size => [rndup((width*3/x_component_number.to_f).ceil,32), (height/y_component_number.to_f).ceil, 1], :local_work_size => [32, 1, 1])
-            durations.push stats[:duration]
+      [2,4].each { |temporary_size|
+        [true, false].each { |vector_recompute|
+          [true, false].each { |load_overlap|
+            id = "x_component_number: #{x_component_number}, vector_length: #{vector_length}, y_component_number: #{y_component_number}, temporary_size: #{temporary_size}, vector_recompute: #{vector_recompute}, load_overlap: #{load_overlap}"
+            puts id
+            k = laplacian(x_component_number, vector_length, y_component_number, temporary_size, vector_recompute, load_overlap)
+            puts k
+            sizes.each_index { |indx|
+              width, height = sizes[indx]
+              puts "#{width} x #{height}"
+              output = NArray.byte(width*3,height)
+              output.random(256)
+              durations=[]
+              (0..3).each {
+                stats = k.run(inputs[indx], output, width, height, :global_work_size => [rndup((width*3/x_component_number.to_f).ceil,32), (height/y_component_number.to_f).ceil, 1], :local_work_size => [32, 1, 1])
+                durations.push stats[:duration]
+              }
+              puts durations.min
+          
+#              diff = ( refs[indx] - output[3..-4,1..-2] ).abs
+#              i = 0
+#              diff.each { |elem|
+#                #puts elem
+#                i += 1
+#                raise "Warning: residue too big: #{elem} #{i%3},#{(i / 3 ) % (width-2)},#{i / 3 / (width - 2)}" if elem > 0
+#              }
+              results[indx].push( [id, durations.min] )
+            }
           }
-          puts durations.min
-      
-#          diff = ( refs[indx] - output[3..-4,1..-2] ).abs
-#          i = 0
-#          diff.each { |elem|
-#            #puts elem
-#            i += 1
-#            raise "Warning: residue too big: #{elem} #{i%3},#{(i / 3 ) % (width-2)},#{i / 3 / (width - 2)}" if elem > 0
-#          }
-          results[indx].push( [id, durations.min] )
         }
       }
     }
