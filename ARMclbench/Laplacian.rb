@@ -53,7 +53,16 @@ def laplacian_c_ref
   return k
 end
 
-def laplacian(x_component_number = 1, vector_length=1, y_component_number = 1, temporary_size = 4, vector_recompute = false, load_overlap = false)
+def laplacian(options)
+
+  default_options = {:x_component_number => 1, :vector_length => 1, :y_component_number => 1, :temporary_size => 2, :vector_recompute => false, :load_overlap => false}
+  opts = default_options.update(options)
+  x_component_number = opts[:x_component_number]
+  vector_length      = opts[:vector_length]
+  y_component_number = opts[:y_component_number]
+  temporary_size     = opts[:temporary_size]
+  vector_recompute   = opts[:vector_recompute]
+  load_overlap       = opts[:load_overlap]
  
   k = CKernel::new
   height = Int("height", :dir => :in)
@@ -76,7 +85,6 @@ EOF
     pr w === width * 3
 
     vector_number = (x_component_number.to_f/vector_length).ceil
-    vector_number = vector_number < 1 ?  1 : vector_number
     total_x_size = vector_recompute ? vector_number * vector_length : x_component_number
 
     x_offset = total_x_size + 3
@@ -227,11 +235,6 @@ EOF
   k.procedure = p
   return k
 end
-#puts laplacian
-#puts laplacian(2)
-#puts laplacian(2,2)
-#puts laplacian(4,2)
-#puts laplacian(3,2)
 
 sizes = [[768, 432], [2560, 1600], [2048, 2048], [5760, 3240], [7680, 4320]]
 inputs = []
@@ -256,42 +259,40 @@ sizes.each { |width, height|
 
 set_lang(CL)
 
-#(1..16).each { |x_component_number|
-[1,2,4,8,16].each { |x_component_number|
-  [1,2,4,8,16].reject{ |v| v > x_component_number }.each { |vector_length| # = 1, vector_length=1, y_component_number = 1, temporary_size = 4
-    (1..4).each { |y_component_number|
-      [2,4].each { |temporary_size|
-        [true, false].each { |vector_recompute|
-          [true, false].each { |load_overlap|
-            id = "x_component_number: #{x_component_number}, vector_length: #{vector_length}, y_component_number: #{y_component_number}, temporary_size: #{temporary_size}, vector_recompute: #{vector_recompute}, load_overlap: #{load_overlap}"
-            puts id
-            k = laplacian(x_component_number, vector_length, y_component_number, temporary_size, vector_recompute, load_overlap)
-            puts k
-            sizes.each_index { |indx|
-              width, height = sizes[indx]
-              puts "#{width} x #{height}"
-              output = NArray.byte(width*3,height)
-              output.random(256)
-              durations=[]
-              (0..3).each {
-                stats = k.run(inputs[indx], output, width, height, :global_work_size => [rndup((width*3/x_component_number.to_f).ceil,32), (height/y_component_number.to_f).ceil, 1], :local_work_size => [32, 1, 1])
-                durations.push stats[:duration]
-              }
-              puts durations.min
-          
-#              diff = ( refs[indx] - output[3..-4,1..-2] ).abs
-#              i = 0
-#              diff.each { |elem|
-#                #puts elem
-#                i += 1
-#                raise "Warning: residue too big: #{elem} #{i%3},#{(i / 3 ) % (width-2)},#{i / 3 / (width - 2)}" if elem > 0
-#              }
-              results[indx].push( [id, durations.min] )
-            }
-          }
-        }
-      }
+opt_space = GenericOptimization::new( :x_component_number => [1,2,4,8,16],
+                                      :vector_length      => [1,2,4,8,16],
+                                      :y_component_number => 1..4,
+                                      :temporary_size     => [2,4],
+                                      :vector_recompute   => [true, false],
+                                      :load_overlap       => [true, false] )
+check = false
+opt_space.each_random { |opt|
+  id = opt.to_s            
+  puts id
+  k = laplacian(opt)
+  puts k
+  sizes.each_index { |indx|
+    width, height = sizes[indx]
+    puts "#{width} x #{height}"
+    output = NArray.byte(width*3,height)
+    output.random(256)
+    durations=[]
+    (0..3).each {
+      stats = k.run(inputs[indx], output, width, height, :global_work_size => [rndup((width*3/opt[:x_component_number].to_f).ceil,32), (height/opt[:y_component_number].to_f).ceil, 1], :local_work_size => [32, 1, 1])
+      durations.push stats[:duration]
     }
+    puts durations.min
+
+    if check then 
+      diff = ( refs[indx] - output[3..-4,1..-2] ).abs
+      i = 0
+      diff.each { |elem|
+        #puts elem
+        i += 1
+        raise "Warning: residue too big: #{elem} #{i%3},#{(i / 3 ) % (width-2)},#{i / 3 / (width - 2)}" if elem > 0
+      }
+    end
+    results[indx].push( [id, durations.min] )
   }
 }
 puts "Best candidates:"
