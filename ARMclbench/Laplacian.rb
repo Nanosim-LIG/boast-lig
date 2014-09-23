@@ -86,6 +86,9 @@ EOF
     pr y === Ternary(y < 1, 1, Ternary( y > height - y_offset, height - y_offset, y ) )
 
     temp_type = "#{Int("dummy", :size => temporary_size).type.decl}"
+    temp_vec_type = "#{Int("dummy", :size => temporary_size, :vector_length => vector_length).type.decl}"
+    out_type  = "#{Int("dummy", :size => 1, :signed => false).type.decl}"
+    out_vec_type = "#{Int("dummy", :size => 1, :signed => false, :vector_length => vector_length).type.decl}"
 
     if not load_overlap then
       total_load_window = total_x_size + 6
@@ -95,8 +98,10 @@ EOF
       temp_load_window = total_load_window
       begin
         if temp_vec_length <= temp_load_window then
-          tempload.push( Int("tempload#{total_load_window-temp_load_window}_#{total_load_window-temp_load_window+temp_vec_length-1}", :size => 1, :vector_length => temp_vec_length, :signed => false) )
-          ranges.push ((total_load_window-temp_load_window)..(total_load_window-temp_load_window+temp_vec_length-1))
+          first = total_load_window - temp_load_window
+          last = first + temp_vec_length-1
+          tempload.push( Int("tempload#{first}_#{last}", :size => 1, :vector_length => temp_vec_length, :signed => false) )
+          ranges.push (first..last)
           temp_load_window -= temp_vec_length
         else
           temp_vec_length /= 2
@@ -176,14 +181,14 @@ EOF
                 start = end_indx + 1
               end
             end while start <= end_indx
-            pr tempcnn[x_i][v_i][y_i] === FuncCall("convert_#{tempcnn[0][0][0].type.decl}", "(#{tempload.first.type.decl})(#{merge_expr.join(",")})" )
+            pr tempcnn[x_i][v_i][y_i] === FuncCall("convert_#{temp_vec_type}", "(#{out_vec_type})(#{merge_expr.join(",")})" )
           }
         }
       else
         (0..2).each { |x_i|
           (0...vector_number).each { |v_i|
             pr tempnn[x_i][v_i][y_i] === FuncCall("vload#{vector_length}",0, psrc[x + v_i * vector_length + 3 * (x_i - 1), y + (y_i - 1)].address)
-            pr tempcnn[x_i][v_i][y_i] === FuncCall("convert_#{tempcnn[0][0][0].type.decl}", tempnn[x_i][v_i][y_i])
+            pr tempcnn[x_i][v_i][y_i] === FuncCall("convert_#{temp_vec_type}", tempnn[x_i][v_i][y_i])
           }
         }
       end
@@ -193,7 +198,7 @@ EOF
         pr rescnn[v_i][y_i] === - tempcnn[0][v_i][y_i]     - tempcnn[1][v_i][y_i]                         - tempcnn[2][v_i][y_i]\
                                 - tempcnn[0][v_i][y_i + 1] + tempcnn[1][v_i][y_i + 1] * "(#{temp_type})9" - tempcnn[2][v_i][y_i + 1]\
                                 - tempcnn[0][v_i][y_i + 2] - tempcnn[1][v_i][y_i + 2]                     - tempcnn[2][v_i][y_i + 2]
-        pr resnn[v_i][y_i] === FuncCall("convert_#{resnn[0][0].type.decl}", clamp(rescnn[v_i][y_i],"(#{temp_type})0","(#{temp_type})255"))
+        pr resnn[v_i][y_i] === FuncCall("convert_#{out_vec_type}", clamp(rescnn[v_i][y_i],"(#{temp_type})0","(#{temp_type})255"))
       }
     }
 
