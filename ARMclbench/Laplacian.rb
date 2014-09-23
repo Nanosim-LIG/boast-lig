@@ -281,6 +281,8 @@ opt_space.each_random { |opt|
       stats = k.run(inputs[indx], output, width, height, :global_work_size => [rndup((width*3/opt[:x_component_number].to_f).ceil,32), (height/opt[:y_component_number].to_f).ceil, 1], :local_work_size => [32, 1, 1])
       durations.push stats[:duration]
     }
+    #Fix for ARM counter looping every few minutes
+    durations.reject!{ |d| d < 0 }
     puts durations.min
 
     if check then 

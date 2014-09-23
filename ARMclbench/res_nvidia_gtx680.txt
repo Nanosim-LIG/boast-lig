@@ -1,0 +1,16 @@
+Best candidates:
+768 x 432
+{:x_component_number=>4, :vector_length=>4, :y_component_number=>4, :temporary_size=>2, :vector_recompute=>false, :load_overlap=>true}
+7.1488e-05
+2560 x 1600
+{:x_component_number=>4, :vector_length=>4, :y_component_number=>4, :temporary_size=>2, :vector_recompute=>false, :load_overlap=>true}
+0.000781792
+2048 x 2048
+{:x_component_number=>4, :vector_length=>4, :y_component_number=>4, :temporary_size=>2, :vector_recompute=>true, :load_overlap=>true}
+0.000798624
+5760 x 3240
+{:x_component_number=>4, :vector_length=>4, :y_component_number=>4, :temporary_size=>2, :vector_recompute=>true, :load_overlap=>true}
+0.003512256
+7680 x 4320
+{:x_component_number=>4, :vector_length=>4, :y_component_number=>4, :temporary_size=>2, :vector_recompute=>false, :load_overlap=>true}
+0.00623408
