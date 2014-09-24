@@ -53,6 +53,41 @@ def laplacian_c_ref
   return k
 end
 
+def split_in_ranges(length, base_split_length)
+  ranges = []
+  temp_split_length = base_split_length
+  temp_length = length
+  begin
+    if temp_split_length <= temp_length then
+      first = length - temp_length
+      last = first + temp_split_length-1
+      ranges.push (first..last)
+      temp_length -= temp_split_length
+    else
+      temp_split_length /= 2
+    end
+  end while temp_length > 0
+  return ranges
+end
+
+def find_in_ranges(ranges, start_indx, end_indx)
+  vec_indx = ranges.find_index { |r| r.include?(start_indx) }
+  delta = 0
+  range = nil
+  if vec_indx then
+    r = ranges[vec_indx]
+    range = (start_indx-r.begin)..(end_indx < r.end ? end_indx - r.begin : r.end - r.begin)
+    #beware valid component idexing length are 1,2,3,4,8,16
+    if not [1, 2, 3, 4, 8, 16].include?(range.end - range.begin + 1) then
+      new_size = [1, 2, 3, 4, 8, 16].rindex { |e| e < (range.end - range.begin + 1) }
+      range = range.begin..(range.begin+new_size-1)
+    end
+    delta = range.end - range.begin + 1
+  end
+
+  return [vec_indx, range, delta]
+end
+
 def laplacian(options)
 
   default_options = {:x_component_number => 1, :vector_length => 1, :y_component_number => 1, :temporary_size => 2, :vector_recompute => false, :load_overlap => false}
@@ -71,10 +106,6 @@ def laplacian(options)
   pdst = Int("pdst", :dir => :out,  :signed => false, :size => 1, :dim => [ Dim(w), Dim(height) ] )
   psrc = Int("psrc", :dir => :in, :signed => false, :size => 1, :dim => [ Dim(w), Dim(height) ] )
   
-  get_output.puts <<EOF
-#define vload1(offset, p) *(p + offset)
-#define vstore1(d, offset, p) *(p + offset) = d
-EOF
   p = Procedure("math", [psrc, pdst, width, height]) {
     decl y = Int("y")
     decl x = Int("x")
@@ -101,20 +132,10 @@ EOF
     if not load_overlap then
       total_load_window = total_x_size + 6
       tempload = []
-      ranges = []
-      temp_vec_length = vector_length
-      temp_load_window = total_load_window
-      begin
-        if temp_vec_length <= temp_load_window then
-          first = total_load_window - temp_load_window
-          last = first + temp_vec_length-1
-          tempload.push( Int("tempload#{first}_#{last}", :size => 1, :vector_length => temp_vec_length, :signed => false) )
-          ranges.push (first..last)
-          temp_load_window -= temp_vec_length
-        else
-          temp_vec_length /= 2
-        end
-      end while temp_load_window > 0
+      ranges = split_in_ranges(total_load_window, vector_length)
+      ranges.each { |r|
+          tempload.push( Int("tempload#{r.begin}_#{r.end}", :size => 1, :vector_length => (r.end - r.begin + 1), :signed => false) )
+      }
       decl *(tempload)
     else
       tempnn = (0..2).collect { |v_i|
@@ -151,52 +172,38 @@ EOF
     (0...(y_component_number+2)).each { |y_i|
       if not load_overlap then
         load_start = -3
-        temp_vec_length = vector_length
-        temp_load_window = total_load_window
+        tempload.each{ |v|
+          pr v === psrc[x + load_start, y + (y_i - 1)]
+          load_start += v.type.vector_length
+        }
         vec_indx = 0
-        begin
-          if temp_vec_length <= temp_load_window then
-            pr tempload[vec_indx] === FuncCall("vload#{temp_vec_length}",0, psrc[x + load_start, y + (y_i - 1)].address)
-            temp_load_window -= temp_vec_length
-            load_start += temp_vec_length
-            vec_indx += 1
-          else
-            temp_vec_length /= 2
-          end
-        end while temp_load_window > 0
+
         (0..2).each { |x_i|
           (0...vector_number).each { |v_i|
-            start = v_i * vector_length + x_i * 3
-            end_indx = start + vector_length - 1
+            start_indx = v_i * vector_length + x_i * 3
+            end_indx = start_indx + vector_length - 1
             merge_expr = []
             begin
-              vec_indx = ranges.find_index { |r| r.include?(start) }
+              vec_indx, range, delta = find_in_ranges(ranges, start_indx, end_indx)
               if vec_indx then
                 vec = tempload[vec_indx]
-                r = ranges[vec_indx]
-                range = (start-r.begin)..(end_indx < r.end ? end_indx - r.begin : r.end - r.begin)
-                #beware valid component idexing length are 1,2,3,4,8,16
-                if not [1, 2, 3, 4, 8, 16].include?(range.end - range.begin + 1) then
-                  new_size = [1, 2, 3, 4, 8, 16].rindex { |e| e < (range.end - range.begin + 1) }
-                  range = range.begin..(range.begin+new_size-1)
-                end
                 merge_expr.push( "#{vec.components(range)}" )
-                start += range.end - range.begin + 1
+                start_indx += delta
               else # in the case vectors have dummy elements...
-                (end_indx - start + 1).times {
+                (end_indx - start_indx + 1).times {
                   merge_expr.push( "0" )
                 }
-                start = end_indx + 1
+                start_indx = end_indx + 1
               end
-            end while start <= end_indx
-            pr tempcnn[x_i][v_i][y_i] === FuncCall("convert_#{temp_vec_type}", "(#{out_vec_type})(#{merge_expr.join(",")})" )
+            end while start_indx <= end_indx
+            pr tempcnn[x_i][v_i][y_i] === Int( "(#{out_vec_type})(#{merge_expr.join(",")})", :size => temporary_size, :vector_length => vector_length)
           }
         }
       else
         (0..2).each { |x_i|
           (0...vector_number).each { |v_i|
-            pr tempnn[x_i][v_i][y_i] === FuncCall("vload#{vector_length}",0, psrc[x + v_i * vector_length + 3 * (x_i - 1), y + (y_i - 1)].address)
-            pr tempcnn[x_i][v_i][y_i] === FuncCall("convert_#{temp_vec_type}", tempnn[x_i][v_i][y_i])
+            pr tempnn[x_i][v_i][y_i] === psrc[x + v_i * vector_length + 3 * (x_i - 1), y + (y_i - 1)]
+            pr tempcnn[x_i][v_i][y_i] === tempnn[x_i][v_i][y_i]
           }
         }
       end
@@ -206,7 +213,7 @@ EOF
         pr rescnn[v_i][y_i] === - tempcnn[0][v_i][y_i]     - tempcnn[1][v_i][y_i]                         - tempcnn[2][v_i][y_i]\
                                 - tempcnn[0][v_i][y_i + 1] + tempcnn[1][v_i][y_i + 1] * "(#{temp_type})9" - tempcnn[2][v_i][y_i + 1]\
                                 - tempcnn[0][v_i][y_i + 2] - tempcnn[1][v_i][y_i + 2]                     - tempcnn[2][v_i][y_i + 2]
-        pr resnn[v_i][y_i] === FuncCall("convert_#{out_vec_type}", clamp(rescnn[v_i][y_i],"(#{temp_type})0","(#{temp_type})255"))
+        pr resnn[v_i][y_i] === clamp(rescnn[v_i][y_i],"(#{temp_type})0","(#{temp_type})255", :returns => rescnn[v_i][y_i])
       }
     }
 
@@ -214,7 +221,7 @@ EOF
       remaining_elem = total_x_size
       (0...vector_number).each { |v_i|
         if remaining_elem >= vector_length then
-          pr FuncCall("vstore#{vector_length}", resnn[v_i][y_i], 0, pdst[x + v_i * vector_length, y + y_i].address)
+          pr pdst[x + v_i * vector_length, y + y_i] === resnn[v_i][y_i]
           remaining_elem -= vector_length
         else
           temp_vec_length = vector_length
@@ -222,7 +229,7 @@ EOF
             temp_vec_length = temp_vec_length/2
             elem_indexes = 0
             if remaining_elem >= temp_vec_length then
-              pr FuncCall("vstore#{temp_vec_length}", resnn[v_i][y_i].components(elem_indexes...(elem_indexes+temp_vec_length)), 0, pdst[x + (v_i * vector_length + elem_indexes), y + y_i].address)
+              pr pdst[x + (v_i * vector_length + elem_indexes), y + y_i] === resnn[v_i][y_i].components(elem_indexes...(elem_indexes+temp_vec_length))
               elem_indexes += temp_vec_length
               remaining_elem -= temp_vec_length
             end
@@ -265,7 +272,7 @@ opt_space = GenericOptimization::new( :x_component_number => [1,2,4,8,16],
                                       :temporary_size     => [2,4],
                                       :vector_recompute   => [true, false],
                                       :load_overlap       => [true, false] )
-check = false
+check = true
 opt_space.each_random { |opt|
   id = opt.to_s            
   puts id
