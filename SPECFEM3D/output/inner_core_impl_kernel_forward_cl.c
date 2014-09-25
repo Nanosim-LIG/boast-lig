@@ -283,20 +283,20 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void inner_cor
   float rho_s_H1;\n\
   float rho_s_H2;\n\
   float rho_s_H3;\n\
-  __local float s_dummyx_loc[NGLL3];\n\
-  __local float s_dummyy_loc[NGLL3];\n\
-  __local float s_dummyz_loc[NGLL3];\n\
-  __local float s_tempx1[NGLL3];\n\
-  __local float s_tempx2[NGLL3];\n\
-  __local float s_tempx3[NGLL3];\n\
-  __local float s_tempy1[NGLL3];\n\
-  __local float s_tempy2[NGLL3];\n\
-  __local float s_tempy3[NGLL3];\n\
-  __local float s_tempz1[NGLL3];\n\
-  __local float s_tempz2[NGLL3];\n\
-  __local float s_tempz3[NGLL3];\n\
-  __local float sh_hprime_xx[NGLL2];\n\
-  __local float sh_hprimewgll_xx[NGLL2];\n\
+  __local float s_dummyx_loc[(NGLL3)];\n\
+  __local float s_dummyy_loc[(NGLL3)];\n\
+  __local float s_dummyz_loc[(NGLL3)];\n\
+  __local float s_tempx1[(NGLL3)];\n\
+  __local float s_tempx2[(NGLL3)];\n\
+  __local float s_tempx3[(NGLL3)];\n\
+  __local float s_tempy1[(NGLL3)];\n\
+  __local float s_tempy2[(NGLL3)];\n\
+  __local float s_tempy3[(NGLL3)];\n\
+  __local float s_tempz1[(NGLL3)];\n\
+  __local float s_tempz2[(NGLL3)];\n\
+  __local float s_tempz3[(NGLL3)];\n\
+  __local float sh_hprime_xx[(NGLL2)];\n\
+  __local float sh_hprimewgll_xx[(NGLL2)];\n\
   bx = (get_group_id(1)) * (get_num_groups(0)) + get_group_id(0);\n\
   tx = get_local_id(0);\n\
   K = (tx) / (NGLL2);\n\

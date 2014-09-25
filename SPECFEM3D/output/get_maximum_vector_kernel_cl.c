@@ -61,7 +61,7 @@ inline void atomicAdd(volatile __global float *source, const float val) {\n\
 #define BLOCKSIZE_TRANSFER 256\n\
 #endif\n\
 __kernel void get_maximum_vector_kernel(const __global float * array, const int size, __global float * d_max){\n\
-  __local float sdata[BLOCKSIZE_TRANSFER];\n\
+  __local float sdata[(BLOCKSIZE_TRANSFER)];\n\
   int tid;\n\
   int bx;\n\
   int i;\n\

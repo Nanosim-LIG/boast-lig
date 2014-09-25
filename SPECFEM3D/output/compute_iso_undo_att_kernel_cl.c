@@ -159,12 +159,12 @@ __kernel void compute_iso_undo_att_kernel(const __global float * epsilondev_xx, 
   int iglob;\n\
   float eps_trace_over_3;\n\
   float b_eps_trace_over_3;\n\
-  float epsdev[5];\n\
-  float b_epsdev[5];\n\
-  __local float s_dummyx_loc[NGLL3];\n\
-  __local float s_dummyy_loc[NGLL3];\n\
-  __local float s_dummyz_loc[NGLL3];\n\
-  __local float sh_hprime_xx[NGLL2];\n\
+  float epsdev[(5)];\n\
+  float b_epsdev[(5)];\n\
+  __local float s_dummyx_loc[(NGLL3)];\n\
+  __local float s_dummyy_loc[(NGLL3)];\n\
+  __local float s_dummyz_loc[(NGLL3)];\n\
+  __local float sh_hprime_xx[(NGLL2)];\n\
   ispec = get_group_id(0) + (get_group_id(1)) * (get_num_groups(0));\n\
   ijk_ispec = get_local_id(0) + (NGLL3) * (ispec);\n\
   tx = get_local_id(0);\n\

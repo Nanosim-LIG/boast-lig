@@ -153,8 +153,8 @@ static void compute_element_strain_undo_att(const int ispec, const int ijk_ispec
   *(epsilon_trace_over_3) = templ;\n\
 }\n\
 static void compute_strain_product(float * prod, const float eps_trace_over_3, const float * epsdev, const float b_eps_trace_over_3, const float * b_epsdev){\n\
-  float eps[6];\n\
-  float b_eps[6];\n\
+  float eps[(6)];\n\
+  float b_eps[(6)];\n\
   int p;\n\
   int i;\n\
   int j;\n\
@@ -194,14 +194,14 @@ __kernel void compute_ani_undo_att_kernel(const __global float * epsilondev_xx, 
   int iglob;\n\
   float eps_trace_over_3;\n\
   float b_eps_trace_over_3;\n\
-  float prod[21];\n\
+  float prod[(21)];\n\
   int i;\n\
-  float epsdev[5];\n\
-  float b_epsdev[5];\n\
-  __local float s_dummyx_loc[NGLL3];\n\
-  __local float s_dummyy_loc[NGLL3];\n\
-  __local float s_dummyz_loc[NGLL3];\n\
-  __local float sh_hprime_xx[NGLL2];\n\
+  float epsdev[(5)];\n\
+  float b_epsdev[(5)];\n\
+  __local float s_dummyx_loc[(NGLL3)];\n\
+  __local float s_dummyy_loc[(NGLL3)];\n\
+  __local float s_dummyz_loc[(NGLL3)];\n\
+  __local float sh_hprime_xx[(NGLL2)];\n\
   ispec = get_group_id(0) + (get_group_id(1)) * (get_num_groups(0));\n\
   ijk_ispec = get_local_id(0) + (NGLL3) * (ispec);\n\
   tx = get_local_id(0);\n\

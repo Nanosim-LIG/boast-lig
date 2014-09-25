@@ -272,7 +272,7 @@ opt_space = GenericOptimization::new( :x_component_number => [1,2,4,8,16],
                                       :temporary_size     => [2,4],
                                       :vector_recompute   => [true, false],
                                       :load_overlap       => [true, false] )
-check = true
+check = false
 opt_space.each_random { |opt|
   id = opt.to_s            
   puts id

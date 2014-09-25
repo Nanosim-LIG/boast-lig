@@ -121,14 +121,14 @@ __kernel void compute_acoustic_kernel(const __global int * ibool, const __global
   int ijk_ispec;\n\
   int ijk_ispec_padded;\n\
   int iglob;\n\
-  float accel_elm[3];\n\
-  float b_displ_elm[3];\n\
+  float accel_elm[(3)];\n\
+  float b_displ_elm[(3)];\n\
   float rhol;\n\
   float kappal;\n\
   float div_displ;\n\
   float b_div_displ;\n\
-  __local float scalar_field_displ[NGLL3];\n\
-  __local float scalar_field_accel[NGLL3];\n\
+  __local float scalar_field_displ[(NGLL3)];\n\
+  __local float scalar_field_accel[(NGLL3)];\n\
   ispec = get_group_id(0) + (get_group_id(1)) * (get_num_groups(0));\n\
   if (ispec < NSPEC) {\n\
     ijk = get_local_id(0);\n\

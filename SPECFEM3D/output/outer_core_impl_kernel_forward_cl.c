@@ -135,12 +135,12 @@ __kernel void outer_core_impl_kernel_forward(const int nb_blocks_to_compute, con
   float grad_y_ln_rho;\n\
   float grad_z_ln_rho;\n\
   int int_radius;\n\
-  __local float s_dummy_loc[NGLL3];\n\
-  __local float s_temp1[NGLL3];\n\
-  __local float s_temp2[NGLL3];\n\
-  __local float s_temp3[NGLL3];\n\
-  __local float sh_hprime_xx[NGLL2];\n\
-  __local float sh_hprimewgll_xx[NGLL2];\n\
+  __local float s_dummy_loc[(NGLL3)];\n\
+  __local float s_temp1[(NGLL3)];\n\
+  __local float s_temp2[(NGLL3)];\n\
+  __local float s_temp3[(NGLL3)];\n\
+  __local float sh_hprime_xx[(NGLL2)];\n\
+  __local float sh_hprimewgll_xx[(NGLL2)];\n\
   bx = (get_group_id(1)) * (get_num_groups(0)) + get_group_id(0);\n\
   tx = get_local_id(0);\n\
   K = (tx) / (NGLL2);\n\
