@@ -516,7 +516,8 @@ END SUBROUTINE magicfilter
         label={lst:BOAST_procedure_C} }
 
 \begin{lstlisting}
-void magicfilter(int32_t n, int32_t ndat, const double * x, double * y){
+void magicfilter(const int32_t n, const int32_t ndat,
+                 const double * x, double * y)
 }
 \end{lstlisting}
 \caption{BOAST Code Snippet for Procedure}
@@ -533,7 +534,8 @@ numbers. Those array have two dimensions which depend on input variables
 associated Ruby block. This time we placed ourselves inside of BOAST namespace.
 
 The generated outputs in FORTRAN~\ref{lst:BOAST_procedure_FORTRAN} and
-C~\ref{lst:BOAST_procedure_C} show the difference in meta-information
+C~\ref{lst:BOAST_procedure_C} show the difference in meta-information that is
+kept between both versions.
   
 %Considering source-to-source transformations that we investigate with the BOAST
 %tool in this paper, we can compare ourselves to POET~\cite{POET2012}  and
@@ -554,14 +556,34 @@ be evaluated the automation will bring improved portability, better performance
 and in the end improve the productivity of the developer.
 
 In this section we will present the different aspects of BOAST runtime that
-allow this automation.
-
+allow this automation. Those aspects are listed here:
   \begin{itemize}
   \item multi target language generation ( performance, portability )
   \item compilation ( productivity, performance )
   \item execution ( productivity, performance )
   \item tracer, dumper and replay for non regression tests ( productivity )
   \end{itemize}
+
+  \subsubsection{Multi-target Language Generation}
+
+Language availability and performance can vary between platforms. It is thus
+important to be able to express computing kernels in different languages, based
+on the availability and their respective merits on the target platform. Some
+languages can have additional features, such as languages that target GPUs
+(OpenCL, CUDA). The developer should be given tools to determine what kind of
+language is currently used in order to be able to use those additional features.
+
+Similarly the target language must be changed with ease in order to compare
+different alternatives. Two methods are dedicated to this task: \emph{set\_lang}
+and \emph{get\_lang}. The target language can also be set through environment
+variable before launching BOAST, allowing for easy command line scripting.
+
+  \subsubsection{Compilation}
+
+Compilation of the generated kernels must also be very flexible. Indeed, 
+
+  \subsubsection{Execution}
+  \subsubsection{Kernel Replay}
 
 \section{Use Cases}
 \label{use_cases}
