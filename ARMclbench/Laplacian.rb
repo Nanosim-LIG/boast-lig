@@ -88,6 +88,24 @@ def find_in_ranges(ranges, start_indx, end_indx)
   return [vec_indx, range, delta]
 end
 
+def merge_vectors(vectors, ranges, start_indx, end_indx)
+  merge_expr = []
+  begin
+    vec_indx, range, delta = find_in_ranges(ranges, start_indx, end_indx)
+    if vec_indx then
+      vec = vectors[vec_indx]
+      merge_expr.push( "#{vec.components(range)}" )
+      start_indx += delta
+    else # in the case vectors have dummy elements...
+      (end_indx - start_indx + 1).times {
+        merge_expr.push( "0" )
+      }
+      start_indx = end_indx + 1
+    end
+  end while start_indx <= end_indx
+  return merge_expr
+end
+
 def laplacian(options)
 
   default_options = {:x_component_number => 1, :vector_length => 1, :y_component_number => 1, :temporary_size => 2, :vector_recompute => false, :load_overlap => false}
@@ -176,26 +194,12 @@ def laplacian(options)
           pr v === psrc[x + load_start, y + (y_i - 1)]
           load_start += v.type.vector_length
         }
-        vec_indx = 0
 
         (0..2).each { |x_i|
           (0...vector_number).each { |v_i|
             start_indx = v_i * vector_length + x_i * 3
             end_indx = start_indx + vector_length - 1
-            merge_expr = []
-            begin
-              vec_indx, range, delta = find_in_ranges(ranges, start_indx, end_indx)
-              if vec_indx then
-                vec = tempload[vec_indx]
-                merge_expr.push( "#{vec.components(range)}" )
-                start_indx += delta
-              else # in the case vectors have dummy elements...
-                (end_indx - start_indx + 1).times {
-                  merge_expr.push( "0" )
-                }
-                start_indx = end_indx + 1
-              end
-            end while start_indx <= end_indx
+            merge_expr = merge_vectors(tempload, ranges, start_indx, end_indx)
             pr tempcnn[x_i][v_i][y_i] === Int( "(#{out_vec_type})(#{merge_expr.join(",")})", :size => temporary_size, :vector_length => vector_length)
           }
         }
