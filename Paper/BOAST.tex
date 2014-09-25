@@ -490,8 +490,8 @@ passed as parameters using the \emph{lambda} Ruby keyword.
         label={lst:BOAST_procedure},
         numbers=left }
 \begin{lstlisting}
-n = Int("n")
-ndat = Int("ndat")
+n = Int("n", :dir => :in)
+ndat = Int("ndat", :dir => :in)
 x = Real("x", :dir => :in, :dim => [ Dim(0, n-1), Dim(ndat) ])
 y = Real("y", :dir => :out, :dim => [ Dim(ndat), Dim(0, n-1) ])
 p = Procedure("magicfilter", [n, ndat, x, y])
@@ -505,10 +505,10 @@ close p
 
 \begin{lstlisting}
 SUBROUTINE magicfilter(n, ndat, x, y)
-  integer(kind=4) :: n
-  integer(kind=4) :: ndat
-  real(kind=8), intent(in), dimension(0:n - (1), 1:ndat + 1 - (1)) :: x
-  real(kind=8), intent(out), dimension(1:ndat + 1 - (1), 0:n - (1)) :: y
+  integer(kind=4), intent(in) :: n
+  integer(kind=4), intent(in) :: ndat
+  real(kind=8), intent(in), dimension(0:n - (1), ndat) :: x
+  real(kind=8), intent(out), dimension(ndat, 0:n - (1)) :: y
 END SUBROUTINE magicfilter
 \end{lstlisting}
 \lstset{style=customc,
@@ -531,6 +531,9 @@ numbers. Those array have two dimensions which depend on input variables
 \emph{n} and \emph{ndat}. We can see here the use of the \emph{opn} and
 \emph{close} keywords that are used to print a control structure without an
 associated Ruby block. This time we placed ourselves inside of BOAST namespace.
+
+The generated outputs in FORTRAN~\ref{lst:BOAST_procedure_FORTRAN} and
+C~\ref{lst:BOAST_procedure_C} show the difference in meta-information
   
 %Considering source-to-source transformations that we investigate with the BOAST
 %tool in this paper, we can compare ourselves to POET~\cite{POET2012}  and
