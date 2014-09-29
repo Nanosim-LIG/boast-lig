@@ -738,15 +738,39 @@ Idea:
 
 \section{Related Work}
 
+Code generation and auto-tuning techniques are not new. Nonetheless, with recent
+developments in hardware, and the HPC landscape being as diverse as it is now,
+there is a renewed interest in the field. This related work Section is split in
+three parts, focusing first on tools that provide a DSL to describe computing
+kernels. Autotuning frameworks will then be presented. Last, optimization space
+pruners and their ties to auto-tuning will be introduced.
+
   \subsection{Kernel Description DSL}
 
-  Orio
+  The idea to describe computing kernels using a Domain Specific Language has
+already been used. SPIRAL~\cite{puschel2004spiral} is a decade old generation
+framework for signal processing. It uses a proprietary DSL, SPL (signal
+processing language), to describe a DSP algorithm. This DSL is then transformed
+into efficient programs in high level languages like C or FORTRAN.
+POET~\cite{yi2007poet} also uses a DSL to describe custom code transformations,
+like loop unrolling, loop blocking and loop interchange. Those transformation
+can be parametrized in order to tune the application. Orio~\cite{Hart2009:Orio}
+can be compared to POET as it aims at describing possible code transformations
+using a DSL.
 
-  Halide
+  Halide~\cite{ragan2013halide} is closer in some ways to our approach as it
+uses an embedded C++ DSL to describe image processing algorithm. This DSL allows
+decoupling the algorithm description from its scheduling. Each pixel in the
+resulting image has a completely defined dependency tree with regard to pixels
+in the input image (and intermediary results). During generation, depending on
+memory and computing cost some values can be recomputed rather than fetched from
+memory. We used Halide to implement the \emph{magicfilter} of BigDFT, but
+unfortunately results were 4 to 5 times slower than the one we obtain with
+BOAST. We speculate that the three-dimensional nature of our convolutions, as
+well as the filter length, can be considered edge cases in halide and quite far
+from the intended target.
 
-  Spiral
 
-  POET
 
   \subsection{Application Autotuning}
 

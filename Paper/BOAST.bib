@@ -1,5 +1,56 @@
-﻿@article{soliman2009performance,
-  title={Performance Evaluation of Multi-Core Intel Xeon Processors on Basic
+﻿@article{ragan2013halide,
+  title={Halide: a language and compiler for optimizing parallelism, locality,
+and recomputation in image processing pipelines},
+  author={Ragan-Kelley, Jonathan and Barnes, Connelly and Adams, Andrew and
+Paris, Sylvain and Durand, Fr{\'e}do and Amarasinghe, Saman},
+  journal={ACM SIGPLAN Notices},
+  volume={48},
+  number={6},
+  pages={519--530},
+  year={2013},
+  publisher={ACM}
+}
+
+@inproceedings{Hart2009:Orio,
+  author = {Albert Hartono and Boyana Norris and Ponnuswamy Sadayappan},
+  title = {Annotation-Based Empirical Performance Tuning Using {Orio}},
+  booktitle = {Proceedings of the 23rd  IEEE International Parallel \&
+Distributed Processing Symposium},
+  address = {Rome, Italy},
+  mykeywords = {empirical performance tuning, code generation},
+  year = {2009},
+  note = {Also available as Preprint ANL/MCS-P1556-1008},
+  url = {http://www.mcs.anl.gov/uploads/cels/papers/P1556.pdf},
+  mynote = {submitted 10/3/2008;  100 accepted out of 440, 23\%}
+}
+
+@article{puschel2004spiral,
+  title={{SPIRAL}: A Generator for Platform-Adapted Libraries of Signal Processing
+Algorithms},
+  author={P{\"u}schel, Markus and Moura, Jos{\'e} MF and Singer, Bryan and
+Xiong, Jianxin and Johnson, Jeremy and Padua, David and Veloso, Manuela and
+Johnson, Robert W},
+  journal={International Journal of High Performance Computing Applications},
+  volume={18},
+  number={1},
+  pages={21--45},
+  year={2004},
+  publisher={SAGE Publications}
+}
+
+@inproceedings{yi2007poet,
+  title={{POET}: Parameterized Optimizations for Empirical Tuning},
+  author={Yi, Qing and Seymour, Keith and You, Haihang and Vuduc, Richard and
+Quinlan, Dan},
+  booktitle={Parallel and Distributed Processing Symposium, 2007. IPDPS 2007.
+IEEE International},
+  pages={1--8},
+  year={2007},
+  organization={IEEE}
+}
+
+@article{soliman2009performance,
+  title={Performance Evaluation of Multi-Core {Intel} {Xeon} Processors on Basic
 Linear Algebra Subprograms},
   author={Soliman, Mostafa I},
   journal={Parallel Processing Letters},
@@ -11,7 +62,7 @@ Linear Algebra Subprograms},
 }
 
 @inproceedings{allen1984automatic,
-  title={Automatic loop interchange},
+  title={Automatic Loop Interchange},
   author={Allen, John R and Kennedy, Ken},
   booktitle={ACM SIGPLAN Notices},
   volume={19},
@@ -22,7 +73,7 @@ Linear Algebra Subprograms},
 }
 
 @article{wolfe1986loops,
-  title={Loops skewing: The wavefront method revisited},
+  title={Loops Skewing: The Wavefront Method Revisited},
   author={Wolfe, Michael},
   journal={International Journal of Parallel Programming},
   volume={15},
@@ -33,7 +84,7 @@ Linear Algebra Subprograms},
 }
 
 @article{wolf1991loop,
-  title={A loop transformation theory and an algorithm to maximize parallelism},
+  title={A Loop Transformation Theory and an Algorithm to Maximize Parallelism},
   author={Wolf, Michael E and Lam, Monica S},
   journal={Parallel and Distributed Systems, IEEE Transactions on},
   volume={2},
@@ -44,38 +95,37 @@ Linear Algebra Subprograms},
 }
 
 @inproceedings{videau2013boast,
-  title={BOAST: Bringing Optimization through Automatic Source-to-Source Transformations},
+  title={{BOAST}: Bringing Optimization through Automatic Source-to-Source Transformations},
   author={Cronsioe, Johan and Videau, Brice and Marangozova-Martin, Vania},
-  booktitle={Embedded Multicore Socs (MCSoC), 2013 IEEE 7th International Symposium on},
+  booktitle={Embedded Multicore SoCs (MCSoC), 2013 IEEE 7th International Symposium on},
   pages={129--134},
   year={2013},
   organization={IEEE}
 }
 
 @ARTICLE{openmp,
-        title={OpenMP: an industry standard API for shared-memory programming},
+        title={{OpenMP}: an Industry Standard {API} for Shared-Memory Programming},
         author={Dagum, L. and Menon, R.},
         journal={Computational Science \& Engineering, IEEE},
         year={1998},
         month={Jan-Mar},
         volume={5},
         number={1},
-        pages={46-55},
+        pages={46--55},
         keywords={application program interfaces, parallel programming, shared memory systems, software portability, software reviews, software standardsFortran, Fortran 90, Fortran 95, Fortran compiler, OpenMP, X3H5 concepts, allocatables, callable runtime library, callable runtime library routines, coarse grain parallelism, compiler directives, environment variables, industry standard API, pointers, shared memory parallelism, shared memory programming},
-        doi={10.1109/99.660313},
         ISSN={1070-9924}
 }
 
 @article{Goedecker1993,
-  title = "Rotating a three-dimensional array in an optimal position for vector processing: case study for a three-dimensional fast Fourier transform",
-  journal = "Computer Physics Communications",
-  volume = "76",
-  number = "3",
-  pages = "294 - 300",
-  year = "1993",
-  issn = "0010-4655",
-  doi = "DOI: 10.1016/0010-4655(93)90057-J",
-  author = "S. Goedecker"
+  title = {Rotating a Three-Dimensional Array in an Optimal Position for Vector
+Processing: Case Study for a Three-Dimensional Fast {Fourier} Transform},
+  journal = {Computer Physics Communications},
+  volume = {76},
+  number = {3},
+  pages = {294--300},
+  year = {1993},
+  ISSN = {0010-4655},
+  author = {Stefan Goedecker}
 }
 
 @article{nussbaumer1982fast,
@@ -87,11 +137,13 @@ Linear Algebra Subprograms},
 }
 
 @INPROCEEDINGS{Genovese|CAS2010,
-        AUTHOR="Luigi Genovese and Brice Videau and Matthieu Ospici and Thierry Deutsch and Stefan Goedecker and Jean-François Méhaut.",
-        TITLE="{D}aubechies {W}avelets for {H}igh {P}erformance {E}lectronic {S}tructure {C}alculations: the {BigDFT} {P}roject.",
-        BOOKTITLE="Compte-Rendu de l'Académie des Sciences, Calcul Intensif.",
-        YEAR="2010",
-        PUBLISHER="Académie des Sciences"
+        AUTHOR={Luigi Genovese and Brice Videau and Matthieu Ospici and Thierry
+Deutsch and Stefan Goedecker and Jean-François Méhaut.},
+        TITLE={Daubechies Wavelets for High Performance Electronic Structure
+Calculations: the {BigDFT} Project.},
+        BOOKTITLE={Compte-Rendu de l'Académie des Sciences, Calcul Intensif.},
+        YEAR={2010},
+        PUBLISHER={Académie des Sciences}
 }
 
 @misc{opencl,
@@ -108,19 +160,19 @@ Linear Algebra Subprograms},
 }
 
 @misc{bigdft,
-        title = {{The BigDFT Scientific Application}},
+        title = {The {BigDFT} Scientific Application},
         year = {2012},
         note = {\url{http://inac.cea.fr/L Sim/BigDFT/}},
 }
 
 @misc{mpi,
-	title = {The Message Passing Interface (MPI) Standard},
+	title = {The Message Passing Interface ({MPI}) Standard},
         year = {2012},
         note = {\url{http://www.mcs.anl.gov/research/projects/mpi/}}
 }
 
 @article{lawson1979basic,
-  title={Basic linear algebra subprograms for Fortran usage},
+  title={Basic Linear Algebra Subprograms for {FORTRAN} Usage},
   author={Lawson, Chuck L and Hanson, Richard J. and Kincaid, David R and Krogh,
 Fred T.},
   journal={ACM Transactions on Mathematical Software (TOMS)},
@@ -132,32 +184,31 @@ Fred T.},
 }
 
 @inproceedings{ye2011porting,
-  title={Porting optimized GPU kernels to a multi-core CPU},
+  title={Porting Optimized {GPU} Kernels to a Multi-Core {CPU}},
   author={Ye, Dong and Titov, Alexey and Kindratenko, Volodymyr and Ufimtsev, Ivan and Martinez, Todd},
   booktitle={Symposium on Application Accelerators in High-Performance Computing},
   year={2012}
 }
 
 @article{hudak1996building,
-  title={Building domain-specific embedded languages},
+  title={Building Domain-Specific Embedded Languages},
   author={Hudak, Paul},
   journal={ACM Computing Surveys (CSUR)},
   volume={28},
   number={4es},
-  pages={196},
   year={1996},
   publisher={ACM}
 }
 
 @misc{matsumoto2002ruby,
-  title={Ruby programming language},
+  title={Ruby Programming Language},
   author={Matsumoto, Yukio and Ishituka, K},
   year={2002},
   publisher={Addison Wesley Publishing Company}
 }
 
 @book{flanagan2008ruby,
-  title={The ruby programming language},
+  title={The Ruby Programming Language},
   author={Flanagan, David and Matsumoto, Yukihiro},
   year={2008},
   publisher={" O'Reilly Media, Inc."}
