@@ -580,10 +580,49 @@ variable before launching BOAST, allowing for easy command line scripting.
 
   \subsubsection{Compilation}
 
-Compilation of the generated kernels must also be very flexible. Indeed, 
+Compilation of the generated kernels must also be very flexible. Indeed, HPC
+applications may encounter platforms with very diverse compilation environment.
+Proprietary and dedicated compilers are common on HPC infrastructures. Thus
+BOAST build system shows similar behavior than common build system. Compilers
+and their compile/build options can be specified. This can be done at several
+places. Here is the list by increasing order of precedence: BOAST configuration
+file, environment variables and at kernel build time.
+
+This way the framework to test different compiler optimizations is completely
+available and performance study can include both kernel related parameters and
+compilation related parameters. This behavior is contained in the \emph{CKernel}
+class of BOAST. When instantiating this class a BOAST \emph{Procedure}
+representing the entry point of the kernel is specified.
 
   \subsubsection{Execution}
+
+The next logical step is to benchmark the built kernel. Boast offers a simple
+way to run a kernel that was successfully built while staying inside of BOAST.
+A built BOAST \emph{CKernel} exposes a run method that accepts arguments corresponding
+to the BOAST \emph{Procedure} used to instantiate the kernel. Arrays must be
+instances of \emph{NArray} which are numerical arrays that use C array
+underneath.
+
+Arrays which correspond to output parameters will be modified during the
+execution of the kernel so results can be checked. This allows for easy non
+regression testing. The run method also returns information (and result for
+kernels that are functions) about the run. For instance the run time of the
+kernel is one such information, it is obtained using the system wide realtime
+clock. Other probes can be inserted at compile time if needed.
+
   \subsubsection{Kernel Replay}
+
+The non regression methodology presented before is viable provided input data
+can be generated at runtime. Unfortunately it is not always possible, some
+applications have very complicated data patterns that are difficult to
+synthesize without running the full application. Thus BOAST offers a way to load
+binary data from the file system and use them as inputs of a kernel. Outputs can
+also be checked against those binary data thus enabling (almost) data oblivious
+non regression testing.
+
+In order to use this methodology one has to be able to trace an application to
+get input data. Such a tracer, dedicated to CUDA and OpenCL, will be presented
+in the SPECFEM3D use case.
 
 \section{Use Cases}
 \label{use_cases}
