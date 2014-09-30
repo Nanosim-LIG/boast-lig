@@ -756,7 +756,9 @@ POET~\cite{yi2007poet} also uses a DSL to describe custom code transformations,
 like loop unrolling, loop blocking and loop interchange. Those transformation
 can be parametrized in order to tune the application. Orio~\cite{Hart2009:Orio}
 can be compared to POET as it aims at describing possible code transformations
-using a DSL.
+using a DSL. All those approaches are very different from our as they put the
+emphasis on compilation techniques whereas boast relies on the user to express
+the different optimizations.
 
   Halide~\cite{ragan2013halide} is closer in some ways to our approach as it
 uses an embedded C++ DSL to describe image processing algorithm. This DSL allows
@@ -770,9 +772,9 @@ BOAST. We speculate that the three-dimensional nature of our convolutions, as
 well as the filter length, can be considered edge cases in halide and quite far
 from the intended target.
 
+  \subsection{Application Auto-Tuning}
 
-
-  \subsection{Application Autotuning}
+  
 
   Atlas
 
