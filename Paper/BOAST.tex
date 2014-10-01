@@ -741,9 +741,30 @@ Idea:
 Code generation and auto-tuning techniques are not new. Nonetheless, with recent
 developments in hardware, and the HPC landscape being as diverse as it is now,
 there is a renewed interest in the field. This related work Section is split in
-three parts, focusing first on tools that provide a DSL to describe computing
-kernels. Autotuning frameworks will then be presented. Last, optimization space
+three parts, focusing first on Auto-tuning frameworks. Tools that provide a DSL
+to describe computing kernels will then be presented. Last, optimization space
 pruners and their ties to auto-tuning will be introduced.
+
+  \subsection{Application Auto-Tuning} 
+
+  The most convenient way to obtain an application that can be auto-tuned on a
+given platform is to base this application on a widely used computing library.
+BLAS~\cite{dongarra1990set} and LAPACK~\cite{laug} are such libraries. These
+libraries are either hand tuned for selected platforms or have auto-tuned
+implementations. Atlas~\cite{whaley04} is an auto-tunes implementation of
+BLAS/LAPACK. ATLAS authors defined the \emph{Automated Empirical Optimization of
+Software} methodology that we implemented with BOAST. Their kernel generation is
+done using macro-functions in C.
+
+  Nonetheless many applications formalism cannot be reduced to standardized
+library or border on what could be considered edge cases for those libraries and
+not as optimized as more general cases. Orio~\cite{Hart2009:Orio} is an
+auto-tuning framework that has an approach close of that of BOAST but they are
+based on an annotated DSL describing loop transformation rather than a more
+generic EDSL. Halide~\cite{ragan2013halide} is an auto-tuning framework
+dedicated to image processing. It can also be used to describe other
+operations on memory buffers. Those two frameworks propose automated search
+space exploration to find the best version of a kernel.
 
   \subsection{Kernel Description DSL}
 
@@ -771,16 +792,6 @@ unfortunately results were 4 to 5 times slower than the one we obtain with
 BOAST. We speculate that the three-dimensional nature of our convolutions, as
 well as the filter length, can be considered edge cases in halide and quite far
 from the intended target.
-
-  \subsection{Application Auto-Tuning}
-
-  
-
-  Atlas
-
-  Orio
-
-  Halide
 
   \subsection{Optimization Space Pruner}
 
