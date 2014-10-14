@@ -795,9 +795,22 @@ from the intended target.
 
   \subsection{Optimization Space Pruner}
 
-  Collective Mind
+  Once auto-tuning technique are used the parameter space explodes and the
+systematic sampling rapidly becomes impossible to achieve. The cost of finding
+the optimal kernel parameters and environment parameters (compiler flags, used
+language, ...) is rapidly prohibitive. Dedicated frameworks have been developed
+to address this problem. Adaptive Sampling Kit (ASK)~\cite{castro2013adaptive}
+is one such tool. It reduces the number of sample needed by creating a model of
+the performances and by minimizing the number of samples needed to find the
+parameters of this model. Several models and sampling techniques are
+implemented.
 
-  Adaptive Sampling Kit (ASK)
+  Collective Mind~\cite{fursin:hal-01054763} proposes similar techniques to
+solve the problem but also stores and the results and complete experimental
+setups in databases for future reference and reproducibility. This database
+approach also enables easy parallelization of the experimental process.
+Collective Mind also proposes collections of flags for many available
+compilers/versions easing the exploration process.
 
 \section{Conclusion and Future Works}
 
