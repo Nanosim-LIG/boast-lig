@@ -41,10 +41,31 @@ L = [-0.0033824159510050025955,
      -0.014952258337062199118,
      -0.00030292051472413308126,
       0.0018899503327676891843]
-
+$options = { :unroll => 6, :step => 1 }
+$parser = OptionParser::new do |opts|
+  opts.on("-s","--step VAL","Unroll step") { |step|
+    $options[:step] = step.to_i
+  }
+  opts.on("-u","--unroll VAL","Unroll bound") { |unroll|
+    $options[:unroll] = unroll.to_i
+  }
+  opts.on("-f","--force_unroll","Force outer unroll") {
+    $options[:force_unroll] = true
+  }
+  opts.on("-o","--output","output code") {
+    $options[:output] = true
+  }
+  opts.parse!
+end
 epsilon = 10e-12
 
-optims = GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
+if $options[:force_unroll] then
+  unroll_range = [$options[:unroll],$options[:unroll]]
+else
+  unroll_range = [1,$options[:unroll],$options[:step]]
+end
+
+optims = GenericOptimization::new(:unroll_range => unroll_range, :mod_arr_test => true, :tt_arr_test => true)
 wave_filter = WaveletFilter::new("sym#{L.length/2}", L)
 n1 = 62
 n2 = 66
@@ -69,6 +90,15 @@ k1 = Wavelet(wave_filter, :decompose, optims)
 k1.build(:openmp => true)
 k2 = Wavelet(wave_filter, :recompose, optims)
 k2.build(:openmp => true)
+
+if $options[:output] then
+  suffix = ".c" if BOAST::get_lang == BOAST::C
+  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+  File::open("wavelets#{suffix}","w") { |f|
+    f.puts k1
+    f.puts k2
+  }
+end
 
 repeat = 5
 begin
