@@ -41,23 +41,38 @@ L = [-0.0033824159510050025955,
      -0.014952258337062199118,
      -0.00030292051472413308126,
       0.0018899503327676891843]
-$options = { :unroll => 6, :step => 1 }
+$options = { :unroll => 6, :step => 1, :precision => 8 }
 $parser = OptionParser::new do |opts|
-  opts.on("-s","--step VAL","Unroll step") { |step|
+  opts.on("-s", "--step VAL", "Unroll step") { |step|
     $options[:step] = step.to_i
   }
-  opts.on("-u","--unroll VAL","Unroll bound") { |unroll|
+  opts.on("-u", "--unroll VAL", "Unroll bound") { |unroll|
     $options[:unroll] = unroll.to_i
   }
-  opts.on("-f","--force_unroll","Force outer unroll") {
+  opts.on("-f", "--force_unroll", "Force outer unroll") {
     $options[:force_unroll] = true
   }
-  opts.on("-o","--output","output code") {
+  opts.on("-o", "--output", "output code") {
     $options[:output] = true
+  }
+  opts.on("-p", "--precision VAL", "Precision of the code") { |precision|
+    $options[:precision] = precision.to_i
   }
   opts.parse!
 end
-epsilon = 10e-12
+
+case $options[:precision]
+when 4
+  type = NArray::SFLOAT
+  epsilon = 10e-6
+when 8
+  type = NArray::FLOAT
+  epsilon = 10e-12
+else
+  raise "Unsupported precision!"
+end
+
+BOAST::default_real_size = $options[:precision]
 
 if $options[:force_unroll] then
   unroll_range = [$options[:unroll],$options[:unroll]]
@@ -65,16 +80,16 @@ else
   unroll_range = [1,$options[:unroll],$options[:step]]
 end
 
-optims = GenericOptimization::new(:unroll_range => unroll_range, :mod_arr_test => true, :tt_arr_test => true)
+optims = GenericOptimization::new(:unroll_range => unroll_range, :mod_arr_test => true, :tt_arr_test => true, :unroll_inner_test => true)
 wave_filter = WaveletFilter::new("sym#{L.length/2}", L)
 n1 = 62
 n2 = 66
 n3 = 65
-input   = NArray.float(n1*2, n2*2, n3*2).random
-work1   = NArray.float(n1*2, n2*2, n3*2)
-work2   = NArray.float(n1*2, n2*2, n3*2)
-output  = NArray.float(n1*2, n2*2, n3*2)
-output2 = NArray.float(n1*2, n2*2, n3*2)
+input   = NArray::new(type, n1*2, n2*2, n3*2).random
+work1   = NArray::new(type, n1*2, n2*2, n3*2)
+work2   = NArray::new(type, n1*2, n2*2, n3*2)
+output  = NArray::new(type, n1*2, n2*2, n3*2)
+output2 = NArray::new(type, n1*2, n2*2, n3*2)
 
 n = NArray.int(3)
 n[0] = n1
@@ -132,11 +147,11 @@ diff.each { |elem|
 
 puts "again grow then shrink"
 
-input   = NArray.float(n1*2, n2*2, n3*2).random
-work1   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
-work2   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
-output  = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
-output2 = NArray.float(n1*2, n2*2, n3*2)
+input   = NArray::new(type, n1*2, n2*2, n3*2).random
+work1   = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+work2   = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+output  = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+output2 = NArray::new(type, n1*2, n2*2, n3*2)
 
 bc[0] = BC::GROW
 bc[1] = BC::GROW
@@ -178,11 +193,11 @@ diff.each { |elem|
 
 puts "again shrink then grow"
 
-input   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2).random
-work1   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
-work2   = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
-output  = NArray.float(n1*2, n2*2, n3*2)
-output2 = NArray.float(n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+input   = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2).random
+work1   = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+work2   = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+output  = NArray::new(type, n1*2, n2*2, n3*2)
+output2 = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
 
 
 bc[0] = BC::SHRINK

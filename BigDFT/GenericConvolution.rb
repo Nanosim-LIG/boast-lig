@@ -347,6 +347,8 @@ class ConvolutionOperator1d
     @cost = BOAST::Int("cost", :dir => :out)
     @options = options
     @base_name = ""
+    @base_name += "s_" if BOAST::default_real_size == 4
+    @base_name += "d_" if BOAST::default_real_size == 8
     if @wavelet then
       if @wavelet == :decompose then
         @base_name += "dwt_"
@@ -537,14 +539,23 @@ class ConvolutionOperator1d
     if @ld then
       n_push.call(vars, vars)
     end
-    if @wavelet then
-      vars.push(NArray.float(*varsin,2).random)
-      vars.push(NArray.float(*varsout,2))
+    case BOAST::default_real_size
+    when 4
+      type = NArray::SFLOAT
+    when 8
+      type = NArray::FLOAT
     else
-      vars.push(NArray.float(*varsin).random)
-      vars.push(NArray.float(*varsin).random) if @kinetic and @kinetic != :inplace
-      vars.push(NArray.float(*varsout))
-      vars.push(NArray.float(*varsout)) if @kinetic and @transpose != 0
+      raise "Unsupported precision!"
+    end
+
+    if @wavelet then
+      vars.push(NArray::new(type, *varsin,2).random)
+      vars.push(NArray::new(type, *varsout,2))
+    else
+      vars.push(NArray::new(type, *varsin).random)
+      vars.push(NArray::new(type, *varsin).random) if @kinetic and @kinetic != :inplace
+      vars.push(NArray::new(type, *varsout))
+      vars.push(NArray::new(type, *varsout)) if @kinetic and @transpose != 0
     end
     #accessory scalars
     nscal=0
@@ -552,7 +563,7 @@ class ConvolutionOperator1d
     nscal+=1 if @a_x
     nscal+=1 if @a_y
     nscal.times{vars.push(0.5)}
-    vars.push(NArray.float(1).random) if @dot_in
+    vars.push(NArray::new(type, 1).random) if @dot_in
     return vars
   end
 
@@ -1502,6 +1513,8 @@ class GenericConvolutionOperator
 
   def procedure
     function_name = ""
+    function_name += "d_" if BOAST::default_real_size == 8
+    function_name += "s_" if BOAST::default_real_size == 4
     if @wavelet then
       if @wavelet == :decompose then
         function_name += "dwt_"
