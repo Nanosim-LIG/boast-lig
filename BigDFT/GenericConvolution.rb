@@ -260,7 +260,6 @@ class GenericOptimization
 
 end
 
-
 class ConvolutionOperator1d
   # Convolution filter
   attr_reader :filter
@@ -571,15 +570,17 @@ class ConvolutionOperator1d
     opt_space=GenericOptimization::new if not opt_space
     t_best=Float::INFINITY
     p_best = nil
+    already_tested = {}
     opt_space.each{ |optim|
       next if optim[:unrolled_dim_index] == 1 and @dims.length < 3
-      next if optim[:mod_arr] and @bc.free
+      #next if optim[:mod_arr] and @bc.free
       #puts optim
       kernel = BOAST::CKernel::new
       print_header
       p = self.procedure(optim)
       BOAST::pr p
       kernel.procedure = p
+      next if already_tested[p.name]
       #kernel.print #if @bc.free
       kernel.build(:openmp => true)
       t_mean = 0
@@ -606,6 +607,7 @@ class ConvolutionOperator1d
       }
       t_mean /= dimensions.length
       puts "#{kernel.procedure.name}: #{t_mean*1.0e3} us #{self.cost(*par[0...@dims.length]) / (t_mean*1.0e9)} GFlops"
+      already_tested[p.name] = true
       if t_best > t_mean then
         t_best = t_mean
         p_best = p
