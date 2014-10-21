@@ -4,6 +4,7 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{color}
+\usepackage{xspace}
 
 %\usepackage{lineno}
 %\modulolinenumbers[5]
@@ -703,41 +704,8 @@ Idea:
   Characteristic use case driven
 
   Convolution Library: first step toward a dsl dedicated to wavelet processing for Physics computing.
-
-  \subsection{Porting SPECFEM3D to OpenCL using BOAST}
-
-    \subsubsection{SPECFEM3D}
-
-\begin{itemize}
-
-\item Wave propagation research software
-
-\item HPC application (benchmark on supercomputers)
-
-\item Complex GPU (CUDA) code, 40+ kernels.
-
-\item 80+ parameters for kernels. Difficult to validate.
-\end{itemize}
-
-    \subsubsection{Porting to OpenCL}
-
-  Idea:
-\begin{itemize}
-\item write kernels in BOAST,
-\item generate kernels in CUDA,
-\item validate kernels by comparing CUDA/generated CUDA executions using comparator
-\item generate kernels in OpenCL,
-\item develop OpenCL runtime backend using previously validated OpenCL kernels
-\item validate OpenCL version by comparing CUDA/OpenCL executions using comparator
-\end{itemize}
-
-  Evaluation:
-\begin{itemize}
-\item Similar CUDA/OpenCL
-\item Factoring : more compact code
-\item Integrated non regression support
-\item Integrated Kernel performance evaluation
-\end{itemize}
+  
+\input{specfem}
 
 \section{Related Work}
 
