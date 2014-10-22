@@ -56,7 +56,15 @@ class WaveletFilter
       if i % 2 == 0 then
         filt2.push(e)
       else
-        filt2.push(-e)
+        if e.is_a?(String) then
+          if e[0] == '-' then
+            filt2.push(e[1..-1])
+          else
+            filt2.push("-"+e)
+          end
+        else
+          filt2.push(-e)
+        end
       end
     }
     filt2.reverse!
