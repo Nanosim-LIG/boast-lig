@@ -21,9 +21,9 @@ def Wavelet1d(wavelet_filter, direction, optims=GenericOptimization::new)
   return kernel
 end
 
-optims = nil #GenericOptimization::new()#:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
-wave_filter = WaveletFilter::new("sym#{SYM8.length/2}", SYM8)
+optims = GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
+wave_filter = WaveletFilter::new("sym#{SYM8_LP.length/2}", SYM8_LP)
 ksym8 = Wavelet1d( wave_filter, :decompose, optims )
-ksym8.pr
+puts ksym8
 ksym8i = Wavelet1d( wave_filter, :recompose, optims )
-ksym8i.pr
+puts ksym8i
