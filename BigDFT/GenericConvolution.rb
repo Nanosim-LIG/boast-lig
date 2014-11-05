@@ -334,8 +334,12 @@ class ConvolutionOperator1d
     #@init = init
 
     @vars.push @x = BOAST::Real("x",:dir => :in, :dim => dimx, :restrict => true)
-    if @kinetic and @kinetic != :inplace and not @options[:zero_out] then
-      @vars.push @x2 = BOAST::Real("x2",:dir => :in, :dim => dimx, :restrict => true)
+    if @kinetic and @kinetic != :inplace and not options[:zero_out] then
+      if @bc.grow then
+        @vars.push @x2 = BOAST::Real("x2",:dir => :in, :dim => dimy, :restrict => true)
+      else
+        @vars.push @x2 = BOAST::Real("x2",:dir => :in, :dim => dimx, :restrict => true)
+      end
     end
     @vars.push @y = BOAST::Real("y",:dir => :out, :dim => dimy, :restrict => true)
     if @kinetic and @transpose != 0 then
@@ -560,7 +564,13 @@ class ConvolutionOperator1d
       vars.push(NArray::new(type, *varsout,2))
     else
       vars.push(NArray::new(type, *varsin).random)
-      vars.push(NArray::new(type, *varsin).random) if @kinetic and @kinetic != :inplace
+      if @kinetic and @kinetic != :inplace then
+        if @bc.grow then
+          vars.push(NArray::new(type, *varsout).random)
+        else
+          vars.push(NArray::new(type, *varsin).random)
+        end
+      end
       vars.push(NArray::new(type, *varsout))
       vars.push(NArray::new(type, *varsout)) if @kinetic and @transpose != 0
     end
@@ -938,7 +948,7 @@ class ConvolutionOperator1d
         end
 
         BOAST::pr @y[*i_out] === t[ind]
-        BOAST::pr @y2[*i_out] === @x[*i_in] if @kinetic and @transpose
+        BOAST::pr @y2[*i_out] === @x[*i_in] if @kinetic and @transpose != 0
       end
     }
   end
