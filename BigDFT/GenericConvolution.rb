@@ -715,6 +715,7 @@ class ConvolutionOperator1d
   def procedure(options={})
     #(unroll, unrolled_dim, use_mod, tt_arr)
     #default values
+    @no_temp = true
     unroll = 1
     mod_arr = true
     tt_arr = false
@@ -851,55 +852,98 @@ class ConvolutionOperator1d
     return [loop_start, loop_end]
   end
 
-  def for_conv(side, iters, l, t, tlen, unro, mods, unroll_inner)
-    processed_dim = @dim_indexes[-1]
-    #t.each_index { |ind|
+  def init_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
     (0...tlen).each{ |ind|
-      #WARNING: the eks conditional here can be relaxed
-      if @wavelet then
-        BOAST::pr t[0][ind] === 0
-        BOAST::pr t[1][ind] === 0
+      if @no_temp then
+        i_out = output_index(unro, iters, ind)
+        if @wavelet then
+          i_out[0].rotate!(@transpose)
+          i_out[1].rotate!(@transpose)
+          i_out[0].flatten!
+          i_out[1].flatten!
+          if @a_y then
+            BOAST::pr @y[*i_out[0]] === @a_y * @y[*i_out[0]]
+            BOAST::pr @y[*i_out[1]] === @a_y * @y[*i_out[1]]
+          elsif not @accumulate then
+            BOAST::pr @y[*i_out[0]] === 0.0
+            BOAST::pr @y[*i_out[1]] === 0.0
+          end
+          BOAST::pr @y[*i_out[0]] === @y[*i_out[0]] / @a if @a and ( @accumulate or @a_y )
+          BOAST::pr @y[*i_out[1]] === @y[*i_out[1]] / @a if @a and ( @accumulate or @a_y )
+        else
+          i_out.rotate!(@transpose)
+          if @a_y then
+            BOAST::pr @y[*i_out] === @a_y * @y[*i_out]
+          elsif not ( @accumulate or (@kinetic == :inplace and not @options[:zero_out]) ) then
+            BOAST::pr @y[*i_out] === 0.0
+          end
+          BOAST::pr @y[*i_out] === @y[*i_out] / @a if @a and ( @accumulate or (@kinetic == :inplace and not @options[:zero_out]) )
+        end
       else
-        BOAST::pr t[ind] === 0.0
+        #WARNING: the eks conditional here can be relaxed
+        if @wavelet then
+          BOAST::pr t[0][ind] === 0.0
+          BOAST::pr t[1][ind] === 0.0
+        else
+          BOAST::pr t[ind] === 0.0
+        end
       end
     }
-    loop_start, loop_end = get_loop_start_end( side, iters)
-    f = BOAST::For( l, loop_start, loop_end) {
-      (0...tlen).each{ |ind|
-       #t.each_index { |ind|
-        if @bc.free or (side == :center) then
-          i_in = input_index(unro, iters, ind,processed_dim,l)
-        elsif mods then
-          i_in = input_index(unro, iters, ind,processed_dim,l,nil,mods,side) 
-        else
-          i_in = input_index(unro, iters, ind,processed_dim,l,@dims[processed_dim])
-        end
-        if @wavelet then
-          i_in[0].flatten!
-          i_in[1].flatten!
-          if @wavelet == :decompose then
-            BOAST::pr t[0][ind] === t[0][ind] + @x[*(i_in[0])]*@filter.low_even.fil[l]
-            BOAST::pr t[1][ind] === t[1][ind] + @x[*(i_in[0])]*@filter.high_even.fil[l]
-            BOAST::pr t[0][ind] === t[0][ind] + @x[*(i_in[1])]*@filter.low_odd.fil[l]
-            BOAST::pr t[1][ind] === t[1][ind] + @x[*(i_in[1])]*@filter.high_odd.fil[l]
-          else
-            BOAST::pr t[0][ind] === t[0][ind] + @x[*(i_in[0])]*@filter.low_reverse_odd.fil[l]
-            BOAST::pr t[1][ind] === t[1][ind] + @x[*(i_in[0])]*@filter.low_reverse_even.fil[l]
-            BOAST::pr t[0][ind] === t[0][ind] + @x[*(i_in[1])]*@filter.high_reverse_odd.fil[l]
-            BOAST::pr t[1][ind] === t[1][ind] + @x[*(i_in[1])]*@filter.high_reverse_even.fil[l]
-          end
-        else
-          BOAST::pr t[ind] === t[ind] + @x[*i_in]*@filter.fil[l]
-        end
-      }
-    }
-    if unroll_inner then
-      f.unroll
-    else
-      f.pr
-    end
+  end
 
-    #t.each_index { |ind|
+  def compute_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
+    processed_dim = @dim_indexes[-1]
+    (0...tlen).each{ |ind|
+      if @no_temp then
+        i_out = output_index(unro, iters, ind)
+        if @wavelet then
+          i_out[0].rotate!(@transpose)
+          i_out[1].rotate!(@transpose)
+          i_out[0].flatten!
+          i_out[1].flatten!
+          out_even = @y[*i_out[0]]
+          out_odd = @y[*i_out[1]]
+        else
+          i_out.rotate!(@transpose)
+          out = @y[*i_out]
+        end
+      else
+        if @wavelet then
+          out_even = t[0][ind]
+          out_odd = t[1][ind]
+        else
+          out = t[ind]
+        end
+      end
+      if @bc.free or (side == :center) then
+        i_in = input_index(unro, iters, ind, processed_dim, l)
+      elsif mods then
+        i_in = input_index(unro, iters, ind, processed_dim, l, nil, mods, side) 
+      else
+        i_in = input_index(unro, iters, ind, processed_dim, l, @dims[processed_dim])
+      end
+      if @wavelet then
+        i_in[0].flatten!
+        i_in[1].flatten!
+        if @wavelet == :decompose then
+          BOAST::pr out_even === out_even + @x[*(i_in[0])]*@filter.low_even.fil[l]
+          BOAST::pr out_odd === out_odd + @x[*(i_in[0])]*@filter.high_even.fil[l]
+          BOAST::pr out_even === out_even + @x[*(i_in[1])]*@filter.low_odd.fil[l]
+          BOAST::pr out_odd === out_odd + @x[*(i_in[1])]*@filter.high_odd.fil[l]
+        else
+          BOAST::pr out_even === out_even + @x[*(i_in[0])]*@filter.low_reverse_odd.fil[l]
+          BOAST::pr out_odd === out_odd + @x[*(i_in[0])]*@filter.low_reverse_even.fil[l]
+          BOAST::pr out_even === out_even + @x[*(i_in[1])]*@filter.high_reverse_odd.fil[l]
+          BOAST::pr out_odd === out_odd + @x[*(i_in[1])]*@filter.high_reverse_even.fil[l]
+        end
+      else
+        BOAST::pr out === out + @x[*i_in]*@filter.fil[l]
+      end
+    }
+  end
+
+  def post_process_and_store_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
+    processed_dim = @dim_indexes[-1]
     (0...tlen).each{ |ind|
       i_out = output_index(unro, iters, ind)
       i_in = input_index(unro, iters, ind)
@@ -908,49 +952,89 @@ class ConvolutionOperator1d
         i_out[1].rotate!(@transpose)
         i_out[0].flatten!
         i_out[1].flatten!
-        BOAST::pr t[0][ind] === t[0][ind] * @a if @a
-        BOAST::pr t[1][ind] === t[1][ind] * @a if @a
-        if @accumulate then #and not @init then
-          BOAST::pr t[0][ind] === @y[*i_out[0]] + t[0][ind]
-          BOAST::pr t[1][ind] === @y[*i_out[1]] + t[1][ind]
-        elsif @a_y then #and not @init then
-          BOAST::pr t[0][ind] === @a_y * @y[*i_out[0]] + t[0][ind]
-          BOAST::pr t[1][ind] === @a_y * @y[*i_out[1]] + t[1][ind]
-        end
-        BOAST::pr @y[*i_out[0]] === t[0][ind]
-        BOAST::pr @y[*i_out[1]] === t[1][ind]
       else
         i_out.rotate!(@transpose)
-        BOAST::pr t[ind] === t[ind] * @a if @a
+      end
+      if @no_temp then
+        if @wavelet then
+          out_even = @y[*i_out[0]]
+          out_odd = @y[*i_out[1]]
+        else
+          out = @y[*i_out]
+        end
+      else
+        if @wavelet then
+          out_even = t[0][ind]
+          out_odd = t[1][ind]
+        else
+          out = t[ind]
+        end
+      end
+      if @wavelet then
+        BOAST::pr out_even === out_even * @a if @a
+        BOAST::pr out_odd === out_odd * @a if @a
+        if not @no_temp then
+          if @accumulate then #and not @init then
+            BOAST::pr out_even === @y[*i_out[0]] + out_even
+            BOAST::pr out_odd === @y[*i_out[1]] + out_odd
+          elsif @a_y then #and not @init then
+            BOAST::pr out_even === @a_y * @y[*i_out[0]] + out_even
+            BOAST::pr out_odd === @a_y * @y[*i_out[1]] + out_odd
+          end
+          BOAST::pr @y[*i_out[0]] === out_even
+          BOAST::pr @y[*i_out[1]] === out_odd
+        end
+      else
+        BOAST::pr out === out * @a if @a
         if @bc.grow and (@dot_in or @a_x) and side != :center then
           if side == :begin then
             BOAST::pr BOAST::If(iters[processed_dim] >= 0) {
-              BOAST::pr @dot_in === @dot_in + t[ind] * @x[*i_in] if @dot_in
-              BOAST::pr t[ind] === t[ind] + @a_x * @x[*i_in] if @a_x
+              BOAST::pr @dot_in === @dot_in + out * @x[*i_in] if @dot_in
+              BOAST::pr out === out + @a_x * @x[*i_in] if @a_x
             }
           elsif side == :end then
             BOAST::pr BOAST::If(iters[processed_dim] < @dims[processed_dim]) {
-              BOAST::pr @dot_in === @dot_in + t[ind] * @x[*i_in] if @dot_in
-              BOAST::pr t[ind] === t[ind] + @a_x * @x[*i_in] if @a_x
+              BOAST::pr @dot_in === @dot_in + out * @x[*i_in] if @dot_in
+              BOAST::pr out === out + @a_x * @x[*i_in] if @a_x
             }
           end
         else
-          BOAST::pr @dot_in === @dot_in + t[ind] * @x[*i_in] if @dot_in
-          BOAST::pr t[ind] === t[ind] + @a_x * @x[*i_in] if @a_x
+          BOAST::pr @dot_in === @dot_in + out * @x[*i_in] if @dot_in
+          BOAST::pr out === out + @a_x * @x[*i_in] if @a_x
         end
 
         #to be controlled in the case of non-orthorhombic cells for kinetic operations
-        BOAST::pr t[ind] === t[ind] + @x2[*i_in] if @x2
-        if @accumulate or (@kinetic == :inplace and not @options[:zero_out])  then
-          BOAST::pr t[ind] === t[ind] + @y[*i_out]
-        elsif @a_y then
-          BOAST::pr t[ind] === t[ind] +  @a_y * @y[*i_out]
+        BOAST::pr out === out + @x2[*i_in] if @x2
+        if not @no_temp then
+          if @accumulate or (@kinetic == :inplace and not @options[:zero_out])  then
+            BOAST::pr out === out + @y[*i_out]
+          elsif @a_y then
+            BOAST::pr out === out +  @a_y * @y[*i_out]
+          end
+          BOAST::pr @y[*i_out] === out
         end
-
-        BOAST::pr @y[*i_out] === t[ind]
         BOAST::pr @y2[*i_out] === @x[*i_in] if @kinetic and @transpose != 0
       end
     }
+  end
+
+  def for_conv(side, iters, l, t, tlen, unro, mods, unroll_inner)
+
+    init_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
+
+    loop_start, loop_end = get_loop_start_end( side, iters)
+
+    f = BOAST::For( l, loop_start, loop_end) {
+      compute_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
+    }
+    if unroll_inner then
+      f.unroll
+    else
+      f.pr
+    end
+
+    post_process_and_store_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
+
   end
 
 
