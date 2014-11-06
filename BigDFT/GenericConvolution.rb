@@ -715,7 +715,7 @@ class ConvolutionOperator1d
   def procedure(options={})
     #(unroll, unrolled_dim, use_mod, tt_arr)
     #default values
-    @no_temp = true
+    @no_temp = false
     unroll = 1
     mod_arr = true
     tt_arr = false
