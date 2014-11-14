@@ -760,7 +760,7 @@ class ConvolutionOperator1d
       decl_filters
       BOAST::decl *iters
       BOAST::decl l
-      BOAST::decl *([tt].flatten)
+      BOAST::decl *([tt].flatten) if not @no_temp
       if mod_arr then
         BOAST::decl mods 
         #BOAST::pr BOAST::For(l, @filter.lowfil, @dim_n -1 + @filter.upfil) {
@@ -773,9 +773,13 @@ class ConvolutionOperator1d
         BOAST::get_output.print("!$omp parallel default(shared)&\n")
         BOAST::get_output.print("!$omp reduction(+:#{dot_in})&\n") if @options[:dot_in]
         BOAST::get_output.print("!$omp private(#{iters.join(",")},#{l})&\n")
-        BOAST::get_output.print("!$omp private(#{([tt].flatten).join(",")})\n")
+        BOAST::get_output.print("!$omp private(#{([tt].flatten).join(",")})\n") if not @no_temp
       elsif BOAST::get_lang == BOAST::C then
-        BOAST::get_output.print("#pragma omp parallel default(shared) #{@options[:dot_in] ? "reduction(+:#{dot_in})" : ""} private(#{iters.join(",")},#{l},#{([tt].flatten).join(",")})\n{\n")
+        BOAST::get_output.print("#pragma omp parallel default(shared)")
+        BOAST::get_output.print(" reduction(+:#{dot_in})") if @options[:dot_in]
+        BOAST::get_output.print(" private(#{iters.join(",")}, #{l}")
+        BOAST::get_output.print(", #{([tt].flatten).join(",")}") if not @no_temp
+        BOAST::get_output.print(")\n{\n")
       end
 
       convolution1d(iters, l, tt, mods, unrolled_dim, unroll, unroll_inner)
