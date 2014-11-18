@@ -772,8 +772,8 @@ class ConvolutionOperator1d
       if BOAST::get_lang == BOAST::FORTRAN then
         BOAST::get_output.print("!$omp parallel default(shared)&\n")
         BOAST::get_output.print("!$omp reduction(+:#{dot_in})&\n") if @options[:dot_in]
-        BOAST::get_output.print("!$omp private(#{iters.join(",")},#{l})&\n")
-        BOAST::get_output.print("!$omp private(#{([tt].flatten).join(",")})\n") if not @no_temp
+        BOAST::get_output.print("!$omp private(#{([tt].flatten).join(",")})&\n") if not @no_temp
+        BOAST::get_output.print("!$omp private(#{iters.join(",")},#{l})\n")
       elsif BOAST::get_lang == BOAST::C then
         BOAST::get_output.print("#pragma omp parallel default(shared)")
         BOAST::get_output.print(" reduction(+:#{dot_in})") if @options[:dot_in]
