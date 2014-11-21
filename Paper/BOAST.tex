@@ -632,23 +632,53 @@ in the SPECFEM3D use case.
 \label{use_cases}
 
   \subsection{Creating an Auto-Tuned Convolution Library for BigDFT using BOAST}
+In 2005, the EU FP6-STREP-NEST BigDFT project funded a consortium of four European
+laboratories (L\_Sim - CEA Grenoble, Basel University - Switzerland, Louvain-la-Neuve University - Belgium and
+Kiel University - Germany), with the aim of developing a novel approach for DFT calculations
+based on Daubechies wavelets.
+Rather than simply building a DFT code from scratch, the objective of this three-years
+project was to test the potential benefit of a new formalism in the context of electronic structure
+calculations.
+
+As a matter of fact, Daubechies wavelets exhibit a set of properties which make them ideal
+for a precise and optimized DFT approach. In particular, their systematicity allows to provide a
+reliable basis set for high-precision results, whereas their locality (both in real and reciprocal space)
+is highly desired to improve the efficiency and the flexibility of the treatment. Indeed, a localized
+basis set allows to optimize the number of degrees of freedom for a required accuracy (see \cite{bigdft}),
+which is highly desirable given the complexity and inhomogeneity of the systems under investigation
+nowadays.
+
+The application is mainly written in Fortran and currently
+includes about 360 thousands lines of Fortran code and 70 thousands lines of C language, which accounts for more than 50 \% 
+of the code base. It is a parallel application based on the standards
+MPI~\cite{mpi} and OpenMP~\cite{openmp}.  It also supports CUDA~\cite{cuda} and
+OpenCL~\cite{opencl}.  
+In the recent years this code has been used for many scientific applications,
+and its development and user consortium is continuously growing.
+Massively parallel computations are routinely executed with the BigDFT code, either in homogeneous or 
+hybrid architectures. 
+In 2009, the French Bull-Fourier was awarded for the implementation of the hybrid version of BigDFT.
+
+%As it is used on systems that may
+%have very different architectures, it is of great importance to be able to
+%optimize and run the application according to the specific underlying platform.
 
     \subsubsection{BigDFT}
 
-BigDFT~\cite{bigdft} is a scientific application computing the electronic
-structure of systems using density functional
-theory (DFT). The application is mainly written in Fortran and currently
-includes some 193,000 lines of Fortran code, which accounts for more than 50 \% 
-of the code base. It is a parallel application based on the standards
-MPI~\cite{mpi} and OpenMP~\cite{openmp}.  It also supports CUDA~\cite{cuda} and
-OpenCL~\cite{opencl}.  As it is used on systems that may
-have very different architectures, it is of great importance to be able to
-optimize and run the application according to the specific underlying platform.
+In the Kohn-Sham (KS) formulation of DFT, the electrons are associated to wavefunctions (orbitals), which are
+represented arrays of floating point numbers. In wavelets formalism, the operators are written via convolutions with short,
+separable filters.
+The detailed description of how these operations are defined is beyond the scope of this paper and can be found
+in the BigDFT reference paper \cite{bigdft}.
 
-
-BigDFT is characterized by its extensive use of
-convolution operators~\cite{nussbaumer1982fast} applied on large arrays of
-data.  One example of a specific convolution, called
+% Convolutions are among the basic processing blocks of BigDFT. Special care has to be
+% taken regarding their performances. 
+The CPU convolutions of BigDFT have thus been thoroughly optimized.
+In a recent paper, the optimization of the CPU convolutions of BigDFT has been extensively considered.
+%BigDFT is characterized by its extensive use of
+%convolution operators~\cite{nussbaumer1982fast} applied on large arrays of
+%data.  
+One example of a specific convolution, called
 MagicFilter~\cite{Genovese|CAS2010}, can be seen in Listing~\ref{lst:conv_example}. 
 It applies a filter $filt$ to the data set $in$ and then stores the result in the data set $out$ with a
 transposition~\cite{Goedecker1993}.
@@ -681,29 +711,63 @@ void magicfilter(int n, int ndat, double* in, double* out){
 
 As we can see, there are three nested loops working on arrays whose sizes
 vary.  Various optimizations can be applied to this treatment and
-may focus on the loop structure, as well as on the size of the data.  In this
-paper we focus on this particular convolution and explore different
-optimizations whose nature is presented in detail in the next section.
+may focus on the loop structure, as well as on the size of the data. 
+%In this
+%paper we focus on this particular convolution and explore different
+%optimizations whose nature is presented in detail in the next section.
 
     \subsubsection{A Generic Convolution Library}
+The number of convolution kernels needed in BigDFT has been continuously growing in the recent years.
+Various boundary conditions and functionalities have been added, making the BigDFT more and more powerful
+in terms of scientific applications.
+However, the cost of the maintainance and of development of the convolutions is always a 
+delicate point to be considered while including a new functionality.
+The convolution patterns are usually rather similar, leading to code duplication 
+and difficulties in code reading and modification.
 
-  BigDFT implementation of convolution/wavelets is a reference but is limited in scope (1 wavelet family ands its derived operators).
-  Generalizing to other wavelet families long and difficult if performance are to remain good.
+It appears therefore very interesting to benefit from a automatic tool to drive the implementation and the 
+generation of new convolutions.
+This would lead to optimized code, adapted to  different computing platforms, that
+is optimally factorized.
+In addition to this point, the help of such code generator is also important to
+build \emph{new science}: the cost of implementing new convolutions would become so little that other 
+functionalities (for example, the generalisation of the BigDFT convolutions to Neumann boundary 
+conditions  or the usage of wavelet-on-the-interval basis) can be added with limited manpower.
 
-Idea:
-\begin{itemize}
-\item write a generic convolution library in BOAST
-\item BLAS like interface
-\item Provide a wide variety of building blocks
-\item Optimize thos blocks using BOAST
-\item Build either from source or directly link with binary
-\item Release complete library
-\end{itemize}
+For these reasons, a convolution library has been engineered with the help of BOAST.
+The detailed API of the library will be described elsewhere.
+The spirit is similar to BLAS-LAPACK API, where low-level operations are scheduled and called 
+from high-level operations.
+Each of the building blocks of these convolution library is optimally tuned by BOAST by choosing
+the sources providing the optimal kernel for the chosen computing platform.
+The sources of these kernels are then collected and compiled to meet the API of the library.
 
+A library written in this way might have an impact going largely beyond the community of BigDFT developers.
+Indeed, convolutions are basic operations of lots of scientific application codes, like for example
+finite differences approaches, which are universally used in computational physics.
 
-  Characteristic use case driven
-
-  Convolution Library: first step toward a dsl dedicated to wavelet processing for Physics computing.
+The interest in having a robuts and optimally tuned library in this scientific field is therefore evident.
+Techniques are under investigation to provide also fine-tuned binaries to the end-user rather than
+the code sources, such that more agressive interprocedural optimisation can be performed.
+This experience would be therefore a first step toward the release of a tunable optimised 
+convolution library oriented to computational physics communities.
+%   BigDFT implementation of convolution/wavelets is a reference but is limited in scope (1 wavelet family ands its derived operators).
+%   Generalizing to other wavelet families long and difficult if performance are to remain good.
+% 
+% Idea:
+% \begin{itemize}
+% \item write a generic convolution library in BOAST
+% \item BLAS like interface
+% \item Provide a wide variety of building blocks
+% \item Optimize thos blocks using BOAST
+% \item Build either from source or directly link with binary
+% \item Release complete library
+% \end{itemize}
+% 
+% 
+%   Characteristic use case driven
+% 
+%   Convolution Library: first step toward a dsl dedicated to wavelet processing for Physics computing.
   
 \input{specfem}
 
