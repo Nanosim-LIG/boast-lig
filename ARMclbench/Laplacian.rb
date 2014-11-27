@@ -284,7 +284,7 @@ opt_space.each_random { |opt|
   puts k
   sizes.each_index { |indx|
     width, height = sizes[indx]
-    puts "#{width} x #{height}"
+    puts "#{width} x #{height} :"
     output = NArray.byte(width*3,height)
     output.random(256)
     durations=[]
@@ -294,7 +294,7 @@ opt_space.each_random { |opt|
     }
     #Fix for ARM counter looping every few minutes
     durations.reject!{ |d| d < 0 }
-    puts durations.min
+    puts "#{durations.min} s"
 
     if check then 
       diff = ( refs[indx] - output[3..-4,1..-2] ).abs
