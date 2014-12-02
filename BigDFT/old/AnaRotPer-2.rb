@@ -385,7 +385,7 @@ EOF
       inner_op = lambda { |ci,di,fBC|
         ci.each{ |s| (s === 0.0).print }
         di.each{ |s| (s === 0.0).print }
-        For::new(l,lowfil,upfil,2) {
+        For::new(l,lowfil,upfil,step: 2) {
           (k === l + i*2).print if fBC
           ci.each_index{ |ind|
             #(k === FuncCall::new( "modulo", l+ i*2, n*2)).print if not fBC
@@ -418,8 +418,8 @@ EOF
         #external loop, with unrolling. the rest is excluded
         @@output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
         if unro > 1 then
-          #forJ1 = For::new(j,js,ntot-(unro-1), unro) #do not forget to add the rest
-          forJ1 = For::new(j,js,(ntot/unro)*unro, unro) #do not forget to add the rest
+          #forJ1 = For::new(j,js,ntot-(unro-1), step: unro) #do not forget to add the rest
+          forJ1 = For::new(j,js,(ntot/unro)*unro, step: unro) #do not forget to add the rest
         else
           forJ1 = For::new(j,js,ntot)
         end

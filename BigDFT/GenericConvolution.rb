@@ -795,10 +795,10 @@ class ConvolutionOperator1d
       ises0 = startendpoints(@dims[@dim_indexes[0]], unro == @dim_indexes[0], unrolling_length, reliq)
       BOAST::get_output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
       BOAST::get_output.print("#pragma omp for\n") if BOAST::get_lang == BOAST::C
-      BOAST::For(iters[@dim_indexes[0]], *ises0 ) {
+      BOAST::For(iters[@dim_indexes[0]], ises0[0], ises0[1], step: ises0[2] ) {
         if @dim_indexes.length == 3 then
           ises1 = startendpoints(@dims[@dim_indexes[1]], unro == @dim_indexes[1], unrolling_length, reliq)
-          BOAST::For(iters[@dim_indexes[1]], *ises1) {
+          BOAST::For(iters[@dim_indexes[1]], ises1[0], ises1[1], step: ises1[2]) {
             conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
           }.pr
         else

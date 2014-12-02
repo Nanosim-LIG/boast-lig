@@ -496,7 +496,7 @@ showspaces=false,
 showstringspaces=false}
 \begin{lstlisting}
   unroll = 5
-  pr For(j,1,ndat-(unroll-1), unroll) {
+  pr For(j,1,ndat-(unroll-1), step: unroll) {
   #.....
     pr tt2 === tt2 + x[k,j+1]*fil[l]
   #.....

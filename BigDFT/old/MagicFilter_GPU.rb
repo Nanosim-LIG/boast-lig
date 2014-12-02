@@ -144,7 +144,7 @@ EOF
       (igtf === Ternary::new(igt < 0, igt + size_n, Ternary::new(igt >= n, igt - size_n, igt))).print
       (tmp_buff[j2+0,i2] === x[jgt, igtf]).print
       (igt === igt + wgs).print
-      f1 = For::new(k, filt.length/2, size_n+filt.length/2-1-1-(wgs-1), wgs){
+      f1 = For::new(k, filt.length/2, size_n+filt.length/2-1-1-(wgs-1), step: wgs){
         (igtf === igt).print
         (tmp_buff[j2+k,i2] === x[jgt, igtf]).print
         (igt === igt + wgs).print
@@ -164,7 +164,7 @@ EOF
       tt.decl
       l = Variable::new( "l",Int)
       l.decl
-      f1 = For::new(k, 0, size_n-1-(wgs-1), wgs) {
+      f1 = For::new(k, 0, size_n-1-(wgs-1), step: wgs) {
         (tt === 0.0).print
         f2 = For::new(l, 0, filt.length-1) {
           (tt === tt + tmp_buff[k+l+i2, j2]*fil[l]).print
@@ -245,7 +245,7 @@ EOF
       (igt === j2).print
       (tmp_buff[igt,i2] === x[jgt, igt]).print
       (igt === igt + wgs).print
-      For::new(k, wgs, size_n-wgs-1, wgs){
+      For::new(k, wgs, size_n-wgs-1, step: wgs){
         (tmp_buff[igt,i2] === x[jgt, igt]).print
         (igt === igt + wgs).print
       }.unroll
@@ -379,7 +379,7 @@ EOF
       (igt === j2).print
       (tmp_buff[igt,i2] === x[jgt, igt]).print
       (igt === igt + wgs).print
-#      For::new(k, wgs, size_n-wgs-1, wgs){
+#      For::new(k, wgs, size_n-wgs-1, step: wgs){
 #        (tmp_buff[igt,i2] === x[jgt, igt]).print
 #        (igt === igt + wgs).print
 #      }.unroll

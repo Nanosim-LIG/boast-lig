@@ -100,7 +100,7 @@ module ConvolutionGenerator
     kinetic_1d = lambda { |t,js|
       unro=t.length
       @@output.print("!$omp do\n") if ConvolutionGenerator::get_lang == ConvolutionGenerator::FORTRAN
-      For::new(j,js,(ndat/unro)*unro, unro) {
+      For::new(j,js,(ndat/unro)*unro, step: unro) {
         For::new(i, 0, -lowfil) {
           for_uniq.call(t,true)
         }.print

@@ -53,7 +53,7 @@ module BOAST
         @@output.print "  _mm256_set1_pd(0);\n"
       end
       For::new(i, 1, m_cycles*m_stride) {
-        For::new(j, m_start, buffer_size + m_start - m_stride*unrolled, m_stride*unrolled) {
+        For::new(j, m_start, buffer_size + m_start - m_stride*unrolled, step: m_stride*unrolled) {
           unrolled.times { |k|
              if machine == "sse3" then
                (sumV === FuncCall::new("_mm_add_epi64", sumV, buffer[j+m_stride*k])).print
@@ -64,7 +64,7 @@ module BOAST
              end
                 }
         }.print
-        For::new(j, buffer_size + m_start - FuncCall::new( "modulo", buffer_size+m_start, m_stride*unrolled),  buffer_size + m_start - 1, m_stride) {
+        For::new(j, buffer_size + m_start - FuncCall::new( "modulo", buffer_size+m_start, m_stride*unrolled),  buffer_size + m_start - 1, step: m_stride) {
            if machine == "sse3" then
              (sumV === FuncCall::new("_mm_add_epi64", sumV, buffer[j])).print
            elsif machine == "neon" then
@@ -112,12 +112,12 @@ module BOAST
       sum.decl
       (sum === 0).print
       For::new(i, 1, m_cycles*m_stride) {
-        For::new(j, m_start, buffer_size + m_start - m_stride*unrolled, m_stride*unrolled) {
+        For::new(j, m_start, buffer_size + m_start - m_stride*unrolled, step: m_stride*unrolled) {
           unrolled.times { |k|
             (sum === sum + buffer[j+m_stride*k]).print
           }
         }.print
-        For::new(j, buffer_size + m_start - FuncCall::new( "modulo", buffer_size+m_start, m_stride*unrolled),  buffer_size + m_start - 1, m_stride) {
+        For::new(j, buffer_size + m_start - FuncCall::new( "modulo", buffer_size+m_start, m_stride*unrolled),  buffer_size + m_start - 1, step: m_stride) {
             (sum === sum + buffer[j]).print
         }.print
       }.print

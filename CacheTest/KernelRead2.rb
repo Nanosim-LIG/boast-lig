@@ -41,12 +41,12 @@ module BOAST
       print sumV.set(0)
 
       print For(i, 1, m_cycles*m_stride) {
-        print For(j, m_start, elem_n + m_start - m_stride*unrolled, m_stride*unrolled) {
+        print For(j, m_start, elem_n + m_start - m_stride*unrolled, step: m_stride*unrolled) {
           unrolled.times { |k|
             print sumV === sumV + buffer[j+m_stride*k]
           }
         }
-        print For(j, elem_n + m_start - modulo(elem_n+m_start, m_stride*unrolled),  elem_n + m_start - 1, m_stride) {
+        print For(j, elem_n + m_start - modulo(elem_n+m_start, m_stride*unrolled),  elem_n + m_start - 1, step: m_stride) {
           print sumV === sumV + buffer[j]
         }
       }

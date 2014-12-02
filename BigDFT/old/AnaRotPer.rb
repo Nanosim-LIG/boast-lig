@@ -109,7 +109,7 @@ module BOAST
       se.each{ |s| s.decl }
 
       if unroll > 0 then
-        for1 = For::new(j,1,ndat-(unroll-1), unroll)
+        for1 = For::new(j,1,ndat-(unroll-1), step: unroll)
       else
         for1 = For::new(j,1,ndat)
       end
