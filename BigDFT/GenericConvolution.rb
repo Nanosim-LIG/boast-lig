@@ -769,23 +769,9 @@ class ConvolutionOperator1d
         }
       end
       BOAST::pr @dot_in === 0.0 if @options[:dot_in]
-      if BOAST::get_lang == BOAST::FORTRAN then
-        BOAST::get_output.print("!$omp parallel default(shared)&\n")
-        BOAST::get_output.print("!$omp reduction(+:#{dot_in})&\n") if @options[:dot_in]
-        BOAST::get_output.print("!$omp private(#{([tt].flatten).join(",")})&\n") if not @no_temp
-        BOAST::get_output.print("!$omp private(#{iters.join(",")},#{l})\n")
-      elsif BOAST::get_lang == BOAST::C then
-        BOAST::get_output.print("#pragma omp parallel default(shared)")
-        BOAST::get_output.print(" reduction(+:#{dot_in})") if @options[:dot_in]
-        BOAST::get_output.print(" private(#{iters.join(",")}, #{l}")
-        BOAST::get_output.print(", #{([tt].flatten).join(",")}") if not @no_temp
-        BOAST::get_output.print(")\n{\n")
-      end
-
-      convolution1d(iters, l, tt, mods, unrolled_dim, unroll, unroll_inner)
-
-      BOAST::get_output.print("!$omp end parallel\n") if BOAST::get_lang == BOAST::FORTRAN
-      BOAST::get_output.print("}\n")  if BOAST::get_lang == BOAST::C
+      BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? ["+", dot_in] : nil ), private: iters + ( (not @no_temp) ? [tt] : [])) { 
+        convolution1d(iters, l, tt, mods, unrolled_dim, unroll, unroll_inner)
+      }
     }
   end
 
@@ -793,9 +779,7 @@ class ConvolutionOperator1d
   def convolution1d(iters, l, t, mods, unro, unrolling_length, unroll_inner)
     convgen= lambda { |t,tlen,reliq|
       ises0 = startendpoints(@dims[@dim_indexes[0]], unro == @dim_indexes[0], unrolling_length, reliq)
-      BOAST::get_output.print("!$omp do\n") if BOAST::get_lang == BOAST::FORTRAN
-      BOAST::get_output.print("#pragma omp for\n") if BOAST::get_lang == BOAST::C
-      BOAST::For(iters[@dim_indexes[0]], ises0[0], ises0[1], step: ises0[2] ) {
+      BOAST::For(iters[@dim_indexes[0]], ises0[0], ises0[1], step: ises0[2], openmp: true ) {
         if @dim_indexes.length == 3 then
           ises1 = startendpoints(@dims[@dim_indexes[1]], unro == @dim_indexes[1], unrolling_length, reliq)
           BOAST::For(iters[@dim_indexes[1]], ises1[0], ises1[1], step: ises1[2]) {
@@ -805,7 +789,6 @@ class ConvolutionOperator1d
           conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
         end
       }.pr
-      BOAST::get_output.print("!$omp end do\n") if BOAST::get_lang == BOAST::FORTRAN
     }
     #first without the reliq
     convgen.call(t,unrolling_length,false)
