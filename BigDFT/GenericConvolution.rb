@@ -664,14 +664,14 @@ class ConvolutionOperator1d
     else
       if @wavelet then
         if @wavelet == :decompose then
-          tt = [ (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("lt#{index}") },
-                 (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("ht#{index}") } ]
+          tt = [ (0..(unroll > 0 ? unroll - 1 : 0)).collect{ |index| BOAST::Real("lt#{index}") },
+                 (0..(unroll > 0 ? unroll - 1 : 0)).collect{ |index| BOAST::Real("ht#{index}") } ]
         else
-          tt = [ (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("et#{index}") },
-                 (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("ot#{index}") } ]
+          tt = [ (0..(unroll > 0 ? unroll - 1 : 0)).collect{ |index| BOAST::Real("et#{index}") },
+                 (0..(unroll > 0 ? unroll - 1 : 0)).collect{ |index| BOAST::Real("ot#{index}") } ]
         end
       else
-        tt = (1..(unroll > 0 ? unroll : 1)).collect{ |index| BOAST::Real("tt#{index}") }
+        tt = (0..(unroll > 0 ? unroll - 1 : 0)).collect{ |index| BOAST::Real("tt#{index}") }
       end
     end
     return tt
