@@ -769,7 +769,7 @@ class ConvolutionOperator1d
         }
       end
       BOAST::pr @dot_in === 0.0 if @options[:dot_in]
-      BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? ["+", dot_in] : nil ), private: iters + ( (not @no_temp) ? [tt] : [])) { 
+      BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => dot_in} : nil ), private: iters + ( (not @no_temp) ? [tt] : [])) { 
         convolution1d(iters, l, tt, mods, unrolled_dim, unroll, unroll_inner)
       }
     }
