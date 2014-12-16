@@ -549,7 +549,7 @@ kept between both versions.
 %program (a specific syntactic tree) and then benefit from the transformation
 %facilities offered by one of the above tools.
 
-  \subsection{BOAST Runtime}
+\subsection{BOAST Runtime}
 
 In the previous Section we presented BOAST's language. This allows us to
 describe procedures and functions and to meta-program them using Ruby. But in
@@ -785,7 +785,7 @@ while including a new functionality.  The convolution patterns are usually
 rather similar, leading to code duplication and difficulties in code reading
 and modification.
 
-It appears therefore very interesting to benefit from a automatic tool to drive
+It appears therefore very interesting to benefit from an automatic tool to drive
 the implementation and the generation of new convolutions.  This would lead to
 optimized code, adapted to  different computing platforms, that is optimally
 factorized.  In addition to this point, the help of such code generator is also
@@ -799,7 +799,7 @@ For these reasons, a convolution library has been engineered with the help of
 BOAST.  The detailed API of the library will be described elsewhere.  The
 spirit is similar to BLAS-LAPACK API, where low-level operations are scheduled
 and called from high-level operations.  Each of the building blocks of these
-convolution library is optimally tuned by BOAST by choosing the sources
+convolution libraries is optimally tuned by BOAST by choosing the sources
 providing the optimal kernel for the chosen computing platform.  The sources of
 these kernels are then collected and compiled to meet the API of the library.
 
@@ -811,7 +811,7 @@ approaches, which are universally used in computational physics.
 The interest in having a robuts and optimally tuned library in this scientific
 field is therefore evident.  Techniques are under investigation to provide also
 fine-tuned binaries to the end-user rather than the code sources, such that
-more agressive interprocedural optimisation can be performed.  This experience
+more agressive interprocedural optimization can be performed.  This experience
 would be therefore a first step toward the release of a tunable optimised
 convolution library oriented to computational physics communities.
 %   BigDFT implementation of convolution/wavelets is a reference but is limited
