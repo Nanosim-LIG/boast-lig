@@ -1,13 +1,4 @@
-\newcommand{\productname}[1]{\textsc{#1}}
-\newcommand{\latin}[1]{\textit{#1}}
 
-\newcommand{\Specfem}{\productname{Specfem 3D}\xspace}
-\newcommand{\Cuda}{\productname{Cuda}\xspace}
-\newcommand{\eg}{\latin{e.g.,}\xspace}
-\newcommand{\OCL}{\productname{OpenCL}\xspace}
-\newcommand{\code}[1]{\texttt{#1}}
-
-\newcommand{\etc}[1]{\latin{etc}}
 
 
 \subsection{Porting SPECFEM3D to OpenCL using BOAST}
@@ -45,20 +36,22 @@ with measurements of the relative error between two identical
 simulations.
 
 As part of the Mont-Blanc project, we had to port \Specfem to \OCL, so
-that it could be use to benchmark Mont-Blanc HPC platforms.
+that it could be use to benchmark Mont-Blanc HPC platform.
 
 \subsubsection{Porting to OpenCL}
 
-\subparagraph{Porting kernels to BOAST} Nvidia \Cuda and \OCL are
-based on the same programming model: a massively parallel accelerator
-running in another memory environment. Thanks to that proximity, we,
-BOAST developers, have been able to carry out most of the porting task
-with only a limited knowledge about \Specfem internal physics.
+\subparagraph{Porting kernels to BOAST} 
 
-That lack of knowledge led us to be particularly attentive to the path
-we undertook for the porting, as we would have been unable to
-understand how and why the application was not operating properly, if
-it was to fail.
+Nvidia \Cuda and \OCL are based on the same programming model: a
+massively parallel accelerator running in disjoint, non addressable
+memory environment. Thanks to that proximity, we, BOAST developers,
+have been able to carry out most of the porting task with only a
+limited knowledge about \Specfem internal physics.
+
+This lack of \Specfem internal knowledge led us to be particularly
+attentive to the path we undertook for the porting, as we would have
+been unable to understand how and why the application was not
+operating properly, if it was to fail.
 
 Hence, our first milestone in the porting was the translation of
 \Specfem's \Cuda kernels into BOAST EDSL. This way, we could ask BOAST
@@ -104,46 +97,33 @@ transfer functions, \code{clEnqueueReadBuffer},
 direction parameter \code{cudaMemcpy(..., dir)}, but above that, it is
 the same functionalities).
 
-Hence, our idea to locate the execution problems was to make sure that
-both execution actually did the same thing. As the \OCL results were
-invalid, we knew the executions would diverge at one or several
+Hence, our idea for locating the execution problems was to make sure
+that both execution actually did the same thing. As the \OCL results
+were invalid, we knew the executions would diverge at one or several
 points.
 
-\subparagraph{Debugging \OCL Execution: \code{GPUTrace}} In order to
-ensure that \Cuda and \OCL executions were doing the same operations,
-we developed a tool that could intercept all the function calls
-related to the GPU and store them for offline processing, in a format
-common to \OCL and \Cuda. Our solution was inspired by \code{strace}
-and \code{ltrace} tools: it dynamically preloads a library (with the
-help \code{LD\_PRELOAD} in \productname{GNU/Linux}-based environments)
-between the application and the GPU library, and prints the arguments
-(input \emph{and} output) of the relevant function calls.
+\subparagraph{Debugging \OCL Execution: \code{GPUTrace}} 
 
-However, in contrast with \code{strace} and \code{ltrace},
-\code{GPUTrace} has to be \emph{state-full}. Indeed, most of \OCL and
-\Cuda parameters are handles to opaque types, so, in order to provide
-more meaningful information, \code{GPUTrace} stores internally
-information about these handles (buffer creation size and index,
-kernel name and prototype, \etc{}). % more details here?
+With the help of \code{GPUTrace} (Section~\ref{sec:gputrace}), we
+could to confront \Cuda and \OCL execution traces with a graphical
+\code{diff} tool, and spot the different porting mistakes: some
+parameters reversed, offsets incorrectly applied, \etc{}. 
 
-Once \code{GPUTrace} was operational, it was easy to confront \Cuda
-and \OCL outputs with a graphical \code{diff} tool, and spot the
-different porting mistakes: two parameters reversed, an offset
-incorrectly applied, \etc{}. One last problem remained, impossible to
-miss because of the seismograms not matching (but with just a slight
-drift). We added more verbosity to \code{GPUTrace} output: first the
-initial bits of the GPU memory buffers, then their full content. The
-drift was visible in the trace, but it was nonetheless unclear where
-it started. We finally got it after hours of code review of BOAST
-kernels and \OCL code: one kernel was \emph{three}-dimensional,
-whereas the others were two-dimensional. But for all of them, only two
-dimensions were passed, and one was missing. As it was the same person
-who coded the \OCL port and the GPU tracer, this third dimension was
-forgotten in both codes\ldots
+One last problem remained, clearly highlighted by the seismograms not
+matching perfectly (they had a similar shape, but with a reduced
+intensity). We added more verbosity to \code{GPUTrace} output: first
+the initial bits of the GPU memory buffers, then their full
+content. The drift was visible in the trace, but it was nonetheless
+unclear where it started. We finally got it after hours of code review
+of BOAST kernels and \OCL code: one kernel was
+\emph{three}-dimensional, whereas the others were two-dimensional. But
+for all of them, only two dimensions were passed, and one was
+missing. As it was the same person who coded the \OCL port and the GPU
+tracer, this third dimension was forgotten in both codes\ldots
 
 \subparagraph{Evaluation} Our \OCL/BOAST port of \Specfem is now
 merged in \Specfem's development tree and under test and extension by
-different research teams. On a platform with two K40x GPUs and x Intel
+different research teams. On a platform with two K40x GPUs and N Intel
 Xeon processors, we measured similar results between the original
 \Cuda version and our BOAST-\Cuda version. With the same set of
 optimization flags, BOAST \Cuda and \OCL version reported similar
