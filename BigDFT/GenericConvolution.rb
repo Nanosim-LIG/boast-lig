@@ -618,13 +618,13 @@ class ConvolutionOperator1d
         stats = stats_a.first
         #puts *par[0...@dims.length]
         if BOAST::get_verbose then
-          puts "#{indx} - [#{par[0...@dims.length].join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} us #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
+          puts "#{indx} - [#{par[0...@dims.length].join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} ms #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
           puts optim
         end
         t_mean += stats[:duration]
       }
       t_mean /= dimensions.length
-      puts "#{kernel.procedure.name}: #{t_mean*1.0e3} us #{self.cost(*par[0...@dims.length]) / (t_mean*1.0e9)} GFlops"
+      puts "#{kernel.procedure.name}: #{t_mean*1.0e3} ms #{self.cost(*par[0...@dims.length]) / (t_mean*1.0e9)} GFlops"
       already_tested[p.name] = true
       if t_best > t_mean then
         t_best = t_mean
