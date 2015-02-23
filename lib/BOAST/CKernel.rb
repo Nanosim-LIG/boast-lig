@@ -37,9 +37,12 @@ module BOAST
 
   module PrivateStateAccessor
     private_boolean_state_accessor :verbose
+    private_boolean_state_accessor :ffi
   end
 
   boolean_state_accessor :verbose
+  boolean_state_accessor :ffi
+  @@ffi = false
   @@verbose = false
   FORTRAN_LINE_LENGTH = 72
 
@@ -77,6 +80,7 @@ module BOAST
     }
     @@compiler_default_options[:LD] = ENV["LD"] if ENV["LD"]
     @@verbose = ENV["VERBOSE"] if ENV["VERBOSE"]
+    @@ffi = ENV["FFI"] if ENV["FFI"]
   end
 
   read_boast_config
@@ -468,7 +472,7 @@ EOF
       set_output( module_file )
       fill_module(module_file, module_name)
       module_file.rewind
-     #puts module_file.read
+      #puts module_file.read
       module_file.close
       set_lang( previous_lang )
       set_output( previous_output )
@@ -492,6 +496,83 @@ EOF
       return [source_file, path, target]
     end
 
+    def create_ffi_module(module_name, module_final)
+      s =<<EOF
+      require 'ffi'
+      require 'narray_ffi'
+      module #{module_name}
+        extend FFI::Library
+        ffi_lib "#{module_final}"
+        attach_function :#{@procedure.name}#{@lang == FORTRAN ? "_" : ""}, [ #{@procedure.parameters.collect{ |p| ":"+p.decl_ffi.to_s }.join(", ")} ], :#{@procedure.properties[:return] ? @procedure.properties[:return].type.decl_ffi : "void" }
+        def run(*args)
+          if args.length < @procedure.parameters.length or args.length > @procedure.parameters.length + 1 then
+            raise "Wrong number of arguments for \#{@procedure.name} (\#{args.length} for \#{@procedure.parameters.length})"
+          else
+            ev_set = nil
+            if args.length == @procedure.parameters.length + 1 then
+              options = args.last
+              if options[:PAPI] then
+                require 'PAPI'
+                ev_set = PAPI::EventSet::new
+                ev_set.add_named(options[:PAPI])
+              end
+            end
+            t_args = []
+            r_args = {}
+            if @lang == FORTRAN then
+              @procedure.parameters.each_with_index { |p, i|
+                if p.decl_ffi(true) != :pointer then
+                  arg_p = FFI::MemoryPointer::new(p.decl_ffi(true))
+                  arg_p.send("write_\#{p.decl_ffi(true)}",args[i])
+                  t_args.push(arg_p)
+                  r_args[p] = arg_p if p.scalar_output?
+                else
+                  t_args.push( args[i] )
+                end
+              }
+            else
+              @procedure.parameters.each_with_index { |p, i|
+                if p.scalar_output? then
+                  arg_p = FFI::MemoryPointer::new(p.decl_ffi(true))
+                  arg_p.send("write_\#{p.decl_ffi(true)}",args[i])
+                  t_args.push(arg_p)
+                  r_args[p] = arg_p
+                else
+                  t_args.push( args[i] )
+                end
+              }
+            end
+            results = {}
+            counters = nil
+            ev_set.start if ev_set
+            begin
+              start = Time::new
+              ret = #{@procedure.name}#{@lang == FORTRAN ? "_" : ""}(*t_args)
+              stop = Time::new
+            ensure
+              if ev_set then
+                counters = ev_set.stop
+                ev_set.cleanup
+                ev_set.destroy
+              end
+            end
+            results = { :start => start, :stop => stop, :duration => stop - start, :return => ret }
+            results[:PAPI] = Hash[[options[:PAPI]].flatten.zip(counters)] if ev_set
+            if r_args.length > 0 then
+              ref_return = {}
+              r_args.each { |p, p_arg|
+                ref_return[p.name.to_sym] = p_arg.send("read_\#{p.decl_ffi(true)}")
+              }
+              results[:reference_return] = ref_return
+            end
+            return results
+          end
+        end
+      end
+EOF
+      eval s
+    end
+
     def build(options = {})
       compiler_options = BOAST::get_compiler_options
       compiler_options.update(options)
@@ -503,28 +584,45 @@ EOF
 
       source_file, path, target = create_source
 
-      module_file_name, module_name = create_module_source(path)
-
-      module_target = module_file_name.chomp(File::extname(module_file_name))+".o"
-      module_final = module_file_name.chomp(File::extname(module_file_name))+".so"
-
+      if not ffi? then
+        module_file_name, module_name = create_module_source(path)
+        module_target = module_file_name.chomp(File::extname(module_file_name))+".o"
+        module_final = module_file_name.chomp(File::extname(module_file_name))+".so"
+      else
+        module_final = path.chomp(File::extname(path))+".so"
+        module_name = "Mod_" + File::split(path.chomp(File::extname(path)))[1].gsub("-","_")
+      end
 
       kernel_files = get_sub_kernels
 
-      file module_final => [module_target, target] do
-        #puts "#{linker} -shared -o #{module_final} #{module_target} #{target} #{kernel_files.join(" ")} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
-        sh "#{linker} -shared -o #{module_final} #{module_target} #{target} #{(kernel_files.collect {|f| f.path}).join(" ")} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
+      if not ffi? then
+        file module_final => [module_target, target] do
+          #puts "#{linker} -shared -o #{module_final} #{module_target} #{target} #{kernel_files.join(" ")} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
+          sh "#{linker} -shared -o #{module_final} #{module_target} #{target} #{(kernel_files.collect {|f| f.path}).join(" ")} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
+        end
+        Rake::Task[module_final].invoke
+
+        require(module_final)
+      else
+        file module_final => [target] do
+          #puts "#{linker} -shared -o #{module_final} #{target} #{kernel_files.join(" ")} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
+          sh "#{linker} -shared -o #{module_final} #{target} #{(kernel_files.collect {|f| f.path}).join(" ")} -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic #{ldflags}"
+        end
+        Rake::Task[module_final].invoke
+        create_ffi_module(module_name, module_final)
       end
-      Rake::Task[module_final].invoke
-
-      require(module_final)
       eval "self.extend(#{module_name})"
-
       save_binary(target)
 
-      [target, module_target, module_file_name, module_final].each { |fn|
-        File::unlink(fn)
-      }
+      if not ffi? then
+        [target, module_target, module_file_name, module_final].each { |fn|
+          File::unlink(fn)
+        }
+      else
+        [target, module_final].each { |fn|
+          File::unlink(fn)
+        }
+      end
       kernel_files.each { |f|
         f.unlink
       }
@@ -607,20 +705,23 @@ EOF
     end
 
     def check_args(module_file)
-      if @lang == CUDA then
-        module_file.print <<EOF
+      module_file.print <<EOF
+  VALUE rb_opts;
   if( argc < #{@procedure.parameters.length} || argc > #{@procedure.parameters.length + 1} )
     rb_raise(rb_eArgError, "wrong number of arguments for #{@procedure.name} (%d for #{@procedure.parameters.length})", argc);
+  rb_opts = Qnil;
+  if( argc == #{@procedure.parameters.length + 1} ) {
+    rb_opts = argv[argc -1];
+    if ( rb_opts != Qnil ) {
+      if (TYPE(rb_opts) != T_HASH)
+        rb_raise(rb_eArgError, "Cuda options should be passed as a hash");
+    }
+  }
 EOF
-      else
-        module_file.print <<EOF
-  if( argc != #{@procedure.parameters.length} )
-    rb_raise(rb_eArgError, "wrong number of arguments for #{@procedure.name} (%d for #{@procedure.parameters.length})", argc);
-EOF
-      end
     end
 
     def get_params_value(module_file, argv, rb_ptr)
+      set_decl_module(true)
       @procedure.parameters.each_index do |i|
         param = @procedure.parameters[i]
         if not param.dimension then
@@ -659,6 +760,7 @@ EOF
           end
         end
       end
+      set_decl_module(true)
     end
 
     def decl_module_params(module_file)
@@ -672,41 +774,36 @@ EOF
       set_decl_module(false)
       module_file.print "  #{@procedure.properties[:return].type.decl} ret;\n" if @procedure.properties[:return]
       module_file.print "  VALUE stats = rb_hash_new();\n"
+      module_file.print "  VALUE refs = rb_hash_new();\n"
       module_file.print "  struct timespec start, stop;\n"
       module_file.print "  unsigned long long int duration;\n"
     end
 
     def get_cuda_launch_bounds(module_file)
       module_file.print <<EOF
-  VALUE rb_opts;
   size_t block_size[3] = {1,1,1};
   size_t block_number[3] = {1,1,1};
-  if( argc == #{@procedure.parameters.length + 1} ) {
-    rb_opts = argv[argc -1];
-    if ( rb_opts != Qnil ) {
-      VALUE rb_array_data = Qnil;
-      int i;
-      if (TYPE(rb_opts) != T_HASH)
-        rb_raise(rb_eArgError, "Cuda options should be passed as a hash");
-      rb_ptr = rb_hash_aref(rb_opts, ID2SYM(rb_intern("block_size")));
-      if( rb_ptr != Qnil ) {
-        if (TYPE(rb_ptr) != T_ARRAY)
-          rb_raise(rb_eArgError, "Cuda option block_size should be an array");
-        for(i=0; i<3; i++) {
-          rb_array_data = rb_ary_entry(rb_ptr, i);
-          if( rb_array_data != Qnil )
-            block_size[i] = (size_t) NUM2LONG( rb_array_data );
-        }
+  if( rb_opts != Qnil ) {
+    VALUE rb_array_data = Qnil;
+    int i;
+    rb_ptr = rb_hash_aref(rb_opts, ID2SYM(rb_intern("block_size")));
+    if( rb_ptr != Qnil ) {
+      if (TYPE(rb_ptr) != T_ARRAY)
+        rb_raise(rb_eArgError, "Cuda option block_size should be an array");
+      for(i=0; i<3; i++) {
+        rb_array_data = rb_ary_entry(rb_ptr, i);
+        if( rb_array_data != Qnil )
+          block_size[i] = (size_t) NUM2LONG( rb_array_data );
       }
-      rb_ptr = rb_hash_aref(rb_opts, ID2SYM(rb_intern("block_number")));
-      if( rb_ptr != Qnil ) {
-        if (TYPE(rb_ptr) != T_ARRAY)
-          rb_raise(rb_eArgError, "Cuda option block_number should be an array");
-        for(i=0; i<3; i++) {
-          rb_array_data = rb_ary_entry(rb_ptr, i);
-          if( rb_array_data != Qnil )
-            block_number[i] = (size_t) NUM2LONG( rb_array_data );
-        }
+    }
+    rb_ptr = rb_hash_aref(rb_opts, ID2SYM(rb_intern("block_number")));
+    if( rb_ptr != Qnil ) {
+      if (TYPE(rb_ptr) != T_ARRAY)
+        rb_raise(rb_eArgError, "Cuda option block_number should be an array");
+      for(i=0; i<3; i++) {
+        rb_array_data = rb_ary_entry(rb_ptr, i);
+        if( rb_array_data != Qnil )
+          block_number[i] = (size_t) NUM2LONG( rb_array_data );
       }
     }
   }
@@ -751,6 +848,7 @@ EOF
     end
 
     def get_results(module_file, argv, rb_ptr)
+      set_decl_module(true)
       if @lang == CUDA then
         @procedure.parameters.each_index do |i|
           param = @procedure.parameters[i]
@@ -776,7 +874,25 @@ EOF
 EOF
           end
         end
+      else
+        first = true
+        @procedure.parameters.each_with_index do |param,i|
+          if param.scalar_output? then
+            if first then
+              module_file.print "  rb_hash_aset(stats,ID2SYM(rb_intern(\"reference_return\")),refs);\n"
+              first = false
+            end
+            case param.type
+            when Int
+              module_file.print "  rb_hash_aset(refs, ID2SYM(rb_intern(\"#{param}\")),rb_int_new((long long)#{param}));\n" if param.type.signed?
+              module_file.print "  rb_hash_aset(refs, ID2SYM(rb_intern(\"#{param}\")),rb_int_new((unsigned long long)#{param}));\n" if not param.type.signed?
+            when Real
+              module_file.print "  rb_hash_aset(refs, ID2SYM(rb_intern(\"#{param}\")),rb_float_new((unsigned long long)#{param}));\n" if not param.type.signed?
+            end
+          end
+        end
       end
+      set_decl_module(false)
     end
 
     def store_result(module_file)
