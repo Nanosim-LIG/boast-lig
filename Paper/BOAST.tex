@@ -856,12 +856,13 @@ convolution library oriented to computational physics communities.
 \subsubsection{SPECFEM3D}
 
 In this last subsection, we study a free seismic wave propagation
-simulator, \Specfem, in its \productname{Cartesian}
-flavor\footnote{Specfem3d Cartesian --- CIG
-  \url{http://www.geodynamics.org/cig/software/specfem3d}}. \Specfem
+simulator, \Specfem, in its \productname{Globe}
+flavor\footnote{Specfem3d Globe --- CIG
+  \url{http://www.geodynamics.org/cig/software/specfem3d-globe}}. \Specfem
 simulates seismic wave propagation at the local or regional scale
 based upon spectral-element method (SEM), with very good accuracy and
-convergence properties. ADD BENCHMARK APP FOR HPC SUPERCOMPUTERS.
+convergence properties. It is a reference application for super
+computer benchmarking, thanks to its good scaling capabilities.
 
 When we started to work on the project (version v2.1 of July 2013) it
 supported graphics card GPU acceleration through NVidia \Cuda. This
@@ -982,10 +983,10 @@ version though (25\% higher than \OCL), as one optimization parameter
 version 1.1.
 
 By refactoring GPU kernel code in BOAST EDSL, the size of kernel code
-shrank by a factor of 1.5 (from xxx LOC to xxx, partly because of code
-duplication, but by removing manually unrolled loops). This is
-beneficial for \Specfem as it improves the readability and
-maintainability of its source code.
+shrank by a factor of 1.8 (from 7500 LOC to less than 4000, partly
+because of code duplication, but by removing manually unrolled
+loops). This is beneficial for \Specfem as it improves the readability
+and maintainability of its source code.
 
 We have also been able to enhance \Specfem's non-regression testsuite
 by adding per-kernel non-regression tests. This was done with the help
