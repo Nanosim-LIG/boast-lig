@@ -1959,11 +1959,17 @@ class ConvolutionOptimization
   end
 end
 
-def print_header
+def print_header(macro = false)
   if BOAST::get_lang == BOAST::C then
-    BOAST::get_output.print "static inline #{BOAST::Int::new.decl} modulo( #{BOAST::Int::new.decl} a, #{BOAST::Int::new.decl} b) { return (a+b)%b;}\n"
-    BOAST::get_output.print "static inline #{BOAST::Int::new.decl} min( #{BOAST::Int::new.decl} a, #{BOAST::Int::new.decl} b) { return a < b ? a : b;}\n"
-    BOAST::get_output.print "static inline #{BOAST::Int::new.decl} max( #{BOAST::Int::new.decl} a, #{BOAST::Int::new.decl} b) { return a > b ? a : b;}\n"
+    if macro then
+      BOAST::get_output.print "#define modulo(a, b) ((a+b)%(b))\n"
+      BOAST::get_output.print "#define min( a, b) ((a) < (b) ? a : b)\n"
+      BOAST::get_output.print "#define max( a, b) ((a) > (b) ? a : b)\n"
+    else
+      BOAST::get_output.print "static inline #{BOAST::Int::new.decl} modulo( #{BOAST::Int::new.decl} a, #{BOAST::Int::new.decl} b) { return (a+b)%b;}\n"
+      BOAST::get_output.print "static inline #{BOAST::Int::new.decl} min( #{BOAST::Int::new.decl} a, #{BOAST::Int::new.decl} b) { return a < b ? a : b;}\n"
+      BOAST::get_output.print "static inline #{BOAST::Int::new.decl} max( #{BOAST::Int::new.decl} a, #{BOAST::Int::new.decl} b) { return a > b ? a : b;}\n"
+    end
   end
 end
 
