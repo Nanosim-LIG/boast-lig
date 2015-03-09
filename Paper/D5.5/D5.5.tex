@@ -109,44 +109,15 @@ adding new functionalities can be quite costly.
 
 \section{Background and Motivation}
 
-
-
-  \subsection{Evolution of HPC Architectures}
-
-Evolution of HPC Architectures is rapid and also diverse: in the last 5
-years no less than 6 architectures have been number one in the Top500:
-\begin{itemize}
-\item Intel Processor + Xeon Phi (Tianhe-2)
-\item AMD Processor + NVIDIA GPU (Titan)
-\item IBM BlueGene/Q (Sequoia)
-\item Fujitsu SPARC64 (K computer)
-\item Intel Processor + NVIDIA GPU (Tianhe-1)
-\item AMD Processor (Jaguar)
-\end{itemize}
-Being able to efficiently use those architectures on such a small
-time-frame is challenging. Stress frequency of architecture changes.
-
-The race to exascale is not going to simplify the environment. All of the above
-architectures can be considered. Network architectures are also part of the
-architecture and can be very diverse.  For instance European FP7 project DEEP
-considers using Accelerators (XEON Phi) while the European FP7 project
-Mont-Blanc considers using low-power embedded processor with integrated GPU.
-
-Running existing applications on those new architectures is an open project.
-Thus, those projects have work packages dedicated to applications. Those
-workpackages are dedicated to porting and optimizing Scientific applications on
-those new architectures. In the DEEP project six applications were selected for
-porting and optimizing, eleven were selected in the Mont-Blanc project.
- 
   \subsection{Scientific Computing Applications}
 
-Developed by physicist, chemist, meteorologist. Usually in FORTRAN for
-historical and performance reason. Codes can be quite huge (several
-thousands lines of code) with lots of functionalities. Nonetheless they are
-usually based on computing kernels. Computing kernels are resource
-intensive and well defined parts of a program with a limited set of input
-and output. Those kernels are the time consuming part of an HPC
-application. They are thus the prime target for optimization.
+Scientific Computing Applications are usually developed by physicist, chemist or
+meteorologist. Usually in FORTRAN for historical and performance reason. Codes
+can be quite huge (several thousands lines of code) with lots of
+functionalities. Nonetheless they are usually based on computing kernels.
+Computing kernels are resource intensive and well defined parts of a program
+with a limited set of input and output. Those kernels are the time consuming
+part of an HPC application. They are thus the prime target for optimization.
 
 Those applications are often developed by several individuals. Sometimes some of
 those developers only work a few month on the application. Maintaining optimized
@@ -180,6 +151,37 @@ What we want is computing kernels that are:
 \item Written to present good \emph{performance}.
 \end{itemize}
 
+
+
+  \subsection{Evolution of HPC Architectures}
+
+Evolution of HPC Architectures is rapid and also diverse: in the last 5
+years no less than 6 architectures have been number one in the Top500:
+\begin{itemize}
+\item Intel Processor + Xeon Phi (Tianhe-2)
+\item AMD Processor + NVIDIA GPU (Titan)
+\item IBM BlueGene/Q (Sequoia)
+\item Fujitsu SPARC64 (K computer)
+\item Intel Processor + NVIDIA GPU (Tianhe-1)
+\item AMD Processor (Jaguar)
+\end{itemize}
+Being able to efficiently use those architectures on such a small
+time-frame is challenging. Stress frequency of architecture changes.
+
+The race to exascale is not going to simplify the environment. All of the above
+architectures can be considered. Network architectures are also part of the
+architecture and can be very diverse.  For instance European FP7 project DEEP
+considers using Accelerators (XEON Phi) while the European FP7 project
+Mont-Blanc considers using low-power embedded processor with integrated GPU.
+
+Running existing applications on those new architectures is an open project.
+Thus, those projects have work packages dedicated to applications. Those
+work packages are dedicated to porting and optimizing Scientific applications on
+those new architectures. In the DEEP project six applications were selected for
+porting and optimizing, eleven were selected in the Mont-Blanc project.
+
+\section{Motivating Example}
+ 
 \section{BOAST: Using Code Generation in Application Autotuning}
 
 \begin{figure}
