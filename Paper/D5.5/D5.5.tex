@@ -30,6 +30,16 @@
   morekeywords={int64_t, int32_t}
 }
 
+\lstdefinestyle{customcl}{
+  language=C,
+  basicstyle=\scriptsize,
+  backgroundcolor=\color{white},
+  frame=single,
+  captionpos=b,
+  morekeywords={__global, __local, global, local, __kernel, kernel, short,
+uchar, uchar16, int16, short16}
+}
+
 \lstdefinestyle{BOAST}{
   language=Ruby, 
   basicstyle=\scriptsize, 
@@ -180,8 +190,205 @@ work packages are dedicated to porting and optimizing Scientific applications on
 those new architectures. In the DEEP project six applications were selected for
 porting and optimizing, eleven were selected in the Mont-Blanc project.
 
-\section{Motivating Example}
- 
+\section{Motivating Example: OpenCL Laplace}
+
+During one of the Mont-Blac face to face meeting a talk on OpenCL optimization
+on the Mali GPU was given. One of the case study was a Laplace filter on the
+GPU~\cite{opencl_arm_training}.
+
+This is a good example of an algorithm that is simple in its formulation but can
+be complex to optimize because many different optimizations are available and
+can be combined together. The correct combination of optimization will be
+dependant on the targeted architecture.
+
+\subsection{The Laplace Filter}
+
+Listing~\ref{lst:laplace_c_filter} show a simple implementation of the Laplace
+filter in C99. For clarity, boundary conditions have been omitted.
+
+\lstset{style=customc,
+        caption={Laplace C99 Filter},
+        breaklines=true,
+        breakautoindent=false,
+        label={lst:laplace_c_filter}}
+\begin{lstlisting}
+void laplace(const int width,
+             const int height,
+             const unsigned char src[height][width][3],
+                   unsigned char dst[height][width][3]){
+  for (int j = 1; j < height-1; j++) {
+    for (int i = 1; i < width-1; i++) {
+      for (int c = 0; c < 3; c++) {
+        int tmp = -src[j-1][i-1][c] -   src[j-1][i][c] - src[j-1][i+1][c]\
+                 - src[j  ][i-1][c] + 9*src[j  ][i][c] - src[j  ][i+1][c]\
+                 - src[j+1][i-1][c] -   src[j+1][i][c] - src[j+1][i+1][c];
+        dst[j][i][c] = (tmp < 0 ? 0 : (tmp > 255 ? 255 : tmp));
+      }
+    }
+  }
+}
+\end{lstlisting}
+
+A naive implementation in OpenCL is proposed in
+Listing~\ref{lst:laplace_opencl_filter}. Each work item processes one pixel of
+the resulting image.
+
+\lstset{style=customcl,
+        caption={Laplace OpenCL Filter},
+        breaklines=true,
+        breakautoindent=false,
+        label={lst:laplace_opencl_filter}}
+\begin{lstlisting}
+kernel laplace(const int width,
+               const int height,
+               global const uchar *src,
+               global       uchar *dst){
+  int i = get_global_id(0);
+  int j = get_global_id(1);
+  for (int c = 0; c < 3; c++) {
+    int tmp = -src[3*width*(j-1) + 3*(i-1) + c]\
+             - src[3*width*(j-1) + 3*(i  ) + c]\
+             - src[3*width*(j-1) + 3*(i+1) + c]\
+             - src[3*width*(j  ) + 3*(i-1) + c]\
+           + 9*src[3*width*(j  ) + 3*(i  ) + c]\
+             - src[3*width*(j  ) + 3*(i+1) + c]\
+             - src[3*width*(j+1) + 3*(i-1) + c]\
+             - src[3*width*(j+1) + 3*(i  ) + c]\
+             - src[3*width*(j+1) + 3*(i+1) + c];
+    dst[3*width*j + 3*i + c] = clamp(tmp, 0, 255);
+  }
+}
+\end{lstlisting}
+
+
+
+\subsection{Possible Optimizations of the OpenCL Version}
+
+Several optimizations were proposed and successively applied to the previous
+implementation.
+
+\paragraph{Vectorization}
+The first proposed optimization is to compute 5 pixels instead of one using the
+vectors available to the Mali architecture. To be efficient the vectors have to
+be directly loaded from memory. Using vectors of 16 elements 15 useful component
+are simultaneously loaded and can be used in computation. This optimization
+yields speedups between 1.5 and 6 depending on the image size.
+
+\lstset{style=customcl,
+        caption={Laplace OpenCL Filter Vectorized},
+        breaklines=true,
+        breakautoindent=false,
+        label={lst:laplace_opencl_filter_vector}}
+\begin{lstlisting}
+kernel laplace(const int width,
+               const int height,
+               global const uchar *src,
+               global       uchar *dst){
+  int i = get_global_id(0);
+  int j = get_global_id(1);
+
+  uchar16 v11_ = vload16( 0, src + 3*width*(j-1) + 3*5*i - 3 );
+  uchar16 v12_ = vload16( 0, src + 3*width*(j-1) + 3*5*i     );
+  uchar16 v13_ = vload16( 0, src + 3*width*(j-1) + 3*5*i + 3 );
+  uchar16 v21_ = vload16( 0, src + 3*width*(j  ) + 3*5*i - 3 );
+  uchar16 v22_ = vload16( 0, src + 3*width*(j  ) + 3*5*i     );
+  uchar16 v23_ = vload16( 0, src + 3*width*(j  ) + 3*5*i + 3 );
+  uchar16 v31_ = vload16( 0, src + 3*width*(j+1) + 3*5*i - 3 );
+  uchar16 v32_ = vload16( 0, src + 3*width*(j+1) + 3*5*i     );
+  uchar16 v33_ = vload16( 0, src + 3*width*(j+1) + 3*5*i + 3 );
+
+  int16 v11 = convert_int16(v11_);
+  int16 v12 = convert_int16(v12_);
+  int16 v13 = convert_int16(v13_);
+  int16 v21 = convert_int16(v21_);
+  int16 v22 = convert_int16(v22_);
+  int16 v23 = convert_int16(v23_);
+  int16 v31 = convert_int16(v31_);
+  int16 v32 = convert_int16(v32_);
+  int16 v33 = convert_int16(v33_);
+
+  int16 res = v22 * (int)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
+        res = clamp(res, (int16)0, (int16)255);
+  uchar res_ = convert_uchar16(res);
+
+  vstore8(res_.s01234567, 0, dst + 3*width*j + 3*5*i);
+  vstore8(res_.s89ab,     0, dst + 3*width*j + 3*5*i + 8);
+  vstore8(res_.scd,       0, dst + 3*width*j + 3*5*i + 12);
+  dst[3*width*j + 3*5*i + 14] = res_.se;
+}
+\end{lstlisting}
+
+\paragraph{Synthesizing Loads} It is possible to reduce the number of loads
+since the vectors are overlapping.
+Listing~\ref{lst:laplace_opencl_filter_vector_synth} shows how the vectors are
+loaded in this case. This optimization yields marginal improvements.
+
+\lstset{style=customcl,
+        caption={Laplace OpenCL Filter Vectorized with Synthesized Loads},
+        breaklines=true,
+        breakautoindent=false,
+        label={lst:laplace_opencl_filter_vector_synth}}
+\begin{lstlisting}
+  uchar16 v11_ = vload16( 0, src + 3*width*(j-1) + 3*5*i - 3 );
+  uchar16 v13_ = vload16( 0, src + 3*width*(j-1) + 3*5*i + 3 );
+  uchar16 v12_ = uchar16( v11_.s3456789a, v13_.s56789abc );
+  uchar16 v21_ = vload16( 0, src + 3*width*(j  ) + 3*5*i - 3 );
+  uchar16 v23_ = vload16( 0, src + 3*width*(j  ) + 3*5*i + 3 );
+  uchar16 v22_ = vload16( v21_.s3456789a, v23_.s56789abc );
+  uchar16 v31_ = vload16( 0, src + 3*width*(j+1) + 3*5*i - 3 );
+  uchar16 v33_ = vload16( 0, src + 3*width*(j+1) + 3*5*i + 3 );
+  uchar16 v32_ = vload16( v31_.s3456789a, v33_.s56789abc );
+\end{lstlisting}
+
+\paragraph{Temporary Variables Size} Using \textit{int} to store intermediary
+results is unnecessary. Listing~\ref{lst:laplace_opencl_filter_short} show how
+the code is modified to use smaller types. This yields a speedup of 1.3 for most
+image sizes.
+
+\lstset{style=customcl,
+        caption={Laplace OpenCL Filter Vectorized Using \textit{short}},
+        breaklines=true,
+        breakautoindent=false,
+        label={lst:laplace_opencl_filter_short}}
+\begin{lstlisting}
+  short16 v11 = convert_short16(v11_);
+  short16 v12 = convert_short16(v12_);
+  short16 v13 = convert_short16(v13_);
+  short16 v21 = convert_short16(v21_);
+  short16 v22 = convert_short16(v22_);
+  short16 v23 = convert_short16(v23_);
+  short16 v31 = convert_short16(v31_);
+  short16 v32 = convert_short16(v32_);
+  short16 v33 = convert_short16(v33_);
+
+  short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
+        res = clamp(res, (short16)0, (short16)255);
+\end{lstlisting}
+
+\paragraph{More Optimizations} Several other optimizations can be attempted at
+this point. For instance reducing or increasing the number of pixel each work
+item is processing. They can yield improved performance in some cases, especially
+when avoiding memory alignment problems. These optimizations will not be shown
+here but can be found in~\cite{opencl_arm_training}.
+
+\subsection{Improving the Methodology}
+
+The process described in the previous Subsection is quite tedious and requires
+some intimate knowledge of the target architecture. The results are impressive,
+as speedups of almost 10 are observed compared to the naive OpenCL
+implementation.
+
+Nonetheless, the process is frustrating. The optimizations are never evaluated
+independently from one another. Some were arbitrarily configured (the number of
+pixel chosen for instance). Testing the different combination of those
+optimizations and the different parameters would prove very costly in developer
+time and like all repetitive and tedious tasks, error prone. Thus every created
+kernel would have to be thoroughly tested to insure no error was done.
+
+In the next Section we will present our answer to this problematic: BOAST.
+BOAST is a framework dedicated to kernel description, optimization, regression testing
+and autotuning.
+
 \section{BOAST: Using Code Generation in Application Autotuning}
 
 \begin{figure}
