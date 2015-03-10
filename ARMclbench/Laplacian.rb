@@ -30,21 +30,23 @@ def laplacian_c_ref
   height = Int("height", :dir => :in)
   width = Int("width", :dir => :in)
   w = Int("w")
-  pdst = Int("pdst", :dir => :out,  :signed => false, :size => 1, :dim => [ Dim(w), Dim(height) ] )
-  psrc = Int("psrc", :dir => :in, :signed => false, :size => 1, :dim => [ Dim(w), Dim(height) ] )
-  p = Procedure("math", [psrc, pdst, width, height]) {
+  pdst = Int("pdst", :dir => :out,  :signed => false, :size => 1, :dim => [ Dim(3), Dim(width), Dim(height) ] )
+  psrc = Int("psrc", :dir => :in, :signed => false, :size => 1, :dim => [ Dim(3), Dim(width), Dim(height) ] )
+  p = Procedure("math", [width, height, psrc, pdst]) {
     decl i = Int("i")
     decl j = Int("j")
+    decl c = Int("c")
     decl tmp = Int("tmp")
     decl w
     pr w === width * 3
     pr For(j, 1, height-2) {
-      pr For(i, 3, w-4) {
-         
-        pr tmp === ( -psrc[i - 3, j - 1] - psrc[i, j - 1] - psrc[i + 3, j - 1]\
-                    - psrc[i - 3, j]     + psrc[i, j] * 9 - psrc[i + 3, j]\
-                    - psrc[i - 3, j + 1] - psrc[i, j + 1] - psrc[i + 3, j + 1] )
-        pr pdst[i,j] === Ternary(tmp < 0, 0, Ternary(tmp>255, 255, tmp))
+      pr For(i, 1, width-2) {
+        pr For(c, 0, 2) {
+          pr tmp === (  -psrc[c, i-1, j-1] - psrc[c, i, j-1] -   psrc[c, i+1, j-1]\
+                       - psrc[c, i-1, j]   + psrc[c, i, j] * 9 - psrc[c, i+1, j]\
+                       - psrc[c, i-1, j+1] - psrc[c, i, j+1] -   psrc[c, i+1, j+1] )
+          pr pdst[c,i,j] === Ternary(tmp < 0, 0, Ternary(tmp>255, 255, tmp))
+        }
       }
     }
   }
@@ -262,7 +264,7 @@ sizes.each { |width, height|
   input = NArray.byte(width*3,height+1).random(256)
   output_ref = NArray.byte(width*3,height)
 
-  k.run(input, output_ref, width, height)
+  k.run(width, height, input, output_ref)
   inputs.push(input)
   refs.push(output_ref[3..-4,1..-2])
   results.push( [] )
