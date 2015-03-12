@@ -191,8 +191,9 @@ those new architectures. In the DEEP project six applications were selected for
 porting and optimizing, eleven were selected in the Mont-Blanc project.
 
 \section{Motivating Example: OpenCL Laplace}
+\label{sec:laplace}
 
-During one of the Mont-Blac face to face meeting a talk on OpenCL optimization
+During one of the Mont-Blanc face to face meeting a talk on OpenCL optimization
 on the Mali GPU was given. One of the case study was a Laplace filter on the
 GPU~\cite{opencl_arm_training}.
 
@@ -334,10 +335,10 @@ loaded in this case. This optimization yields marginal improvements.
   uchar16 v12_ = uchar16( v11_.s3456789a, v13_.s56789abc );
   uchar16 v21_ = vload16( 0, src + 3*width*(j  ) + 3*5*i - 3 );
   uchar16 v23_ = vload16( 0, src + 3*width*(j  ) + 3*5*i + 3 );
-  uchar16 v22_ = vload16( v21_.s3456789a, v23_.s56789abc );
+  uchar16 v22_ = uchar16( v21_.s3456789a, v23_.s56789abc );
   uchar16 v31_ = vload16( 0, src + 3*width*(j+1) + 3*5*i - 3 );
   uchar16 v33_ = vload16( 0, src + 3*width*(j+1) + 3*5*i + 3 );
-  uchar16 v32_ = vload16( v31_.s3456789a, v33_.s56789abc );
+  uchar16 v32_ = uchar16( v31_.s3456789a, v33_.s56789abc );
 \end{lstlisting}
 
 \paragraph{Temporary Variables Size} Using \textit{int} to store intermediary
@@ -716,7 +717,7 @@ END SUBROUTINE magicfilter
 
 \begin{lstlisting}
 void magicfilter(const int32_t n, const int32_t ndat,
-                 const double * x, double * y)
+                 const double * x, double * y) {
 }
 \end{lstlisting}
 \caption{BOAST Code Snippet for Procedure}
@@ -885,11 +886,139 @@ real-case benchmarks and non-regression testing.
 \section{BOAST Use Cases}
 \label{use_cases}
 
-In this section we will present two scientific applications that use BOAST. The
+In this section we will present the benefits of using BOAST on the Laplace
+motivating example as well as two scientific applications that use BOAST. The
 first one, BigDFT, uses boast in order to develop new functionalities with
 performance portability in mind. The second one, SPECFEM3D, uses BOAST to
 factorize OpenCL and CUDA development, while having robust non regression
 tests.
+
+  \subsection{Laplace Filter Kernel}
+
+Section~\ref{sec:laplace} presented the Laplace motivating example. From this
+section we know that a number of optimization can have an impact on the
+performance of the kernel on the Mali architecture. But what of other
+architectures? And are there other optimizations that can impact the
+performance?
+
+    \subsubsection{Optimization Space}
+
+The list of already identified optimizations are:
+\begin{itemize}
+\item vectorization,
+\item intermediary data type,
+\item number of pixels processed,
+\item and synthesizing loads.
+\end{itemize}
+To create our generic implementation we decided to work at the component level
+rather than the pixel level. This approach leads to more flexibility and
+genericity when applying optimizations. We also decided to study the impact of
+another parameter which is the number of component to process on the column
+direction. This leads to being able to process tiles instead of only rows.
+
+Here are the parameters we finally selected for our kernel optimization and
+their possible values:
+\begin{itemize}
+\item \textit{x\_component\_number}: a positive integer
+\item \textit{y\_component\_number}: a positive integer
+\item \textit{vector\_length}: 1, 2, 4, 8 or 16
+\item \textit{temporary\_size}: 2 or 4
+\item \textit{synthesize\_loads}: \textit{true} or \textit{false}
+\item \textit{vector\_recompute}: \textit{true} or \textit{false}
+\end{itemize}
+The last parameter is used when \textit{x\_component\_number} is not divisible by
+\textit{vector\_length}. Two solutions are possible then, divide the remainder
+of the division in vectors of smaller sizes (\textit{vector\_recompute} =
+\textit{false}) or load more data and compute useless values in vectors of the
+specified size. This last option is mimicking the behavior of ARM
+implementation, although when working at the component level it may seem an
+absurd thing to try.
+
+    \subsubsection{Performance Results}
+
+Table~\ref{tbl:ARM} are the best results obtained by ARM on different image
+compared to the naive implementation and to the best version version BOAST
+found. It shows that the generated version systematically beats the hand
+optimized version. As far as the optimization options are concerned the result
+are a disappointment: the same kernel configuration is the best for all image
+sizes. This kernel is using \textit{x\_component\_number} = 16,
+\textit{y\_component\_number} = 1, \textit{vector\_length} = 16,
+\textit{temporary\_size} = 2 and \textit{synthesize\_loads} = false.
+\textit{vector\_recompute} has no meaning here as \textit{x\_component\_number}
+== \textit{vector\_length}. Those results also shows that, when working on full
+vectors, synthesizing the loads is harmful to performance and the programmer is
+better of trusting the cache to load each vector in 1 cycle without compromising
+the bandwidth.
+
+\begin{table}
+\centering
+\begin{tabular}{|l|r|r|r|r|r|}
+\hline
+Image Size  & Naive (s) & Best (s) & Acceleration & BOAST (s) & Acceleration \\
+\hline
+768 x 432   & 0.0107    & 0.00669  & x1.6         & 0.000639  & x16.7 \\
+\hline
+2560 x 1600 & 0.0850    & 0.0137   & x6.2         & 0.00687   & x12.4 \\
+\hline
+2048 x 2048 & 0.0865    & 0.0149   & x5.8         & 0.00715   & x12.1 \\
+\hline
+5760 x 3240 & 0.382     & 0.0449   & x8.5         & 0.0325    & x11.8 \\
+\hline
+7680 x 4320 & 0.680     & 0.0747   & x9.1         & 0.0581    & x11.7 \\
+\hline
+\end{tabular}
+\caption{Best performance of ARM Laplace kernel.}
+\label{tbl:ARM}
+\end{table}
+
+But what if we run out benchmark on other architectures? Table~\ref{tbl:other}
+the results obtained when running our BOAST implementation on other
+architectures. The chosen architectures were an Intel i7-2760QM CPU (Sandy
+Bridge architecture) that supports OpenCL 1.2 and an NVIDIA gtx680 GPU that
+support OpenCL 1.1. We can see that the performance ratio between the different
+architectures is rather stable across image sizes.
+
+The optimization parameters selected are not the same for those architectures.
+Indeed, the Intel CPU favors kernels that have the parameters:
+\textit{x\_component\_number} = 16,
+\textit{vector\_length} = 8,
+\textit{temporary\_size} = 2 and \textit{synthesize\_loads} = false. Once again
+\textit{vector\_recompute} has no meaning. \textit{y\_component\_number} varies
+from 4 to 2 when image size increase, thus decreasing task granularity as the
+global work size increase. This result is unexpected and understanding why this
+happen could be interesting. The NVIDIA GPU favors processing square tiles:
+\textit{x\_component\_number} = 4, \textit{y\_component\_number} = 4,
+\textit{vector\_length} = 4, \textit{temporary\_size} = 2 and
+\textit{synthesize\_loads} = false. Once more \textit{vector\_recompute} has no
+meaning.
+
+\begin{table}
+\centering
+\begin{tabular}{|l|r|r|r|r|r|}
+\hline
+Image Size & BOAST ARM (s) & BOAST Intel & Ratio & BOAST NVIDIA & Ratio \\
+\hline
+768 x 432   & 0.000639     & 0.000222    & x2.9  & 0.0000715    & x8.9  \\
+\hline
+2560 x 1600 & 0.00687      & 0.00222     & x3.1  & 0.000782     & x8.8  \\
+\hline
+2048 x 2048 & 0.00715      & 0.00226     & x3.2  & 0.000799     & x8.9  \\
+\hline
+5760 x 3240 & 0.0325       & 0.0108      & x3.0  & 0.00351      & x9.3  \\
+\hline
+7680 x 4320 & 0.0581       & 0.0192      & x3.0  & 0.00623      & x9.3  \\
+\hline
+\end{tabular}
+\caption{Best performance of Laplace Kernel on several architectures.}
+\label{tbl:other}
+\end{table}
+
+    \subsubsection{Laplace Conclusion}
+
+In this Subsection we have shown the interest of BOAST in optimizing a well
+known algorithm across different architectures. Chosen optimization combinations
+are highly dependant on the targeted architecture. In the next Subsections we
+will show that our methodology also applies to real applications.
 
   \subsection{Creating an Auto-Tuned Convolution Library for BigDFT using
 BOAST}
@@ -1020,6 +1149,38 @@ fine-tuned binaries to the end-user rather than the code sources, such that
 more agressive interprocedural optimization can be performed.  This experience
 would be therefore a first step toward the release of a tunable optimised
 convolution library oriented to computational physics communities.
+
+
+    \subsubsection{Performance report}
+
+Several kernels have already been implemented in BOAST for the convolution
+library. Figure~\ref{fig:synthesis} show the performance of the wavelet
+transform operation as a factor of the unrolling length of the outer loop, the
+language used to implement it as well as the activation or not of the OpenMP
+parallelization. Results are given as a speedup compared to the sequential hand
+tuned implementation that can be found in BigDFT. These tests were run on the
+Inte Xeon X5550 that was used to hand optimize the code.
+
+We can see that this function is better optimized using FORTRAN and small
+unrolling factors. In the hand optimized version the unrolling factor was chosen
+much too high (a factor of 12 was used). This factor might have been optimal at
+the point the procedure was optimized (compiler version changed in the meantime) but
+since then the environment changed. Other optimization have also been
+incorporated in the BAOST sources, like the systematic inner loop unrolling, and
+those could also help increase performance while limiting the interest of the
+outer loop unrolling.
+
+Nonetheless what is interesting from the physicist point of view is that the
+generated source will give her better performance on a whole range of
+architectures/compiler combination than that of the hand tuned code.
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.7]{Res_synthesis}
+\caption{Impact of Unrolling, Language and OpenMP on a Wavelet Transform}
+\end{center}
+\label{fig:synthesis}
+\end{figure}
 %   BigDFT implementation of convolution/wavelets is a reference but is limited
 %   in scope (1 wavelet family ands its derived operators).  Generalizing to
 %   other wavelet families long and difficult if performance are to remain
@@ -1038,10 +1199,10 @@ convolution library oriented to computational physics communities.
  
 
 
-\subsection{Porting SPECFEM3D to OpenCL using BOAST}
-\label{subsec:specfem}
+  \subsection{Porting SPECFEM3D to OpenCL using BOAST}
+  \label{subsec:specfem}
 
-\subsubsection{SPECFEM3D}
+    \subsubsection{SPECFEM3D}
 
 In this last subsection, we study a free seismic wave propagation
 simulator, \Specfem, in its \productname{Globe}
