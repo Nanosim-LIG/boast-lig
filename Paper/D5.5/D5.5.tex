@@ -1458,8 +1458,19 @@ compilers/versions easing the exploration process.
 \section{Conclusion and Future Works}
 
 In this report we presented the BOAST infrastructure as well as its
-application to two use cases from the Mont-Blanc project. Results are
-encouraging as BOAST proved to be a powerful and flexible tool.
+application to three use cases from the Mont-Blanc project. Results are
+encouraging as BOAST proved to be a powerful and flexible tool that allowed
+gains in performance and performance portability.
+
+Future development will focus on three goals. Interfacing with binary analysis
+tools like MAQAO~\cite{djoudi2005exploring} in order to build a feedback loop to
+guide optimization. Interfacing with search space modellers/pruners in order to
+optimize the search of the optimal version of a kernel. Continue working on
+vector code. For instance producing a collection of small to medium useful
+vector patterns (transposition for instance) in BOAST could really help develop
+vectorized version of our algorithm.
+
+
 
 %\section*{References}
 
