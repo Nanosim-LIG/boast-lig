@@ -153,12 +153,12 @@ kernels and were selected as candidate applications in the Mont-Blanc project.
 
 The problematic here is to obtain computing kernels that present good
 performances on the architectures encountered by the application while still
-being portable after the optimization process took place. Indeed the application
-might encounter one of the other architectures presented before. Investing
-manpower to optimize the application for a new architecture is reasonable,
-suffering hindrance from previous optimization work is not. Thus optimizations
-have to be as orthogonal as possible from one another so as to be easily
-activated and deactivated.
+being portable after the optimization process took place. Indeed the
+application might encounter one of the many architectures that can be found in
+HPC. Investing manpower to optimize the application for a new architecture is
+reasonable, suffering hindrance from previous optimization work is not. Thus
+optimizations have to be as orthogonal as possible from one another so as to be
+easily activated and deactivated.
 
 If this paradigm is followed by developers then they will rapidly be confronted
 with a huge optimization space to search. They will need to be able to test
@@ -1153,10 +1153,14 @@ manpower.
 For these reasons, a convolution library has been engineered with the help of
 BOAST.  The detailed API of the library will be described elsewhere.  The
 spirit is similar to BLAS-LAPACK API, where low-level operations are scheduled
-and called from high-level operations.  Each of the building blocks of these
-convolution libraries is optimally tuned by BOAST by choosing the sources
-providing the optimal kernel for the chosen computing platform.  The sources of
-these kernels are then collected and compiled to meet the API of the library.
+and called from high-level operations. The basic blocks will be comprised of
+unidimensional wavelet transforms and convolutions applied to multidimensional
+arrays. Combining those blocks will yield multidimensional transforms.
+
+Each of the building blocks of these convolution libraries is optimally tuned
+by BOAST by choosing the sources providing the optimal kernel for the chosen
+computing platform.  The sources of these kernels are then collected and
+compiled to meet the API of the library.
 
 A library written in this way might have an impact going largely beyond the
 community of BigDFT developers.  Indeed, convolutions are basic operations of
