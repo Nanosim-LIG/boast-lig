@@ -66,11 +66,11 @@
     \em
     \textbf{Notices:}
     The research leading to these results has received funding from the
-    European Community's Seventh Framework Programme (FP7/2007-2013) under
-    grant agreement n$^o$ 288777
+    European Community's Seventh Framework Programme [FP7/2007-2013] under
+    grant agreement n$^o$ 610402
     \\
     \\
-    \copyright 2011 Mont-Blanc Consortium Partners. All rights reserved.
+    \copyright Mont-Blanc 2 Consortium Partners. All rights reserved.
     }
 }
 
