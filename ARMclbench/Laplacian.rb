@@ -278,7 +278,7 @@ opt_space = GenericOptimization::new( :x_component_number => [1,2,4,8,16],
                                       :temporary_size     => [2,4],
                                       :vector_recompute   => [true, false],
                                       :load_overlap       => [true, false] )
-check = false
+check = true
 opt_space.each_random { |opt|
   id = opt.to_s            
   puts id
@@ -287,8 +287,7 @@ opt_space.each_random { |opt|
   sizes.each_index { |indx|
     width, height = sizes[indx]
     puts "#{width} x #{height} :"
-    output = NArray.byte(width*3,height)
-    output.random(256)
+    output = NArray.byte(width*3,height).random!(256)
     durations=[]
     (0..3).each {
       stats = k.run(inputs[indx], output, width, height, :global_work_size => [rndup((width*3/opt[:x_component_number].to_f).ceil,32), (height/opt[:y_component_number].to_f).ceil, 1], :local_work_size => [32, 1, 1])
