@@ -49,7 +49,7 @@
     \begin{center}
     \begin{tabular}{|l|p{0.7\textwidth}|}
     \hline
-    \color[rgb]{0.16, 0.43, 0.45}Contract Number & 288777 \\ \hline
+    \color[rgb]{0.16, 0.43, 0.45}Contract Number & 610402 \\ \hline
     \color[rgb]{0.16, 0.43, 0.45}Project Website & www.montblanc-project.eu \\ \hline
     \color[rgb]{0.16, 0.43, 0.45}Contractual Deadline & M\@deadline \\ \hline
     \color[rgb]{0.16, 0.43, 0.45}Dissemintation Level & \@level \\ \hline
@@ -67,7 +67,7 @@
     \textbf{Notices:}
     The research leading to these results has received funding from the
     European Community's Seventh Framework Programme [FP7/2007-2013] under
-    grant agreement n$^o$ 610402
+    grant agreement n$^o$ 288777 and 610402
     \\
     \\
     \copyright Mont-Blanc 2 Consortium Partners. All rights reserved.
