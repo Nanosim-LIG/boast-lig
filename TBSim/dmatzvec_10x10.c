@@ -3,7 +3,7 @@
 /* NOTES */
 /* Last review 10/01/2012 by YMN. */
 
-#ifdef SSE
+#if defined (SSE)
 
 #include <stdio.h>
 #include <emmintrin.h>
@@ -572,5 +572,282 @@ void dmatzvec_t_10x10_fast_(const int * const n, const int * const m, const doub
 //     a_ptr += (10);
 //   }
 // }
-#endif
+#elif defined (AVX)
 
+#include <stdio.h>
+#include <emmintrin.h>
+#include <pmmintrin.h>
+#include <immintrin.h>
+
+#define _mm256_set_m128d_r(hi, lo) _mm256_insertf128_pd(_mm256_castpd128_pd256(lo),(hi),1)
+
+#define Ci_equal_Ci_plus_Aij_Bj_for_i_in_0_9_avx(j, lda) \
+  B = _mm256_broadcast_pd((__m128d *) &b[2*j]); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+lda*j+1),_mm_loaddup_pd(a+lda*j  )); \
+  C0 = _mm256_add_pd(C0, _mm256_mul_pd(A, B)); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+lda*j+3),_mm_loaddup_pd(a+lda*j+2)); \
+  C1 = _mm256_add_pd(C1, _mm256_mul_pd(A, B)); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+lda*j+5),_mm_loaddup_pd(a+lda*j+4)); \
+  C2 = _mm256_add_pd(C2, _mm256_mul_pd(A, B)); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+lda*j+7),_mm_loaddup_pd(a+lda*j+6)); \
+  C3 = _mm256_add_pd(C3, _mm256_mul_pd(A, B)); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+lda*j+9),_mm_loaddup_pd(a+lda*j+8)); \
+  C4 = _mm256_add_pd(C4, _mm256_mul_pd(A, B))
+
+#define Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(j, lda) \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+lda*j+1),_mm_loaddup_pd(a+lda*j  )); \
+  C = _mm256_mul_pd(A, B0); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+lda*j+3),_mm_loaddup_pd(a+lda*j+2)); \
+  C = _mm256_add_pd(C, _mm256_mul_pd(A, B1)); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+lda*j+5),_mm_loaddup_pd(a+lda*j+4)); \
+  C = _mm256_add_pd(C, _mm256_mul_pd(A, B2)); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+lda*j+7),_mm_loaddup_pd(a+lda*j+6)); \
+  C = _mm256_add_pd(C, _mm256_mul_pd(A, B3)); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+lda*j+9),_mm_loaddup_pd(a+lda*j+8)); \
+  C = _mm256_add_pd(C, _mm256_mul_pd(A, B4)); \
+  _mm_store_pd(&c[2*j], _mm_add_pd(_mm256_extractf128_pd(C,1),_mm256_extractf128_pd(C,0) ))
+
+/* Fast 10x1 real matrix/complex vector product, using avx instruction set. */
+
+inline void dmatzvec_n_10x1_avx_(const double * const a, const double * const b, double * const c)
+{
+  __m256d A, B;
+  __m256d C0, C1, C2, C3, C4;
+
+  B = _mm256_broadcast_pd((__m128d *) &b[0]);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+1),_mm_loaddup_pd(a  ));
+  C0 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+3),_mm_loaddup_pd(a+2));
+  C1 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+5),_mm_loaddup_pd(a+4));
+  C2 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+7),_mm_loaddup_pd(a+6));
+  C3 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+9),_mm_loaddup_pd(a+8));
+  C4 = _mm256_mul_pd(A, B);
+
+  _mm256_store_pd(&c[0], C0);
+  _mm256_store_pd(&c[4], C1);
+  _mm256_store_pd(&c[8], C2);
+  _mm256_store_pd(&c[12], C3);
+  _mm256_store_pd(&c[16], C4);
+}
+
+/* Fast 10x10 real matrix/complex vector product, using AVX instruction set. */
+
+inline void dmatzvec_n_10x10_avx_(const double * const a, const double * const b, double * const c)
+{
+  __m256d A, B;
+  __m256d C0, C1, C2, C3, C4;
+
+  B = _mm256_broadcast_pd((__m128d *) &b[0]);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+1),_mm_loaddup_pd(a  ));
+  C0 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+3),_mm_loaddup_pd(a+2));
+  C1 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+5),_mm_loaddup_pd(a+4));
+  C2 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+7),_mm_loaddup_pd(a+6));
+  C3 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+9),_mm_loaddup_pd(a+8));
+  C4 = _mm256_mul_pd(A, B);
+
+  Ci_equal_Ci_plus_Aij_Bj_for_i_in_0_9_avx(1, 10);
+  Ci_equal_Ci_plus_Aij_Bj_for_i_in_0_9_avx(2, 10);
+  Ci_equal_Ci_plus_Aij_Bj_for_i_in_0_9_avx(3, 10);
+  Ci_equal_Ci_plus_Aij_Bj_for_i_in_0_9_avx(4, 10);
+  Ci_equal_Ci_plus_Aij_Bj_for_i_in_0_9_avx(5, 10);
+  Ci_equal_Ci_plus_Aij_Bj_for_i_in_0_9_avx(6, 10);
+  Ci_equal_Ci_plus_Aij_Bj_for_i_in_0_9_avx(7, 10);
+  Ci_equal_Ci_plus_Aij_Bj_for_i_in_0_9_avx(8, 10);
+  Ci_equal_Ci_plus_Aij_Bj_for_i_in_0_9_avx(9, 10);
+
+  _mm256_store_pd(&c[0], C0);
+  _mm256_store_pd(&c[4], C1);
+  _mm256_store_pd(&c[8], C2);
+  _mm256_store_pd(&c[12], C3);
+  _mm256_store_pd(&c[16], C4);
+}
+
+/* Fast 1x10 real matrix/complex vector product, using avx instruction set. */
+
+inline void dmatzvec_n_1x10_avx_(const double * const a, const double * const b, double * const c)
+{
+  __m256d A, C;
+  __m256d B0, B1, B2, B3, B4;
+
+  B0 = _mm256_load_pd(&b[0]);
+  B1 = _mm256_load_pd(&b[4]);
+  B2 = _mm256_load_pd(&b[8]);
+  B3 = _mm256_load_pd(&b[12]);
+  B4 = _mm256_load_pd(&b[16]);
+
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+1),_mm_loaddup_pd(a  )); \
+  C = _mm256_mul_pd(A, B0); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+3),_mm_loaddup_pd(a+2)); \
+  C = _mm256_add_pd(C, _mm256_mul_pd(A, B1)); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+5),_mm_loaddup_pd(a+4)); \
+  C = _mm256_add_pd(C, _mm256_mul_pd(A, B2)); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+7),_mm_loaddup_pd(a+6)); \
+  C = _mm256_add_pd(C, _mm256_mul_pd(A, B3)); \
+  A = _mm256_set_m128d_r(_mm_loaddup_pd(a+9),_mm_loaddup_pd(a+8)); \
+  C = _mm256_add_pd(C, _mm256_mul_pd(A, B4)); \
+  _mm_store_pd(&c[0], _mm_add_pd(_mm256_extractf128_pd(C,1),_mm256_extractf128_pd(C,0) ));
+}
+
+/* Fast 1x10 transpose real matrix/complex vector product, using AVX instruction set. */
+
+inline void dmatzvec_t_1x10_avx_(const double * const a, const double * const b, double * const c)
+{
+  __m256d A, C;
+  __m256d B0, B1, B2, B3, B4;
+
+  B0 = _mm256_load_pd(&b[0]);
+  B1 = _mm256_load_pd(&b[4]);
+  B2 = _mm256_load_pd(&b[8]);
+  B3 = _mm256_load_pd(&b[12]);
+  B4 = _mm256_load_pd(&b[16]);
+
+  Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(0, 10);
+}
+
+/* Fast 10x10 transpose real matrix/complex vector product, using AVX instruction set. */
+
+inline void dmatzvec_t_10x10_avx_(const double * const a, const double * const b, double * const c)
+{
+  __m256d A, C;
+  __m256d B0, B1, B2, B3, B4;
+
+  B0 = _mm256_load_pd(&b[0]);
+  B1 = _mm256_load_pd(&b[4]);
+  B2 = _mm256_load_pd(&b[8]);
+  B3 = _mm256_load_pd(&b[12]);
+  B4 = _mm256_load_pd(&b[16]);
+
+  Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(0, 10);
+  Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(1, 10);
+  Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(2, 10);
+  Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(3, 10);
+  Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(4, 10);
+  Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(5, 10);
+  Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(6, 10);
+  Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(7, 10);
+  Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(8, 10);
+  Cj_equal_Sum_i_in_0_9_Aij_Bi_avx(9, 10);
+}
+
+/* Fast 10x1 transpose real matrix/complex vector product, using AVX instruction set. */
+
+inline void dmatzvec_t_10x1_avx_(const double * const a, const double * const b, double * const c)
+{
+  __m256d A, B;
+  __m256d C0, C1, C2, C3, C4;
+
+  B = _mm256_broadcast_pd((__m128d *) &b[0]);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+1),_mm_loaddup_pd(a  ));
+  C0 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+3),_mm_loaddup_pd(a+2));
+  C1 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+5),_mm_loaddup_pd(a+4));
+  C2 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+7),_mm_loaddup_pd(a+6));
+  C3 = _mm256_mul_pd(A, B);
+  A =  _mm256_set_m128d_r(_mm_loaddup_pd(a+9),_mm_loaddup_pd(a+8));
+  C4 = _mm256_mul_pd(A, B);
+
+  _mm256_store_pd(&c[0], C0);
+  _mm256_store_pd(&c[4], C1);
+  _mm256_store_pd(&c[8], C2);
+  _mm256_store_pd(&c[12], C3);
+  _mm256_store_pd(&c[16], C4);
+}
+
+/* Fast 1x1, 10x10, 1x10 and 10x1 real matrix/complex vector products. */
+
+void dmatzvec_n_10x10_fast_(const int * const n, const int * const m, const double * const a, const double * const b, double * const c)
+{
+  if (*n == 10)
+  {
+    if (*m == 10)
+    {
+      dmatzvec_n_10x10_avx_(a, b, c);
+    }
+    else if (*m == 1)
+    {
+      dmatzvec_n_10x1_avx_(a, b, c);
+    }
+    else
+    {
+      printf("dmatzvec_n_10x10_fast : Error, invalid (n = %i, m = %i).\n", *n, *m);
+      exit(-1);
+    }
+  }
+  else if (*n == 1)
+  {
+    if (*m == 10)
+    {
+      dmatzvec_n_1x10_avx_(a, b, c);
+    }
+    else if (*m == 1)
+    {
+      c[0] = a[0]*b[0];
+      c[1] = a[0]*b[1];
+    }
+    else
+    {
+      printf("dmatzvec_n_10x10_fast : Error, invalid (n = %i, m = %i).\n", *n, *m);
+      exit(-1);
+    }
+  }
+  else
+  {
+    printf("dmatzvec_n_10x10_fast : Error, invalid (n = %i, m = %i).\n", *n, *m);
+    exit(-1);
+  }
+}
+
+/* Fast 1x1, 10x10, 1x10 and 10x1 transpose real matrix/complex vector products. */
+
+void dmatzvec_t_10x10_fast_(const int * const n, const int * const m, const double * const a, const double * const b, double * const c)
+{
+  if (*n == 10)
+  {
+    if (*m == 10)
+    {
+      dmatzvec_t_10x10_avx_(a, b, c);
+    }
+    else if (*m == 1)
+    {
+      dmatzvec_t_10x1_avx_(a, b, c);
+    }
+    else
+    {
+      printf("dmatzvec_t_10x10_fast : Error, invalid (n = %i, m = %i).\n", *n, *m);
+      exit(-1);
+    }
+  }
+  else if (*n == 1)
+  {
+    if (*m == 10)
+    {
+      dmatzvec_t_1x10_avx_(a, b, c);
+    }
+    else if (*m == 1)
+    {
+      c[0] = a[0]*b[0];
+      c[1] = a[0]*b[1];
+    }
+    else
+    {
+      printf("dmatzvec_t_10x10_fast : Error, invalid (n = %i, m = %i).\n", *n, *m);
+      exit(-1);
+    }
+  }
+  else
+  {
+    printf("dmatzvec_t_10x10_fast : Error, invalid (n = %i, m = %i).\n", *n, *m);
+    exit(-1);
+  }
+}
+
+#endif
