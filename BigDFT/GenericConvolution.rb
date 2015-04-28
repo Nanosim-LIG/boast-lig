@@ -1315,9 +1315,12 @@ class GenericConvolutionOperator1d
         vars.push( @a_y ) if a_y
         vars.push( @dot_in ) if @dot_in
         vars.push( tmp_cost.address ) if util == :cost
+        lds = []
+        lds.push( @nx[@idim] ) if @ld
+        lds.push( @ny[@idim] ) if @ld
         procname = ConvolutionOperator1d::new(@filter, BC::new(bc), dim_indexes, opts).base_name
         procname += "_" + util.to_s if util
-        args = dims + dats + vars
+        args = dims + lds + dats + vars
         if util == :cost then
           BOAST::pr @cost === 0
           args = dims + [tmp_cost]
