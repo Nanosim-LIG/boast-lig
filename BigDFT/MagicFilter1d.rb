@@ -21,14 +21,14 @@ def MagicFilter1d(filter, optims=GenericOptimization::new)
   return kernel
 end
 
-optims = GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true)
+n1 = 32
+n2 = 32
+n3 = 32
+optims = GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true, :dimensions => [n1,n2,n3])
 conv_filter = ConvolutionFilter::new('sfrf',SYM8_MF,8)
 ksym8 = MagicFilter1d( conv_filter, optims )
 puts ksym8
 
-n1 = 128
-n2 = 128
-n3 = 128
 input = NArray.float(n1,n2,n3).random!
 work1 = NArray.float(n1,n2,n3)
 work2 = NArray.float(n1,n2,n3)
