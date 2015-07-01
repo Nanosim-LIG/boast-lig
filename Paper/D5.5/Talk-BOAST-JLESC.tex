@@ -478,30 +478,106 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
 
   \begin{columns}
   \column{0.5\textwidth}
-  \scriptsize
+
   \begin{itemize}
-    \item Optimal parameters values Intel:
+    \item \footnotesize Optimal parameters values Intel:
     \begin{itemize}
-      \item x\_component\_number: 16
-      \item y\_component\_number: 4..2
-      \item vector\_length: 8
-      \item temporary\_size: 2
-      \item synthesizing\_loads: false
+      \item \scriptsize x\_component\_number: 16
+      \item \scriptsize y\_component\_number: 4..2
+      \item \scriptsize vector\_length: 8
+      \item \scriptsize temporary\_size: 2
+      \item \scriptsize synthesizing\_loads: false
     \end{itemize}
   \end{itemize}
   \column{0.5\textwidth}
-  \scriptsize
   \begin{itemize}
-    \item Optimal parameters values Intel:
+    \item \footnotesize Optimal parameters values Intel:
     \begin{itemize}
-      \item x\_component\_number: 4
-      \item y\_component\_number: 4
-      \item vector\_length: 4
-      \item temporary\_size: 2
-      \item synthesizing\_loads: false
+      \item \scriptsize x\_component\_number: 4
+      \item \scriptsize y\_component\_number: 4
+      \item \scriptsize vector\_length: 4
+      \item \scriptsize temporary\_size: 2
+      \item \scriptsize synthesizing\_loads: false
     \end{itemize}
   \end{itemize}
   \end{columns}
+  \vspace{1cm}
+  \centering Performance \emph{portability} among several different architectures.
+\end{frame}
+
+\section{Real Applications}
+
+\begin{frame}
+  \frametitle{Real Applications: BigDFT}
+  \begin{center}
+    \includegraphics[scale=0.40]{Res_synthesis}
+  \end{center}
+
+  \begin{itemize}
+    \item Reference is hand tuned code on target architecture
+    \item Toward a BLAS-like library fo wavelets
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Real Applications: SPECFEM3D}
+
+  \begin{itemize}
+    \item SPECFEM3D ported to OpenCL using BOAST
+    \begin{itemize}
+      \item Unified code base (CUDA/OpenCL)
+      \item Refactoring: kernel code base reduced by 40\%
+      \item Similar performance on NVIDIA Hardware
+      \item Non regression test for GPU kernels
+    \end{itemize}
+    \item On the Mont-Blanc prototype:
+    \begin{itemize}
+      \item OpenCL+MPI runs
+      \item Speedup of 3 for the GPU version
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}
+  \frametitle{Conclusion}
+  \begin{itemize}
+    \item BOAST v1.0 is released
+    \item BOAST language features:
+    \begin{itemize}
+      \item Unified C and FORTRAN with OpenMP support,
+      \item Unified OpenCL and CUDA support,
+      \item Support for vector programming.
+    \end{itemize}
+    \item BOAST runtime features:
+    \begin{itemize}
+      \item Generation of parametric kernels,
+      \item Parametric compilation,
+      \item Non-regression testing of kernels,
+      \item Benchmarking capabilities (PAPI support)
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Perspectives}
+  \begin{itemize}
+    \item Find and port new kernels to BOAST
+    \item Couple BOAST with other tools:
+    \begin{itemize}
+      \item Parametric space pruners (speed up optimization),
+      \item Binary analysis (guide optimization),
+      \item Source to source transformation (improve optimization),
+      \item Binary transformation (improve optimization).
+    \end{itemize}
+    \item Improve BOAST:
+    \begin{itemize}
+      \item Improve the eDSL to make it more intuitive,
+      \item Better vector support,
+      \item Gather feedback.
+    \end{itemize}
+  \end{itemize}
 \end{frame}
 
 \end{document}
