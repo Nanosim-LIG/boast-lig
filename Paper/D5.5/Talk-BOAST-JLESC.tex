@@ -217,7 +217,7 @@ void laplace(const int width,
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Example: Laplace Kernel from ARM}
+  \frametitle{Example: Laplace in OpenCL}
 \tiny
 \lstset{language=C,
 basicstyle=\ttfamily,
@@ -257,7 +257,7 @@ kernel laplace(const int width,
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Example: Laplace Kernel from ARM}
+  \frametitle{Example: Vectorizing}
 \lstset{language=C,
 basicstyle=\ttfamily,
 keywordstyle=\color{javagreen}\bfseries,
@@ -310,7 +310,7 @@ kernel laplace(const int width,
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Example: Laplace Kernel from ARM}
+  \frametitle{Example: Synthesizing Vectors}
 \lstset{language=C,
 basicstyle=\ttfamily,
 keywordstyle=\color{javagreen}\bfseries,
@@ -354,7 +354,7 @@ uchar16 v32_ = uchar16( v31_.s3456789a, v33_.s56789abc );
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Example: Laplace Kernel from ARM}
+  \frametitle{Example: Reducing Variable Size}
 \lstset{language=C,
 basicstyle=\ttfamily,
 keywordstyle=\color{javagreen}\bfseries,
@@ -401,7 +401,7 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
 \end{frame}
 
 \begin{frame}
-  \frametitle{Example: Laplace Kernel from ARM}
+  \frametitle{Example: Optimization Summary}
   \begin{itemize}
     \item Very complex process
     \item Intimate knowledge of the architecture required
@@ -434,7 +434,7 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
 \end{frame}
 
 \begin{frame}
-  \frametitle{Example: Laplace Kernel with BOAST}
+  \frametitle{Example: ARM results}
   \begin{center}
   \scriptsize
   \begin{tabular}{c|r|r|c|r|c}
@@ -462,7 +462,7 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
 \end{frame}
 
 \begin{frame}
-  \frametitle{Example: Laplace Kernel with BOAST}
+  \frametitle{Example: Performance Portability}
   \begin{center}
   \scriptsize
   \begin{tabular}{c|r|r|c|r|c}
@@ -538,10 +538,10 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
   \end{itemize}
 \end{frame}
 
-\section{Conclusion}
+\section{Conclusions}
 
 \begin{frame}
-  \frametitle{Conclusion}
+  \frametitle{Conclusions}
   \begin{itemize}
     \item BOAST v1.0 is released
     \item BOAST language features:
