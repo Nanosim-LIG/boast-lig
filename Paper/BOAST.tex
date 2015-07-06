@@ -9,7 +9,7 @@
 \newcommand{\productname}[1]{\textsc{#1}}
 \newcommand{\latin}[1]{\textit{#1}}
 \newcommand{\eg}{\latin{e.g.,}\xspace}
-\newcommand{\etc}[1]{\latin{etc}}
+\newcommand{\etc}[1]{\latin{etc...}}
 
 \newcommand{\Specfem}{\productname{Specfem 3D}\xspace}
 \newcommand{\Cuda}{\productname{Cuda}\xspace}
@@ -161,6 +161,34 @@ adding new functionalities can be quite costly.
 
 \section{Background and Motivation}
 
+  \subsection{Evolution of HPC Architectures}
+
+Evolution of HPC Architectures is rapid and also diverse: in the last 5
+years no less than 6 architectures have been number one in the Top500:
+\begin{itemize}
+\item Intel Processor + Xeon Phi (Tianhe-2)
+\item AMD Processor + NVIDIA GPU (Titan)
+\item IBM BlueGene/Q (Sequoia)
+\item Fujitsu SPARC64 (K computer)
+\item Intel Processor + NVIDIA GPU (Tianhe-1)
+\item AMD Processor (Jaguar)
+\end{itemize}
+Being able to efficiently use those architectures on such a small
+time-frame is challenging.
+
+The race to exascale is not going to simplify the environment. All of the above
+architectures can be considered. Network architectures also can be very
+diverse.  For instance European FP7 project DEEP considers using Accelerators
+(XEON Phi) while the European FP7 project Mont-Blanc considers using low-power
+embedded processor with integrated GPU.
+
+Running existing applications on those new architectures is an open research
+subject as well as an ongoing porting effort.  Thus, those projects have work
+packages dedicated to applications. Those work packages are dedicated to porting
+and optimizing Scientific applications on those new architectures. In the DEEP
+project six applications were selected for porting and optimizing, eleven were
+selected in the Mont-Blanc project.
+
   \subsection{Scientific Computing Applications}
 
 Scientific Computing Applications are usually developed by physicist, chemist or
@@ -211,34 +239,6 @@ What we want is computing kernels that are written:
 
 
 
-  \subsection{Evolution of HPC Architectures}
-
-Evolution of HPC Architectures is rapid and also diverse: in the last 5
-years no less than 6 architectures have been number one in the Top500:
-\begin{itemize}
-\item Intel Processor + Xeon Phi (Tianhe-2)
-\item AMD Processor + NVIDIA GPU (Titan)
-\item IBM BlueGene/Q (Sequoia)
-\item Fujitsu SPARC64 (K computer)
-\item Intel Processor + NVIDIA GPU (Tianhe-1)
-\item AMD Processor (Jaguar)
-\end{itemize}
-Being able to efficiently use those architectures on such a small
-time-frame is challenging.
-
-The race to exascale is not going to simplify the environment. All of the above
-architectures can be considered. Network architectures also can be very
-diverse.  For instance European FP7 project DEEP considers using Accelerators
-(XEON Phi) while the European FP7 project Mont-Blanc considers using low-power
-embedded processor with integrated GPU.
-
-Running existing applications on those new architectures is an open research
-subject as well as an ongoing porting effort.  Thus, those projects have work
-packages dedicated to applications. Those work packages are dedicated to porting
-and optimizing Scientific applications on those new architectures. In the DEEP
-project six applications were selected for porting and optimizing, eleven were
-selected in the Mont-Blanc project.
-
 \section{Motivating Example: OpenCL Laplace}
 \label{sec:laplace}
 
@@ -249,7 +249,7 @@ GPU~\cite{opencl_arm_training}.
 This is a good example of an algorithm that is simple in its formulation but
 can be complex to optimize because many different optimizations are available
 and can be combined together. The correct combination of optimizations will
-depend on the targeted architecture.
+depend on the target architecture.
 
 \subsection{The Laplace Filter}
 
@@ -419,7 +419,8 @@ image sizes.
 this point. For instance reducing or increasing the number of pixels each work
 item is processing. They can yield improved performance in some cases, especially
 when avoiding memory alignment problems. These optimizations will not be shown
-here but can be found in~\cite{opencl_arm_training}.
+here but can be found in~\cite{opencl_arm_training}. Others consist in tiling
+the problem space or improving the loads synthesis.
 
 \subsection{Improving the Methodology}
 
@@ -431,12 +432,13 @@ implementation.
 Nonetheless, the process is frustrating. The optimizations are never evaluated
 independently from one another. Some were arbitrarily configured (the number of
 pixels chosen for instance). Testing the different combinations of those
-optimizations and the different parameters would prove very costly in developer
-time and like all repetitive and tedious tasks, error prone. Thus every created
-kernel would have to be thoroughly tested to ensure no error was done.
+optimizations and the different parameters would be very costly in developer
+time and, moreover, like all repetitive and tedious tasks, error prone. Thus
+every created kernel would have to be thoroughly tested to ensure no error was
+done.
 
-In the next Section we will present our answer to this problematic: BOAST.
-BOAST is a framework dedicated to kernel description, optimization, regression testing
+In the next Section we will present our answer to these issues: BOAST.  BOAST is
+a framework dedicated to kernel description, optimization, regression testing
 and autotuning.
 
 \section{BOAST: Using Code Generation in Application Autotuning}
@@ -444,37 +446,32 @@ and autotuning.
 \begin{figure}
 \begin{center}
 \includegraphics[width=\textwidth]{BOAST_Workflow.pdf}
-\caption{Structure and Work-flow of the BOAST framework.}
+\caption{Structure and Workflow of the BOAST framework.}
 \label{fig:boast_workflow}
 \end{center}
 \end{figure}
 
 BOAST provides scientific application developers with a framework to develop and
 test application computing kernels~\cite{videau2013boast}.
-Figure~\ref{fig:boast_workflow} illustrates the envisioned work-flow and program
-structure.
-The user starts from an application kernel (either designed or implemented), and
-write it in a dedicated language (step 1).
-The language provides enough flexibility for
-the kernel to be meta-programmed with several orthogonal optimizations. Then the
-developer selects a kernel configuration and a target language. Those
-parameters define the output source code that will be generated by BOAST (step
-2). The resulting code source is then built according to the user specified
-compiler and options (step 3). If input data are available then the kernel can
-be benchmarked and tested for non regression. Based on the results, other
-optimizations can be selected (step 4) or new optimizations can be added to the
-BOAST sources. The process can be repeated until a good candidate is found on
-the target platform. The resulting kernel is then added to the program (step 5).
+Figure~\ref{fig:boast_workflow} illustrates the envisioned workflow and program
+structure.  The user starts from an application kernel (either designed or
+implemented), and writes it in a dedicated language (step 1).  The language
+provides enough flexibility for the kernel to be meta-programmed with several
+orthogonal optimizations. Then the developer selects a kernel configuration and
+a target language. Those parameters define the output source code that will be
+generated by BOAST (step 2). The resulting code source is then built according
+to the user specified compiler and options (step 3). If input data are available
+then the kernel can be benchmarked and tested for non regression. Based on the
+results, other optimizations can be selected (step 4) or new optimizations can
+be added to the BOAST sources. The process can be repeated until a good
+candidate is found on the target platform. The resulting kernel is then added to
+the program (step 5).
 
-Several steps in the work-flow can be automated: optimization and compiler flags
+Several steps in the workflow can be automated: optimization and compiler flags
 exploration, non regression testing, benchmarking... This automation can be
 scripted by the user or by interfacing other dedicated tools. In order
-to achieve those goals three aspects should be considered:
-\begin{itemize}
-\item code description,
-\item code generation,
-\item and kernel execution run-time.
-\end{itemize}
+to achieve those goals three aspects should be considered: code description,
+code generation, and kernel execution run-time.
 
 
   \subsection{Kernel Description Language}
@@ -488,7 +485,7 @@ to achieve those goals three aspects should be considered:
 %  \end{itemize}
 
 Usually computing kernels are hotspots of an HPC application, and they are most
-of the time based on a loop nest. A lot of efforts are dedicated to their tuning
+of the time based on loop nests. A lot of efforts are dedicated to their tuning
 and the obtained result is often quite different from the original procedure.
 Several transformations can be applied to such kernels. And those optimizations
 are often applied manually as compiler may fail to recognise the opportunity.
@@ -511,8 +508,8 @@ attributes...).
 \item Procedures have to be abstracted (reunite Fortran and C like languages,
 attributes...).
 \item Functions must be available.
-\item Variables, constants and functions must be composed in complex
-Expressions.
+\item Variables, constants and functions should be able to be composed in
+complex Expressions.
 \item Basic control structures (for, while, if/else...) have to be abstracted.
 \item Powerful array management (several dimensions, transformations,
 indexing...).
@@ -533,19 +530,23 @@ an abstraction in the context of an expression and in the context of the
 management of this expression. $c = a + b$, an expression that affects the
 results of $a + b$ to $c$  is not equal to $c \leftarrow a + b$, which saves the
 expression $a + b$ to a variable $c$. This is why an embedded domain specific
-language approach was selected~\cite{hudak1996building}. This allows for the
-coexistence of two languages: the host language and the Domain Specific Language (DSL).
-In our case, DSL allows the description of the kernel ($c = a + b$) while the host language
-provides the meta programming of the kernel ($c \leftarrow a + b$)%, cf Figure~\ref{fig:dsl}
-. Operator overloading of the host language will provide the familiar syntax
-programmers are accustomed to. The host language will also provide easy
-interfacing with libraries we might need during the development of our framework.
+language approach was selected~\cite{hudak1996building}. This feature allows for
+the coexistence of two languages: the host language and the Domain Specific
+Language (DSL).  In our case, DSL allows the description of the kernel ($c = a +
+b$) while the host language provides the meta programming of the kernel ($c
+\leftarrow a + b$). Operator overloading of the host language will provide the
+familiar syntax programmers are accustomed to.
 
 It was also important to have our constructs like \emph{for} loops to have a
 syntax approaching those commonly found in programming languages. To this end, we
 needed a language which could seamlessly pass a block of code to a function.
 Ruby~\cite{matsumoto2002ruby} is one such language. It has deep introspection
-capabilities as well. This is the main reason why it was selected.
+capabilities as well. This is the main reason why it was selected for BOAST.
+
+One of the added advantage of using a high-level scripting language like Ruby
+as the host language if its interfacing capabilities, providing an easy way
+to use the libraries needed during the development of the framework.
+
 
     \subsubsection{BOAST Keywords}
 
@@ -558,10 +559,10 @@ these keywords will be found in the next Figures.
 
 The \emph{decl} method is used to declare variables or procedures and functions.
 
-The \emph{pr} method calls the public \emph{pr} method of Objects it is
+The \emph{pr} method calls the public \emph{pr} method of objects it is
 called on. Each BOAST object is responsible for printing itself correctly
 depending on the BOAST configuration at the time the print public method is
-called. Calling directly the print method of a BOAST object yields the same
+called. Calling directly the \emph{pr} method of a BOAST object yields the same
 result.
 
 The \emph{opn} method can be used to print the beginning of a control
@@ -574,7 +575,7 @@ to close a control structure without an associated code block.
 
 BOAST defines several classes that are used to represent the structure of the
 code. These classes can be sorted in two groups, algebraic related and control
-flow related:
+flow related.
 
       \paragraph{Algebra}
 
@@ -629,11 +630,11 @@ l[k - (-5)] = 1.0;
 l[k + 1 - (-5)] = sin(i + 5);
 \end{lstlisting}
 \end{minipage}
-\caption{BOAST Code Snippet for Variables and Expressions}
+\caption{BOAST Code Snippet for Variables and Expressions.}
 \label{fig:BOAST_algebra}
 \end{figure}
 The first and most fundamental abstraction is named Variable. Variables have a
-type, a name and a set of named attributes. The existing attributes are mainly
+type, a name, and a set of named attributes. The existing attributes are mainly
 inspired from Fortran. Those attributes are not limited and can be arbitrarily
 enriched, allowing a lot of flexibility in Variable management.
 
@@ -663,9 +664,9 @@ the value 5. On Line~6 the \emph{j} Ruby variable is used to store the BOAST
 expression \emph{$i+5$}. This variable will the be used transparently through
 the rest of the program.
 
-On Line~8 we use the \emph{k} variable to index into the array \emph{l} using
-the bracket operator. Would the array be multidimensional the index would be
-comma separated, similar to Fortran notation.
+On Line~8 we use variable \emph{k} to index into array \emph{l} using the
+bracket operator. Would the array be multidimensional, the index would be comma
+separated, similar to Fortran notation.
 
 On the last line, a call to the \emph{sin} function is made through the creation
 of a FuncCall object.  The possibility to use this method is declared using the
@@ -721,14 +722,15 @@ for (i = 0; i <= 100; i += 1) {
 }
 \end{lstlisting}
 \end{minipage}
-\caption{BOAST Code Snippet for control structures}
+\caption{BOAST Code Snippet for control structures.}
 \label{fig:BOAST_control}
 \end{figure}
 
 The classical control structures are implemented. \emph{If}, \emph{For},
 \emph{While}, \emph{Case} are abstractions in BOAST matching the behavior of
-corresponding control structures in other languages. An exception is the For in
-BOAST more closely matches the for in Fortran than the one in C.
+corresponding control structures in other languages. An exception is the
+\emph{For} in BOAST matches more closely the \emph{For} in Fortran than the one
+in C.
 
 Figure~\ref{fig:BOAST_control} shows some basic usages of the control structures.
 The example shows a C macro or function that behaves similarly to the Fortran modulo
@@ -775,18 +777,19 @@ void magicfilter(const int32_t n, const int32_t ndat,
                  const double * x, double * y) {
 }
 \end{lstlisting}
-\caption{BOAST Code Snippet for Procedure}
+\caption{BOAST Code Snippet for Procedure.}
 \label{fig:BOAST_procedure}
 \end{figure}
 
-The last control structure is Procedure. It describes either procedures
-or functions. Figure~\ref{fig:BOAST_procedure} presents the use of this
-abstraction. It illustrates the signature of a real kernel from BigDFT. This kernel uses
-an input array \emph{x} and an output array \emph{y} of double precision
-numbers. Those arrays have two dimensions which depend on input variables
-\emph{n} and \emph{ndat}. We can see here the use of the \emph{opn} and
-\emph{close} keywords that are used to print a control structure without an
-associated Ruby block. This time we placed ourselves inside of BOAST namespace.
+The last control structure is Procedure. It describes either procedures or
+functions. Figure~\ref{fig:BOAST_procedure} presents the use of this
+abstraction. It illustrates the signature of a real kernel from BigDFT. This
+kernel uses an input array \emph{x} and an output array \emph{y}, both composed
+of double precision numbers. Those arrays have two dimensions which depend on
+input variables \emph{n} and \emph{ndat}. We can see here the use of the
+\emph{opn} and \emph{close} keywords that are used to print a control structure
+without an associated Ruby block. This time we placed ourselves inside the BOAST
+namespace.
 
 The generated outputs in Fortran (Listing~\ref{lst:BOAST_procedure_FORTRAN}) and
 C (Listing~\ref{lst:BOAST_procedure_C}) show the difference in meta-information that is
@@ -804,7 +807,7 @@ kept between both versions.
 
 In the previous Section we presented BOAST's language. This allows us to
 describe procedures and functions and to meta-program them using Ruby.
-Each version has to be compiled, linked and executed to assess its performance
+Each version has to be compiled, linked, and executed to assess its performance
 in order to find the best version of a computing kernel.  This can be very
 time consuming if this process cannot be automated. By enabling more versions
 for evaluation, the automation will bring improved portability, better performance,
@@ -822,11 +825,12 @@ allow this automation. Those aspects include:
   \subsubsection{Multi-target Language Generation}
 \label{sec:multitarget}
 Language availability and performance varies between platforms. It is thus
-important to express computing kernels in different languages, based
-on the availability and their respective merits on the target platform. Some
-languages have additional features, such as languages that target GPUs
-(OpenCL, CUDA). The developer should be given tools to determine what kind of
-language is currently used in order to be able to use those additional features.
+important to express computing kernels in different languages, based on the
+availability and their respective merits on the target platform. Some languages
+have additional features, such as languages that target GPUs (OpenCL, CUDA), or
+languages that support threading paradigms (OpenMP). The developer should be
+given tools to determine what kind of language is currently used in order to be
+able to use those additional features.
 
 Similarly the target language must be changed with ease in order to compare
 different alternatives. Two methods are dedicated to this task: \emph{set\_lang}
@@ -846,17 +850,17 @@ file, environment variables, and at kernel build time.
 This way the framework to test different compiler optimizations is completely
 available and performance study can include both kernel related parameters and
 compilation related parameters. This behavior is contained in the \emph{CKernel}
-class of BOAST. When instantiating this class a BOAST \emph{Procedure}
+class of BOAST. When instantiating this class, a BOAST \emph{Procedure}
 representing the entry point of the kernel is specified.
 
   \subsubsection{Execution}
 
 The next logical step is to benchmark the built kernel. BOAST offers a simple
-way to run a kernel that was successfully built while staying within BOAST.
-A built BOAST \emph{CKernel} exposes a run method that accepts arguments corresponding
-to the BOAST \emph{Procedure} used to instantiate the kernel. Arrays must be
-instances of \emph{NArray} which are numerical arrays that use C arrays
-underneath.
+way to run a kernel that was successfully built without the need to fork another
+process.  A built BOAST \emph{CKernel} exposes a run method that accepts
+arguments corresponding to the BOAST \emph{Procedure} used to instantiate the
+kernel. Arrays must be instances of \emph{NArray} which are numerical arrays
+that use C arrays underneath.
 
 Arrays which correspond to output parameters will be modified during the
 execution of the kernel so results can be checked. This allows for easy non
@@ -873,8 +877,8 @@ counters during each kernel execution.
 The non regression methodology presented before is viable provided input data
 can be generated at run-time. For instance, in the case of the Laplace kernel,
 generating an input image and the corresponding reference output image, using a
-reference implementation, is easy. Unfortunately it is not always possible, some
-applications have complex data patterns that are difficult to
+reference implementation, is easy. Unfortunately it is not always possible,
+because some applications have complex data patterns that are difficult to
 synthesize without running the full application. Thus BOAST offers a way to load
 binary data from the file system and use them as inputs of a kernel. Outputs can
 also be checked against those binary data thus enabling (almost) data oblivious
@@ -896,12 +900,12 @@ different implementations using the same programming model. A case-study of the
 port of a CUDA application to OpenCL is presented in
 Section~\ref{subsec:specfem}.
 
-The idea behind the tool is based on the assumption that the different GPU
-ports of the code should do the very same operations, at least at the logical
-level (the APIs will have \emph{implementation} differences, but they should
-offer nonetheless same functionalities). The usage of BOAST framework sustains
-this assumption, as both sets of kernels should be generated from the same
-source code.
+The idea behind this tool is based on the assumption that the different GPU
+ports of the code should perform the very same operations, at least at the
+logical level (the APIs will have \emph{implementation} differences, but they
+should offer nonetheless same functionalities). The usage of BOAST framework
+sustains this assumption, as both sets of kernels should be generated from the
+same source code.
 
 Hence, the verification and validation of the new port can be
 narrowed down to asserting that both codes apply the same operations
@@ -955,24 +959,21 @@ update_disp_veloc_kernel<128,1><4522,1>(
 );
 \end{lstlisting}
 
-Once two call traces have been generated by \code{GPUTrace}, the user
-can compare them with a graphical \code{diff} tool, and spot the
-different porting mistakes: two parameters reversed, an offset
-incorrectly applied, \etc{}
+Once two call traces have been generated by \code{GPUTrace}, the user can
+compare them with a graphical \code{diff} tool, and spot the different porting
+mistakes: two parameters reversed, an offset incorrectly applied, \etc{}
 
-By default, \code{GPUTrace} only prints a unique identifier (the
-creation index) for the memory buffers.  Additionally, \code{GPUTrace}
-supports several modifier flags. One flag can be activated
-to append the first bits of the buffer to the trace, printed in the
-right format, for visual inspection. Another flag can be set to
-dump the whole content of the buffer into a file, for a full
-inspection.
+By default, \code{GPUTrace} only prints a unique identifier (the creation index)
+for the memory buffers.  Additionally, \code{GPUTrace} supports several modifier
+flags. One flag can be activated to append the first bits of the buffer to the
+trace, printed in the right format, for visual inspection. Another flag can be
+set to dump the whole content of the buffer into a file, for a full inspection.
 
-This last option is also useful for generating \emph{replay buffers}
-for BOAST kernel execution. With a set of filters based on kernel
-names and execution counters, developers can precisely select which
-kernel execution parameters should be dumped, for further reuse as
-real-case benchmarks and non-regression testing.
+This last option is also useful to generate \emph{replay buffers} for BOAST
+kernel execution. With a set of filters based on kernel names and execution
+counters, developers can precisely select which kernel execution parameters
+should be dumped, for further reuse as real-case benchmarks and non-regression
+testing.
 
 \section{BOAST Use Cases}
 \label{use_cases}
@@ -994,18 +995,13 @@ performance?
 
     \subsubsection{Optimization Space}
 
-The list of already identified optimizations are:
-\begin{itemize}
-\item vectorization,
-\item intermediary data type,
-\item number of pixels processed,
-\item and synthesizing loads.
-\end{itemize}
-To create our generic implementation we decided to work at the component level
-rather than the pixel level. This approach leads to more flexibility and
-genericity when applying optimizations. We also decided to study the impact of
-another parameter which is the number of components to process on the column
-direction. This leads to being able to process tiles instead of only rows.
+The list of already identified optimizations are vectorization, intermediary
+data type, number of pixels processed, and synthesizing loads.  To create our
+generic implementation we decided to work at the component level rather than the
+pixel level. This approach leads to more flexibility and genericity when
+applying optimizations. We also decided to study the impact of another parameter
+which is the number of components to process on the column direction. This leads
+to being able to process tiles instead of only rows.
 
 Here are the parameters we finally selected for our kernel optimization and
 their possible values:
@@ -1046,7 +1042,7 @@ each configuration.
 \centering
 \begin{tabular}{c|r|r|c|r|c}
 % \hline
-  Image Size  & Naive (s) & Best (s) & Acceleration & BOAST (s) & Acceleration \\[4pt]
+  Image Size  & Naive (s) & Best (s) & Accel. & BOAST (s) & Accel. \\[4pt]
   \hline&&&&\\[-8pt]
 768 x 432   & 0.0107    & 0.00669  & x1.6         & 0.000639  & x16.7 \\
 % \hline
@@ -1071,9 +1067,8 @@ supports OpenCL 1.1. We see that the performance ratio between the different
 architectures is stable across image sizes.
 
 The optimization parameters selected are not the same for those architectures.
-Indeed, the Intel CPU favors kernels that have the parameters:
-\textit{x\_component\_number} = 16,
-\textit{vector\_length} = 8,
+Indeed, the Intel CPU favors kernels that have the parameters,
+\textit{x\_compo-nent\_number} = 16, \textit{vector\_length} = 8,
 \textit{temporary\_size} = 2 and \textit{synthesize\_loads} = false. Once again
 \textit{vector\_recompute} does not apply. \textit{y\_component\_number} varies
 from 4 to 2 when image size increase, thus decreasing task granularity as the
@@ -1081,14 +1076,15 @@ global work size increase. This result is unexpected and understanding why this
 happen could be interesting. The NVIDIA GPU favors processing square tiles:
 \textit{x\_component\_number} = 4, \textit{y\_component\_number} = 4,
 \textit{vector\_length} = 4, \textit{temporary\_size} = 2 and
-\textit{synthesize\_loads} = false. Once more, \textit{vector\_recompute} has no 
+\textit{synthesize\_loads} = false. Once more, \textit{vector\_recompute} has no
 meaning.
+
 
 \begin{table}
 \centering
 \begin{tabular}{c|r|r|c|r|c}
 % \hline
-  Image Size & BOAST ARM (s) & BOAST Intel & Ratio & BOAST NVIDIA & Ratio \\[4pt]
+  Image Size & BOAST ARM (s) & BOAST Intel & Ratio & BOAST NV & Ratio \\[4pt]
   \hline&&&&\\[-8pt]
 768 x 432   & 0.000639     & 0.000222    & x2.9  & 0.0000715    & x8.9  \\
 % \hline
@@ -1107,10 +1103,12 @@ meaning.
 
     \subsubsection{Laplace Conclusion}
 
-In this Subsection we have shown the interest of BOAST in optimizing a well-known
-algorithm across different architectures. Chosen optimization combinations
-are highly dependent on the targeted architecture. In the next Subsections we
-will show that our methodology also applies to real applications.
+In this Subsection we have shown the interest of BOAST in optimizing a
+well-known algorithm across different architectures. Chosen optimization
+combinations are highly dependent on the target architecture. But BOAST
+simplifies and speeds up the identification of the correct combination at the
+cost of metaprogramming. In the next Subsections we will show that our
+methodology also applies to real applications.
 
   \subsection{Creating an Auto-Tuned Convolution Library for BigDFT using
 BOAST}
@@ -1126,20 +1124,20 @@ calculations.
 
 As a matter of fact, Daubechies wavelets exhibit a set of properties which make
 them ideal for a precise and optimized DFT approach. In particular, their
-systematicity allows to provide a reliable basis set for high-precision
-results, whereas their locality (both in real and reciprocal space) is highly
-desired to improve the efficiency and the flexibility of the processing. Indeed,
-a localized basis set allows to optimize the number of degrees of freedom for a
+systematicity allows to provide a reliable basis set for high-precision results,
+whereas their locality (both in real and reciprocal space) is highly desired to
+improve the efficiency and the flexibility of the processing. Indeed, a
+localized basis set allows to optimize the number of degrees of freedom for a
 required accuracy~\cite{genovese2008daubechies}, which is highly desirable given
 the complexity and inhomogeneity of the systems under investigation nowadays.
 
-Despite the application is mainly written in Fortran, it currently includes
-360 kLOC and 70kLOC of Fortran and C languages, respectively, accounting for more
-than 50\% of the code base.  It is a parallel application
-based on the standards MPI~\cite{mpi} and OpenMP~\cite{openmp}.  It also
-supports CUDA~\cite{cuda} and OpenCL~\cite{opencl}.  In the recent years this
-code has been used for many scientific applications, and its development and
-user consortium is continuously growing.  Massively parallel computations are
+Despite that the application is mainly written in Fortran, it currently includes
+360 kLOC and 70 kLOC of Fortran and C languages, respectively, accounting for
+more than 50\% of the code base.  It is a parallel application based on the
+standards MPI~\cite{mpi} and OpenMP~\cite{openmp}.  It also supports
+CUDA~\cite{cuda} and OpenCL~\cite{opencl}.  In the recent years this code has
+been used for many scientific applications, and its development and user
+consortium is continuously growing.  Massively parallel computations are
 routinely executed with the BigDFT code, either in homogeneous or hybrid
 architectures.  In 2009, the French Bull-Fourier award was attributed for the
 implementation of the hybrid version of BigDFT~\cite{genovese2009density}.
@@ -1151,11 +1149,14 @@ implementation of the hybrid version of BigDFT~\cite{genovese2009density}.
     \subsubsection{BigDFT}
 
 In the Kohn-Sham (KS) formulation of DFT, the electrons are associated to
-wavefunctions (orbitals), which are represented arrays of floating point
+wavefunctions (orbitals), which are represented by arrays of floating point
 numbers. In wavelets formalism, the operators are written via convolutions with
 short, separable filters.  The detailed description of how these operations are
-defined is beyond the scope of this report and can be found in the BigDFT
-reference paper~\cite{genovese2008daubechies}.
+defined is beyond the scope of this paper and can be found in the BigDFT
+reference paper~\cite{genovese2008daubechies}. Convolutions are basic operations
+of lots of scientific application codes, like for example finite differences
+approaches, which are universally used in computational physics.
+
 
 % Convolutions are among the basic processing blocks of BigDFT. Special care
 % has to be taken regarding their performances. 
@@ -1224,21 +1225,17 @@ or the usage of wavelet-on-the-interval basis) can be added with limited
 manpower.
 
 For these reasons, a convolution library has been engineered with the help of
-BOAST.  The detailed API of the library will be described elsewhere.  The
+BOAST. The detailed API of the library is beyond the scope of this article. The
 spirit is similar to BLAS-LAPACK API, where low-level operations are scheduled
 and called from high-level operations. The basic blocks will be comprised of
 unidimensional wavelet transforms and convolutions applied to multidimensional
 arrays. Combining those blocks will yield multidimensional transforms.
 
-Each of the building blocks of these convolution libraries is optimally tuned
-by BOAST by choosing the sources providing the optimal kernel for the chosen
+Each of the building blocks of these convolution libraries is optimally tuned by
+BOAST by choosing the sources providing the optimal kernel for the chosen
 computing platform.  The sources of these kernels are then collected and
-compiled to meet the API of the library.
-
-A library written in this way might have an impact going largely beyond the
-community of BigDFT developers.  Indeed, convolutions are basic operations of
-lots of scientific application codes, like for example finite differences
-approaches, which are universally used in computational physics.
+compiled to meet the API of the library. A library written in this way might
+have an impact going largely beyond the community of BigDFT developers. 
 
 The interest in having a robust and optimally tuned library in this scientific
 field is therefore evident. Techniques are under investigation to provide also
@@ -1264,7 +1261,7 @@ Intel Xeon X5550 that was used to hand optimize the code.
 
 \begin{figure}
 \begin{center}
-\includegraphics[scale=0.7]{Res_synthesis}
+\includegraphics[width=\linewidth]{Res_synthesis}
 \end{center}
 \caption{Impact of Unrolling, Language and OpenMP on a Wavelet Transform}
 \label{fig:synthesis}
@@ -1543,7 +1540,7 @@ compilers/versions easing the exploration process.
 
 \section{Conclusion and Future Works}
 
-In this report we presented the BOAST infrastructure as well as its
+In this paper we presented the BOAST infrastructure as well as its
 application to three use cases from the Mont-Blanc project. Results are
 encouraging as BOAST proved to be a powerful and flexible tool that allowed
 gains in performance and performance portability.
