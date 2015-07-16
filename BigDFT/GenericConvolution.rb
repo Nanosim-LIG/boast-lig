@@ -1214,7 +1214,7 @@ class GenericConvolutionOperator1d
         n[0...idim].each { |val| ndat_left *= val }
       end
       if idim == ndim - 1 then
-        ndat_right == nil
+        ndat_right = nil
       else
         ndat_right = 1
         n[(idim+1)..-1].each { |val| ndat_right *= val }
