@@ -883,7 +883,7 @@ end
 def Poisson_conv(conv_filter, optims=GenericOptimization::new)
     
 
-  conv_operation = GenericConvolutionOperator1d::new(conv_filter, :transpose => 1, :work => false, :ld => false, :narr => false)
+  conv_operation = GenericConvolutionOperator1d::new(conv_filter, :transpose => 0, :work => false, :a_y => 1, :ld => false, :narr => false)
 
   #test of 1d kernels optimizations in view of many-d
   conv_operation.optimize(optims)
@@ -930,8 +930,6 @@ def fssnord3dmatnabla3var_lg_full(n1,n2,n3,hgrids)
 
   function_name = "fssnord3dmatnabla3var_lg_full"
   u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1),  BOAST::Dim(0, n2), BOAST::Dim(0, n3),3] )
-  du_1 = BOAST::Real("du_1", :dir => :out, :dim => [ BOAST::Dim(0, n1),  BOAST::Dim(0, n2), BOAST::Dim(0, n3)] )
-  du_2 = BOAST::Real("du_2", :dir => :out, :dim => [ BOAST::Dim(0, n1),  BOAST::Dim(0, n2), BOAST::Dim(0, n3)] )
   du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1),  BOAST::Dim(0, n2), BOAST::Dim(0, n3)] )
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
@@ -957,12 +955,10 @@ def fssnord3dmatnabla3var_lg_full(n1,n2,n3,hgrids)
   bc[2] = BC::PERIODIC
 
   p = BOAST::Procedure::new(function_name,[n01,n02,n03,u,du]){
-   BOAST::pr k2.procedure.call(3, 0, n, BC::PERIODIC, u, du_1)
-   BOAST::pr k2.run(3, 1, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 1], du_2)
-   BOAST::pr k2.run(3, 2, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 2], du)
-   BOAST::pr du === du+du_2+du_1
+   BOAST::pr k2.procedure.call(3, 0, n, BC::PERIODIC, u, du, 0.5)
+   BOAST::pr k2.procedure.call(3, 1, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 1], du, 0.5)
+   BOAST::pr k2.procedure.call(3, 2, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 2], du, 0.5)
   }
-
     kernel.procedure = p
     kernel.cost_function = lambda { |*args| 3*k2.cost(*args)+2 }
     return kernel

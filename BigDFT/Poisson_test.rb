@@ -71,32 +71,29 @@ diff.each { |elem|
 
 #3*1D version with boast convolutions : work
 
-n = NArray.int(3)
-n[0] = n01
-n[1] = n02
-n[2] = n03
-FILTER_x=FILTER.collect { |n| n / hgrids[0] }
-conv_filter = ConvolutionFilter::new('poisson',FILTER_x,8)
-optims = GenericOptimization::new(:unroll_range => 1, :mod_arr_test => true,:tt_arr_test => true, :dimensions => [n01,n02,n03])
+#n = NArray.int(3)
+#n[0] = n01
+#n[1] = n02
+#n[2] = n03
+#FILTER_x=FILTER.collect { |n| n / hgrids[0] }
+#conv_filter = ConvolutionFilter::new('poisson',FILTER_x,8)
+#optims = GenericOptimization::new(:unroll_range => 1, :mod_arr_test => true,:tt_arr_test => true, :dimensions => [n01,n02,n03])
 
-k2 = Poisson_conv(conv_filter, optims)
-k2.build(:openmp => true)
-bc = NArray.int(3)
-bc[0] = BC::PERIODIC
-bc[1] = BC::PERIODIC
-bc[2] = BC::PERIODIC
+#k2 = Poisson_conv(conv_filter, optims)
+#k2.build(:openmp => true)
+#bc = NArray.int(3)
+#bc[0] = BC::PERIODIC
+#bc[1] = BC::PERIODIC
+#bc[2] = BC::PERIODIC
 
-stats1 = k2.run(3, 0, n, BC::PERIODIC, u, du_3D)
-stats2 = k2.run(3, 1, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 1], du_3D2)
-stats3 = k2.run(3, 2, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 2], du_3D3)
+#stats1 = k2.run(3, 0, n, BC::PERIODIC, u, du_3D2,4646.0564)
+#stats2 = k2.run(3, 1, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 1], du_3D2,45484962.15656)
+#stats3 = k2.run(3, 2, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 2], du_3D2,0.1254615156)
 
-du_3D3= du_3D+du_3D2+du_3D3
-
-
-diff = (du_ref - du_3D3).abs
-diff.each { |elem|
-  raise "Warning: residue 3*1D too big: #{elem}" if elem > epsilon
-}
+#diff = (du_ref - du_3D2).abs
+#diff.each { |elem|
+#  raise "Warning: residue 3*1D too big: #{elem}" if elem > epsilon
+#}
 
 #attempt with a single kernel that calls the 3 convolutions -> fails
 
@@ -130,7 +127,7 @@ k2.run(n01,n02,n03,u,du_3D4)
 #stats = k.run(geocode, n01, n02, n03, u, du_3D2,3, nord, hgrids)
 #puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 n=0
-diff = (du_ref - du_3D3).abs
+diff = (du_ref - du_3D4).abs
 diff.each { |elem|
   n=n+1 if elem > epsilon
 }
