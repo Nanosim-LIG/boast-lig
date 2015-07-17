@@ -6,6 +6,9 @@ n01 = 200
 n02 = 200
 n03 = 200
 nord = 16
+
+filter= NArray.float(nord, nord)
+
 u = NArray.float(n01,n02,n03,3).random
 du_ref = NArray.float(n01,n02,n03)
 du = NArray.float(n01,n02,n03)
@@ -27,12 +30,15 @@ $parser = OptionParser::new do |opts|
   opts.parse!
 end
 
+
+generate_filter.run(nord, filter)
+
 k = fssnord3dmatnabla3var_lg_ref
-stats = k.run(geocode, n01, n02, n03, u, du_ref, nord, hgrids)
+stats = k.run(geocode, n01, n02, n03, u, du_ref, nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 k = fssnord3dmatnabla3var_lg_opt
-stats = k.run(geocode, n01, n02, n03, u, du, nord, hgrids)
+stats = k.run(geocode, n01, n02, n03, u, du, nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 diff = (du_ref - du).abs
@@ -42,11 +48,11 @@ diff.each { |elem|
 
 
 k = fssnord3dmatnabla3var_lg_1d
-stats = k.run(geocode, n01, n02, n03, u, du_3D,1, nord, hgrids)
+stats = k.run(geocode, n01, n02, n03, u, du_3D,1, nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
-stats = k.run(geocode, n01, n02, n03, u, du_3D,2, nord, hgrids)
+stats = k.run(geocode, n01, n02, n03, u, du_3D,2, nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
-stats = k.run(geocode, n01, n02, n03, u, du_3D,3, nord, hgrids)
+stats = k.run(geocode, n01, n02, n03, u, du_3D,3, nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 
