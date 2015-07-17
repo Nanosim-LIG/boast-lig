@@ -959,6 +959,7 @@ def fssnord3dmatnabla3var_lg_full(n1,n2,n3,hgrids)
    BOAST::pr k2.procedure.call(3, 1, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 1], du, 0.5)
    BOAST::pr k2.procedure.call(3, 2, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 2], du, 0.5)
   }
+  BOAST::pr p
     kernel.procedure = p
     kernel.cost_function = lambda { |*args| 3*k2.cost(*args)+2 }
     return kernel
