@@ -7,7 +7,7 @@ n02 = 200
 n03 = 200
 nord = 16
 
-filter= NArray.float(nord, nord)
+filter= NArray.float(nord+1, nord+1)
 
 u = NArray.float(n01,n02,n03,3).random
 du_ref = NArray.float(n01,n02,n03)
