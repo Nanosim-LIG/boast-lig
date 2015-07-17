@@ -957,10 +957,10 @@ def fssnord3dmatnabla3var_lg_full(n1,n2,n3,hgrids)
   bc[2] = BC::PERIODIC
 
   p = BOAST::Procedure::new(function_name,[n01,n02,n03,u,du]){
-   k2.run(3, 0, n, BC::PERIODIC, u, du_1).print
-   k2.run(3, 1, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 1], du_2).print
-   k2.run(3, 2, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 2], du).print
-  pr du === du+du_2+du_1
+   BOAST::pr k2.procedure.call(3, 0, n, BC::PERIODIC, u, du_1)
+   BOAST::pr k2.run(3, 1, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 1], du_2)
+   BOAST::pr k2.run(3, 2, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 2], du)
+   BOAST::pr du === du+du_2+du_1
   }
 
     kernel.procedure = p
