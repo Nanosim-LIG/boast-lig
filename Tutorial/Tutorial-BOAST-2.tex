@@ -145,7 +145,7 @@ SUBROUTINE test_proc(a, b)
   integer(kind=4) :: a
   real(kind=8) :: b
 007:0> BOAST::lang = BOAST::C
-008:0> BOAST::decl p
+008:0> BOAST::opn p
 void test_proc(int32_t a, double b){
 009:0> BOAST::close p
 }
@@ -206,8 +206,6 @@ k.build
 \tiny
 \begin{lstlisting}
 require 'narray'
-input  = NArray.float(1024).random
-output = NArray.float(1024)
 n = BOAST::Int(  "n", :dir => :in )
 a = BOAST::Real( "a", :dir => :in,  :dim => [BOAST::Dim(n)] )
 b = BOAST::Real( "b", :dir => :out, :dim => [BOAST::Dim(n)] )
@@ -220,9 +218,13 @@ p = BOAST::Procedure( "test_proc", [n, a, b] ) {
 k = BOAST::CKernel::new
 BOAST::pr p
 k.procedure = p
+
+input  = NArray.float(1024).random
+output = NArray.float(1024)
 k.run(input.length, input, output)
-(output - input).each {
-  |val| raise "Error!" if (val-2).abs > 1e-15 }
+(output - input).each { |val|
+  raise "Error!" if (val-2).abs > 1e-15
+}
 stats = k.run(input.length, input, output)
 puts "#{stats[:duration]} s"
 > 4.911e-06 s
@@ -272,30 +274,27 @@ end
 \tiny
 \begin{lstlisting}
 n = 1024*1024
-a = NArray.float(n).random
-b = NArray.float(n).random
-c = NArray.float(n)
-c_ref = NArray.float(n)
+a = NArray.sfloat(n).random
+b = NArray.sfloat(n).random
+c = NArray.sfloat(n)
+
 epsilon = 10e-15
-set_lang( FORTRAN )
-k = vector_add
-k.run(n,a,b,c_ref)
-[C, CL, CUDA].each { |lang|
-  set_lang( lang )
-  c.random
+
+c_ref = a + b
+
+[:FORTRAN, :C, :CL, :CUDA].each { |l|
+  set_lang( BOAST.const_get(l)  )
+  puts "#{l}:"
   k = vector_add
-  case lang
-  when CL
-    k.run(n,a,b,c, :global_work_size => [rndup(n,32), 1,1], :local_work_size => [32,1,1] )
-  when CUDA
-    k.run(n,a,b,c, :block_number => [rndup(n,32)/32, 1,1], :block_size => [32,1,1] )
-  else
-    k.run(n,a,b,c)
-  end
-  (c_ref - c).abs.each { |diff|
+  puts k.print
+  c.random!
+  k.run(n, a, b, c, :global_work_size => [n,1,1], :local_work_size => [32,1,1])
+  diff = (c_ref - c).abs
+  diff.each { |elem|
     raise "Warning: residue too big: #{elem}" if elem > epsilon
   }
 }
+puts "Success!"
 \end{lstlisting}
 \end{frame}
 \subsection{Building Kernels}
