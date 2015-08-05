@@ -263,7 +263,7 @@ stats_a = []
 stats_a.push k5.run(geocode, n01,n02,n03,hgrids,u,du0,du1,du2)
 
 
-epsilon=10e-13
+epsilon=10e-11
 diff = (du_ref[0..(n01-1), 0..(n02-1), 0..(n03-1), 0] - du0).abs
 diff.each { |elem|
   raise "Warning: residue 0 too big: #{elem}" if elem > epsilon
