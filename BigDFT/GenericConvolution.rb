@@ -126,6 +126,52 @@ class WaveletFilter
   end
 end
 
+class PoissonFilter
+  attr_reader :low
+  attr_reader :name
+  attr_reader :center
+  attr_reader :fil_array, :filters_array
+  attr_reader :length
+  attr_reader :filters
+  attr_reader :fil
+  # extremes of the filter, calculated via its central point (integers)
+  attr_reader :lowfil_val, :upfil_val
+  # extremes of the filter, calculated via its central point (BOAST object)
+  attr_reader :lowfil, :upfil
+  # name of the filter
+  attr_reader :name
+  def initialize(name, filts,nord)
+    @fil_array = filts.dup
+    @center = nord/2
+    #@center -= @center%2
+    tmp_array = []
+    @filters=[]
+    index=0
+    @fil_array.each_with_index { |e,i|
+      @filters[i]=ConvolutionFilter::new(name+"_#{i}", e, @center)
+        e.each{|val|
+            tmp_array[index]=val
+            index= index+1
+        }    
+    }
+    arr = BOAST::ConstArray::new(tmp_array,BOAST::Real)
+    @filters_array = BOAST::Real("#{name}_fil",:constant => arr,:dim => [ BOAST::Dim(0,(2*@center+1)*(2*@center+1)-1) ])
+    @fil = @filters[@center].fil
+
+    @length = @fil_array.length
+    @name = name
+    @lowfil_val = -center
+    @upfil_val = @filters[@center].length - center - 1
+    @lowfil = BOAST::Int("lowfil",:constant => @lowfil_val)
+    @upfil = BOAST::Int("upfil",:constant => @upfil_val)
+  end
+
+def filters
+  return @filters
+end
+
+end
+
 # determine the BC of the convolutions
 #        Typical values are 0 : periodic BC, the size of input and output arrays are identical
 #                           1 : Free BC, grow: the size of the output array is equal to the 
@@ -136,13 +182,15 @@ end
 #                      but not viceversa as the number of point treated is lower.
 #                         10:  Free BC, the size of input and output arrays are identical
 #                              (loss of information)
+#                          -2 : Non periodic BC, for nabla operators
 class BoundaryConditions
   # conditions names
   PERIODIC = 0
   GROW = 1
   SHRINK = -1
+  NPERIODIC = -2
   FREE = 2
-  CONDITIONS = [PERIODIC, GROW, SHRINK]
+  CONDITIONS = [PERIODIC, GROW, SHRINK, NPERIODIC]
   # determine if the boundary condition is free or not
   attr_reader :free 
   # name of the boundary condition, used for the name of the routines
@@ -151,17 +199,24 @@ class BoundaryConditions
   attr_reader :grow
   # determine if the convolution is a shrink-like type (cannot be true if grow is true)
   attr_reader :shrink
+  # determine if the convolution is non periodic
+  attr_reader :nper
   # original id of the boundary conditions
   attr_reader :id
 
   def initialize(ibc)
     @id     = ibc
-    @free   = (ibc != PERIODIC)
+    @free   = (ibc != PERIODIC && ibc != NPERIODIC)
+    @nper   = (ibc == NPERIODIC)
     @grow   = (ibc == GROW)
     @shrink = (ibc == SHRINK)
     @discard = (ibc == FREE)
     if not @free then
-      @name = 'p'
+      if not @nper then
+        @name = 'p'
+      else
+        @name = 'np'
+      end
     else
       @name = 'f'
       if @grow then
@@ -316,6 +371,7 @@ class ConvolutionOperator1d
     @ld = options[:ld]
     @kinetic = options[:kinetic]
     @wavelet = options[:wavelet]
+    @poisson = options[:poisson]
     if @wavelet then
       @filter.default_wavelet = @wavelet
     end
@@ -353,6 +409,9 @@ class ConvolutionOperator1d
       else
         @vars.push @a_y = BOAST::Real("a_y",:dir => :in) if options[:a_y]
       end
+    end
+    if @poisson then
+      @vars.push @h =  BOAST::Real("h", :dir => :in)
     end
     @vars.push @dot_in = BOAST::Real("dot_in",:dir => :out) if options[:dot_in]
     @cost = BOAST::Int("cost", :dir => :out)
@@ -579,6 +638,7 @@ class ConvolutionOperator1d
     nscal+=1 if @a
     nscal+=1 if @a_x
     nscal+=1 if @a_y
+    nscal+=1 if @h
     nscal.times{vars.push(0.5)}
     vars.push(NArray::new(type, 1).random) if @dot_in
     return vars
@@ -707,6 +767,9 @@ class ConvolutionOperator1d
         BOAST::decl @filter.high_reverse_even.fil
         BOAST::decl @filter.high_reverse_odd.fil
       end
+    elsif @poisson and @bc.nper  then
+      BOAST::decl @filter.filters_array
+      BOAST::decl @filter.fil
     else
       BOAST::decl @filter.fil
     end
@@ -903,11 +966,11 @@ class ConvolutionOperator1d
         end
       end
       if @bc.free or (side == :center) then
-        i_in = input_index(unro, iters, ind, processed_dim, l)
+        i_in = input_index(unro, iters, ind, processed_dim, l, nil, nil, side)
       elsif mods then
         i_in = input_index(unro, iters, ind, processed_dim, l, nil, mods, side) 
       else
-        i_in = input_index(unro, iters, ind, processed_dim, l, @dims[processed_dim])
+        i_in = input_index(unro, iters, ind, processed_dim, l, @dims[processed_dim],nil, side)
       end
       if @wavelet then
         i_in[0].flatten!
@@ -923,12 +986,22 @@ class ConvolutionOperator1d
           BOAST::pr out_even === out_even + @x[*(i_in[1])]*@filter.high_reverse_odd.fil[l]
           BOAST::pr out_odd === out_odd + @x[*(i_in[1])]*@filter.high_reverse_even.fil[l]
         end
+      elsif @poisson and @bc.nper and (side != :center) then
+        if(side == :begin) then
+#          BOAST::pr testindex = iters[processed_dim] - @filter.upfil
+          BOAST::pr out === out + @x[*i_in]*@filter.filters_array[((iters[processed_dim] - (@filter.upfil))*(2*@filter.center+1)) + (@filter.center)*(2*@filter.center+1) + (l) + (@filter.center) ]
+        else
+#          BOAST::pr testindex = iters[processed_dim] + @filter.lowfil - @dims[processed_dim]+1
+          BOAST::pr out === out + @x[*i_in]*@filter.filters_array[((iters[processed_dim] + (@filter.center) - @dims[processed_dim] +1)*(2*@filter.center+1)) + (@filter.center)*(2*@filter.center+1) + (l) + @filter.center]
+        end
+
       else
         BOAST::pr out === out + @x[*i_in]*@filter.fil[l]
       end
     }
   end
 
+  
   def post_process_and_store_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
     processed_dim = @dim_indexes[-1]
     (0...tlen).each{ |ind|
@@ -993,7 +1066,11 @@ class ConvolutionOperator1d
         #to be controlled in the case of non-orthorhombic cells for kinetic operations
         BOAST::pr out === out + @x2[*i_in] if @x2
         if not @no_temp then
-          if @accumulate or (@kinetic == :inplace and not @options[:zero_out])  then
+          if @poisson and @accumulate
+            BOAST::pr out === out / @h + @y[*i_out]
+          elsif @poisson
+            BOAST::pr out === out / @h
+          elsif @accumulate or (@kinetic == :inplace and not @options[:zero_out])  then
             BOAST::pr out === out + @y[*i_out]
           elsif @a_y then
             BOAST::pr out === out +  @a_y * @y[*i_out]
@@ -1029,7 +1106,9 @@ class ConvolutionOperator1d
   ## processed dimension as well as the position in the convolution
   def input_index(unrolling_dim, iters,unroll_index,processed_dim=nil,lconv_index=nil,
                         ndim_processed=nil,wrapping_array=nil,side=nil)
-    if ndim_processed then
+    if @poisson and @bc.nper and (side != :center) then
+      i_in = output_index_k_nper(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
+    elsif ndim_processed then
       i_in = output_index_k_mod(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,ndim_processed)
     elsif wrapping_array then
       i_in = output_index_k_mod_arr(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
@@ -1065,7 +1144,9 @@ class ConvolutionOperator1d
   ## processed dimension as well as the position in the convolution
   def output_index(unrolling_dim, iters,unroll_index,processed_dim=nil,lconv_index=nil,
                         ndim_processed=nil,wrapping_array=nil,side=nil)
-    if ndim_processed then
+    if @poisson and @bc.nper and (side != :center) then
+      i_out = output_index_k_nper(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
+    elsif ndim_processed then
       i_out = output_index_k_mod(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,ndim_processed)
     elsif wrapping_array then
       i_out = output_index_k_mod_arr(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
@@ -1119,6 +1200,19 @@ class ConvolutionOperator1d
       return (0...iters.length).collect { |indx| processed_dim == indx ? wrapping_array[lconv_index +iters[processed_dim]] : i_out[indx]}
     end
   end
+
+  # index in the external region wrapped around (non periodic BC), 
+  # all the indexes close to the bound are the same, (filter will differ)
+  def output_index_k_nper(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,wrapping_array,side)
+    i_out=output_index_unroll(unrolling_dim, iters,unroll_index)
+    if (side == :end) then
+      return (0...iters.length).collect { |indx| 
+        processed_dim == indx ? (lconv_index) + (@filter.lowfil) + @dims[processed_dim] -1 : i_out[indx]}
+    else
+      return (0...iters.length).collect { |indx| processed_dim == indx ? lconv_index + (@filter.upfil) : i_out[indx]}
+    end
+  end
+
   # index in the external region wrapped around (periodic BC), where the wrapping is given by the integer division
   def output_index_k_mod(unrolling_dim, iters,unroll_index,processed_dim,lconv_index,ndim_processed)
     i_out=output_index_unroll(unrolling_dim, iters,unroll_index)
@@ -1135,6 +1229,7 @@ class GenericConvolutionOperator1d
     @narr = options[:narr]
     @wavelet = options[:wavelet]
     @kinetic = options[:kinetic]
+    @poisson = options[:poisson]
 
     @vars = []
     @vars.push @ndim  = BOAST::Int( "d",    :dir => :in )
@@ -1374,6 +1469,8 @@ class GenericConvolutionOperator1d
           print_call_param_a.call( BC::GROW )
         }, BC::SHRINK, lambda {
           print_call_param_a.call( BC::SHRINK )
+        }, BC::NPERIODIC, lambda {
+          print_call_param_a.call( BC::NPERIODIC )
         })
       }
       BOAST::pr BOAST::If( @idim == 0, lambda {
@@ -1731,6 +1828,21 @@ class GenericConvolutionOperator
         opt.update( opts )
         BOAST::pr BOAST::Case( @bc[indx], BC::PERIODIC, lambda {
           procname = ConvolutionOperator1d::new(@filter, BC::new(BC::PERIODIC), dim_indexes, opt).base_name
+
+          if multi_conv then
+            BOAST::pr ndat_tot_out === ndat_tot_out * dims_actual[indx] if not @ld
+            dats[0] = (datas[0][ndat_tot_in*j+1]).address
+            dats[1] = (datas[1][ndat_tot_out*j+1]).address
+            f.pr
+          else
+            dats = datas.dup
+          end
+          BOAST::pr @procs[procname].call( *vars, *dats, *vars2 )
+          f.close if multi_conv
+          BOAST::pr dims_actual[indx] === @ny[indx]  if @ld
+
+        },BC::NPERIODIC, lambda {
+          procname = ConvolutionOperator1d::new(@filter, BC::new(BC::NPERIODIC), dim_indexes, opt).base_name
 
           if multi_conv then
             BOAST::pr ndat_tot_out === ndat_tot_out * dims_actual[indx] if not @ld

@@ -251,11 +251,11 @@ EOF
 end
 
 
-def fssnord3dmatnabla3var_lg_ref
+def fssnord3dmatdiv3var_lg_ref
   lang = BOAST::get_lang
   BOAST::set_lang(BOAST::FORTRAN)
   kernel = BOAST::CKernel::new
-  function_name = "fssnord3dmatnabla3var_lg_ref"
+  function_name = "fssnord3dmatdiv3var_lg_ref"
   geocode = BOAST::Int("geocode", :dir => :in )
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
@@ -267,7 +267,7 @@ def fssnord3dmatnabla3var_lg_ref
   hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
   p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,nord,hgrids,c1D])
   kernel.code.print <<EOF
-subroutine fssnord3dmatnabla3var_lg_ref(geocode,n01,n02,n03,u,du,nord,hgrids,c1D)
+subroutine fssnord3dmatdiv3var_lg_ref(geocode,n01,n02,n03,u,du,nord,hgrids,c1D)
   implicit none
 
 !  character(len=1), intent(in) :: geocode
@@ -419,7 +419,7 @@ subroutine fssnord3dmatnabla3var_lg_ref(geocode,n01,n02,n03,u,du,nord,hgrids,c1D
      end do
   end do
 
-end subroutine fssnord3dmatnabla3var_lg_ref
+end subroutine fssnord3dmatdiv3var_lg_ref
 
 EOF
   kernel.procedure = p
@@ -427,12 +427,552 @@ EOF
   return kernel
 end
 
-#version without all the *** divisions, separating the 3 convolutions, and with openmp
-def fssnord3dmatnabla3var_lg_opt
+
+def fssnord3dmatdiv3varde2_lg_ref
   lang = BOAST::get_lang
   BOAST::set_lang(BOAST::FORTRAN)
   kernel = BOAST::CKernel::new
-  function_name = "fssnord3dmatnabla3var_lg_opt"
+  function_name = "fssnord3dmatdiv3varde2_lg_ref"
+  geocode = BOAST::Int("geocode", :dir => :in )
+  n01 = BOAST::Int("n01", :dir => :in)
+  n02 = BOAST::Int("n02", :dir => :in)
+  n03 = BOAST::Int("n03", :dir => :in)
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
+  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03),3] )
+  du2 = BOAST::Real("du2", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
+  nord = BOAST::Int("nord", :dir => :in)
+  c1D = BOAST::Real("c1D", :dir => :in, :dim =>  [ BOAST::Dim(-nord/2,nord/2), BOAST::Dim(-nord/2,nord/2)])
+  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
+  p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,du2,nord,hgrids,c1D])
+  kernel.code.print <<EOF
+subroutine fssnord3dmatdiv3varde2_lg_ref(geocode,n01,n02,n03,u,du,du2,nord,hgrids,c1D)
+  implicit none
+  !c..declare the pass
+  integer, intent(in) :: geocode 
+  integer, intent(in) :: n01,n02,n03,nord
+  real(kind=8), dimension(3), intent(in) :: hgrids
+  real(kind=8), dimension(n01,n02,n03) :: u
+  real(kind=8), dimension(n01,n02,n03,3) :: du
+  real(kind=8), dimension(n01,n02,n03) :: du2
+
+  !c..local variables
+  integer :: n,m,n_cell
+  integer :: i,j,ib,i1,i2,i3,ii
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
+  real(kind=8) :: hx,hy,hz
+  logical :: perx,pery,perz
+
+  n = nord+1
+  m = nord/2
+  hx = hgrids(1)!acell/real(n01,kind=8)
+  hy = hgrids(2)!acell/real(n02,kind=8)
+  hz = hgrids(3)!acell/real(n03,kind=8)
+  n_cell = max(n01,n02,n03)
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+
+  perx=(geocode /= 1)
+  pery=(geocode == 2)
+  perz=(geocode /= 1)
+
+
+  ! Beware that n_cell has to be > than n.
+  if (n_cell.lt.n) then
+     call f_err_throw('Ngrid in has to be setted > than n=nord + 1')
+     !stop
+  end if
+
+  !Only nord=2,4,6,8,16
+
+  select case(nord)
+  case(2,4,6,8,16)
+     !O.K.
+  case default
+     write(*,*)'Only nord-order 2,4,6,8,16 accurate first derivative'
+     stop
+  end select
+
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+
+           du(i1,i2,i3,1) = 0.0d0
+           du2(i1,i2,i3) = 0.0d0
+
+           if (i1.le.m) then
+            if (perx) then
+             do j=-m,m
+              ii=modulo(i1 + j + n01 - 1, n01 ) + 1
+              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-m-1)*u(j+m+1,i2,i3)/hx
+             end do
+            end if
+           else if (i1.gt.n01-m) then
+            if (perx) then
+             do j=-m,m
+              ii=modulo(i1 + j - 1, n01 ) + 1
+              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)/hx
+             end do
+            end if
+           else
+              do j=-m,m
+                 du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(i1 + j,i2,i3)/hx
+              end do
+           end if
+
+           du2(i1,i2,i3) = du(i1,i2,i3,1)*du(i1,i2,i3,1)
+           du(i1,i2,i3,2) = 0.0d0
+
+           if (i2.le.m) then
+            if (pery) then
+             do j=-m,m
+              ii=modulo(i2 + j + n02 - 1, n02 ) + 1
+              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-m-1)*u(i1,j+m+1,i3)/hy
+             end do
+            end if
+           else if (i2.gt.n02-m) then
+            if (pery) then
+             do j=-m,m
+              ii=modulo(i2 + j - 1, n02 ) + 1
+              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)/hy
+             end do
+            end if
+           else
+              do j=-m,m
+                 du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,i2 + j,i3)/hy
+              end do
+           end if
+
+           du2(i1,i2,i3) = du2(i1,i2,i3) + du(i1,i2,i3,2)*du(i1,i2,i3,2)
+
+           du(i1,i2,i3,3) = 0.0d0
+
+           if (i3.le.m) then
+            if (perz) then
+             do j=-m,m
+              ii=modulo(i3 + j + n03 - 1, n03 ) + 1
+              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-m-1)*u(i1,i2,j+m+1)/hz
+             end do
+            end if
+           else if (i3.gt.n03-m) then
+            if (perz) then
+             do j=-m,m
+              ii=modulo(i3 + j - 1, n03 ) + 1
+              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)/hz
+             end do
+            end if
+           else
+              do j=-m,m
+                 du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,i3 + j)/hz
+              end do
+           end if
+
+           du2(i1,i2,i3) = du2(i1,i2,i3) + du(i1,i2,i3,3)*du(i1,i2,i3,3)
+
+        end do
+     end do
+  end do
+end subroutine fssnord3dmatdiv3varde2_lg_ref
+EOF
+  kernel.procedure = p
+  BOAST::set_lang(lang)
+  return kernel
+end
+
+
+def fssnord3dmatnabla_lg_ref
+  lang = BOAST::get_lang
+  BOAST::set_lang(BOAST::FORTRAN)
+  kernel = BOAST::CKernel::new
+  function_name = "fssnord3dmatnabla_lg_ref"
+  geocode = BOAST::Int("geocode", :dir => :in )
+  n01 = BOAST::Int("n01", :dir => :in)
+  n02 = BOAST::Int("n02", :dir => :in)
+  n03 = BOAST::Int("n03", :dir => :in)
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
+  nord = BOAST::Int("nord", :dir => :in)
+  c1D = BOAST::Real("c1D", :dir => :in, :dim =>  [ BOAST::Dim(-nord/2,nord/2), BOAST::Dim(-nord/2,nord/2)])
+dlogeps = BOAST::Real("dlogeps", :dir => :in, :dim => [3, BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  rhopol = BOAST::Real("rhopol", :dir => :inout, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  rhores2 = BOAST::Real("rhores2", :dir => :out)
+  eta = BOAST::Real("eta", :dir => :in)
+  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
+  p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopol,rhores2,c1D])
+  kernel.code.print <<EOF
+subroutine fssnord3dmatnabla_lg_ref(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopol,rhores2,c1D)
+
+  implicit none
+
+  integer, intent(in) :: geocode
+  integer, intent(in) :: n01,n02,n03,nord
+  real(kind=8), intent(in) :: eta
+  real(kind=8), dimension(3), intent(in) :: hgrids
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: u
+  real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
+  real(kind=8), dimension(n01,n02,n03), intent(inout) :: rhopol
+  real(kind=8), intent(out) :: rhores2
+
+  !c..local variables
+  integer :: n,m,n_cell
+  integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max,ii
+  !real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
+  real(kind=8) :: hx,hy,hz,max_diff,fact,dx,dy,dz,res,rho
+  real(kind=8) :: oneo4pi
+  logical :: perx,pery,perz
+
+  oneo4pi=0.0079577471545947673d0
+  !1.0d0/(16.d0*atan(1.d0))
+  n = nord+1
+  m = nord/2
+  hx = hgrids(1)!acell/real(n01,kind=8)
+  hy = hgrids(2)!acell/real(n02,kind=8)
+  hz = hgrids(3)!acell/real(n03,kind=8)
+  n_cell = max(n01,n02,n03)
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 1)
+  pery=(geocode == 2)
+  perz=(geocode /= 1)
+
+  ! Beware that n_cell has to be > than n.
+  if (n_cell.lt.n) then
+     write(*,*)'ngrid in has to be setted > than n=nord + 1'
+     stop
+  end if
+
+
+  !Only nord=2,4,6,8,16
+  if (all(nord /=[2,4,6,8,16])) then
+     write(*,*)'Only nord-order 2,4,6,8,16 accurate first derivative'
+     stop
+  end if
+
+  rhores2=0.d0
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+
+           dx=0.d0
+
+           if (i1.le.m) then
+              if (perx) then
+               do j=-m,m
+                ii=modulo(i1 + j + n01 - 1, n01 ) + 1
+                dx = dx + c1D(j,0)*u(ii,i2,i3)
+               end do
+              else
+               do j=-m,m
+                dx = dx + c1D(j,i1-m-1)*u(j+m+1,i2,i3)
+               end do
+              end if
+           else if (i1.gt.n01-m) then
+              if (perx) then
+               do j=-m,m
+                ii=modulo(i1 + j - 1, n01 ) + 1
+                dx = dx + c1D(j,0)*u(ii,i2,i3)
+               end do
+              else
+               do j=-m,m
+                dx = dx + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)
+               end do
+              end if
+           else
+              do j=-m,m
+                 dx = dx + c1D(j,0)*u(i1 + j,i2,i3)
+              end do
+           end if
+           dx=dx/hx
+
+           dy = 0.0d0
+           if (i2.le.m) then
+              if (pery) then
+               do j=-m,m
+                ii=modulo(i2 + j + n02 - 1, n02 ) + 1
+                dy = dy + c1D(j,0)*u(i1,ii,i3)
+               end do
+              else
+               do j=-m,m
+                dy = dy + c1D(j,i2-m-1)*u(i1,j+m+1,i3)
+               end do
+              end if
+           else if (i2.gt.n02-m) then
+              if (pery) then
+               do j=-m,m
+                ii=modulo(i2 + j - 1, n02 ) + 1
+                dy = dy + c1D(j,0)*u(i1,ii,i3)
+               end do
+              else
+               do j=-m,m
+                dy = dy + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)
+               end do
+              end if
+           else
+              do j=-m,m
+                 dy = dy + c1D(j,0)*u(i1,i2 + j,i3)
+              end do
+           end if
+           dy=dy/hy
+
+           dz = 0.0d0
+           if (i3.le.m) then
+              if (perz) then
+               do j=-m,m
+                ii=modulo(i3 + j + n03 - 1, n03 ) + 1
+                dz = dz + c1D(j,0)*u(i1,i2,ii)
+               end do
+              else
+               do j=-m,m
+                dz = dz + c1D(j,i3-m-1)*u(i1,i2,j+m+1)
+               end do
+              end if
+           else if (i3.gt.n03-m) then
+              if (perz) then
+               do j=-m,m
+                ii=modulo(i3 + j - 1, n03 ) + 1
+                dz = dz + c1D(j,0)*u(i1,i2,ii)
+               end do
+              else
+               do j=-m,m
+                dz = dz + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)
+               end do
+              end if
+           else
+              do j=-m,m
+                 dz = dz + c1D(j,0)*u(i1,i2,i3 + j)
+              end do
+           end if
+           dz=dz/hz
+
+           !retrieve the previous treatment
+           res = dlogeps(1,i1,i2,i3)*dx + &
+                dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
+           res = res*oneo4pi
+           rho=rhopol(i1,i2,i3)
+           res=res-rho
+           res=eta*res
+           rhores2=rhores2+res*res
+           rhopol(i1,i2,i3)=res+rho
+
+        end do
+     end do
+  end do
+
+end subroutine fssnord3dmatnabla_lg_ref
+EOF
+  kernel.procedure = p
+  BOAST::set_lang(lang)
+  return kernel
+end
+
+def fssnord3dmatnabla3var_lg_ref
+  lang = BOAST::get_lang
+  BOAST::set_lang(BOAST::FORTRAN)
+  kernel = BOAST::CKernel::new
+  function_name = "fssnord3dmatnabla3var_lg_ref"
+  geocode = BOAST::Int("geocode", :dir => :in )
+  n01 = BOAST::Int("n01", :dir => :in)
+  n02 = BOAST::Int("n02", :dir => :in)
+  n03 = BOAST::Int("n03", :dir => :in)
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
+  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03),3] )
+  nord = BOAST::Int("nord", :dir => :in)
+  c1D = BOAST::Real("c1D", :dir => :in, :dim =>  [ BOAST::Dim(-nord/2,nord/2), BOAST::Dim(-nord/2,nord/2)])
+  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
+  p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,nord,hgrids,c1D])
+  kernel.code.print <<EOF
+subroutine fssnord3dmatnabla3var_lg_ref(geocode,n01,n02,n03,u,du,nord,hgrids,c1D)
+  implicit none
+
+  !c..this routine computes 'nord' order accurate first derivatives 
+
+  !c..input:
+  !c..ngrid       = number of points in the grid, 
+  !c..u(ngrid)    = function values at the grid points
+
+  !c..output:
+  !c..du(ngrid)   = first derivative values at the grid points
+
+  !c..declare the pass
+  integer, intent(in) :: geocode 
+  integer, intent(in) :: n01,n02,n03,nord
+  real(kind=8), dimension(3), intent(in) :: hgrids
+  real(kind=8), dimension(n01,n02,n03) :: u
+  real(kind=8), dimension(n01,n02,n03,3) :: du
+
+  !c..local variables
+  integer :: n,m,n_cell,ii
+  integer :: i,j,ib,i1,i2,i3
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
+  real(kind=8) :: hx,hy,hz
+  logical :: perx,pery,perz
+
+  n = nord+1
+  m = nord/2
+  hx = hgrids(1)!acell/real(n01,kind=8)
+  hy = hgrids(2)!acell/real(n02,kind=8)
+  hz = hgrids(3)!acell/real(n03,kind=8)
+  n_cell = max(n01,n02,n03)
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 1)
+  pery=(geocode == 2)
+  perz=(geocode /= 1)
+
+
+  ! Beware that n_cell has to be > than n.
+  if (n_cell.lt.n) then
+     write(*,*)'ngrid in has to be setted > than n=nord + 1'
+     stop
+  end if
+
+  !Only nord=2,4,6,8,16
+
+  select case(nord)
+  case(2,4,6,8,16)
+     !O.K.
+  case default
+     write(*,*)'Only nord-order 2,4,6,8,16 accurate first derivative'
+     stop
+  end select
+
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           du(i1,i2,i3,1) = 0.0d0
+
+           if (i1.le.m) then
+            if (perx) then
+             do j=-m,m
+              ii=modulo(i1 + j + n01 - 1, n01 ) + 1
+              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-m-1)*u(j+m+1,i2,i3)/hx
+             end do
+            end if
+           else if (i1.gt.n01-m) then
+            if (perx) then
+             do j=-m,m
+              ii=modulo(i1 + j - 1, n01 ) + 1
+              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)/hx
+             end do
+            end if
+           else
+            do j=-m,m
+             du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(i1 + j,i2,i3)/hx
+            end do
+           end if
+
+           du(i1,i2,i3,2) = 0.0d0
+
+           if (i2.le.m) then
+            if (pery) then
+             do j=-m,m
+              ii=modulo(i2 + j + n02 - 1, n02 ) + 1
+              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-m-1)*u(i1,j+m+1,i3)/hy
+             end do
+            end if
+           else if (i2.gt.n02-m) then
+            if (pery) then
+             do j=-m,m
+              ii=modulo(i2 + j - 1, n02 ) + 1
+              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)/hy
+             end do
+            end if
+           else
+            do j=-m,m
+             du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,i2 + j,i3)/hy
+            end do
+           end if
+
+           du(i1,i2,i3,3) = 0.0d0
+
+           if (i3.le.m) then
+            if (perz) then
+             do j=-m,m
+              ii=modulo(i3 + j + n03 - 1, n03 ) + 1
+              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-m-1)*u(i1,i2,j+m+1)/hz
+             end do
+            end if
+           else if (i3.gt.n03-m) then
+            if (perz) then
+             do j=-m,m
+              ii=modulo(i3 + j - 1, n03 ) + 1
+              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+             end do
+            else
+             do j=-m,m
+              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)/hz
+             end do
+            end if
+           else
+            do j=-m,m
+             du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,i3 + j)/hz
+            end do
+           end if
+
+        end do
+     end do
+  end do
+end subroutine fssnord3Dmatnabla3var_lg_ref
+EOF
+  kernel.procedure = p
+  BOAST::set_lang(lang)
+  return kernel
+end
+
+
+
+#version without all the *** divisions, separating the 3 convolutions, and with openmp
+def fssnord3dmatdiv3var_lg_opt
+  lang = BOAST::get_lang
+  BOAST::set_lang(BOAST::FORTRAN)
+  kernel = BOAST::CKernel::new
+  function_name = "fssnord3dmatdiv3var_lg_opt"
   geocode = BOAST::Int("geocode", :dir => :in )
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
@@ -444,7 +984,7 @@ def fssnord3dmatnabla3var_lg_opt
   hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
   p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,nord,hgrids,c1D])
   kernel.code.print <<EOF
-subroutine fssnord3dmatnabla3var_lg_opt(geocode,n01,n02,n03,u,du,nord,hgrids,c1D)
+subroutine fssnord3dmatdiv3var_lg_opt(geocode,n01,n02,n03,u,du,nord,hgrids,c1D)
   implicit none
 !  character(len=1), intent(in) :: geocode
   integer, intent(in) :: n01,n02,n03,nord,geocode
@@ -611,7 +1151,7 @@ subroutine fssnord3dmatnabla3var_lg_opt(geocode,n01,n02,n03,u,du,nord,hgrids,c1D
   !$omp end parallel do
 
 
-end subroutine fssnord3dmatnabla3var_lg_opt
+end subroutine fssnord3dmatdiv3var_lg_opt
 
 EOF
   kernel.procedure = p
@@ -622,11 +1162,11 @@ end
 
 #ugly one, just to check it works this way, and help debug
 
-def fssnord3dmatnabla3var_lg_1d
+def fssnord3dmatdiv3var_lg_1d
   lang = BOAST::get_lang
   BOAST::set_lang(BOAST::FORTRAN)
   kernel = BOAST::CKernel::new
-  function_name = "fssnord3dmatnabla3var_lg_1d"
+  function_name = "fssnord3dmatdiv3var_lg_1d"
   geocode = BOAST::Int("geocode", :dir => :in )
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
@@ -640,7 +1180,7 @@ def fssnord3dmatnabla3var_lg_1d
   p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,dim,nord,hgrids,c1D])
 
   kernel.code.print <<EOF
-subroutine fssnord3dmatnabla3var_lg_1d(geocode,n01,n02,n03,u,du,dim,nord,hgrids,c1D)
+subroutine fssnord3dmatdiv3var_lg_1d(geocode,n01,n02,n03,u,du,dim,nord,hgrids,c1D)
   implicit none
 !  character(len=1), intent(in) :: geocode
   integer, intent(in) :: n01,n02,n03,nord,geocode
@@ -653,7 +1193,7 @@ subroutine fssnord3dmatnabla3var_lg_1d(geocode,n01,n02,n03,u,du,dim,nord,hgrids,
   integer :: i,j,i1,i2,i3,dim, it, dimit
   real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2), intent(in)  :: c1D
   real(kind=8) :: hx,hy,hz, d1,h
-  logical :: perx,pery,perz
+  logical :: perx
 
   n = nord+1
   m = nord/2
@@ -667,10 +1207,6 @@ subroutine fssnord3dmatnabla3var_lg_1d(geocode,n01,n02,n03,u,du,dim,nord,hgrids,
 !  perx=(geocode /= 'F')
 !  pery=(geocode == 'P')
 !  perz=(geocode /= 'F')
-
-  perx=(geocode /= 1)
-  pery=(geocode == 2)
-  perz=(geocode /= 1)
 
   ! Beware that n_cell has to be > than n.
   if (n_cell.lt.n) then
@@ -692,16 +1228,19 @@ subroutine fssnord3dmatnabla3var_lg_1d(geocode,n01,n02,n03,u,du,dim,nord,hgrids,
   select case(dim)
   case(1)
     h=hx
+    perx=(geocode /= 1)
   case(2)
     h=hy
+    perx=(geocode == 2)
   case(3)
     h=hz
+    perx=(geocode /= 1)
   case default
     write(*,*)'Only dim 1,2,3 allowed'
   stop
   end select
 
-  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d1) 
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii,it,dimit, d1) 
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
@@ -763,7 +1302,7 @@ subroutine fssnord3dmatnabla3var_lg_1d(geocode,n01,n02,n03,u,du,dim,nord,hgrids,
                     write(*,*)'Only dim 1,2,3 allowed'
                 stop
                 end select
-
+    
               end if
            else if (it.gt.dimit-m) then
               if (perx) then
@@ -844,7 +1383,7 @@ subroutine fssnord3dmatnabla3var_lg_1d(geocode,n01,n02,n03,u,du,dim,nord,hgrids,
   !$omp end parallel do
 
 
-end subroutine fssnord3dmatnabla3var_lg_1d
+end subroutine fssnord3dmatdiv3var_lg_1d
 
 EOF
   kernel.procedure = p
@@ -854,9 +1393,9 @@ end
 
 
 
-#  def fssnord3dmatnabla3var_lg_3d(kernel_1D)
+#  def fssnord3dmatdiv3var_lg_3d(kernel_1D)
 #    kernel = BOAST::CKernel::new(:kernels => [kernel_1D])
-#    function_name = "fssnord3dmatnabla3var_lg_3d"
+#    function_name = "fssnord3dmatdiv3var_lg_3d"
 #    n01 = BOAST::Int("n01", :dir => :in)
 #    n02 = BOAST::Int("n02", :dir => :in)
 #    n03 = BOAST::Int("n03", :dir => :in)
@@ -880,10 +1419,14 @@ end
 #  end
 
 
-def Poisson_conv(conv_filter, optims=GenericOptimization::new)
+def Poisson_conv(conv_filter, optims=GenericOptimization::new, accum=1)
     
+if (accum !=0) then
+  conv_operation = GenericConvolutionOperator1d::new(conv_filter, :transpose => 0, :work => false, :a_y => accum, :ld => false, :narr => false, :poisson => true)
+else
+  conv_operation = GenericConvolutionOperator1d::new(conv_filter, :transpose => 0, :work => false, :ld => false, :narr => false, :poisson => true)
+end 
 
-  conv_operation = GenericConvolutionOperator1d::new(conv_filter, :transpose => 0, :work => false, :a_y => 1, :ld => false, :narr => false)
 
   #test of 1d kernels optimizations in view of many-d
   conv_operation.optimize(optims)
@@ -906,31 +1449,281 @@ def Poisson_conv(conv_filter, optims=GenericOptimization::new)
 
 end
 
-FILTER = [
-   9.7125097125097125E-006,
-  -1.7760017760017760E-004,
-   1.5540015540015540E-003,
-  -8.7024087024087024E-003,
-  0.035353535353535348     ,
-  -0.11313131313131313     ,
-   0.31111111111111112     ,
-  -0.88888888888888875     ,
-   0.0000000000000000     ,
-   0.88888888888888875     ,
-  -0.31111111111111112     ,
-   0.11313131313131313     ,
- -0.035353535353535348     ,
-   8.7024087024087024E-003,
-  -1.5540015540015540E-003,
-   1.7760017760017760E-004,
-  -9.7125097125097125E-006
-]
+def fssnord3dmatdiv3var_lg_boast(n1,n2,n3,k2)
 
-def fssnord3dmatnabla3var_lg_full(n1,n2,n3,hgrids)
+  function_name = "fssnord3dmatdiv3var_lg_boast"
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  u1 = BOAST::Real("u1", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  u2 = BOAST::Real("u2", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
+  n01 = BOAST::Int("n01", :dir => :in)
+  n02 = BOAST::Int("n02", :dir => :in)
+  n03 = BOAST::Int("n03", :dir => :in)
+  geocode = BOAST::Int("geocode", :dir => :in)
+  n = NArray.int(3)
+  n[0] = n1
+  n[1] = n2
+  n[2] = n3
+#  conv_filter = PoissonFilter::new('poisson',filter,nord)
+#  optims = GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true,:tt_arr_test => true,:unrolled_dim_index_test => true, :unroll_inner_test =>true, :dimensions => [n1,n2,n3])
 
-  function_name = "fssnord3dmatnabla3var_lg_full"
-  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1),  BOAST::Dim(0, n2), BOAST::Dim(0, n3),3] )
-  du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1),  BOAST::Dim(0, n2), BOAST::Dim(0, n3)] )
+#  k2 = Poisson_conv(conv_filter, optims)
+#  k2.build(:openmp => true)
+  kernel = BOAST::CKernel::new(:kernels => [k2])
+
+
+  suffix = ".c" if BOAST::get_lang == BOAST::C
+  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+  File::open("poisson_kernels#{suffix}","w") { |f|
+    f.puts k2
+  }
+
+  print_header
+
+
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u, u1, u2,du]){
+    nn = BOAST::Int("nn", :dim => [3])
+    bc0 = BOAST::Int("bc0")
+    bc1 = BOAST::Int("bc1")
+    bc2 = BOAST::Int("bc2")
+    BOAST::decl nn
+    BOAST::decl bc0
+    BOAST::decl bc1
+    BOAST::decl bc2
+    BOAST::pr nn[1] === n01
+    BOAST::pr nn[2] === n02
+    BOAST::pr nn[3] === n03
+
+    BOAST::pr bc0===BC::PERIODIC
+    BOAST::pr bc1===BC::PERIODIC
+    BOAST::pr bc2===BC::PERIODIC
+
+    BOAST::pr BOAST::If(geocode == 1) {
+      BOAST::pr bc0 === BC::NPERIODIC
+      BOAST::pr bc2 === BC::NPERIODIC
+    }
+    BOAST::pr BOAST::If(geocode != 2){
+      BOAST::pr bc1 === BC::NPERIODIC
+    }
+
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du, hgrids[0])
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u1, du, hgrids[1])
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u2, du, hgrids[2])
+    }
+    BOAST::pr p
+    kernel.procedure = p
+    kernel.cost_function = lambda { |*args| 3*k2.cost(*args) }
+    return kernel
+end
+
+
+def fssnord3dmatdiv3varde2_lg_boast(n1,n2,n3,k2)
+
+  function_name = "fssnord3dmatdiv3varde2_lg_boast"
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du0 = BOAST::Real("du0", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du1 = BOAST::Real("du1", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du2 = BOAST::Real("du2", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  ddu = BOAST::Real("ddu", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
+  n01 = BOAST::Int("n01", :dir => :in)
+  n02 = BOAST::Int("n02", :dir => :in)
+  n03 = BOAST::Int("n03", :dir => :in)
+  geocode = BOAST::Int("geocode", :dir => :in)
+  n = NArray.int(3)
+  n[0] = n1
+  n[1] = n2
+  n[2] = n3
+#  conv_filter = PoissonFilter::new('poisson',filter,nord)
+#  optims = GenericOptimization::new(:unroll_range => 2, :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => true, :unroll_inner_test =>false, :dimensions => [n1,n2,n3])
+
+#  k2 = Poisson_conv(conv_filter, optims,1)
+#  k2.build(:openmp => true)
+  kernel = BOAST::CKernel::new(:kernels => [k2])
+
+
+  suffix = ".c" if BOAST::get_lang == BOAST::C
+  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+  File::open("poisson_kernels#{suffix}","w") { |f|
+    f.puts k2
+  }
+
+  print_header
+
+
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du0,du1,du2,ddu]){
+    nn = BOAST::Int("nn", :dim => [3])
+    bc0 = BOAST::Int("bc0")
+    bc1 = BOAST::Int("bc1")
+    bc2 = BOAST::Int("bc2")
+    i1 = BOAST::Int("i1")
+    i2 = BOAST::Int("i2")
+    i3 = BOAST::Int("i3")
+
+    BOAST::decl nn
+    BOAST::decl bc0
+    BOAST::decl bc1
+    BOAST::decl bc2
+    BOAST::decl i1
+    BOAST::decl i2
+    BOAST::decl i3
+    BOAST::pr nn[1] === n01
+    BOAST::pr nn[2] === n02
+    BOAST::pr nn[3] === n03
+    BOAST::pr i1 === 0
+    BOAST::pr i2 === 0
+    BOAST::pr i3 === 0
+    BOAST::pr bc0===BC::PERIODIC
+    BOAST::pr bc1===BC::PERIODIC
+    BOAST::pr bc2===BC::PERIODIC
+
+    BOAST::pr BOAST::If(geocode == 1) {
+      BOAST::pr bc0 === BC::NPERIODIC
+      BOAST::pr bc2 === BC::NPERIODIC
+    }
+    BOAST::pr BOAST::If(geocode != 2){
+      BOAST::pr bc1 === BC::NPERIODIC
+    }
+
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du0, hgrids[0])
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du1, hgrids[1])
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du2, hgrids[2])
+    BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
+        BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
+          BOAST::pr BOAST::For(i2, 0,n2-1){
+            BOAST::pr BOAST::For(i1, 0,n1-1){
+               BOAST::pr ddu[i1,i2,i3] === (du0[i1,i2,i3]*du0[i1,i2,i3]) + (du1[i1,i2,i3]*du1[i1,i2,i3]) + (du2[i1,i2,i3]*du2[i1,i2,i3])
+            }
+          }
+        }
+      }
+    }
+
+    
+    BOAST::pr p
+    kernel.procedure = p
+    kernel.cost_function = lambda { |*args| 3*k2.cost(*args) }
+    return kernel
+end
+
+
+def fssnord3dmatnabla_lg_boast(n1,n2,n3,k2)
+
+  function_name = "fssnord3dmatnabla_lg_boast"
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du0 = BOAST::Real("du0", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du1 = BOAST::Real("du1", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du2 = BOAST::Real("du2", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  rhopol = BOAST::Real("rhopol", :dir => :inout, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  dlogeps = BOAST::Real("dlogeps", :dir => :in, :dim => [3, BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
+  n01 = BOAST::Int("n01", :dir => :in)
+  n02 = BOAST::Int("n02", :dir => :in)
+  n03 = BOAST::Int("n03", :dir => :in)
+  rhores2 = BOAST::Real("rhores2", :dir => :out)
+  geocode = BOAST::Int("geocode", :dir => :in)
+  eta = BOAST::Real("eta", :dir => :in)
+  n = NArray.int(3)
+  n[0] = n1
+  n[1] = n2
+  n[2] = n3
+#  conv_filter = PoissonFilter::new('poisson',filter,nord)
+#  optims = GenericOptimization::new(:unroll_range => 1, :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => false, :unroll_inner_test =>false, :dimensions => [n1,n2,n3])
+
+#  k2 = Poisson_conv(conv_filter, optims,1)
+#  k2.build(:openmp => true)
+  kernel = BOAST::CKernel::new(:kernels => [k2])
+
+
+  suffix = ".c" if BOAST::get_lang == BOAST::C
+  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+  File::open("poisson_kernels#{suffix}","w") { |f|
+    f.puts k2
+  }
+
+  print_header
+
+
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du0,du1,du2,eta,dlogeps,rhopol,rhores2]){
+    nn = BOAST::Int("nn", :dim => [3])
+    bc0 = BOAST::Int("bc0")
+    bc1 = BOAST::Int("bc1")
+    bc2 = BOAST::Int("bc2")
+    i1 = BOAST::Int("i1")
+    i2 = BOAST::Int("i2")
+    i3 = BOAST::Int("i3")
+    res = BOAST::Real("res")
+    rho = BOAST::Real("rho")
+    oneo4pi = BOAST::Real("oneo4pi")
+    BOAST::decl nn
+    BOAST::decl bc0
+    BOAST::decl bc1
+    BOAST::decl bc2
+    BOAST::decl i1
+    BOAST::decl i2
+    BOAST::decl i3
+    BOAST::decl res
+    BOAST::decl rho
+    BOAST::pr nn[1] === n01
+    BOAST::pr nn[2] === n02
+    BOAST::pr nn[3] === n03
+    BOAST::pr i1 === 0
+    BOAST::pr i2 === 0
+    BOAST::pr i3 === 0
+    BOAST::pr oneo4pi === 0.0079577471545947673
+
+
+    BOAST::pr bc0===BC::PERIODIC
+    BOAST::pr bc1===BC::PERIODIC
+    BOAST::pr bc2===BC::PERIODIC
+
+    BOAST::pr BOAST::If(geocode == 1) {
+      BOAST::pr bc0 === BC::NPERIODIC
+      BOAST::pr bc2 === BC::NPERIODIC
+    }
+    BOAST::pr BOAST::If(geocode != 2){
+      BOAST::pr bc1 === BC::NPERIODIC
+    }
+
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du0, hgrids[0])
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du1, hgrids[1])
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du2, hgrids[2])
+    BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: {"+" => rhores2}, private: [i1,i2,i3,res,rho]) { 
+        BOAST::pr BOAST::For(i3, 0,n3-1, openmp: true){
+          BOAST::pr BOAST::For(i2, 0,n2-1){
+            BOAST::pr BOAST::For(i1, 0,n1-1){
+
+                BOAST::pr res === dlogeps[1,i1,i2,i3]*du0[i1,i2,i3]+dlogeps[2,i1,i2,i3]*du1[i1,i2,i3]+dlogeps[3,i1,i2,i3]*du2[i1,i2,i3]
+                BOAST::pr res === res*oneo4pi
+                BOAST::pr rho === rhopol[i1,i2,i3]
+                BOAST::pr res === (res-rho)*eta
+                BOAST::pr rhores2 === rhores2 + res*res
+                BOAST::pr rhopol[i1,i2,i3] === res+rho
+            }
+          }
+        }
+      }
+    }
+
+    
+    BOAST::pr p
+    kernel.procedure = p
+    kernel.cost_function = lambda { |*args| 3*k2.cost(*args) }
+    return kernel
+end
+
+
+
+def fssnord3dmatnabla3var_lg_boast(n1,n2,n3,k2)
+
+  function_name = "fssnord3dmatnabla3var_lg_boast"
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du0 = BOAST::Real("du0", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du1 = BOAST::Real("du1", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du2 = BOAST::Real("du2", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
+  geocode = BOAST::Int("geocode", :dir => :in)
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
@@ -938,30 +1731,59 @@ def fssnord3dmatnabla3var_lg_full(n1,n2,n3,hgrids)
   n[0] = n1
   n[1] = n2
   n[2] = n3
-  #for now let's say that all filters are the same
-  filter_x=FILTER.collect { |n| n / hgrids[0] }
-  conv_filter = ConvolutionFilter::new('poisson',filter_x,8)
-  optims = GenericOptimization::new(:unroll_range => 1, :mod_arr_test => true,:tt_arr_test => true, :dimensions => [n1,n2,n3])
+#  conv_filter = PoissonFilter::new('poisson',filter,nord)
+#  optims = GenericOptimization::new(:unroll_range => 1, :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => false, :unroll_inner_test =>false, :dimensions => [n1,n2,n3])
 
-  k2 = Poisson_conv(conv_filter, optims)
-  k2.build(:openmp => true)
+#  k2 = Poisson_conv(conv_filter, optims,1)
+#  k2.build(:openmp => true)
   kernel = BOAST::CKernel::new(:kernels => [k2])
+
+
+  suffix = ".c" if BOAST::get_lang == BOAST::C
+  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+  File::open("poisson_kernels#{suffix}","w") { |f|
+    f.puts k2
+  }
 
   print_header
 
-  bc = NArray.int(3)
-  bc[0] = BC::PERIODIC
-  bc[1] = BC::PERIODIC
-  bc[2] = BC::PERIODIC
 
-  p = BOAST::Procedure::new(function_name,[n01,n02,n03,u,du]){
-   BOAST::pr k2.procedure.call(3, 0, n, BC::PERIODIC, u, du, 0.5)
-   BOAST::pr k2.procedure.call(3, 1, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 1], du, 0.5)
-   BOAST::pr k2.procedure.call(3, 2, n, BC::PERIODIC, u[0..(n01-1), 0..(n02-1), 0..(n03-1), 2], du, 0.5)
-  }
-  BOAST::pr p
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du0,du1,du2]){
+    nn = BOAST::Int("nn", :dim => [3])
+    bc0 = BOAST::Int("bc0")
+    bc1 = BOAST::Int("bc1")
+    bc2 = BOAST::Int("bc2")
+    BOAST::decl nn
+    BOAST::decl bc0
+    BOAST::decl bc1
+    BOAST::decl bc2
+    BOAST::pr nn[1] === n01
+    BOAST::pr nn[2] === n02
+    BOAST::pr nn[3] === n03
+    BOAST::pr bc0===BC::PERIODIC
+    BOAST::pr bc1===BC::PERIODIC
+    BOAST::pr bc2===BC::PERIODIC
+
+    BOAST::pr BOAST::If(geocode == 1) {
+      BOAST::pr bc0 === BC::NPERIODIC
+      BOAST::pr bc2 === BC::NPERIODIC
+    }
+    BOAST::pr BOAST::If(geocode != 2){
+      BOAST::pr bc1 === BC::NPERIODIC
+    }
+
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du0, hgrids[0])
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du1, hgrids[1])
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du2, hgrids[2])
+
+    }
+
+    
+    BOAST::pr p
     kernel.procedure = p
-    kernel.cost_function = lambda { |*args| 3*k2.cost(*args)+2 }
+    kernel.cost_function = lambda { |*args| 3*k2.cost(*args) }
     return kernel
 end
+
+
 
