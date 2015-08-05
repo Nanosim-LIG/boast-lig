@@ -190,7 +190,9 @@ class BoundaryConditions
   SHRINK = -1
   NPERIODIC = -2
   FREE = 2
-  CONDITIONS = [PERIODIC, GROW, SHRINK, NPERIODIC]
+    
+  CONDITIONS = [PERIODIC, GROW, SHRINK]
+
   # determine if the boundary condition is free or not
   attr_reader :free 
   # name of the boundary condition, used for the name of the routines
@@ -1273,7 +1275,12 @@ class GenericConvolutionOperator1d
         opts_bases.push(ch)
       }
     }
-    BC::CONDITIONS.each { |bc|
+    if @poisson then
+    conditions = BC::CONDITIONS << BC::NPERIODIC 
+    else
+    conditions = BC::CONDITIONS
+    end
+    conditions.each { |bc|
       dim_indexes_a.each { |dim_indexes|
         opts_bases.each { |opt|
           op = opt.dup
@@ -1470,7 +1477,7 @@ class GenericConvolutionOperator1d
         }, BC::SHRINK, lambda {
           print_call_param_a.call( BC::SHRINK )
         }, BC::NPERIODIC, lambda {
-          print_call_param_a.call( BC::NPERIODIC )
+          print_call_param_a.call( BC::NPERIODIC ) if @poisson 
         })
       }
       BOAST::pr BOAST::If( @idim == 0, lambda {
@@ -1842,6 +1849,7 @@ class GenericConvolutionOperator
           BOAST::pr dims_actual[indx] === @ny[indx]  if @ld
 
         },BC::NPERIODIC, lambda {
+          if@poisson then
           procname = ConvolutionOperator1d::new(@filter, BC::new(BC::NPERIODIC), dim_indexes, opt).base_name
 
           if multi_conv then
@@ -1855,7 +1863,7 @@ class GenericConvolutionOperator
           BOAST::pr @procs[procname].call( *vars, *dats, *vars2 )
           f.close if multi_conv
           BOAST::pr dims_actual[indx] === @ny[indx]  if @ld
-
+          end
         }, BC::GROW, lambda {
           procname = ConvolutionOperator1d::new(@filter, BC::new(BC::GROW), dim_indexes, opt).base_name
 
