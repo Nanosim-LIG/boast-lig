@@ -428,11 +428,11 @@ EOF
 end
 
 
-def fssnord3dmatdiv3varde2_lg_ref
+def fssnord3dmatnabla3varde2_lg_ref
   lang = BOAST::get_lang
   BOAST::set_lang(BOAST::FORTRAN)
   kernel = BOAST::CKernel::new
-  function_name = "fssnord3dmatdiv3varde2_lg_ref"
+  function_name = "fssnord3dmatnabla3varde2_lg_ref"
   geocode = BOAST::Int("geocode", :dir => :in )
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
@@ -445,7 +445,7 @@ def fssnord3dmatdiv3varde2_lg_ref
   hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
   p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,du2,nord,hgrids,c1D])
   kernel.code.print <<EOF
-subroutine fssnord3dmatdiv3varde2_lg_ref(geocode,n01,n02,n03,u,du,du2,nord,hgrids,c1D)
+subroutine fssnord3dmatnabla3varde2_lg_ref(geocode,n01,n02,n03,u,du,du2,nord,hgrids,c1D)
   implicit none
   !c..declare the pass
   integer, intent(in) :: geocode 
@@ -596,7 +596,7 @@ subroutine fssnord3dmatdiv3varde2_lg_ref(geocode,n01,n02,n03,u,du,du2,nord,hgrid
         end do
      end do
   end do
-end subroutine fssnord3dmatdiv3varde2_lg_ref
+end subroutine fssnord3dmatnabla3varde2_lg_ref
 EOF
   kernel.procedure = p
   BOAST::set_lang(lang)
@@ -1518,9 +1518,9 @@ def fssnord3dmatdiv3var_lg_boast(n1,n2,n3,k2)
 end
 
 
-def fssnord3dmatdiv3varde2_lg_boast(n1,n2,n3,k2)
+def fssnord3dmatnabla3varde2_lg_boast(n1,n2,n3,k2)
 
-  function_name = "fssnord3dmatdiv3varde2_lg_boast"
+  function_name = "fssnord3dmatnabla3varde2_lg_boast"
   u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
   du0 = BOAST::Real("du0", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
   du1 = BOAST::Real("du1", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
