@@ -133,7 +133,7 @@ du_3D = nil
 du_boast = nil
 
 
-#test for the fssnord3dmatdiv3varde2_lg function
+#test for the fssnord3dmatnabla3varde2_lg function
 
 u = NArray.float(n01,n02,n03).random
 du_ref = NArray.float(n01,n02,n03,3)
@@ -141,14 +141,14 @@ du2_ref = NArray.float(n01,n02,n03)
 du_boast = NArray.float(n01,n02,n03,3)
 du2_boast = NArray.float(n01,n02,n03)
 
-k = fssnord3dmatdiv3varde2_lg_ref
+k = fssnord3dmatnabla3varde2_lg_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref,du2_ref , nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 #annoyingly, too much computation to get a good precision here ...
 epsilon = 10e-6
 
-k3 = fssnord3dmatdiv3varde2_lg_boast(n01,n02,n03,kconv)
+k3 = fssnord3dmatnabla3varde2_lg_boast(n01,n02,n03,kconv)
 
 k3.build(:openmp => true)
 du0=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 0]
