@@ -88,6 +88,17 @@ tabsize=4,
 showspaces=false,
 showstringspaces=false}
 
+\lstdefinestyle{Bash}{
+language=Bash,
+basicstyle=\ttfamily,
+keywordstyle=\color{javapurple}\bfseries,
+stringstyle=\color{javared},
+commentstyle=\color{javagreen},
+numbers=left,
+tabsize=4,
+showspaces=false,
+showstringspaces=false}
+
 \title{BOAST}
 \subtitle{Performance Portability Using Meta-Programming and Auto-Tuning}
 \author[B. V.]{\textbf{Brice~Videau}~\inst{1}, Kevin~Pouget~\inst{1}, Luigi~Genovese~\inst{2},
@@ -173,12 +184,6 @@ showstringspaces=false}
 
 \end{frame}
 
-\begin{frame}
-    \frametitle{Talk Outline}
-    \tableofcontents[hideallsubsections,sections={2-}]
-    %\includegraphics{plan_couleur.pdf}
-\end{frame}
-
 
 \subsection{Case Study}
 
@@ -252,6 +257,12 @@ void magicfilter(int n, int ndat,
 \end{lstlisting}
 \end{block}
 \end{columns}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Talk Outline}
+    \tableofcontents[hideallsubsections,sections={2-}]
+    %\includegraphics{plan_couleur.pdf}
 \end{frame}
 
 \section{A Parametrized Generator}
@@ -376,20 +387,22 @@ The following declaration:
 \lstset{style=BOAST}
 \begin{lstlisting}
 p = Procedure("magic_filter", [n,ndat,x,y], [lowfil,upfil])
-decl p
+opn p
+close p
 \end{lstlisting}
 \normalsize 
 Outputs Fortran:
 \tiny
 \lstset{style=Fortran}
 \begin{lstlisting}
-subroutine magicfilter(n, ndat, x, y)
+SUBROUTINE magicfilter(n, ndat, x, y)
   integer(kind=4), parameter :: lowfil = -8
   integer(kind=4), parameter :: upfil = 7
   integer(kind=4), intent(in) :: n
   integer(kind=4), intent(in) :: ndat
   real(kind=8), intent(in), dimension(0:n-1, ndat) :: x
   real(kind=8), intent(out), dimension(ndat, 0:n-1) :: y
+END SUBROUTINE magicfilter
 \end{lstlisting}
 \normalsize
 Or C:
@@ -399,6 +412,7 @@ Or C:
 void magicfilter(const int32_t n, const int32_t ndat, const double * x, double * y){
   const int32_t lowfil = -8;
   const int32_t upfil = 7;
+}
 \end{lstlisting}
 \end{frame}
 
@@ -629,8 +643,6 @@ void laplace(const int width,
   \centering Performance \emph{portability} among several different architectures.
 \end{frame}
 
-\section{Real Applications}
-
 \begin{frame}
   \frametitle{Real Applications: SPECFEM3D}
 
@@ -658,15 +670,7 @@ void laplace(const int width,
 
 Install ruby, version >= 1.9.3\\
 On recent debian-based distributions:
-\lstset{language=Bash,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
+\lstset{style=Bash}
 \begin{lstlisting}
 sudo apt-get install ruby ruby-dev
 \end{lstlisting}
@@ -683,16 +687,8 @@ gem install --user-install BOAST
 
 \begin{frame}[fragile]
 \frametitle{First interactive steps}
-\lstset{language=Bash,
-basicstyle=\ttfamily,
-keywordstyle=\color{javapurple}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javagreen},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
 Interactive Ruby:
+\lstset{style=Bash}
 \begin{lstlisting}
 irb
 \end{lstlisting}
