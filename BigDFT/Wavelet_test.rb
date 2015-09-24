@@ -46,6 +46,9 @@ $parser = OptionParser::new do |opts|
   opts.on("-s", "--step VAL", "Unroll step") { |step|
     $options[:step] = step.to_i
   }
+  opts.on("-d", "--dump", "Dump binary") { |step|
+    $options[:dump] = true
+  }
   opts.on("-u", "--unroll VAL", "Unroll bound") { |unroll|
     $options[:unroll] = unroll.to_i
   }
@@ -113,6 +116,10 @@ if $options[:output] then
     f.puts k1
     f.puts k2
   }
+end
+if $options[:dump] then
+  k1.dump_binary
+  k2.dump_binary
 end
 
 repeat = 5
