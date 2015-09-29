@@ -51,7 +51,9 @@ module BOAST
         }
       }
 
-      print resultV.dereference === sumV
+      rV = resultV.dereference
+      rV.align = length * elem_size
+      print rV === sumV
 
       print sum === 0
       (0...length).each { |indx|
