@@ -19,47 +19,75 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
            "2.72734492911979659657715313017228e-6" ]
 
 set_lang( C )
-set_replace_constants(false)
+#set_replace_constants(false)
+set_boast_inspect( true )
 
-def mfvec(use_sub = false)
-  tile_x = 1
-  tile_y = 1
+def comp_tile_n1( n1 = 1, n2 = 1, vector_length = 1, real_size = 8 )
+  raise "Invalid vector size" if n1%vector_length != 0
+  arr = BOAST::ConstArray::new(FILTER, BOAST::Real)
+  filter = Real( "filt", :const => arr, :dim => Dim(0,FILTER.length-1) )
+  n1_stride_input = Int( "n1_stride_in", :dir => :in)
+  n1_stride_output = Int( "n1_stride_out", :dir => :in)
+  input =  Real( "input", :dir => :in, :align => vector_length * real_size, :dim => Dim() )
+  output = Real( "output", :dir => :out, :align => vector_length * real_size, :dim => Dim() )
+  p = Procedure( "comp_n1_#{n1}_#{n2}_#{vector_length}_#{real_size}", [n1_stride_input, n1_stride_output, input, output], [filter], :inline => true, :local => true ) {
+    f = Real( "f", :vector_length => vector_length )
+    decl f
+    tt = (n1/vector_length).times.collect { |i|
+      n2.times.collect { |j|
+        Real( "tt#{i}#{j}", :vector_length => vector_length )
+      }
+    }
+    xx = (n1/vector_length).times.collect { |i|
+      n2.times.collect { |j|
+        Real( "xx#{i}#{j}", :vector_length => vector_length )
+      }
+    }
+    decl *tt.flatten
+    decl *xx.flatten
+    (n1/vector_length).times.collect { |i|
+      n2.times.collect { |j|
+        pr tt[i][j].set( 0.0 )
+      }
+    }
+    FILTER.length.times { |k|
+      pr f.set(filter[k])
+      (n1/vector_length).times.collect { |i|
+        n2.times.collect { |j|
+          pr xx[i][j] === input[n1_stride_input*j+vector_length*i+k]
+          pr tt[i][j] === tt[i][j] + xx[i][j]*f
+        }
+      }
+    }
+    (n1/vector_length).times.collect { |i|
+      n2.times.collect { |j|
+        out_index = output[n1_stride_output*j+vector_length*i]
+        out_index.align = vector_length * real_size
+        pr out_index === tt[i][j]
+      }
+    }
+  }
+  return p 
+end
+
+def mfvec( n1 = 1, n2 = 1, vector_length = 1, real_size = 8 )
 
   kern = CKernel::new
-  arr = BOAST::ConstArray::new(FILTER, BOAST::Real)
-  filter = Real( "filt", :const => arr, :align => 32, :dim => Dim(0,15) )
   input  = Real( "input",  :dir => :in, :align => 32, :dim => [Dim(128+16), Dim(128*128)] )
   output = Real( "output", :dir => :out, :align => 32, :dim => [Dim(128), Dim(128*128)] )
 
-  sub_input = Real( "sub_input", :dir => :in, :align => 32, :dim => [Dim(0,15)] )
-  sub_tt = Real( "sub_tt", :dir => :out )
-  sub = Procedure( "comp1", [sub_tt, sub_input], [filter], :inline => true, :local => true ) {
-    pr sub_tt === 0.0
-    k = Int "k"
-    For( k, 0, 15 ) {
-      pr sub_tt === sub_tt + sub_input[k]*filter[k]
-    }.unroll
-  }
+  sub = comp_tile_n1( n1, n2, vector_length, real_size)
+  get_output.puts "#include <immintrin.h>"
 
-  p = Procedure( "mfs", [input,output], [filter] ) {
+  p = Procedure( "mfs", [input,output] ) {
     i = Int "i"
     j = Int "j"
     tt = Real "tt"
     decl i,j
     decl tt
-    pr For( j, 1, 128*128, :step => tile_y ) {
-      pr For( i, 1, 128 ) {
-        if use_sub then
-          pr sub.call(tt.address, input[i, j].address)
-        else
-          k = Int "k"
-          decl k
-          pr tt === 0.0
-          For( k, 0, 15 ) {
-            pr tt === tt + input[i+k,j]*filter[k]
-          }.unroll
-        end
-        pr output[i, j] === tt
+    pr For( j, 1, 128*128, :step => n2 ) {
+      pr For( i, 1, 128, :step => n1 ) {
+        pr sub.call(128+16, 128, input[i, j].address, output[i,j].address)
       }
     }
   }
@@ -72,7 +100,7 @@ def mfvec(use_sub = false)
 
 end
 
-k = mfvec
+k = mfvec(8,1,4)
 
 puts k
 k.build
