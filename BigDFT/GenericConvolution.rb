@@ -1366,7 +1366,7 @@ class GenericConvolutionOperator1d
       i = BOAST::Int "i"
       j = BOAST::Int "j"
       tmp_cost = BOAST::Int "c"
-      BOAST::decl i, j, ni, ndat_left, ndat_right
+      BOAST::decl i, j, ni, ndat_left, ndat_right, tmp_cost
       BOAST::decl nti, nto if @narr
       if @narr and @ld then
         BOAST::pr nti === @nx[@idim]
