@@ -1612,9 +1612,7 @@ def fssnord3dmatnabla_lg_boast(n1,n2,n3,k2)
 
   function_name = "fssnord3dmatnabla_lg_boast"
   u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  du0 = BOAST::Real("du0", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  du1 = BOAST::Real("du1", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  du2 = BOAST::Real("du2", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1),BOAST::Dim(0,2)] )
   rhopol = BOAST::Real("rhopol", :dir => :inout, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
   dlogeps = BOAST::Real("dlogeps", :dir => :in, :dim => [3, BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
   hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
@@ -1645,7 +1643,7 @@ def fssnord3dmatnabla_lg_boast(n1,n2,n3,k2)
   print_header
 
 
-  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du0,du1,du2,eta,dlogeps,rhopol,rhores2]){
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du,eta,dlogeps,rhopol,rhores2]){
     nn = BOAST::Int("nn", :dim => [3])
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
@@ -1686,15 +1684,15 @@ def fssnord3dmatnabla_lg_boast(n1,n2,n3,k2)
       BOAST::pr bc1 === BC::NPERIODIC
     }
 
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du0, hgrids[0])
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du1, hgrids[1])
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du2, hgrids[2])
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0], hgrids[0])
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1], hgrids[1])
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2], hgrids[2])
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: {"+" => rhores2}, private: [i1,i2,i3,res,rho]) { 
         BOAST::pr BOAST::For(i3, 0,n3-1, openmp: true){
           BOAST::pr BOAST::For(i2, 0,n2-1){
             BOAST::pr BOAST::For(i1, 0,n1-1){
 
-                BOAST::pr res === dlogeps[1,i1,i2,i3]*du0[i1,i2,i3]+dlogeps[2,i1,i2,i3]*du1[i1,i2,i3]+dlogeps[3,i1,i2,i3]*du2[i1,i2,i3]
+                BOAST::pr res === dlogeps[1,i1,i2,i3]*du[i1,i2,i3,0]+dlogeps[2,i1,i2,i3]*du[i1,i2,i3,1]+dlogeps[3,i1,i2,i3]*du[i1,i2,i3,2]
                 BOAST::pr res === res*oneo4pi
                 BOAST::pr rho === rhopol[i1,i2,i3]
                 BOAST::pr res === (res-rho)*eta
@@ -1719,9 +1717,10 @@ def fssnord3dmatnabla3var_lg_boast(n1,n2,n3,k2)
 
   function_name = "fssnord3dmatnabla3var_lg_boast"
   u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  du0 = BOAST::Real("du0", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  du1 = BOAST::Real("du1", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  du2 = BOAST::Real("du2", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+    du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1),BOAST::Dim(0,2)] )
+#  du0 = BOAST::Real("du0", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+#  du1 = BOAST::Real("du1", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+#  du2 = BOAST::Real("du2", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
   hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
   geocode = BOAST::Int("geocode", :dir => :in)
   n01 = BOAST::Int("n01", :dir => :in)
@@ -1748,7 +1747,7 @@ def fssnord3dmatnabla3var_lg_boast(n1,n2,n3,k2)
   print_header
 
 
-  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du0,du1,du2]){
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du]){
     nn = BOAST::Int("nn", :dim => [3])
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
@@ -1771,10 +1770,10 @@ def fssnord3dmatnabla3var_lg_boast(n1,n2,n3,k2)
     BOAST::pr BOAST::If(geocode != 2){
       BOAST::pr bc1 === BC::NPERIODIC
     }
-
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du0, hgrids[0])
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du1, hgrids[1])
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du2, hgrids[2])
+    
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0], hgrids[0])
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u,  du[0,0,0,1], hgrids[1])
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u,  du[0,0,0,2], hgrids[2])
 
     }
 

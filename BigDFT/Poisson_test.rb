@@ -206,12 +206,12 @@ k4 = fssnord3dmatnabla_lg_boast(n01,n02,n03,kconv)
 
 
 k4.build(:openmp => true)
-du0=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 0]
-du1=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 1]
-du2=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
+#du0=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 0]
+#du1=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 1]
+#du2=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
 
 stats_a = []
-stats_a.push k4.run(geocode, n01,n02,n03,hgrids,u,du0,du1,du2,eta,dlogeps,rhopol_boast,rhores2_boast)
+stats_a.push k4.run(geocode, n01,n02,n03,hgrids,u,du_boast,eta,dlogeps,rhopol_boast,rhores2_boast)
 
 diff = (rhopol_ref - rhopol_boast).abs
 diff.each { |elem|
@@ -222,7 +222,7 @@ diff.each { |elem|
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k4.run(geocode, n01,n02,n03,hgrids,u,du0,du1,du2,eta,dlogeps,rhopol_boast,rhores2_boast)
+  stats_a.push k4.run(geocode, n01,n02,n03,hgrids,u,du_boast,eta,dlogeps,rhopol_boast,rhores2_boast)
 }
 rescue Exception => e
   puts e.inspect
@@ -255,31 +255,20 @@ k5 = fssnord3dmatnabla3var_lg_boast(n01,n02,n03,kconv)
 
 
 k5.build(:openmp => true)
-du0=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 0]
-du1=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 1]
-du2=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
 
 stats_a = []
-stats_a.push k5.run(geocode, n01,n02,n03,hgrids,u,du0,du1,du2)
-
+stats_a.push k5.run(geocode, n01,n02,n03,hgrids,u,du_boast)
 
 epsilon=10e-11
-diff = (du_ref[0..(n01-1), 0..(n02-1), 0..(n03-1), 0] - du0).abs
+diff = (du_ref - du_boast).abs
 diff.each { |elem|
   raise "Warning: residue 0 too big: #{elem}" if elem > epsilon
 }
-diff = (du_ref[0..(n01-1), 0..(n02-1), 0..(n03-1), 1] - du1).abs
-diff.each { |elem|
-  raise "Warning: residue 1 too big: #{elem}" if elem > epsilon
-}
-diff = (du_ref[0..(n01-1), 0..(n02-1), 0..(n03-1), 2] - du2).abs
-diff.each { |elem|
-  raise "Warning: residue 2 too big: #{elem}" if elem > epsilon
-}
+
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k5.run(geocode, n01,n02,n03,hgrids,u,du0,du1,du2)
+  stats_a.push k5.run(geocode, n01,n02,n03,hgrids,u,du_boast)
 }
 rescue Exception => e
   puts e.inspect
