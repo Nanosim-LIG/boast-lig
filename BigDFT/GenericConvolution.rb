@@ -1419,7 +1419,7 @@ class GenericConvolutionOperator1d
         args = dims + lds + dats + vars
         if util == :cost then
           BOAST::pr @cost === 0
-          args = dims + [tmp_cost]
+          args = dims + [tmp_cost.address]
         end
         f.open if @narr
           BOAST::pr @procs[procname].call( *args )
