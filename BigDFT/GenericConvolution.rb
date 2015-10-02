@@ -1351,7 +1351,6 @@ class GenericConvolutionOperator1d
     vv += [ @cost ] if util == :cost
     
     p = BOAST::Procedure( function_name, vv ) {
-      ni = BOAST::Int "ni"
       ndat_left = BOAST::Int "ndat_left"
       ndat_right = BOAST::Int "ndat_right"
       nti = BOAST::Int "nti" if @narr
@@ -1359,8 +1358,9 @@ class GenericConvolutionOperator1d
       i = BOAST::Int "i"
       j = BOAST::Int "j"
       tmp_cost = BOAST::Int "c"
-      BOAST::decl i, j, ni, ndat_left, ndat_right, tmp_cost
-      BOAST::decl nti, nto if @narr
+      BOAST::decl i, ndat_left, ndat_right
+      BOAST::decl tmp_cost if util == :cost
+      BOAST::decl nti, nto, j if @narr
       if @narr and @ld then
         BOAST::pr nti === @nx[@idim]
         BOAST::pr nto === @ny[@idim]
