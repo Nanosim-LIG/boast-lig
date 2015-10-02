@@ -1239,7 +1239,7 @@ class GenericConvolutionOperator1d
     @vars.push @y     = BOAST::Real("y",  :dir => :out, :restrict => true, :dim => [ BOAST::Dim() ] )
     @vars.push @a = BOAST::Real("a",:dir => :in) if options[:a]
     @vars.push @a_x = BOAST::Real("a_x",:dir => :in) if options[:a_x]
-    @vars.push @a_y = BOAST::Real("a_y",:dir => :in) if options[:a_y]
+    @vars.push @a_y = BOAST::Real("a_y",:dir => :in) if options[:a_y] and options[:a_y] != 1.0
     @vars.push @dot_in = BOAST::Real("dot_in",:dir => :out) if options[:dot_in]
     @cost = BOAST::Int( "cost", :dir => :out )
 
@@ -1256,7 +1256,7 @@ class GenericConvolutionOperator1d
     opt_base = []
     opt_base.push( { :a   => @options[:a]   } ) if @options[:a]
     opt_base.push( { :a_x => @options[:a_x] } ) if @options[:a_x]
-    opt_base.push( { :a_y => @options[:a_y] } ) if @options[:a_y]
+    opt_base.push( { :a_y => @options[:a_y] } ) if @options[:a_y] and @options[:a_y] != 1.0
     opts_bases = []
     (0..opt_base.length).each { |indx|
       opt_base.combination(indx) { |c|
@@ -1264,6 +1264,7 @@ class GenericConvolutionOperator1d
         c.each { |item|
           ch.update(item)
         }
+        ch.update( { :a_y => @options[:a_y] } ) if @options[:a_y] and @options[:a_y] == 1.0
         opts_bases.push(ch)
       }
     }
@@ -1403,6 +1404,7 @@ class GenericConvolutionOperator1d
         opts.delete(:a) if not a
         opts.delete(:a_x) if not a_x
         opts.delete(:a_y) if not a_y
+        opts.update( { :a_y => 1.0 } ) if @options[:a_y] and @options[:a_y] == 1.0
         vars = []
         vars.push( @a ) if a
         vars.push( @a_x ) if a_x
