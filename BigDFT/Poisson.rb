@@ -260,11 +260,11 @@ def fssnord3dmatdiv3var_lg_ref
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
-  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03),3] )
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03), BOAST::Dim(3)] )
   du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
   nord = BOAST::Int("nord", :dir => :in)
   c1D = BOAST::Real("c1D", :dir => :in, :dim =>  [ BOAST::Dim(-nord/2,nord/2), BOAST::Dim(-nord/2,nord/2)])
-  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
+  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [BOAST::Dim(3)] )
   p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,nord,hgrids,c1D])
   kernel.code.print <<EOF
 subroutine fssnord3dmatdiv3var_lg_ref(geocode,n01,n02,n03,u,du,nord,hgrids,c1D)
@@ -438,11 +438,11 @@ def fssnord3dmatnabla3varde2_lg_ref
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
   u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
-  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03),3] )
+  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03), BOAST::Dim(3)] )
   du2 = BOAST::Real("du2", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
   nord = BOAST::Int("nord", :dir => :in)
   c1D = BOAST::Real("c1D", :dir => :in, :dim =>  [ BOAST::Dim(-nord/2,nord/2), BOAST::Dim(-nord/2,nord/2)])
-  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
+  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [BOAST::Dim(3)] )
   p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,du2,nord,hgrids,c1D])
   kernel.code.print <<EOF
 subroutine fssnord3dmatnabla3varde2_lg_ref(geocode,n01,n02,n03,u,du,du2,nord,hgrids,c1D)
@@ -616,11 +616,11 @@ def fssnord3dmatnabla_lg_ref
   u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
   nord = BOAST::Int("nord", :dir => :in)
   c1D = BOAST::Real("c1D", :dir => :in, :dim =>  [ BOAST::Dim(-nord/2,nord/2), BOAST::Dim(-nord/2,nord/2)])
-dlogeps = BOAST::Real("dlogeps", :dir => :in, :dim => [3, BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+dlogeps = BOAST::Real("dlogeps", :dir => :in, :dim => [BOAST::Dim(3), BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
   rhopol = BOAST::Real("rhopol", :dir => :inout, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
   rhores2 = BOAST::Real("rhores2", :dir => :out)
   eta = BOAST::Real("eta", :dir => :in)
-  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
+  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [BOAST::Dim(3)] )
   p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopol,rhores2,c1D])
   kernel.code.print <<EOF
 subroutine fssnord3dmatnabla_lg_ref(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopol,rhores2,c1D)
@@ -800,10 +800,10 @@ def fssnord3dmatnabla3var_lg_ref
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
   u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
-  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03),3] )
+  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03),BOAST::Dim(3)] )
   nord = BOAST::Int("nord", :dir => :in)
   c1D = BOAST::Real("c1D", :dir => :in, :dim =>  [ BOAST::Dim(-nord/2,nord/2), BOAST::Dim(-nord/2,nord/2)])
-  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
+  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [BOAST::Dim(3)] )
   p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,nord,hgrids,c1D])
   kernel.code.print <<EOF
 subroutine fssnord3dmatnabla3var_lg_ref(geocode,n01,n02,n03,u,du,nord,hgrids,c1D)
@@ -977,11 +977,11 @@ def fssnord3dmatdiv3var_lg_opt
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
-  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03),3] )
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03),BOAST::Dim(3)] )
   du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
   nord = BOAST::Int("nord", :dir => :in)
   c1D = BOAST::Real("c1D", :dir => :in, :dim =>  [ BOAST::Dim(-nord/2,nord/2), BOAST::Dim(-nord/2,nord/2)])
-  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
+  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [BOAST::Dim(3)] )
   p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,nord,hgrids,c1D])
   kernel.code.print <<EOF
 subroutine fssnord3dmatdiv3var_lg_opt(geocode,n01,n02,n03,u,du,nord,hgrids,c1D)
@@ -1171,12 +1171,12 @@ def fssnord3dmatdiv3var_lg_1d
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
-  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03),3] )
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03),BOAST::Dim(3)] )
   du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
   dim = BOAST::Int("dim", :dir => :in)
   nord = BOAST::Int("nord", :dir => :in)
   c1D = BOAST::Real("c1D", :dir => :in, :dim =>  [ BOAST::Dim(-nord/2,nord/2), BOAST::Dim(-nord/2,nord/2)])
-  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [3] )
+  hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [BOAST::Dim(3)] )
   p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,dim,nord,hgrids,c1D])
 
   kernel.code.print <<EOF
@@ -1461,15 +1461,7 @@ def fssnord3dmatdiv3var_lg_boast(n1,n2,n3,k2)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
   geocode = BOAST::Int("geocode", :dir => :in)
-  n = NArray.int(3)
-  n[0] = n1
-  n[1] = n2
-  n[2] = n3
-#  conv_filter = PoissonFilter::new('poisson',filter,nord)
-#  optims = GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true,:tt_arr_test => true,:unrolled_dim_index_test => true, :unroll_inner_test =>true, :dimensions => [n1,n2,n3])
 
-#  k2 = Poisson_conv(conv_filter, optims)
-#  k2.build(:openmp => true)
   kernel = BOAST::CKernel::new(:kernels => [k2])
 
 
@@ -1483,7 +1475,7 @@ def fssnord3dmatdiv3var_lg_boast(n1,n2,n3,k2)
 
 
   p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u, u1, u2,du]){
-    nn = BOAST::Int("nn", :dim => [3])
+    nn = BOAST::Int("nn", :dim => [BOAST::Dim(3)], :local =>true)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
     bc2 = BOAST::Int("bc2")
@@ -1536,15 +1528,7 @@ def fssnord3dmatnabla3varde2_lg_boast(n1,n2,n3,k2)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
   geocode = BOAST::Int("geocode", :dir => :in)
-  n = NArray.int(3)
-  n[0] = n1
-  n[1] = n2
-  n[2] = n3
-#  conv_filter = PoissonFilter::new('poisson',filter,nord)
-#  optims = GenericOptimization::new(:unroll_range => 2, :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => true, :unroll_inner_test =>false, :dimensions => [n1,n2,n3])
 
-#  k2 = Poisson_conv(conv_filter, optims,1)
-#  k2.build(:openmp => true)
   kernel = BOAST::CKernel::new(:kernels => [k2])
 
 
@@ -1558,7 +1542,7 @@ def fssnord3dmatnabla3varde2_lg_boast(n1,n2,n3,k2)
 
 
   p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du0,du1,du2,ddu]){
-    nn = BOAST::Int("nn", :dim => [3])
+    nn = BOAST::Int("nn", :dim => [BOAST::Dim(3)], :local =>true)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
     bc2 = BOAST::Int("bc2")
@@ -1619,26 +1603,18 @@ end
 def fssnord3dmatnabla_lg_boast(n1,n2,n3,k2)
 
   function_name = "fssnord3dmatnabla_lg_boast"
-  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1),BOAST::Dim(0,2)] )
-  rhopol = BOAST::Real("rhopol", :dir => :inout, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  dlogeps = BOAST::Real("dlogeps", :dir => :in, :dim => [3, BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
+  u       = BOAST::Real("u",       :dir => :in,    :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  du      = BOAST::Real("du",      :dir => :out,   :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1), BOAST::Dim(0, 2)] )
+  rhopol  = BOAST::Real("rhopol",  :dir => :inout, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  dlogeps = BOAST::Real("dlogeps", :dir => :in,    :dim => [ BOAST::Dim(3),        BOAST::Dim(0, n1-1), BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  hgrids  = BOAST::Real("hgrids",  :dir => :in,    :dim => [ BOAST::Dim(0, 2)])
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
   rhores2 = BOAST::Real("rhores2", :dir => :out)
   geocode = BOAST::Int("geocode", :dir => :in)
   eta = BOAST::Real("eta", :dir => :in)
-  n = NArray.int(3)
-  n[0] = n1
-  n[1] = n2
-  n[2] = n3
-#  conv_filter = PoissonFilter::new('poisson',filter,nord)
-#  optims = GenericOptimization::new(:unroll_range => 1, :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => false, :unroll_inner_test =>false, :dimensions => [n1,n2,n3])
 
-#  k2 = Poisson_conv(conv_filter, optims,1)
-#  k2.build(:openmp => true)
   kernel = BOAST::CKernel::new(:kernels => [k2])
 
 
@@ -1652,7 +1628,7 @@ def fssnord3dmatnabla_lg_boast(n1,n2,n3,k2)
 
 
   p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du,eta,dlogeps,rhopol,rhores2]){
-    nn = BOAST::Int("nn", :dim => [3])
+    nn = BOAST::Int("nn", :dim => [BOAST::Dim(3)], :local =>true)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
     bc2 = BOAST::Int("bc2")
@@ -1665,12 +1641,15 @@ def fssnord3dmatnabla_lg_boast(n1,n2,n3,k2)
     res = BOAST::Real("res")
     rho = BOAST::Real("rho")
     oneo4pi = BOAST::Real("oneo4pi")
+    tmp_rhores2 = BOAST::Real("tmp_rhores2")
     BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
     BOAST::decl i1
     BOAST::decl i2
     BOAST::decl i3
     BOAST::decl res
     BOAST::decl rho
+    BOAST::decl oneo4pi
+    BOAST::decl tmp_rhores2
     BOAST::pr nn[1] === n01
     BOAST::pr nn[2] === n02
     BOAST::pr nn[3] === n03
@@ -1697,31 +1676,32 @@ def fssnord3dmatnabla_lg_boast(n1,n2,n3,k2)
     BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
     
 
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0], a0)
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1], a1)
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2], a2)
-    BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: {"+" => rhores2}, private: [i1,i2,i3,res,rho]) { 
-        BOAST::pr BOAST::For(i3, 0,n3-1, openmp: true){
-          BOAST::pr BOAST::For(i2, 0,n2-1){
-            BOAST::pr BOAST::For(i1, 0,n1-1){
-
-                BOAST::pr res === dlogeps[1,i1,i2,i3]*du[i1,i2,i3,0]+dlogeps[2,i1,i2,i3]*du[i1,i2,i3,1]+dlogeps[3,i1,i2,i3]*du[i1,i2,i3,2]
-                BOAST::pr res === res*oneo4pi
-                BOAST::pr rho === rhopol[i1,i2,i3]
-                BOAST::pr res === (res-rho)*eta
-                BOAST::pr rhores2 === rhores2 + res*res
-                BOAST::pr rhopol[i1,i2,i3] === res+rho
-            }
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0].address, a0)
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1].address, a1)
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2].address, a2)
+    BOAST::pr tmp_rhores2 === 0.0
+    BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: {"+" => tmp_rhores2}, private: [i1,i2,i3,res,rho]) { 
+      BOAST::pr BOAST::For(i3, 0,n3-1, openmp: true){
+        BOAST::pr BOAST::For(i2, 0,n2-1){
+          BOAST::pr BOAST::For(i1, 0,n1-1){
+            BOAST::pr res === dlogeps[1,i1,i2,i3]*du[i1,i2,i3,0]+dlogeps[2,i1,i2,i3]*du[i1,i2,i3,1]+dlogeps[3,i1,i2,i3]*du[i1,i2,i3,2]
+            BOAST::pr res === res*oneo4pi
+            BOAST::pr rho === rhopol[i1,i2,i3]
+            BOAST::pr res === (res-rho)*eta
+            BOAST::pr tmp_rhores2 === tmp_rhores2 + res*res
+            BOAST::pr rhopol[i1,i2,i3] === res+rho
           }
         }
       }
     }
+    BOAST::pr rhores2 === tmp_rhores2
+  }
 
     
-    BOAST::pr p
-    kernel.procedure = p
-    kernel.cost_function = lambda { |*args| 3*k2.cost(*args) }
-    return kernel
+  BOAST::pr p
+  kernel.procedure = p
+  kernel.cost_function = lambda { |*args| 3*k2.cost(*args) }
+  return kernel
 end
 
 
@@ -1739,15 +1719,7 @@ def fssnord3dmatnabla3var_lg_boast(n1,n2,n3,k2)
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
-  n = NArray.int(3)
-  n[0] = n1
-  n[1] = n2
-  n[2] = n3
-#  conv_filter = PoissonFilter::new('poisson',filter,nord)
-#  optims = GenericOptimization::new(:unroll_range => 1, :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => false, :unroll_inner_test =>false, :dimensions => [n1,n2,n3])
 
-#  k2 = Poisson_conv(conv_filter, optims,1)
-#  k2.build(:openmp => true)
   kernel = BOAST::CKernel::new(:kernels => [k2])
 
 
@@ -1761,7 +1733,7 @@ def fssnord3dmatnabla3var_lg_boast(n1,n2,n3,k2)
 
 
   p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du]){
-    nn = BOAST::Int("nn", :dim => [3])
+    nn = BOAST::Int("nn", :dim => [BOAST::Dim(3)], :local =>true)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
     bc2 = BOAST::Int("bc2")
@@ -1788,9 +1760,9 @@ def fssnord3dmatnabla3var_lg_boast(n1,n2,n3,k2)
     BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
     BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
     
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0], a0)
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u,  du[0,0,0,1], a1)
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u,  du[0,0,0,2], a2)
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0].address, a0)
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1].address, a1)
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2].address, a2)
 
     }
 
