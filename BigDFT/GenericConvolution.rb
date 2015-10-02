@@ -412,9 +412,6 @@ class ConvolutionOperator1d
         @vars.push @a_y = BOAST::Real("a_y",:dir => :in) if options[:a_y]
       end
     end
-    if @poisson then
-      @vars.push @h =  BOAST::Real("h", :dir => :in)
-    end
     @vars.push @dot_in = BOAST::Real("dot_in",:dir => :out) if options[:dot_in]
     @cost = BOAST::Int("cost", :dir => :out)
     @options = options
@@ -640,7 +637,6 @@ class ConvolutionOperator1d
     nscal+=1 if @a
     nscal+=1 if @a_x
     nscal+=1 if @a_y
-    nscal+=1 if @h
     nscal.times{vars.push(0.5)}
     vars.push(NArray::new(type, 1).random) if @dot_in
     return vars
@@ -1068,11 +1064,7 @@ class ConvolutionOperator1d
         #to be controlled in the case of non-orthorhombic cells for kinetic operations
         BOAST::pr out === out + @x2[*i_in] if @x2
         if not @no_temp then
-          if @poisson and @accumulate
-            BOAST::pr out === out / @h + @y[*i_out]
-          elsif @poisson
-            BOAST::pr out === out / @h
-          elsif @accumulate or (@kinetic == :inplace and not @options[:zero_out])  then
+          if @accumulate or (@kinetic == :inplace and not @options[:zero_out])  then
             BOAST::pr out === out + @y[*i_out]
           elsif @a_y then
             BOAST::pr out === out +  @a_y * @y[*i_out]

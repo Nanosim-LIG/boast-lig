@@ -1422,9 +1422,9 @@ end
 def Poisson_conv(conv_filter, optims=GenericOptimization::new, accum=1)
     
 if (accum !=0) then
-  conv_operation = GenericConvolutionOperator1d::new(conv_filter, :transpose => 0, :work => false, :a_y => accum, :ld => false, :narr => false, :poisson => true)
+  conv_operation = GenericConvolutionOperator1d::new(conv_filter, :transpose => 0, :work => false, :a_y => accum, :ld => false, :narr => false, :a => true, :poisson => true)
 else
-  conv_operation = GenericConvolutionOperator1d::new(conv_filter, :transpose => 0, :work => false, :ld => false, :narr => false, :poisson => true)
+  conv_operation = GenericConvolutionOperator1d::new(conv_filter, :transpose => 0, :work => false, :ld => false, :narr => false, :a => true, :poisson => true)
 end 
 
 
@@ -1487,10 +1487,11 @@ def fssnord3dmatdiv3var_lg_boast(n1,n2,n3,k2)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
     bc2 = BOAST::Int("bc2")
-    BOAST::decl nn
-    BOAST::decl bc0
-    BOAST::decl bc1
-    BOAST::decl bc2
+    a0 = BOAST::Real("a0")
+    a1 = BOAST::Real("a1")
+    a2 = BOAST::Real("a2")
+    BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
+    
     BOAST::pr nn[1] === n01
     BOAST::pr nn[2] === n02
     BOAST::pr nn[3] === n03
@@ -1499,6 +1500,10 @@ def fssnord3dmatdiv3var_lg_boast(n1,n2,n3,k2)
     BOAST::pr bc1===BC::PERIODIC
     BOAST::pr bc2===BC::PERIODIC
 
+    BOAST::pr a0 === BOAST::Real(1.0) / hgrids[0]
+    BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
+    BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
+
     BOAST::pr BOAST::If(geocode == 1) {
       BOAST::pr bc0 === BC::NPERIODIC
       BOAST::pr bc2 === BC::NPERIODIC
@@ -1506,10 +1511,10 @@ def fssnord3dmatdiv3var_lg_boast(n1,n2,n3,k2)
     BOAST::pr BOAST::If(geocode != 2){
       BOAST::pr bc1 === BC::NPERIODIC
     }
-
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du, hgrids[0])
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u1, du, hgrids[1])
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u2, du, hgrids[2])
+    
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du, a0)
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u1, du, a1)
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u2, du, a2)
     }
     BOAST::pr p
     kernel.procedure = p
@@ -1560,11 +1565,10 @@ def fssnord3dmatnabla3varde2_lg_boast(n1,n2,n3,k2)
     i1 = BOAST::Int("i1")
     i2 = BOAST::Int("i2")
     i3 = BOAST::Int("i3")
-
-    BOAST::decl nn
-    BOAST::decl bc0
-    BOAST::decl bc1
-    BOAST::decl bc2
+    a0 = BOAST::Real("a0")
+    a1 = BOAST::Real("a1")
+    a2 = BOAST::Real("a2")
+    BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
     BOAST::decl i1
     BOAST::decl i2
     BOAST::decl i3
@@ -1586,9 +1590,13 @@ def fssnord3dmatnabla3varde2_lg_boast(n1,n2,n3,k2)
       BOAST::pr bc1 === BC::NPERIODIC
     }
 
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du0, hgrids[0])
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du1, hgrids[1])
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du2, hgrids[2])
+    BOAST::pr a0 === BOAST::Real(1.0) / hgrids[0]
+    BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
+    BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
+    
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du0, a0)
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du1, a1)
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du2, a2)
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
         BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
           BOAST::pr BOAST::For(i2, 0,n2-1){
@@ -1648,16 +1656,16 @@ def fssnord3dmatnabla_lg_boast(n1,n2,n3,k2)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
     bc2 = BOAST::Int("bc2")
+    a0 = BOAST::Real("a0")
+    a1 = BOAST::Real("a1")
+    a2 = BOAST::Real("a2")
     i1 = BOAST::Int("i1")
     i2 = BOAST::Int("i2")
     i3 = BOAST::Int("i3")
     res = BOAST::Real("res")
     rho = BOAST::Real("rho")
     oneo4pi = BOAST::Real("oneo4pi")
-    BOAST::decl nn
-    BOAST::decl bc0
-    BOAST::decl bc1
-    BOAST::decl bc2
+    BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
     BOAST::decl i1
     BOAST::decl i2
     BOAST::decl i3
@@ -1683,10 +1691,15 @@ def fssnord3dmatnabla_lg_boast(n1,n2,n3,k2)
     BOAST::pr BOAST::If(geocode != 2){
       BOAST::pr bc1 === BC::NPERIODIC
     }
+    
+    BOAST::pr a0 === BOAST::Real(1.0) / hgrids[0]
+    BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
+    BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
+    
 
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0], hgrids[0])
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1], hgrids[1])
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2], hgrids[2])
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0], a0)
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1], a1)
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2], a2)
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: {"+" => rhores2}, private: [i1,i2,i3,res,rho]) { 
         BOAST::pr BOAST::For(i3, 0,n3-1, openmp: true){
           BOAST::pr BOAST::For(i2, 0,n2-1){
@@ -1752,10 +1765,10 @@ def fssnord3dmatnabla3var_lg_boast(n1,n2,n3,k2)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
     bc2 = BOAST::Int("bc2")
-    BOAST::decl nn
-    BOAST::decl bc0
-    BOAST::decl bc1
-    BOAST::decl bc2
+    a0 = BOAST::Real("a0")
+    a1 = BOAST::Real("a1")
+    a2 = BOAST::Real("a2")
+    BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
     BOAST::pr nn[1] === n01
     BOAST::pr nn[2] === n02
     BOAST::pr nn[3] === n03
@@ -1771,9 +1784,13 @@ def fssnord3dmatnabla3var_lg_boast(n1,n2,n3,k2)
       BOAST::pr bc1 === BC::NPERIODIC
     }
     
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0], hgrids[0])
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u,  du[0,0,0,1], hgrids[1])
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u,  du[0,0,0,2], hgrids[2])
+    BOAST::pr a0 === BOAST::Real(1.0) / hgrids[0]
+    BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
+    BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
+    
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0], a0)
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u,  du[0,0,0,1], a1)
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u,  du[0,0,0,2], a2)
 
     }
 
