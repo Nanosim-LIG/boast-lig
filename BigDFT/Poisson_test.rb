@@ -21,6 +21,9 @@ $parser = OptionParser::new do |opts|
   opts.on("-o", "--output", "output code") {
     $options[:output] = true
   }
+  opts.on("-f", "--fast", "use less optimization flags to run faster") {
+    $options[:fast] = true
+  }
   opts.parse!
 end
 
@@ -89,35 +92,33 @@ diff.each { |elem|
 
 #compute and optimize outside of the kernel, as we will reuse these convolutions later
 conv_filter = PoissonFilter::new('poisson',filter.to_a,nord)
+
+if $options[:fast] then
+optims = GenericOptimization::new(:unroll_range => [5,5], :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => false, :unroll_inner_test =>false, :dimensions => [n01,n02,n03])
+else
 optims = GenericOptimization::new(:unroll_range => 5, :mod_arr_test => true,:tt_arr_test => true,:unrolled_dim_index_test => true, :unroll_inner_test =>true, :dimensions => [n01,n02,n03])
+end
 
-
-
-kconv2 = Poisson_brocker(optims,n01,n02,n03)
-
-
-  suffix = ".c" if BOAST::get_lang == BOAST::C
-  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
-  File::open("poisson_brocker#{suffix}","w") { |f|
-    f.puts kconv2
-  }
-
-
-kconv = Poisson_conv(conv_filter, optims)
+kconv = Poisson_brocker(optims,n01,n02,n03)
 kconv.build(:openmp => true)
 
-  suffix = ".c" if BOAST::get_lang == BOAST::C
-  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
-  File::open("poisson_kernels#{suffix}","w") { |f|
-    f.puts kconv
-  }
+
+
+#kconv = Poisson_conv(conv_filter, optims)
+#kconv.build(:openmp => true)
+
+#  suffix = ".c" if BOAST::get_lang == BOAST::C
+#  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+#  File::open("poisson_kernels#{suffix}","w") { |f|
+#    f.puts kconv
+#  }
 
 k2 = div_u_i(n01,n02,n03,kconv)
 k2.build(:openmp => true)
 
 
 stats_a = []
-stats_a.push k2.run(geocode, n01,n02,n03,hgrids,u,du_boast)
+stats_a.push k2.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids)
 
 diff = (du_ref - du_boast).abs
 diff.each { |elem|
@@ -129,7 +130,7 @@ diff.each { |elem|
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k2.run(geocode, n01,n02,n03,hgrids,u,du_boast)
+  stats_a.push k2.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids)
 }
 rescue Exception => e
   puts e.inspect
@@ -171,7 +172,7 @@ k3.build(:openmp => true)
 #du2=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
 
 stats_a = []
-stats_a.push k3.run(geocode, n01,n02,n03,hgrids,u,du_boast,du2_boast)
+stats_a.push k3.run(geocode, n01,n02,n03,u,du_boast,du2_boast,nord,hgrids)
 
 diff = (du2_ref - du2_boast).abs
 diff.each { |elem|
@@ -181,7 +182,7 @@ diff.each { |elem|
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k3.run(geocode, n01,n02,n03,hgrids,u,du_boast,du2_boast)
+  stats_a.push k3.run(geocode, n01,n02,n03,u,du_boast,du2_boast, nord, hgrids)
 }
 rescue Exception => e
   puts e.inspect
@@ -372,7 +373,7 @@ k7.build(:openmp => true)
 #du2=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
 
 stats_a = []
-stats_a.push k7.run(geocode, n01,n02,n03,hgrids,u,du_boast,du2_boast)
+stats_a.push k7.run(geocode, n01,n02,n03,u,du_boast,du2_boast,nord,hgrids)
 
 diff = (du2_ref - du2_boast).abs
 diff.each { |elem|
@@ -382,7 +383,7 @@ diff.each { |elem|
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k7.run(geocode, n01,n02,n03,hgrids,u,du_boast,du2_boast)
+  stats_a.push k7.run(geocode, n01,n02,n03,u,du_boast,du2_boast,nord,hgrids)
 }
 rescue Exception => e
   puts e.inspect

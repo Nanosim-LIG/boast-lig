@@ -1869,20 +1869,12 @@ def Poisson_brocker(optims,n1,n2,n3)
     du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
     nn = BOAST::Int("nn", :dir => :in, :dim => [BOAST::Dim(3)])
 
+    suffix = ".c" if BOAST::get_lang == BOAST::C
+    suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
     BOAST::decl j
     nords=[2,4,6,8,16]
-#    BOAST::pr nords[1] === 2
-#    BOAST::pr nords[2] === 4
-#    BOAST::pr nords[3] === 6
-#    BOAST::pr nords[4] === 8
-#    BOAST::pr nords[5] === 16
-
-    kernel = BOAST::CKernel::new
     
-#    BOAST::pr BOAST::For(j,1,5){
     nords.each{ |nord_n|
-#        !filter = BOAST::Real("filter", :dim => [ BOAST::Dim(nord_n+1),  BOAST::Dim(nord_n+1)])
-#        BOAST::decl filter
         filter= NArray.float(nord_n+1, nord_n+1)
         generate_filter.run(nord_n, filter)
         conv_filter = PoissonFilter::new('poisson'+nord_n.to_s,filter.to_a,nord_n)
@@ -1891,14 +1883,54 @@ def Poisson_brocker(optims,n1,n2,n3)
         kernels.push k
     }
 
+
+
+    kernel = BOAST::CKernel::new(:kernels => [kernels[0],kernels[1],kernels[2],kernels[3],kernels[4]])
     p = BOAST::Procedure(function_name, [nord,idim, nn, bc, u, du, a]){
-     #TODO print brocker
-      BOAST::pr  kernels[nord].procedure().call(3,idim,nn, bc, u, du, a)
+        BOAST::pr BOAST::Case( nord, 2, lambda {
+          BOAST::pr  kernels[0].procedure.call(3,idim,nn, bc, u, du, a)
+        },4,lambda {
+          BOAST::pr  kernels[1].procedure.call(3,idim,nn, bc, u, du, a)
+        },6,lambda {
+          BOAST::pr  kernels[2].procedure.call(3,idim,nn, bc, u, du, a)
+        },8,lambda {
+          BOAST::pr  kernels[3].procedure.call(3,idim,nn, bc, u, du, a)
+        },16,lambda {
+          BOAST::pr  kernels[4].procedure.call(3,idim,nn, bc, u, du, a)
+        })
     }
 
     BOAST::pr p
     kernel.procedure = p
-    kernel.cost_function = lambda { |*args| 3*kernels[nord].cost(*args) }
+
+
+    c = lambda { |*args| 3 }
+
+#BOAST::Procedure(function_name, [nord,*args]){
+#        BOAST::pr BOAST::Case( nord, 2, lambda {
+#          kernels[0].cost(*args)
+#        },4,lambda {
+#          kernels[1].cost(*args)
+#        },6,lambda {
+#          kernels[2].cost(*args)
+#        },8,lambda {
+#          kernels[3].cost(*args)
+#        },16,lambda {
+#          kernels[4].cost(*args)
+#        })
+#    }
+
+    kernel.cost_function = c
+
+  File::open("poisson_kernels#{suffix}","w") { |f|
+    f.puts kernels[0]
+    f.puts kernels[1]
+    f.puts kernels[2]
+    f.puts kernels[3]
+    f.puts kernels[4]
+    f.puts kernel
+  }
+
     return kernel
 
 end 
@@ -1912,6 +1944,7 @@ def div_u_i(n1,n2,n3,k2)
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
+  nord = BOAST::Int("nord", :dir => :in)
   geocode = BOAST::Int("geocode", :dir => :in)
 
   kernel = BOAST::CKernel::new(:kernels => [k2])
@@ -1926,7 +1959,7 @@ def div_u_i(n1,n2,n3,k2)
 #  print_header
 
 
-  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du]){
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03,u,du,nord,hgrids]){
     nn = BOAST::Int("nn", :dim => [BOAST::Dim(3)], :local =>true)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
@@ -1956,13 +1989,13 @@ def div_u_i(n1,n2,n3,k2)
       BOAST::pr bc1 === BC::NPERIODIC
     }
     
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u[0,0,0,0].address, du, a0)
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u[0,0,0,1].address, du, a1)
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u[0,0,0,2].address, du, a2)
+    BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
+    BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, du, a1)
+    BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, du, a2)
     }
     BOAST::pr p
     kernel.procedure = p
-    kernel.cost_function = lambda { |*args| 3*k2.cost(*args) }
+    kernel.cost_function = lambda { |*args| 3*k2.cost(nord,*args) }
     return kernel
 end
 
@@ -1977,6 +2010,7 @@ def nabla_u_and_square(n1,n2,n3,k2)
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
+  nord = BOAST::Int("nord", :dir => :in)
   geocode = BOAST::Int("geocode", :dir => :in)
 
   kernel = BOAST::CKernel::new(:kernels => [k2])
@@ -1991,7 +2025,7 @@ def nabla_u_and_square(n1,n2,n3,k2)
 #  print_header
 
 
-  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du,ddu]){
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03,u,du,ddu,nord,hgrids]){
     nn = BOAST::Int("nn", :dim => [BOAST::Dim(3)], :local =>true)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
@@ -2028,9 +2062,9 @@ def nabla_u_and_square(n1,n2,n3,k2)
     BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
     BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
     
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0].address, a0)
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1].address, a1)
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2].address, a2)
+    BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u, du[0,0,0,0].address, a0)
+    BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u, du[0,0,0,1].address, a1)
+    BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
         BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
           BOAST::pr BOAST::For(i2, 0,n2-1){
@@ -2045,7 +2079,7 @@ def nabla_u_and_square(n1,n2,n3,k2)
     
     BOAST::pr p
     kernel.procedure = p
-    kernel.cost_function = lambda { |*args| 3*k2.cost(*args) }
+    kernel.cost_function = lambda { |*args| 3*k2.cost(nord,*args) }
     return kernel
 end
 
@@ -2113,9 +2147,9 @@ def nabla_u_epsilon(n1,n2,n3,k2)
     BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
     BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
     
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0].address, a0)
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1].address, a1)
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2].address, a2)
+    BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u, du[0,0,0,0].address, a0)
+    BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u, du[0,0,0,1].address, a1)
+    BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
         BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
           BOAST::pr BOAST::For(i2, 0,n2-1){
@@ -2132,7 +2166,7 @@ def nabla_u_epsilon(n1,n2,n3,k2)
     
     BOAST::pr p
     kernel.procedure = p
-    kernel.cost_function = lambda { |*args| 3*k2.cost(*args) }
+    kernel.cost_function = lambda { |*args| 3*k2.cost(nord,*args) }
     return kernel
 end
 
@@ -2214,9 +2248,9 @@ def update_rhopol(n1,n2,n3,k2)
     BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
     
 
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0].address, a0)
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1].address, a1)
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2].address, a2)
+    BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u, du[0,0,0,0].address, a0)
+    BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u, du[0,0,0,1].address, a1)
+    BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
     BOAST::pr tmp_rhores2 === 0.0
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: {"+" => tmp_rhores2}, private: [i1,i2,i3,res,rho]) { 
       BOAST::pr BOAST::For(i3, 0,n3-1, openmp: true){
@@ -2238,7 +2272,7 @@ def update_rhopol(n1,n2,n3,k2)
     
   BOAST::pr p
   kernel.procedure = p
-  kernel.cost_function = lambda { |*args| 3*k2.cost(*args) }
+  kernel.cost_function = lambda { |*args| 3*k2.cost(nord,*args) }
   return kernel
 end
 
@@ -2299,16 +2333,16 @@ def nabla_u(n1,n2,n3,k2)
     BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
     BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
     
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0].address, a0)
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1].address, a1)
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2].address, a2)
+    BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u, du[0,0,0,0].address, a0)
+    BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u, du[0,0,0,1].address, a1)
+    BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
 
     }
 
     
     BOAST::pr p
     kernel.procedure = p
-    kernel.cost_function = lambda { |*args| 3*k2.cost(*args) }
+    kernel.cost_function = lambda { |*args| 3*k2.cost(nord,*args) }
     return kernel
 end
 
