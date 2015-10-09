@@ -51,11 +51,11 @@ du = NArray.float(n01,n02,n03)
 du_3D = NArray.float(n01,n02,n03)
 du_boast = NArray.float(n01,n02,n03)
 
-k = fssnord3dmatdiv3var_lg_ref
+k = div_u_i_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref, nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
-k = fssnord3dmatdiv3var_lg_opt
+k = div_u_i_opt
 stats = k.run(geocode, n01, n02, n03, u, du, nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
@@ -68,7 +68,7 @@ diff.each { |elem|
 
 #3*1D version with boast convolutions : works
 
-k = fssnord3dmatdiv3var_lg_1d
+k = div_u_i_1d
 stats = k.run(geocode, n01, n02, n03, u, du_3D,1, nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 stats = k.run(geocode, n01, n02, n03, u, du_3D,2, nord, hgrids, filter)
@@ -95,26 +95,24 @@ kconv = Poisson_conv(conv_filter, optims)
 kconv.build(:openmp => true)
 
 
-k2 = fssnord3dmatdiv3var_lg_boast(n01,n02,n03,kconv)
+k2 = div_u_i(n01,n02,n03,kconv)
 k2.build(:openmp => true)
 
-u1=u[0..(n01-1), 0..(n02-1), 0..(n03-1), 1]
-u2=u[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
 
 stats_a = []
-stats_a.push k2.run(geocode, n01,n02,n03,hgrids,u,u1,u2,du_boast)
+stats_a.push k2.run(geocode, n01,n02,n03,hgrids,u,du_boast)
 
 diff = (du_ref - du_boast).abs
 diff.each { |elem|
     raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
 
-#fssnord3dmatdiv3var_lg_boast(geocode, n01, n02, n03, u, du_3D3, nord, hgrids)
+#div_u_i_boast(geocode, n01, n02, n03, u, du_3D3, nord, hgrids)
 #stats = k2.run(geocode, n01,n02,n03,hgrids,u,u1,u2,du_boast)
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k2.run(geocode, n01,n02,n03,hgrids,u,u1,u2,du_boast)
+  stats_a.push k2.run(geocode, n01,n02,n03,hgrids,u,du_boast)
 }
 rescue Exception => e
   puts e.inspect
@@ -141,22 +139,22 @@ du2_ref = NArray.float(n01,n02,n03)
 du_boast = NArray.float(n01,n02,n03,3)
 du2_boast = NArray.float(n01,n02,n03)
 
-k = fssnord3dmatnabla3varde2_lg_ref
+k = nabla_u_and_square_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref,du2_ref , nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 #annoyingly, too much computation to get a good precision here ...
 epsilon = 10e-6
 
-k3 = fssnord3dmatnabla3varde2_lg_boast(n01,n02,n03,kconv)
+k3 = nabla_u_and_square(n01,n02,n03,kconv)
 
 k3.build(:openmp => true)
-du0=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 0]
-du1=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 1]
-du2=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
+#du0=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 0]
+#du1=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 1]
+#du2=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
 
 stats_a = []
-stats_a.push k3.run(geocode, n01,n02,n03,hgrids,u,du0,du1,du2,du2_boast)
+stats_a.push k3.run(geocode, n01,n02,n03,hgrids,u,du_boast,du2_boast)
 
 diff = (du2_ref - du2_boast).abs
 diff.each { |elem|
@@ -166,7 +164,7 @@ diff.each { |elem|
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k3.run(geocode, n01,n02,n03,hgrids,u,du0,du1,du2,du2_boast)
+  stats_a.push k3.run(geocode, n01,n02,n03,hgrids,u,du_boast,du2_boast)
 }
 rescue Exception => e
   puts e.inspect
@@ -197,12 +195,12 @@ eta = 0.5
 du_boast = NArray.float(n01,n02,n03,3)
 #du2_boast = NArray.float(n01,n02,n03)
 
-k = fssnord3dmatnabla_lg_ref
+k = update_rhopol_ref
 stats = k.run(geocode, n01, n02, n03, u, nord, hgrids,eta,dlogeps,rhopol_ref,rhores2_ref,  filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 
-k4 = fssnord3dmatnabla_lg_boast(n01,n02,n03,kconv)
+k4 = update_rhopol(n01,n02,n03,kconv)
 
 
 k4.build(:openmp => true)
@@ -211,7 +209,7 @@ k4.build(:openmp => true)
 #du2=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
 
 stats_a = []
-stats_a.push k4.run(geocode, n01,n02,n03,hgrids,u,du_boast,eta,dlogeps,rhopol_boast,rhores2_boast)
+stats_a.push k4.run(geocode, n01,n02,n03,u, nord,hgrids,du_boast,eta,dlogeps,rhopol_boast,rhores2_boast)
 
 diff = (rhopol_ref - rhopol_boast).abs
 diff.each { |elem|
@@ -222,7 +220,7 @@ diff.each { |elem|
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k4.run(geocode, n01,n02,n03,hgrids,u,du_boast,eta,dlogeps,rhopol_boast,rhores2_boast)
+  stats_a.push k4.run(geocode, n01,n02,n03,u,nord, hgrids,du_boast,eta,dlogeps,rhopol_boast,rhores2_boast)
 }
 rescue Exception => e
   puts e.inspect
@@ -246,18 +244,18 @@ u = NArray.float(n01,n02,n03).random
 du_boast = NArray.float(n01,n02,n03,3)
 du_ref = NArray.float(n01,n02,n03,3)
 
-k = fssnord3dmatnabla3var_lg_ref
+k = nabla_u_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref, nord, hgrids,filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 
-k5 = fssnord3dmatnabla3var_lg_boast(n01,n02,n03,kconv)
+k5 = nabla_u(n01,n02,n03,kconv)
 
 
 k5.build(:openmp => true)
 
 stats_a = []
-stats_a.push k5.run(geocode, n01,n02,n03,hgrids,u,du_boast)
+stats_a.push k5.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids)
 
 epsilon=10e-11
 diff = (du_ref - du_boast).abs
@@ -268,7 +266,7 @@ diff.each { |elem|
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k5.run(geocode, n01,n02,n03,hgrids,u,du_boast)
+  stats_a.push k5.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids)
 }
 rescue Exception => e
   puts e.inspect
@@ -286,6 +284,105 @@ du_ref = nil
 
 
 
+#now the nabla_u_epsilon variant
+
+
+u = NArray.float(n01,n02,n03).random
+du_boast = NArray.float(n01,n02,n03,3)
+du_ref = NArray.float(n01,n02,n03,3)
+du_3D = NArray.float(n01,n02,n03).random
+
+k = nabla_u_epsilon_ref
+stats = k.run(geocode, n01, n02, n03, u, du_ref,nord, hgrids,du_3D, filter)
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
+
+
+k6 = nabla_u_epsilon(n01,n02,n03,kconv)
+
+
+k6.build(:openmp => true)
+
+stats_a = []
+stats_a.push k6.run(geocode, n01,n02,n03,u,du_boast,du_3D, nord,hgrids)
+
+epsilon=10e-11
+diff = (du_ref - du_boast).abs
+diff.each { |elem|
+  raise "Warning: residue 0 too big: #{elem}" if elem > epsilon
+}
+
+repeat = 5
+begin
+  repeat.times { |i|
+  stats_a.push k6.run(geocode, n01,n02,n03,u,du_boast,du_3D, nord,hgrids)
+}
+rescue Exception => e
+  puts e.inspect
+end
+
+stats_a.sort_by! { |a| a[:duration] }
+stats = stats_a.first
+
+puts "#{k6.procedure.name}: #{stats[:duration]*1.0e3} #{k5.cost(0,n, bc) / (stats[:duration]*1.0e9)} GFlops"
+
+
+u = nil
+du_boast = nil
+du_ref = nil
+du_3D = nil
+
+#test for the nabla_u_square function
+
+u = NArray.float(n01,n02,n03).random
+du2_ref = NArray.float(n01,n02,n03)
+du_boast = NArray.float(n01,n02,n03,3)
+du2_boast = NArray.float(n01,n02,n03)
+
+k = nabla_u_square_ref
+stats = k.run(geocode, n01, n02, n03, u, du2_ref , nord, hgrids, filter)
+puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
+
+#annoyingly, too much computation to get a good precision here ...
+epsilon = 10e-9
+
+
+#cheat to use and square ?
+k7 = nabla_u_and_square(n01,n02,n03,kconv)
+
+k7.build(:openmp => true)
+#du0=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 0]
+#du1=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 1]
+#du2=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
+
+stats_a = []
+stats_a.push k7.run(geocode, n01,n02,n03,hgrids,u,du_boast,du2_boast)
+
+diff = (du2_ref - du2_boast).abs
+diff.each { |elem|
+  raise "Warning: residue too big: #{elem}" if elem > epsilon
+}
+
+repeat = 5
+begin
+  repeat.times { |i|
+  stats_a.push k7.run(geocode, n01,n02,n03,hgrids,u,du_boast,du2_boast)
+}
+rescue Exception => e
+  puts e.inspect
+end
+
+stats_a.sort_by! { |a| a[:duration] }
+stats = stats_a.first
+
+puts "#{k7.procedure.name}: #{stats[:duration]*1.0e3} #{k3.cost(0,n, bc) / (stats[:duration]*1.0e9)} GFlops"
+
+
+u=nil
+du_boast=nil
+du2_boast=nil
+du2_ref=nil
+
+
 if $options[:output] then
   suffix = ".c" if BOAST::get_lang == BOAST::C
   suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
@@ -294,6 +391,8 @@ if $options[:output] then
     f.puts k3
     f.puts k4
     f.puts k5
+    f.puts k6
+    f.puts k7
   }
 end
 
