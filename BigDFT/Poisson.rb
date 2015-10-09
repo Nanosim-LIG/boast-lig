@@ -1907,9 +1907,9 @@ def div_u_i(n1,n2,n3,k2)
       BOAST::pr bc1 === BC::NPERIODIC
     }
     
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u[0,0,0,0], du, a0)
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u[0,0,0,1], du, a1)
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u[0,0,0,2], du, a2)
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u[0,0,0,0].address, du, a0)
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u[0,0,0,1].address, du, a1)
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u[0,0,0,2].address, du, a2)
     }
     BOAST::pr p
     kernel.procedure = p
@@ -1979,9 +1979,9 @@ def nabla_u_and_square(n1,n2,n3,k2)
     BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
     BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
     
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0], a0)
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1], a1)
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2], a2)
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0].address, a0)
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1].address, a1)
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2].address, a2)
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
         BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
           BOAST::pr BOAST::For(i2, 0,n2-1){
@@ -2064,9 +2064,9 @@ def nabla_u_epsilon(n1,n2,n3,k2)
     BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
     BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
     
-    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0], a0)
-    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1], a1)
-    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2], a2)
+    BOAST::pr k2.procedure.call(3, 0, nn, bc0, u, du[0,0,0,0].address, a0)
+    BOAST::pr k2.procedure.call(3, 1, nn, bc1, u, du[0,0,0,1].address, a1)
+    BOAST::pr k2.procedure.call(3, 2, nn, bc2, u, du[0,0,0,2].address, a2)
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
         BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
           BOAST::pr BOAST::For(i2, 0,n2-1){
