@@ -1854,6 +1854,55 @@ end
 
 end
 
+
+def Poisson_brocker(optims,n1,n2,n3)
+
+    function_name = "Poisson_brocker"
+#    nords = BOAST::Int("nords", :dim => [BOAST::Dim(5)], :local =>true)
+    kernels=[]
+    j = BOAST::Int "j"
+    nord = BOAST::Int("nord", :dir => :in)
+    idim = BOAST::Int("idim", :dir => :in)
+    a = BOAST::Real("a", :dir => :in)
+    bc = BOAST::Real("bc", :dir => :in)
+    u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1), BOAST::Dim(0, 2)] )
+    du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+    nn = BOAST::Int("nn", :dir => :in, :dim => [BOAST::Dim(3)])
+
+    BOAST::decl j
+    nords=[2,4,6,8,16]
+#    BOAST::pr nords[1] === 2
+#    BOAST::pr nords[2] === 4
+#    BOAST::pr nords[3] === 6
+#    BOAST::pr nords[4] === 8
+#    BOAST::pr nords[5] === 16
+
+    kernel = BOAST::CKernel::new
+    
+#    BOAST::pr BOAST::For(j,1,5){
+    nords.each{ |nord_n|
+#        !filter = BOAST::Real("filter", :dim => [ BOAST::Dim(nord_n+1),  BOAST::Dim(nord_n+1)])
+#        BOAST::decl filter
+        filter= NArray.float(nord_n+1, nord_n+1)
+        generate_filter.run(nord_n, filter)
+        conv_filter = PoissonFilter::new('poisson'+nord_n.to_s,filter.to_a,nord_n)
+        k = Poisson_conv(conv_filter, optims)
+        k.build(:openmp => true)
+        kernels.push k
+    }
+
+    p = BOAST::Procedure(function_name, [nord,idim, nn, bc, u, du, a]){
+     #TODO print brocker
+      BOAST::pr  kernels[nord].procedure().call(3,idim,nn, bc, u, du, a)
+    }
+
+    BOAST::pr p
+    kernel.procedure = p
+    kernel.cost_function = lambda { |*args| 3*kernels[nord].cost(*args) }
+    return kernel
+
+end 
+
 def div_u_i(n1,n2,n3,k2)
 
   function_name = "div_u_i"
@@ -1868,13 +1917,13 @@ def div_u_i(n1,n2,n3,k2)
   kernel = BOAST::CKernel::new(:kernels => [k2])
 
 
-  suffix = ".c" if BOAST::get_lang == BOAST::C
-  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
-  File::open("poisson_kernels#{suffix}","w") { |f|
-    f.puts k2
-  }
+#  suffix = ".c" if BOAST::get_lang == BOAST::C
+#  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+#  File::open("poisson_kernels#{suffix}","w") { |f|
+#    f.puts k2
+#  }
 
-  print_header
+#  print_header
 
 
   p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du]){
@@ -1933,13 +1982,13 @@ def nabla_u_and_square(n1,n2,n3,k2)
   kernel = BOAST::CKernel::new(:kernels => [k2])
 
 
-  suffix = ".c" if BOAST::get_lang == BOAST::C
-  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
-  File::open("poisson_kernels#{suffix}","w") { |f|
-    f.puts k2
-  }
+#  suffix = ".c" if BOAST::get_lang == BOAST::C
+#  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+#  File::open("poisson_kernels#{suffix}","w") { |f|
+#    f.puts k2
+#  }
 
-  print_header
+#  print_header
 
 
   p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, hgrids,u,du,ddu]){
@@ -2018,13 +2067,13 @@ def nabla_u_epsilon(n1,n2,n3,k2)
   kernel = BOAST::CKernel::new(:kernels => [k2])
 
 
-  suffix = ".c" if BOAST::get_lang == BOAST::C
-  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
-  File::open("poisson_kernels#{suffix}","w") { |f|
-    f.puts k2
-  }
+#  suffix = ".c" if BOAST::get_lang == BOAST::C
+#  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+#  File::open("poisson_kernels#{suffix}","w") { |f|
+#    f.puts k2
+#  }
 
-  print_header
+#  print_header
 
 
   p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03,u,du,eps,nord,hgrids]){
@@ -2107,13 +2156,13 @@ def update_rhopol(n1,n2,n3,k2)
   kernel = BOAST::CKernel::new(:kernels => [k2])
 
 
-  suffix = ".c" if BOAST::get_lang == BOAST::C
-  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
-  File::open("poisson_kernels#{suffix}","w") { |f|
-    f.puts k2
-  }
+#  suffix = ".c" if BOAST::get_lang == BOAST::C
+#  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+#  File::open("poisson_kernels#{suffix}","w") { |f|
+#    f.puts k2
+#  }
 
-  print_header
+#  print_header
 
 
   p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, u,nord, hgrids,du,eta,dlogeps,rhopol,rhores2]){
@@ -2213,13 +2262,13 @@ def nabla_u(n1,n2,n3,k2)
   kernel = BOAST::CKernel::new(:kernels => [k2])
 
 
-  suffix = ".c" if BOAST::get_lang == BOAST::C
-  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
-  File::open("poisson_kernels#{suffix}","w") { |f|
-    f.puts k2
-  }
+#  suffix = ".c" if BOAST::get_lang == BOAST::C
+#  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+#  File::open("poisson_kernels#{suffix}","w") { |f|
+#    f.puts k2
+#  }
 
-  print_header
+#  print_header
 
 
   p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03,u,du,nord,hgrids]){
