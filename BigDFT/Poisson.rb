@@ -1965,6 +1965,9 @@ def div_u_i(n1,n2,n3,k2)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
     bc2 = BOAST::Int("bc2")
+    i1 = BOAST::Int("i1")
+    i2 = BOAST::Int("i2")
+    i3 = BOAST::Int("i3")
     a0 = BOAST::Real("a0")
     a1 = BOAST::Real("a1")
     a2 = BOAST::Real("a2")
@@ -1975,10 +1978,13 @@ def div_u_i(n1,n2,n3,k2)
     du2=BOAST::Real("du2", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)], :allocate => :heap )
     BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
     BOAST::decl uxy, uxz, uyz, du1, du2
+    BOAST::decl i1,i2,i3
     BOAST::pr nn[1] === n01
     BOAST::pr nn[2] === n02
     BOAST::pr nn[3] === n03
-
+    BOAST::pr i1 === 0
+    BOAST::pr i2 === 0
+    BOAST::pr i3 === 0
     BOAST::pr bc0===BC::PERIODIC
     BOAST::pr bc1===BC::PERIODIC
     BOAST::pr bc2===BC::PERIODIC
@@ -1994,8 +2000,8 @@ def div_u_i(n1,n2,n3,k2)
     BOAST::pr BOAST::If(geocode != 2){
       BOAST::pr bc1 === BC::NPERIODIC
     }
-    
-    BOAST::pr BOAST::If(present(cc), lambda{
+    BOAST::register_funccall("present")
+    BOAST::pr BOAST::If(BOAST::present(cc), lambda{
         du1.alloc
         du2.alloc
         uxy.alloc
@@ -2013,10 +2019,10 @@ def div_u_i(n1,n2,n3,k2)
           BOAST::pr BOAST::For(i2, 0,n2-1){
             BOAST::pr BOAST::For(i1, 0,n1-1){
         cc[i1, i2, i3] === (u[i1,i2,i3,0]*u[i1,i2,i3,0])*du[i1,i2,i3] + 
-                       2.d0*u[i1,i2,i3,0]*u[i1,i2,i3,1]*uxy[i1,i2,i3] + 
-                       2.d0*u[i1,i2,i3,0]*u[i1,i2,i3,2]*uxz[i1,i2,i3] + 
+                       BOAST::Real(2.0)*u[i1,i2,i3,0]*u[i1,i2,i3,1]*uxy[i1,i2,i3] + 
+                       BOAST::Real(2.0)*u[i1,i2,i3,0]*u[i1,i2,i3,2]*uxz[i1,i2,i3] + 
                          (u[i1,i2,i3,1]*u[i1,i2,i3,1])*du1[i1,i2,i3]+ 
-                       2.d0*u[i1,i2,i3,1]*u[i1,i2,i3,2]*uyz[i1,i2,i3]+
+                       BOAST::Real(2.0)*u[i1,i2,i3,1]*u[i1,i2,i3,2]*uyz[i1,i2,i3]+
                        (u[i1,i2,i3,2]*u[i1,i2,i3,2])*du2[i1,i2,i3]
         du[i1,i2,i3]=du[i1,i2,i3]+du1[i1,i2,i3]+du2[i1,i2,i3]
             }
@@ -2028,7 +2034,7 @@ def div_u_i(n1,n2,n3,k2)
         BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
         BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, du, a1)
         BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, du, a2)
-    }
+    })
     }
     BOAST::pr p
     kernel.procedure = p
@@ -2074,9 +2080,7 @@ def nabla_u_and_square(n1,n2,n3,k2)
     a1 = BOAST::Real("a1")
     a2 = BOAST::Real("a2")
     BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
-    BOAST::decl i1
-    BOAST::decl i2
-    BOAST::decl i3
+    BOAST::decl i1,i2,i3
     BOAST::pr nn[1] === n01
     BOAST::pr nn[2] === n02
     BOAST::pr nn[3] === n03
@@ -2158,9 +2162,7 @@ def nabla_u_square(n1,n2,n3,k2)
     du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1), BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1), BOAST::Dim(0, 2)] , :local =>true, :allocate => :heap)
     BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
     BOAST::decl du
-    BOAST::decl i1
-    BOAST::decl i2
-    BOAST::decl i3
+    BOAST::decl i1,i2,i3
     BOAST::pr nn[1] === n01
     BOAST::pr nn[2] === n02
     BOAST::pr nn[3] === n03
@@ -2243,9 +2245,7 @@ def nabla_u_epsilon(n1,n2,n3,k2)
     a1 = BOAST::Real("a1")
     a2 = BOAST::Real("a2")
     BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
-    BOAST::decl i1
-    BOAST::decl i2
-    BOAST::decl i3
+    BOAST::decl i1,i2,i3
     BOAST::pr nn[1] === n01
     BOAST::pr nn[2] === n02
     BOAST::pr nn[3] === n03
@@ -2336,9 +2336,7 @@ def update_rhopol(n1,n2,n3,k2)
     oneo4pi = BOAST::Real("oneo4pi")
     tmp_rhores2 = BOAST::Real("tmp_rhores2")
     BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
-    BOAST::decl i1
-    BOAST::decl i2
-    BOAST::decl i3
+    BOAST::decl i1,i2,i3
     BOAST::decl res
     BOAST::decl rho
     BOAST::decl du
