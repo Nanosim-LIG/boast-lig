@@ -2151,13 +2151,9 @@ def div_u_i(n1,n2,n3,k2)
     a0 = BOAST::Real("a0")
     a1 = BOAST::Real("a1")
     a2 = BOAST::Real("a2")
-    uxy=BOAST::Real("uxy", :dim => [ BOAST::Dim(),  BOAST::Dim(), BOAST::Dim()], :allocate => :heap, :local => true )
-    uxz=BOAST::Real("uxz", :dim => [ BOAST::Dim(),  BOAST::Dim(), BOAST::Dim()], :allocate => :heap, :local => true )
-    uyz=BOAST::Real("uyz", :dim => [ BOAST::Dim(),  BOAST::Dim(), BOAST::Dim()], :allocate => :heap, :local => true )
-    du1=BOAST::Real("du1", :dim => [ BOAST::Dim(),  BOAST::Dim(), BOAST::Dim()], :allocate => :heap, :local => true )
-    du2=BOAST::Real("du2", :dim => [ BOAST::Dim(),  BOAST::Dim(), BOAST::Dim()], :allocate => :heap, :local => true )
+    tmp=BOAST::Real("tmp", :dim => [ BOAST::Dim(),BOAST::Dim(), BOAST::Dim(),BOAST::Dim()], :allocate => :heap, :local => true )
     BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
-    BOAST::decl uxy, uxz, uyz, du1, du2
+    BOAST::decl tmp
     BOAST::decl i1,i2,i3
     BOAST::pr nn[1] === n01
     BOAST::pr nn[2] === n02
@@ -2182,34 +2178,30 @@ def div_u_i(n1,n2,n3,k2)
     }
     BOAST::register_funccall("present")
     BOAST::pr BOAST::If(BOAST::present(cc), lambda{
-        du1.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1)])
-        du2.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1)])
-        uxy.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1)])
-        uyz.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1)])
-        uxz.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1)])
+        tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,4)])
         BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
-        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, du1, a1)
-        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, du2, a2)
-        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,1].address, uxy, a0)
-        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,2].address, uxz, a0)
-        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,2].address, uyz, a1)
+        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, tmp[0,0,0,0], a1)
+        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, tmp[0,0,0,1], a2)
+        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,1].address, tmp[0,0,0,2], a0)
+        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,2].address, tmp[0,0,0,3], a0)
+        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,2].address, tmp[0,0,0,4], a1)
 
-    BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
-        BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
-          BOAST::pr BOAST::For(i2, 0,n2-1){
-            BOAST::pr BOAST::For(i1, 0,n1-1){
-        BOAST::pr cc[i1, i2, i3] === (u[i1,i2,i3,0]*u[i1,i2,i3,0])*du[i1,i2,i3] + 
-                       BOAST::Real(2.0)*u[i1,i2,i3,0]*u[i1,i2,i3,1]*uxy[i1,i2,i3] + 
-                       BOAST::Real(2.0)*u[i1,i2,i3,0]*u[i1,i2,i3,2]*uxz[i1,i2,i3] + 
-                         (u[i1,i2,i3,1]*u[i1,i2,i3,1])*du1[i1,i2,i3]+ 
-                       BOAST::Real(2.0)*u[i1,i2,i3,1]*u[i1,i2,i3,2]*uyz[i1,i2,i3]+
-                       (u[i1,i2,i3,2]*u[i1,i2,i3,2])*du2[i1,i2,i3]
-        BOAST::pr du[i1,i2,i3]===du[i1,i2,i3]+du1[i1,i2,i3]+du2[i1,i2,i3]
+        BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
+          BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
+            BOAST::pr BOAST::For(i2, 0,n2-1){
+              BOAST::pr BOAST::For(i1, 0,n1-1){
+                BOAST::pr cc[i1, i2, i3] === (u[i1,i2,i3,0]*u[i1,i2,i3,0])*du[i1,i2,i3] + 
+                       BOAST::Real(2.0)*u[i1,i2,i3,0]*u[i1,i2,i3,1]*tmp[i1,i2,i3,2] + 
+                       BOAST::Real(2.0)*u[i1,i2,i3,0]*u[i1,i2,i3,2]*tmp[i1,i2,i3,3] + 
+                         (u[i1,i2,i3,1]*u[i1,i2,i3,1])*tmp[i1,i2,i3,0]+ 
+                       BOAST::Real(2.0)*u[i1,i2,i3,1]*u[i1,i2,i3,2]*tmp[i1,i2,i3,4]+
+                       (u[i1,i2,i3,2]*u[i1,i2,i3,2])*tmp[i1,i2,i3,1]
+                BOAST::pr du[i1,i2,i3]===du[i1,i2,i3]+tmp[i1,i2,i3,0]+tmp[i1,i2,i3,1]
+              }
             }
           }
         }
-      }
-
+      tmp.dealloc
     },lambda{
         BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
         BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, du, a1)
