@@ -102,7 +102,7 @@ end
 kconv = Poisson_brocker(optims,n01,n02,n03)
 kconv.build(:openmp => true)
 
-
+cc = NArray.float(n01,n02,n03)
 
 #kconv = Poisson_conv(conv_filter, optims)
 #kconv.build(:openmp => true)
@@ -118,7 +118,7 @@ k2.build(:openmp => true)
 
 
 stats_a = []
-stats_a.push k2.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids)
+stats_a.push k2.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids,cc)
 
 diff = (du_ref - du_boast).abs
 diff.each { |elem|
@@ -130,7 +130,7 @@ diff.each { |elem|
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k2.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids)
+  stats_a.push k2.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids,cc)
 }
 rescue Exception => e
   puts e.inspect
@@ -141,7 +141,7 @@ stats = stats_a.first
 
 puts "#{k2.procedure.name}: #{stats[:duration]*1.0e3} #{k2.cost(0,n, bc) / (stats[:duration]*1.0e9)} GFlops"
 
-
+cc=nil
 u = nil
 du_ref = nil
 du = nil
@@ -321,7 +321,7 @@ k6 = nabla_u_epsilon(n01,n02,n03,kconv)
 k6.build(:openmp => true)
 
 stats_a = []
-stats_a.push k6.run(geocode, n01,n02,n03,u,du_boast,du_3D, nord,hgrids)
+stats_a.push k6.run(geocode, n01,n02,n03,u,du_boast, nord,hgrids,du_3D)
 
 epsilon=10e-11
 diff = (du_ref - du_boast).abs
@@ -332,7 +332,7 @@ diff.each { |elem|
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k6.run(geocode, n01,n02,n03,u,du_boast,du_3D, nord,hgrids)
+  stats_a.push k6.run(geocode, n01,n02,n03,u,du_boast, nord,hgrids,du_3D)
 }
 rescue Exception => e
   puts e.inspect
