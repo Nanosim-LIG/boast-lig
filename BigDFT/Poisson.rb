@@ -979,23 +979,26 @@ def div_u_i_opt
   n03 = BOAST::Int("n03", :dir => :in)
   u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03),BOAST::Dim(3)] )
   du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)] )
+  cc = BOAST::Real("cc", :dir => :out, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02), BOAST::Dim(0, n03)], :optional => true )
   nord = BOAST::Int("nord", :dir => :in)
   c1D = BOAST::Real("c1D", :dir => :in, :dim =>  [ BOAST::Dim(-nord/2,nord/2), BOAST::Dim(-nord/2,nord/2)])
   hgrids = BOAST::Real("hgrids", :dir => :in, :dim => [BOAST::Dim(3)] )
-  p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,nord,hgrids,c1D])
+  p = BOAST::Procedure::new(function_name, [geocode,n01,n02,n03,u,du,nord,hgrids,c1D,cc])
   kernel.code.print <<EOF
-subroutine div_u_i_opt(geocode,n01,n02,n03,u,du,nord,hgrids,c1D)
+subroutine div_u_i_opt(geocode,n01,n02,n03,u,du,nord,hgrids,c1D,cc)
   implicit none
 !  character(len=1), intent(in) :: geocode
   integer, intent(in) :: n01,n02,n03,nord,geocode
   real(kind=8), dimension(3), intent(in) :: hgrids
   real(kind=8), dimension(n01,n02,n03,3) :: u
   real(kind=8), dimension(n01,n02,n03) :: du
-
+  real(kind=8), dimension(n01,n02,n03), optional :: cc
+  real(kind=8) :: uxy,uyz,uxz
   !c..local variables
   integer :: n,m,n_cell,ii,iii
   integer :: i,j,ib,i1,i2,i3
   real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2), intent(in)  :: c1D
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) ::c1D_1,c1D_2,c1D_3
   real(kind=8) :: hx,hy,hz, d1
   logical :: perx,pery,perz
 
@@ -1032,123 +1035,300 @@ subroutine div_u_i_opt(geocode,n01,n02,n03,u,du,nord,hgrids,c1D)
      stop
   end select
 
-  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d1) 
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
 
-           du(i1,i2,i3) = 0.0d0
+      c1D_1 = c1D/hx
+      c1D_2 = c1D/hy
+      c1D_3 = c1D/hz
 
-           d1 = 0.d0
-           if (i1.le.m) then
-              if (perx) then
-               do j=-m,m
-                ii=modulo(i1 + j + n01 - 1, n01 ) + 1
-                d1 = d1 + c1D(j,0)*u(ii,i2,i3,1)
-               end do
-              else
-               do j=-m,m
-                 d1 = d1 + c1D(j,i1-m-1)*u(j+m+1,i2,i3,1)
-               end do
-              end if
-           else if (i1.gt.n01-m) then
-              if (perx) then
-               do j=-m,m
-                ii=modulo(i1 + j - 1, n01 ) + 1
-                d1 = d1 + c1D(j,0)*u(ii,i2,i3,1)
-               end do
-              else
-               do j=-m,m
-                 d1 = d1 + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,1)
-               end do
-              end if
-           else
-              do j=-m,m
-                 d1 = d1 + c1D(j,0)*u(i1 + j,i2,i3,1)
-              end do
-           end if
+!!$  if (present(cc)) then
+!!$     cc(i1,i2,i3) = (u(i1,i2,i3,1)**2)*d1+(u(i1,i2,i3,2)**2)*d2+(u(i1,i2,i3,3)**2)*d3+&
+!!$          2.d0*u(i1,i2,i3,1)*u(i1,i2,i3,2)*uxy+2.d0*u(i1,i2,i3,2)*u(i1,i2,i3,3)*uyz+&
+!!$          2.d0*u(i1,i2,i3,1)*u(i1,i2,i3,3)*uxz
+!!$  end if
 
-        du(i1,i2,i3) =d1/hx
-        end do
-     end do
-  end do
-  !$omp end parallel do
 
-  !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d1) 
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
-           d1=0.d0
-           if (i2.le.m) then
-              if (pery) then
-               do j=-m,m
-                ii=modulo(i2 + j + n02 - 1, n02 ) + 1
-                d1 = d1 + c1D(j,0)*u(i1,ii,i3,2)
-               end do
-              else
-               do j=-m,m
-                 d1 = d1 + c1D(j,i2-m-1)*u(i1,j+m+1,i3,2)
-               end do
-              end if
-           else if (i2.gt.n02-m) then
-              if (pery) then
-               do j=-m,m
-                ii=modulo(i2 + j - 1, n02 ) + 1
-                d1 = d1 + c1D(j,0)*u(i1,ii,i3,2)
-               end do
-              else
-               do j=-m,m
-                 d1 = d1 + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3,2)
-               end do
-              end if
-           else
-              do j=-m,m
-                 d1 = d1 + c1D(j,0)*u(i1,i2 + j,i3,2)
-              end do
-           end if
-          du(i1,i2,i3) = du(i1,i2,i3) + d1/hy
-        end do
-     end do
-  end do
-  !$omp end parallel do
+      if (present(cc)) then
+         !$omp parallel do default(none) &
+         !$omp private(i1,i2,i3,j,ii, d1,uxz,uxy) &
+         !$omp shared(du,c1D_1,u,perx,m,hx,n01,n02,n03,cc)
+         do i3=1,n03
+            do i2=1,n02
+               do i1=1,n01
 
-  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d1) 
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
-           d1=0.d0
-           if (i3.le.m) then
-              if (perz) then
-               do j=-m,m
-                ii=modulo(i3 + j + n03 - 1, n03 ) + 1
-                d1 = d1 + c1D(j,0)*u(i1,i2,ii,3)
+                  du(i1,i2,i3) = 0.0d0
+
+                  d1 = 0.d0
+                  uxy = 0.d0
+                  uxz = 0.d0
+                  if (i1.le.m) then
+                     if (perx) then
+                        do j=-m,m
+                           ii=modulo(i1 + j + n01 - 1, n01 ) + 1
+                           d1 = d1 + c1D_1(j,0)*u(ii,i2,i3,1)
+                           uxy = uxy + c1D_1(j,0)*u(ii,i2,i3,2)!/hx
+                           uxz = uxz + c1D_1(j,0)*u(ii,i2,i3,3)!/hx
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3,1)
+                           uxy = uxy + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3,2)!/hx
+                           uxz = uxz + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3,3)!/hx
+                        end do
+                     end if
+                  else if (i1.gt.n01-m) then
+                     if (perx) then
+                        do j=-m,m
+                           ii=modulo(i1 + j - 1, n01 ) + 1
+                           d1 = d1 + c1D_1(j,0)*u(ii,i2,i3,1)
+                           uxy = uxy + c1D_1(j,0)*u(ii,i2,i3,2)!/hx
+                           uxz = uxz + c1D_1(j,0)*u(ii,i2,i3,3)!/hx
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3,1)
+                           uxy = uxy + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3,2)!/hx
+                           uxz = uxz + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3,3)!/hx
+                        end do
+                     end if
+                  else
+                     do j=-m,m
+                        d1 = d1 + c1D_1(j,0)*u(i1 + j,i2,i3,1)
+                        uxy = uxy + c1D_1(j,0)*u(i1 + j,i2,i3,2)!/hx
+                        uxz = uxz + c1D_1(j,0)*u(i1 + j,i2,i3,3)!/hx
+                     end do
+                  end if
+                  !uxy=uxy/hx
+                  !uxz=uxz/hx
+
+                  du(i1,i2,i3) =d1
+                  cc(i1,i2,i3) = (u(i1,i2,i3,1)**2)*d1 + &
+                       2.d0*u(i1,i2,i3,1)*u(i1,i2,i3,2)*uxy + &
+                       2.d0*u(i1,i2,i3,1)*u(i1,i2,i3,3)*uxz
+
                end do
-              else
-               do j=-m,m
-                 d1 = d1 + c1D(j,i3-m-1)*u(i1,i2,j+m+1,3)
+            end do
+         end do
+         !$omp end parallel do
+
+         !shared) 
+         !$omp parallel do default(none) &
+         !$omp private(i1,i2,i3,j,ii,d1,uyz) &
+         !$omp shared(n01,n02,n03,pery,m,c1D_2,u,du,cc)
+         do i3=1,n03
+            do i2=1,n02
+               do i1=1,n01
+                  d1=0.d0
+                  uyz = 0.d0
+
+                  if (i2.le.m) then
+                     if (pery) then
+                        do j=-m,m
+                           ii=modulo(i2 + j + n02 - 1, n02 ) + 1
+                           d1 = d1 + c1D_2(j,0)*u(i1,ii,i3,2)
+                           uyz = uyz + c1D_2(j,0)*u(i1,ii,i3,3)!/hy
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3,2)
+                           uyz = uyz + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3,3)!/hy
+                        end do
+                     end if
+                  else if (i2.gt.n02-m) then
+                     if (pery) then
+                        do j=-m,m
+                           ii=modulo(i2 + j - 1, n02 ) + 1
+                           d1 = d1 + c1D_2(j,0)*u(i1,ii,i3,2)
+                           uyz = uyz + c1D_2(j,0)*u(i1,ii,i3,3)!/hy
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3,2)
+                           uyz = uyz + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3,3)!/hy
+                        end do
+                     end if
+                  else
+                     do j=-m,m
+                        d1 = d1 + c1D_2(j,0)*u(i1,i2 + j,i3,2)
+                        uyz = uyz + c1D_2(j,0)*u(i1,i2 + j,i3,3)!/hy
+                     end do
+                  end if
+                  du(i1,i2,i3) = du(i1,i2,i3) + d1
+                  !uyz=uyz/hy
+                  cc(i1,i2,i3) = cc(i1,i2,i3) + (u(i1,i2,i3,2)**2)*d1+ &
+                       2.d0*u(i1,i2,i3,2)*u(i1,i2,i3,3)*uyz
                end do
-              end if
-           else if (i3.gt.n03-m) then
-              if (perz) then
-               do j=-m,m
-                ii=modulo(i3 + j - 1, n03 ) + 1
-                d1 = d1 + c1D(j,0)*u(i1,i2,ii,3)
+            end do
+         end do
+         !$omp end parallel do
+
+
+         !(shared) private(i1,i2,i3,j,ii, d1) 
+         !$omp parallel do default(none) &
+         !$omp private(i1,i2,i3,j,ii,d1) &
+         !$omp shared(n01,n02,n03,perz,m,c1D_3,u,du,cc)
+         do i3=1,n03
+            do i2=1,n02
+               do i1=1,n01
+                  d1=0.d0
+                  if (i3.le.m) then
+                     if (perz) then
+                        do j=-m,m
+                           ii=modulo(i3 + j + n03 - 1, n03 ) + 1
+                           d1 = d1 + c1D_3(j,0)*u(i1,i2,ii,3)
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_3(j,i3-m-1)*u(i1,i2,j+m+1,3)
+                        end do
+                     end if
+                  else if (i3.gt.n03-m) then
+                     if (perz) then
+                        do j=-m,m
+                           ii=modulo(i3 + j - 1, n03 ) + 1
+                           d1 = d1 + c1D_3(j,0)*u(i1,i2,ii,3)
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_3(j,i3-n03+m)*u(i1,i2,n03 + j - m,3)
+                        end do
+                     end if
+                  else
+                     do j=-m,m
+                        d1 = d1 + c1D_3(j,0)*u(i1,i2,i3 + j,3)
+                     end do
+                  end if
+                  du(i1,i2,i3) = du(i1,i2,i3)+d1
+                  cc(i1,i2,i3) = cc(i1,i2,i3) + (u(i1,i2,i3,3)**2)*d1
                end do
-              else
-               do j=-m,m
-                d1 = d1 + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m,3)
+            end do
+         end do
+         !$omp end parallel do
+      else
+
+         !$omp parallel do default(none) &
+         !$omp private(i1,i2,i3,j,ii, d1) &
+         !$omp shared(du,c1D_1,u,perx,m,hx,n01,n02,n03)
+         do i3=1,n03
+            do i2=1,n02
+               do i1=1,n01
+
+                  du(i1,i2,i3) = 0.0d0
+
+                  d1 = 0.d0
+                  if (i1.le.m) then
+                     if (perx) then
+                        do j=-m,m
+                           ii=modulo(i1 + j + n01 - 1, n01 ) + 1
+                           d1 = d1 + c1D_1(j,0)*u(ii,i2,i3,1)
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3,1)
+                        end do
+                     end if
+                  else if (i1.gt.n01-m) then
+                     if (perx) then
+                        do j=-m,m
+                           ii=modulo(i1 + j - 1, n01 ) + 1
+                           d1 = d1 + c1D_1(j,0)*u(ii,i2,i3,1)
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3,1)
+                        end do
+                     end if
+                  else
+                     do j=-m,m
+                        d1 = d1 + c1D_1(j,0)*u(i1 + j,i2,i3,1)
+                     end do
+                  end if
+                  du(i1,i2,i3) =d1
                end do
-              end if
-           else
-              do j=-m,m
-                 d1 = d1 + c1D(j,0)*u(i1,i2,i3 + j,3)
-              end do
-           end if
-           du(i1,i2,i3) = du(i1,i2,i3)+d1/hz
-        end do
-     end do
-  end do
-  !$omp end parallel do
+            end do
+         end do
+         !$omp end parallel do
+
+         !default(shared) private(i1,i2,i3,j,ii,d1,uyz) 
+         !$omp parallel do default(none) &
+         !$omp private(i1,i2,i3,j,ii,d1) &
+         !$omp shared(c1D_2,u,n01,n02,n03,du,m,pery)
+         do i3=1,n03
+            do i2=1,n02
+               do i1=1,n01
+                  d1=0.d0
+                  if (i2.le.m) then
+                     if (pery) then
+                        do j=-m,m
+                           ii=modulo(i2 + j + n02 - 1, n02 ) + 1
+                           d1 = d1 + c1D_2(j,0)*u(i1,ii,i3,2)
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3,2)
+                        end do
+                     end if
+                  else if (i2.gt.n02-m) then
+                     if (pery) then
+                        do j=-m,m
+                           ii=modulo(i2 + j - 1, n02 ) + 1
+                           d1 = d1 + c1D_2(j,0)*u(i1,ii,i3,2)
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3,2)
+                        end do
+                     end if
+                  else
+                     do j=-m,m
+                        d1 = d1 + c1D_2(j,0)*u(i1,i2 + j,i3,2)
+                     end do
+                  end if
+                  du(i1,i2,i3) = du(i1,i2,i3) + d1
+               end do
+            end do
+         end do
+         !$omp end parallel do
+
+         !$omp parallel do default(none) &
+         !$omp private(i1,i2,i3,j,ii,d1) &
+         !$omp shared(c1D_3,u,n01,n02,n03,du,m,perz)
+         do i3=1,n03
+            do i2=1,n02
+               do i1=1,n01
+                  d1=0.d0
+                  if (i3.le.m) then
+                     if (perz) then
+                        do j=-m,m
+                           ii=modulo(i3 + j + n03 - 1, n03 ) + 1
+                           d1 = d1 + c1D_3(j,0)*u(i1,i2,ii,3)
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_3(j,i3-m-1)*u(i1,i2,j+m+1,3)
+                        end do
+                     end if
+                  else if (i3.gt.n03-m) then
+                     if (perz) then
+                        do j=-m,m
+                           ii=modulo(i3 + j - 1, n03 ) + 1
+                           d1 = d1 + c1D_3(j,0)*u(i1,i2,ii,3)
+                        end do
+                     else
+                        do j=-m,m
+                           d1 = d1 + c1D_3(j,i3-n03+m)*u(i1,i2,n03 + j - m,3)
+                        end do
+                     end if
+                  else
+                     do j=-m,m
+                        d1 = d1 + c1D_3(j,0)*u(i1,i2,i3 + j,3)
+                     end do
+                  end if
+                  du(i1,i2,i3) = du(i1,i2,i3)+d1
+               end do
+            end do
+         end do
+         !$omp end parallel do
+      end if
 
 
 end subroutine div_u_i_opt

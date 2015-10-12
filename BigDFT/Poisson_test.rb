@@ -53,13 +53,14 @@ du_ref = NArray.float(n01,n02,n03)
 du = NArray.float(n01,n02,n03)
 du_3D = NArray.float(n01,n02,n03)
 du_boast = NArray.float(n01,n02,n03)
+cc_ref = NArray.float(n01,n02,n03)
 
 k = div_u_i_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref, nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 k = div_u_i_opt
-stats = k.run(geocode, n01, n02, n03, u, du, nord, hgrids, filter)
+stats = k.run(geocode, n01, n02, n03, u, du, nord, hgrids, filter,cc_ref)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 diff = (du_ref - du).abs
@@ -125,6 +126,10 @@ diff.each { |elem|
     raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
 
+diff = (cc_ref - cc).abs
+diff.each { |elem|
+    raise "Warning: residue too big for cc: #{elem}" if elem > epsilon
+}
 #div_u_i_boast(geocode, n01, n02, n03, u, du_3D3, nord, hgrids)
 #stats = k2.run(geocode, n01,n02,n03,hgrids,u,u1,u2,du_boast)
 repeat = 5
