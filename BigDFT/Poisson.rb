@@ -1938,12 +1938,13 @@ end
 def div_u_i(n1,n2,n3,k2)
 
   function_name = "div_u_i"
-  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1), BOAST::Dim(0, 2)] )
-  du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1), BOAST::Dim(0, 2)] )
+  du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  cc=BOAST::Real("cc", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)], :optional => true )
+  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
   nord = BOAST::Int("nord", :dir => :in)
   geocode = BOAST::Int("geocode", :dir => :in)
 
@@ -1959,7 +1960,7 @@ def div_u_i(n1,n2,n3,k2)
 #  print_header
 
 
-  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03,u,du,nord,hgrids]){
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03,u,du,nord,hgrids,cc]){
     nn = BOAST::Int("nn", :dim => [BOAST::Dim(3)], :local =>true)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
@@ -1967,8 +1968,13 @@ def div_u_i(n1,n2,n3,k2)
     a0 = BOAST::Real("a0")
     a1 = BOAST::Real("a1")
     a2 = BOAST::Real("a2")
+    uxy=BOAST::Real("uxy", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)], :allocate => :heap )
+    uxz=BOAST::Real("uxz", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)], :allocate => :heap )
+    uyz=BOAST::Real("uyz", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)], :allocate => :heap )
+    du1=BOAST::Real("du1", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)], :allocate => :heap )
+    du2=BOAST::Real("du2", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)], :allocate => :heap )
     BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
-    
+    BOAST::decl uxy, uxz, uyz, du1, du2
     BOAST::pr nn[1] === n01
     BOAST::pr nn[2] === n02
     BOAST::pr nn[3] === n03
@@ -1989,9 +1995,40 @@ def div_u_i(n1,n2,n3,k2)
       BOAST::pr bc1 === BC::NPERIODIC
     }
     
-    BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
-    BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, du, a1)
-    BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, du, a2)
+    BOAST::pr BOAST::If(present(cc), lambda{
+        du1.alloc
+        du2.alloc
+        uxy.alloc
+        uyz.alloc
+        uxz.alloc
+        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
+        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, du1, a1)
+        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, du2, a2)
+        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,1].address, uxy, a0)
+        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,2].address, uxz, a0)
+        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,2].address, uyz, a1)
+
+    BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
+        BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
+          BOAST::pr BOAST::For(i2, 0,n2-1){
+            BOAST::pr BOAST::For(i1, 0,n1-1){
+        cc[i1, i2, i3] === (u[i1,i2,i3,0]*u[i1,i2,i3,0])*du[i1,i2,i3] + 
+                       2.d0*u[i1,i2,i3,0]*u[i1,i2,i3,1]*uxy[i1,i2,i3] + 
+                       2.d0*u[i1,i2,i3,0]*u[i1,i2,i3,2]*uxz[i1,i2,i3] + 
+                         (u[i1,i2,i3,1]*u[i1,i2,i3,1])*du1[i1,i2,i3]+ 
+                       2.d0*u[i1,i2,i3,1]*u[i1,i2,i3,2]*uyz[i1,i2,i3]+
+                       (u[i1,i2,i3,2]*u[i1,i2,i3,2])*du2[i1,i2,i3]
+        du[i1,i2,i3]=du[i1,i2,i3]+du1[i1,i2,i3]+du2[i1,i2,i3]
+            }
+          }
+        }
+      }
+
+    },lambda{
+        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
+        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, du, a1)
+        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, du, a2)
+    }
     }
     BOAST::pr p
     kernel.procedure = p
@@ -2083,6 +2120,90 @@ def nabla_u_and_square(n1,n2,n3,k2)
     return kernel
 end
 
+def nabla_u_square(n1,n2,n3,k2)
+
+  function_name = "nabla_u_square"
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  ddu = BOAST::Real("ddu", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
+  n01 = BOAST::Int("n01", :dir => :in)
+  n02 = BOAST::Int("n02", :dir => :in)
+  n03 = BOAST::Int("n03", :dir => :in)
+  nord = BOAST::Int("nord", :dir => :in)
+  geocode = BOAST::Int("geocode", :dir => :in)
+
+  kernel = BOAST::CKernel::new(:kernels => [k2])
+
+
+#  suffix = ".c" if BOAST::get_lang == BOAST::C
+#  suffix = ".f90" if BOAST::get_lang == BOAST::FORTRAN
+#  File::open("poisson_kernels#{suffix}","w") { |f|
+#    f.puts k2
+#  }
+
+#  print_header
+
+
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03,u,ddu,nord,hgrids]){
+    nn = BOAST::Int("nn", :dim => [BOAST::Dim(3)], :local =>true)
+    bc0 = BOAST::Int("bc0")
+    bc1 = BOAST::Int("bc1")
+    bc2 = BOAST::Int("bc2")
+    i1 = BOAST::Int("i1")
+    i2 = BOAST::Int("i2")
+    i3 = BOAST::Int("i3")
+    a0 = BOAST::Real("a0")
+    a1 = BOAST::Real("a1")
+    a2 = BOAST::Real("a2")
+    du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1), BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1), BOAST::Dim(0, 2)] , :local =>true, :allocate => :heap)
+    BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
+    BOAST::decl du
+    BOAST::decl i1
+    BOAST::decl i2
+    BOAST::decl i3
+    BOAST::pr nn[1] === n01
+    BOAST::pr nn[2] === n02
+    BOAST::pr nn[3] === n03
+    BOAST::pr i1 === 0
+    BOAST::pr i2 === 0
+    BOAST::pr i3 === 0
+    BOAST::pr bc0===BC::PERIODIC
+    BOAST::pr bc1===BC::PERIODIC
+    BOAST::pr bc2===BC::PERIODIC
+
+    BOAST::pr BOAST::If(geocode == 1) {
+      BOAST::pr bc0 === BC::NPERIODIC
+      BOAST::pr bc2 === BC::NPERIODIC
+    }
+    BOAST::pr BOAST::If(geocode != 2){
+      BOAST::pr bc1 === BC::NPERIODIC
+    }
+
+    BOAST::pr a0 === BOAST::Real(1.0) / hgrids[0]
+    BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
+    BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
+    du.alloc
+    BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u, du[0,0,0,0].address, a0)
+    BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u, du[0,0,0,1].address, a1)
+    BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
+    BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
+        BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
+          BOAST::pr BOAST::For(i2, 0,n2-1){
+            BOAST::pr BOAST::For(i1, 0,n1-1){
+               BOAST::pr ddu[i1,i2,i3] === (du[i1,i2,i3,0]*du[i1,i2,i3,0]) + (du[i1,i2,i3,1]*du[i1,i2,i3,1]) + (du[i1,i2,i3,2]*du[i1,i2,i3,2])
+            }
+          }
+        }
+      }
+    du.dealloc
+    }
+
+    
+    BOAST::pr p
+    kernel.procedure = p
+    kernel.cost_function = lambda { |*args| 3*k2.cost(nord,*args) }
+    return kernel
+end
 
 
 def nabla_u_epsilon(n1,n2,n3,k2)
@@ -2110,7 +2231,7 @@ def nabla_u_epsilon(n1,n2,n3,k2)
 #  print_header
 
 
-  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03,u,du,eps,nord,hgrids]){
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03,u,du,nord,hgrids,eps]){
     nn = BOAST::Int("nn", :dim => [BOAST::Dim(3)], :local =>true)
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
@@ -2175,7 +2296,6 @@ def update_rhopol(n1,n2,n3,k2)
 
   function_name = "update_rhopol"
   u       = BOAST::Real("u",       :dir => :in,    :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  du      = BOAST::Real("du",      :dir => :out,   :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1), BOAST::Dim(0, 2)] )
   rhopol  = BOAST::Real("rhopol",  :dir => :inout, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
   dlogeps = BOAST::Real("dlogeps", :dir => :in,    :dim => [ BOAST::Dim(3),        BOAST::Dim(0, n1-1), BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
   hgrids  = BOAST::Real("hgrids",  :dir => :in,    :dim => [ BOAST::Dim(0, 2)])
@@ -2199,8 +2319,9 @@ def update_rhopol(n1,n2,n3,k2)
 #  print_header
 
 
-  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, u,nord, hgrids,du,eta,dlogeps,rhopol,rhores2]){
+  p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, u,nord, hgrids,eta,dlogeps,rhopol,rhores2]){
     nn = BOAST::Int("nn", :dim => [BOAST::Dim(3)], :local =>true)
+    du      = BOAST::Real("du",      :dir => :out,   :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1), BOAST::Dim(0, 2)],  :local =>true, :allocate =>:heap )
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
     bc2 = BOAST::Int("bc2")
@@ -2220,6 +2341,7 @@ def update_rhopol(n1,n2,n3,k2)
     BOAST::decl i3
     BOAST::decl res
     BOAST::decl rho
+    BOAST::decl du
     BOAST::decl oneo4pi
     BOAST::decl tmp_rhores2
     BOAST::pr nn[1] === n01
@@ -2247,7 +2369,7 @@ def update_rhopol(n1,n2,n3,k2)
     BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
     BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
     
-
+    du.alloc
     BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u, du[0,0,0,0].address, a0)
     BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u, du[0,0,0,1].address, a1)
     BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
@@ -2266,6 +2388,7 @@ def update_rhopol(n1,n2,n3,k2)
         }
       }
     }
+    du.dealloc
     BOAST::pr rhores2 === tmp_rhores2
   }
 

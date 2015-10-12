@@ -227,7 +227,7 @@ k4.build(:openmp => true)
 #du2=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
 
 stats_a = []
-stats_a.push k4.run(geocode, n01,n02,n03,u, nord,hgrids,du_boast,eta,dlogeps,rhopol_boast,rhores2_boast)
+stats_a.push k4.run(geocode, n01,n02,n03,u, nord,hgrids,eta,dlogeps,rhopol_boast,rhores2_boast)
 
 diff = (rhopol_ref - rhopol_boast).abs
 diff.each { |elem|
@@ -238,7 +238,7 @@ diff.each { |elem|
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k4.run(geocode, n01,n02,n03,u,nord, hgrids,du_boast,eta,dlogeps,rhopol_boast,rhores2_boast)
+  stats_a.push k4.run(geocode, n01,n02,n03,u,nord, hgrids,eta,dlogeps,rhopol_boast,rhores2_boast)
 }
 rescue Exception => e
   puts e.inspect
@@ -365,7 +365,7 @@ epsilon = 10e-9
 
 
 #cheat to use and square ?
-k7 = nabla_u_and_square(n01,n02,n03,kconv)
+k7 = nabla_u_square(n01,n02,n03,kconv)
 
 k7.build(:openmp => true)
 #du0=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 0]
@@ -373,7 +373,7 @@ k7.build(:openmp => true)
 #du2=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 2]
 
 stats_a = []
-stats_a.push k7.run(geocode, n01,n02,n03,u,du_boast,du2_boast,nord,hgrids)
+stats_a.push k7.run(geocode, n01,n02,n03,u,du2_boast,nord,hgrids)
 
 diff = (du2_ref - du2_boast).abs
 diff.each { |elem|
@@ -383,7 +383,7 @@ diff.each { |elem|
 repeat = 5
 begin
   repeat.times { |i|
-  stats_a.push k7.run(geocode, n01,n02,n03,u,du_boast,du2_boast,nord,hgrids)
+  stats_a.push k7.run(geocode, n01,n02,n03,u,du2_boast,nord,hgrids)
 }
 rescue Exception => e
   puts e.inspect
