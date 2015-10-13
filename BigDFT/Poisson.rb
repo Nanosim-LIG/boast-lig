@@ -2179,15 +2179,20 @@ def div_u_i(n1,n2,n3,k2)
     a1 = BOAST::Real("a1")
     a2 = BOAST::Real("a2")
     tmp=BOAST::Real("tmp", :dim => [ BOAST::Dim(),BOAST::Dim(), BOAST::Dim(),BOAST::Dim()], :allocate => :heap, :local => true )
+    u0 = BOAST::Real("u0")
+    u1 = BOAST::Real("u1")
+    u2 = BOAST::Real("u2")
+    w = BOAST::Int("w")
     BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
     BOAST::decl tmp
-    BOAST::decl i1,i2,i3
+    BOAST::decl i1,i2,i3,w
+    BOAST::decl u0,u1,u2
     BOAST::pr nn[1] === n01
     BOAST::pr nn[2] === n02
     BOAST::pr nn[3] === n03
-    BOAST::pr i1 === 0
-    BOAST::pr i2 === 0
-    BOAST::pr i3 === 0
+    BOAST::pr u0 === 0.0
+    BOAST::pr u1 === 0.0
+    BOAST::pr u2 === 0.0
     BOAST::pr bc0===BC::PERIODIC
     BOAST::pr bc1===BC::PERIODIC
     BOAST::pr bc2===BC::PERIODIC
@@ -2213,21 +2218,27 @@ def div_u_i(n1,n2,n3,k2)
         BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,2].address, tmp[0,0,0,3], a0)
         BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,2].address, tmp[0,0,0,4], a1)
 
-        BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
+        BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3,u0,u1,u2]) { 
           BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
             BOAST::pr BOAST::For(i2, 0,n2-1){
-              BOAST::pr BOAST::For(i1, 0,n1-1){
-                BOAST::pr cc[i1, i2, i3] === (u[i1,i2,i3,0]*u[i1,i2,i3,0])*du[i1,i2,i3] + 
-                       BOAST::Real(2.0)*u[i1,i2,i3,0]*u[i1,i2,i3,1]*tmp[i1,i2,i3,2] + 
-                       BOAST::Real(2.0)*u[i1,i2,i3,0]*u[i1,i2,i3,2]*tmp[i1,i2,i3,3] + 
-                         (u[i1,i2,i3,1]*u[i1,i2,i3,1])*tmp[i1,i2,i3,0]+ 
-                       BOAST::Real(2.0)*u[i1,i2,i3,1]*u[i1,i2,i3,2]*tmp[i1,i2,i3,4]+
-                       (u[i1,i2,i3,2]*u[i1,i2,i3,2])*tmp[i1,i2,i3,1]
-                BOAST::pr du[i1,i2,i3]===du[i1,i2,i3]+tmp[i1,i2,i3,0]+tmp[i1,i2,i3,1]
+              BOAST::pr BOAST::For(i1, 0,n1-1, :step => 5){
+                block = lambda {
+                  BOAST::pr u0 === u[i1+w,i2,i3,0]
+                  BOAST::pr u1 === u[i1+w,i2,i3,1]
+                  BOAST::pr u2 === u[i1+w,i2,i3,2]
+                  BOAST::pr cc[i1+w, i2, i3] === (u0*u0)*du[i1+w,i2,i3] + 
+                         (u1*u1)*tmp[i1+w,i2,i3,0] + 
+                         (u2*u2)*tmp[i1+w,i2,i3,1] +
+                         BOAST::Real(2.0)*(u0*u1*tmp[i1+w,i2,i3,2]+ u0*u2*tmp[i1+w,i2,i3,3] + u1*u2*tmp[i1+w,i2,i3,4])
+                  BOAST::pr du[i1+w,i2,i3]===du[i1+w,i2,i3]+tmp[i1+w,i2,i3,0]+tmp[i1+w,i2,i3,1]
+                }
+                f = BOAST::For(w, 0, 4, &block)
+                f.unroll
               }
             }
           }
         }
+
       tmp.dealloc
     },lambda{
         BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
