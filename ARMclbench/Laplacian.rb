@@ -202,7 +202,7 @@ def laplacian(options)
             start_indx = v_i * vector_length + x_i * 3
             end_indx = start_indx + vector_length - 1
             merge_expr = merge_vectors(tempload, ranges, start_indx, end_indx)
-            pr tempcnn[x_i][v_i][y_i] === Int( "(#{out_vec_type})(#{merge_expr.join(",")})", :size => temporary_size, :vector_length => vector_length)
+            pr tempcnn[x_i][v_i][y_i] === Int( "(#{out_vec_type})(#{merge_expr.join(",")})", :size => 1, :vector_length => vector_length)
           }
         }
       else
