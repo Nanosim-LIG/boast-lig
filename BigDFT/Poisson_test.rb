@@ -16,13 +16,16 @@ hgrids[1] = 0.1
 hgrids[2] = 0.1
 geocode = 2
 epsilon = 10e-11
-$options = { }
+$options = {}
 $parser = OptionParser::new do |opts|
   opts.on("-o", "--output", "output code") {
     $options[:output] = true
   }
   opts.on("-f", "--fast", "use less optimization flags to run faster") {
     $options[:fast] = true
+  }
+  opts.on("-i", "--input-file FILE", "use input convolutions already optimized") { |file|
+    $options[:input_file] = file
   }
   opts.parse!
 end
@@ -94,14 +97,24 @@ diff.each { |elem|
 #compute and optimize outside of the kernel, as we will reuse these convolutions later
 conv_filter = PoissonFilter::new('poisson',filter.to_a,nord)
 
-if $options[:fast] then
-optims = GenericOptimization::new(:unroll_range => [5,5], :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => false, :unroll_inner_test =>false, :dimensions => [n01,n02,n03])
-else
-optims = GenericOptimization::new(:unroll_range => 5, :mod_arr_test => true,:tt_arr_test => true,:unrolled_dim_index_test => true, :unroll_inner_test =>true, :dimensions => [n01,n02,n03])
-end
 
-kconv = Poisson_brocker(optims,n01,n02,n03)
-kconv.build(:openmp => true)
+if $options[:input_file] then
+  puts "Reading already optimized kernels from #{$options[:input_file]}"
+  kconv = Poisson_brocker_from_file($options[:input_file],n01,n02,n03)
+  puts "Compiling"
+  kconv.build(:openmp => true)
+  puts "Compilation done."
+else
+
+  if $options[:fast] then
+  optims = GenericOptimization::new(:unroll_range => [5,5], :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => false, :unroll_inner_test =>false, :dimensions => [n01,n02,n03])
+  else
+  optims = GenericOptimization::new(:unroll_range => 5, :mod_arr_test => true,:tt_arr_test => true,:unrolled_dim_index_test => true, :unroll_inner_test =>true, :dimensions => [n01,n02,n03])
+  end
+
+  kconv = Poisson_brocker(optims,n01,n02,n03)
+  kconv.build(:openmp => true)
+end
 
 cc = NArray.float(n01,n02,n03)
 
@@ -165,9 +178,6 @@ du2_boast = NArray.float(n01,n02,n03)
 k = nabla_u_and_square_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref,du2_ref , nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
-
-#annoyingly, too much computation to get a good precision here ...
-epsilon = 10e-6
 
 k3 = nabla_u_and_square(n01,n02,n03,kconv)
 
@@ -280,7 +290,6 @@ k5.build(:openmp => true)
 stats_a = []
 stats_a.push k5.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids)
 
-epsilon=10e-11
 diff = (du_ref - du_boast).abs
 diff.each { |elem|
   raise "Warning: residue 0 too big: #{elem}" if elem > epsilon

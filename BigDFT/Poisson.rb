@@ -2115,6 +2115,33 @@ def Poisson_brocker(optims,n1,n2,n3)
 
 end 
 
+#used to skip the optimization phase, by reusing already printed kernels and brocker
+def Poisson_brocker_from_file(inputfile,n1,n2,n3)
+  lang = BOAST::get_lang
+  BOAST::set_lang(BOAST::FORTRAN)
+
+  function_name = "Poisson_brocker"
+  j = BOAST::Int "j"
+  nord = BOAST::Int("nord", :dir => :in)
+  idim = BOAST::Int("idim", :dir => :in)
+  a = BOAST::Real("a", :dir => :in)
+  bc = BOAST::Real("bc", :dir => :in)
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1), BOAST::Dim(0, 2)] )
+  du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  nn = BOAST::Int("nn", :dir => :in, :dim => [BOAST::Dim(3)])
+  kernel = BOAST::CKernel::new
+  p = BOAST::Procedure(function_name, [nord,idim, nn, bc, u, du, a])
+  kernel.code.print(File::read(inputfile))
+  kernel.procedure = p
+  c = lambda { |*args| 3 }
+  kernel.cost_function = c
+
+  BOAST::set_lang(lang)
+  return kernel
+end
+
+
+
 def div_u_i(n1,n2,n3,k2)
 
   function_name = "div_u_i"
