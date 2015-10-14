@@ -116,12 +116,12 @@ __global__ void outer_core_impl_kernel_adjoint(const int nb_blocks_to_compute, c
   float grad_y_ln_rho;
   float grad_z_ln_rho;
   int int_radius;
-  __shared__ float s_dummy_loc[NGLL3];
-  __shared__ float s_temp1[NGLL3];
-  __shared__ float s_temp2[NGLL3];
-  __shared__ float s_temp3[NGLL3];
-  __shared__ float sh_hprime_xx[NGLL2];
-  __shared__ float sh_hprimewgll_xx[NGLL2];
+  __shared__ float s_dummy_loc[(NGLL3)];
+  __shared__ float s_temp1[(NGLL3)];
+  __shared__ float s_temp2[(NGLL3)];
+  __shared__ float s_temp3[(NGLL3)];
+  __shared__ float sh_hprime_xx[(NGLL2)];
+  __shared__ float sh_hprimewgll_xx[(NGLL2)];
   bx = (blockIdx.y) * (gridDim.x) + blockIdx.x;
   tx = threadIdx.x;
   K = (tx) / (NGLL2);

@@ -21,6 +21,7 @@ FILTER = [ "8.4334247333529341094733325815816e-7",
 set_lang( C )
 #set_replace_constants(false)
 set_boast_inspect( true )
+set_array_start(0)
 
 def comp_tile_n1( n1 = 1, n2 = 1, vector_length = 1, real_size = 8 )
   raise "Invalid vector size" if n1%vector_length != 0

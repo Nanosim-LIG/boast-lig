@@ -71,7 +71,7 @@ kernels = [
 :compute_iso_undo_att_kernel
 ]
 
-langs = [ :CL]
+langs = [ :CL,:CUDA]
 BOAST::set_default_real_size(4)
 BOAST::set_replace_constants(false)
 class Float

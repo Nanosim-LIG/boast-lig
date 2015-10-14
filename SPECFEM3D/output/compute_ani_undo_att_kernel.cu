@@ -142,8 +142,8 @@ static __device__ void compute_element_strain_undo_att(const int ispec, const in
   *(epsilon_trace_over_3) = templ;
 }
 static __device__ void compute_strain_product(float * prod, const float eps_trace_over_3, const float * epsdev, const float b_eps_trace_over_3, const float * b_epsdev){
-  float eps[6];
-  float b_eps[6];
+  float eps[(6)];
+  float b_eps[(6)];
   int p;
   int i;
   int j;
@@ -183,14 +183,14 @@ __global__ void compute_ani_undo_att_kernel(const float * epsilondev_xx, const f
   int iglob;
   float eps_trace_over_3;
   float b_eps_trace_over_3;
-  float prod[21];
+  float prod[(21)];
   int i;
-  float epsdev[5];
-  float b_epsdev[5];
-  __shared__ float s_dummyx_loc[NGLL3];
-  __shared__ float s_dummyy_loc[NGLL3];
-  __shared__ float s_dummyz_loc[NGLL3];
-  __shared__ float sh_hprime_xx[NGLL2];
+  float epsdev[(5)];
+  float b_epsdev[(5)];
+  __shared__ float s_dummyx_loc[(NGLL3)];
+  __shared__ float s_dummyy_loc[(NGLL3)];
+  __shared__ float s_dummyz_loc[(NGLL3)];
+  __shared__ float sh_hprime_xx[(NGLL2)];
   ispec = blockIdx.x + (blockIdx.y) * (gridDim.x);
   ijk_ispec = threadIdx.x + (NGLL3) * (ispec);
   tx = threadIdx.x;

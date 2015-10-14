@@ -148,12 +148,12 @@ __global__ void compute_iso_undo_att_kernel(const float * epsilondev_xx, const f
   int iglob;
   float eps_trace_over_3;
   float b_eps_trace_over_3;
-  float epsdev[5];
-  float b_epsdev[5];
-  __shared__ float s_dummyx_loc[NGLL3];
-  __shared__ float s_dummyy_loc[NGLL3];
-  __shared__ float s_dummyz_loc[NGLL3];
-  __shared__ float sh_hprime_xx[NGLL2];
+  float epsdev[(5)];
+  float b_epsdev[(5)];
+  __shared__ float s_dummyx_loc[(NGLL3)];
+  __shared__ float s_dummyy_loc[(NGLL3)];
+  __shared__ float s_dummyz_loc[(NGLL3)];
+  __shared__ float sh_hprime_xx[(NGLL2)];
   ispec = blockIdx.x + (blockIdx.y) * (gridDim.x);
   ijk_ispec = threadIdx.x + (NGLL3) * (ispec);
   tx = threadIdx.x;
