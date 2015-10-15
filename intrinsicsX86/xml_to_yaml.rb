@@ -14,5 +14,6 @@ hash["intrinsics_list"]["intrinsic"].each { |intrinsic|
   intrinsic["parameter"] = [intrinsic["parameter"]].flatten if intrinsic["parameter"]
   intrinsic["type"] = [intrinsic["type"]].flatten if intrinsic["type"]
   intrinsic["category"] = [intrinsic["category"]].flatten if intrinsic["category"]
+  intrinsic["perfdata"] = [intrinsic["perfdata"]].flatten if intrinsic["perfdata"]
 }
 puts YAML::dump hash
