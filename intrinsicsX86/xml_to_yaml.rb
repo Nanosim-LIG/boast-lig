@@ -11,8 +11,7 @@ hash["intrinsics_list"]["intrinsic"].each { |intrinsic|
     intrinsic["CPUID"]=list
   end
   list = []
-  if intrinsic["parameter"] then
-    intrinsic["parameter"] = [intrinsic["parameter"]].flatten
-  end
+  intrinsic["parameter"] = [intrinsic["parameter"]].flatten if intrinsic["parameter"]
+  intrinsic["type"] = [intrinsic["type"]].flatten if intrinsic["type"]
 }
 puts YAML::dump hash
