@@ -1,0 +1,48 @@
+<intrinsics_list version='3.3.12' date='09/28/2015'>
+<intrinsic tech='MMX' rettype='__m64' name='_m_from_int64'>
+	<type>Integer</type>
+	<CPUID>MMX</CPUID>
+	<category>Convert</category>
+	<parameter varname='a' type='__int64'/>
+	<description>Copy 64-bit integer "a" to "dst".</description>
+	<operation>
+dst[63:0] := a[63:0]
+	</operation>
+	<instruction name='movq' form='mm, r64'/>
+	<header>mmintrin.h</header>
+</intrinsic>
+<intrinsic tech='MMX' rettype='__int64' name='_m_to_int64'>
+	<type>Integer</type>
+	<CPUID>MMX</CPUID>
+	<category>Convert</category>
+	<parameter varname='a' type='__m64'/>
+	<description>Copy 64-bit integer "a" to "dst".</description>
+	<operation>
+dst[63:0] := a[63:0]
+	</operation>
+	<instruction name='movq' form='r64, mm'/>
+	<header>mmintrin.h</header>
+</intrinsic>
+<intrinsic tech='MMX' rettype='void' name='_m_empty'>
+	<CPUID>MMX</CPUID>
+	<category>General Support</category>
+	<parameter varname='' type='void'/>
+	<description>Empty the MMX state, which marks the x87 FPU registers as available for use by x87 instructions. This instruction must be used at the end of all MMX technology procedures.</description>
+	<instruction name='emms' form=''/>
+	<header>mmintrin.h</header>
+</intrinsic>
+<intrinsic tech='MMX' rettype='__m64' name='_m_from_int'>
+	<type>Integer</type>
+	<CPUID>MMX</CPUID>
+	<category>Convert</category>
+	<parameter varname='a' type='int'/>
+	<description>Copy 32-bit integer "a" to the lower elements of "dst", and zero the upper element of "dst".</description>
+	<operation>
+dst[31:0] := a[31:0]
+dst[63:32] := 0
+	</operation>
+	<instruction name='movd' form='mm, r32'/>
+	<perfdata arch='Haswell' lat='1'/>
+	<header>mmintrin.h</header>
+</intrinsic>
+</intrinsics_list>
