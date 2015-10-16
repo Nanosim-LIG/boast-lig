@@ -1,34 +1,22 @@
 ---
 pentium2:
 - MMX
-pentium3:
+pentium3: &flagspentium3
 - MMX
 - SSE
-pentium3m:
-- MMX
-- SSE
-pentium-m:
-- MMX
-- SSE
-- SSE2
-pentium4:
+pentium3m: *flagspentium3
+pentium-m: &flagspentium-m
 - MMX
 - SSE
 - SSE2
-pentium4m:
-- MMX
-- SSE
-- SSE2
-prescott:
+pentium4: *flagspentium-m
+pentium4m: *flagspentium-m
+prescott: &flagsprescott
 - MMX
 - SSE
 - SSE2
 - SSE3
-nocona:
-- MMX
-- SSE
-- SSE2
-- SSE3
+nocona: *flagsprescott
 core2:
 - MMX
 - SSE
@@ -145,3 +133,114 @@ silvermont:
 - AES
 - PCLMUL
 - RDRND
+bdver1:
+- FMA4
+- AVX
+- XOP
+- LWP
+- AES
+- PCL_MUL
+- CX16
+- MMX
+- SSE
+- SSE2
+- SSE3
+- SSE4A
+- SSSE3
+- SSE4.1
+- SSE4.2
+- ABM
+bdver2:
+- BMI
+- TBM
+- F16C
+- FMA
+- FMA4
+- AVX
+- XOP
+- LWP
+- AES
+- PCL_MUL
+- CX16
+- MMX
+- SSE
+- SSE2
+- SSE3
+- SSE4A
+- SSSE3
+- SSE4.1
+- SSE4.2
+- ABM
+bdver3:
+- BMI
+- TBM
+- F16C
+- FMA
+- FMA4
+- FSGSBASE
+- AVX
+- XOP
+- LWP
+- AES
+- PCL_MUL
+- CX16
+- MMX
+- SSE
+- SSE2
+- SSE3
+- SSE4A
+- SSSE3
+- SSE4.1
+- SSE4.2
+- ABM
+bdver4:
+- BMI2
+- TBM
+- F16C
+- FMA
+- FMA4
+- FSGSBASE
+- AVX
+- AVX2
+- XOP
+- LWP
+- AES
+- PCL_MUL
+- CX16
+- MOVBE
+- MMX
+- SSE
+- SSE2
+- SSE3
+- SSE4A
+- SSSE3
+- SSE4.1
+- SSE4.2
+- ABM
+btver1:
+- MMX
+- SSE
+- SSE2
+- SSE3
+- SSSE3
+- SSE4A
+- CX16
+- ABM
+btver2:
+- MOVBE
+- F16C
+- BMI
+- AVX
+- PCL_MUL
+- AES
+- SSE4.2
+- SSE4.1
+- CX16
+- ABM
+- SSE4A
+- SSSE3
+- SSE3
+- SSE2
+- SSE
+- MMX
+
