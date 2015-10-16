@@ -2105,8 +2105,8 @@ _mm_fnmsub_ps:
 - FMA
 _mm256_fnmsub_ps:
 - FMA
-? "\n\t\n\t\n\t\n\t\n\t\n\t\n\t\n\t\n\t\n\t\n\t\n\t b\n\t\n"
-: 
+_mm_fnmsub_sd:
+- FMA
 _mm_fnmsub_ss:
 - FMA
 _bextr_u32:
@@ -5483,8 +5483,8 @@ _mm512_mask_sub_round_pd:
 - KNCNI
 _mm512_maskz_sub_pd:
 - AVX512F
-? "\n\t\n\t\n\t\n\t\n\t\n\t\n\t\n\t =\n\t\n\t\n\t\n"
-: 
+_mm512_maskz_sub_round_pd:
+- AVX512F
 _mm512_sub_pd:
 - AVX512F
 - KNCNI
@@ -12415,15 +12415,23 @@ _mm_maskz_srl_epi16:
 _mm_maskz_srli_epi16:
 - AVX512VL
 - AVX512BW
-? "\n\t\n\t\n\t>\n\t\n\t\n\t\n\t\n\t\n\t\n\t\n\t\n\t\n"
-: 
-? "\n\t\n\t\n\t>\n\t\n\t\n\t\n\t\n\t\n\t\n\t\n\t\n"
-: 
+_mm256_mask_sub_epi8:
+- AVX512VL
+- AVX512BW
+_mm256_maskz_sub_epi8:
+- AVX512VL
+- AVX512BW
 _mm512_mask_sub_epi8:
 - AVX512BW
 _mm512_maskz_sub_epi8:
 - AVX512BW
 _mm512_sub_epi8:
+- AVX512BW
+_mm_mask_sub_epi8:
+- AVX512VL
+- AVX512BW
+_mm_maskz_sub_epi8:
+- AVX512VL
 - AVX512BW
 _mm256_mask_sub_epi32:
 - AVX512VL
