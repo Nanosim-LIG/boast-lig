@@ -544,7 +544,7 @@ subroutine update_rhopol_ref(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopo
   real(kind=8) :: oneo4pi
   logical :: perx,pery,perz
 
-  oneo4pi=0.0079577471545947673d0
+  oneo4pi= 0.07957747154594766788444188168625718101722982287022822437383367203d0
   !1.0d0/(16.d0*atan(1.d0))
   n = nord+1
   m = nord/2
@@ -2457,7 +2457,7 @@ def update_rhopol(n1,n2,n3,k2)
     BOAST::pr i1 === 0
     BOAST::pr i2 === 0
     BOAST::pr i3 === 0
-    BOAST::pr oneo4pi === 0.0079577471545947673
+    BOAST::pr oneo4pi ===  0.07957747154594766788444188168625718101722982287022822437383367203
 
 
     BOAST::pr bc0===BC::PERIODIC
