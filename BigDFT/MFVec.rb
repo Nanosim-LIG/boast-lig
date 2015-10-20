@@ -56,7 +56,7 @@ def comp_tile_n1( n1 = 1, n2 = 1, vector_length = 1, real_size = 8 )
       (n1/vector_length).times.collect { |i|
         n2.times.collect { |j|
           pr xx[i][j] === input[n1_stride_input*j+vector_length*i+k]
-          pr tt[i][j] === tt[i][j] + xx[i][j]*f
+          pr tt[i][j] === FMA(xx[i][j], f, tt[i][j])
         }
       }
     }
