@@ -100,7 +100,7 @@ conv_filter = PoissonFilter::new('poisson',filter.to_a,nord)
 
 if $options[:input_file] then
   puts "Reading already optimized kernels from #{$options[:input_file]}"
-  kconv = Poisson_brocker_from_file($options[:input_file],n01,n02,n03)
+  kconv = Poisson_broker_from_file($options[:input_file],n01,n02,n03)
   puts "Compiling"
   kconv.build(:openmp => true)
   puts "Compilation done."
@@ -112,7 +112,7 @@ else
   optims = GenericOptimization::new(:unroll_range => 5, :mod_arr_test => true,:tt_arr_test => true,:unrolled_dim_index_test => true, :unroll_inner_test =>true, :dimensions => [n01,n02,n03])
   end
 
-  kconv = Poisson_brocker(optims,n01,n02,n03)
+  kconv = Poisson_broker(optims,n01,n02,n03)
   kconv.build(:openmp => true)
 end
 

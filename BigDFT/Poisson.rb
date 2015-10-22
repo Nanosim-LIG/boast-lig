@@ -544,7 +544,7 @@ subroutine update_rhopol_ref(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopo
   real(kind=8) :: oneo4pi
   logical :: perx,pery,perz
 
-  oneo4pi=0.0079577471545947673d0
+  oneo4pi= 0.07957747154594766788444188168625718101722982287022822437383367203d0
   !1.0d0/(16.d0*atan(1.d0))
   n = nord+1
   m = nord/2
@@ -1903,7 +1903,7 @@ end
 #  end
 
 
-def Poisson_conv(conv_filter, optims=GenericOptimization::new, accum=1)
+def Poisson_conv(conv_filter, optims=GenericOptimization::new, accum=0)
     
 if (accum !=0) then
   conv_operation = GenericConvolutionOperator1d::new(conv_filter, :transpose => 0, :work => false, :a_y => accum, :ld => false, :narr => false, :a => true, :poisson => true)
@@ -1934,18 +1934,18 @@ end
 end
 
 
-def Poisson_brocker(optims,n1,n2,n3)
+def Poisson_broker(optims,n1,n2,n3)
 
-    function_name = "Poisson_brocker"
+    function_name = "Poisson_broker"
 #    nords = BOAST::Int("nords", :dim => [BOAST::Dim(5)], :local =>true)
     kernels=[]
     j = BOAST::Int "j"
     nord = BOAST::Int("nord", :dir => :in)
     idim = BOAST::Int("idim", :dir => :in)
     a = BOAST::Real("a", :dir => :in)
-    bc = BOAST::Real("bc", :dir => :in)
-    u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1), BOAST::Dim(0, 2)] )
-    du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+    bc = BOAST::Int("bc", :dir => :in)
+    u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim()] )
+    du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim()] )
     nn = BOAST::Int("nn", :dir => :in, :dim => [BOAST::Dim(3)])
 
     suffix = ".c" if BOAST::get_lang == BOAST::C
@@ -2014,19 +2014,19 @@ def Poisson_brocker(optims,n1,n2,n3)
 
 end 
 
-#used to skip the optimization phase, by reusing already printed kernels and brocker
-def Poisson_brocker_from_file(inputfile,n1,n2,n3)
+#used to skip the optimization phase, by reusing already printed kernels and broker
+def Poisson_broker_from_file(inputfile,n01,n02,n03)
   lang = BOAST::get_lang
   BOAST::set_lang(BOAST::FORTRAN)
 
-  function_name = "Poisson_brocker"
+  function_name = "Poisson_broker"
   j = BOAST::Int "j"
   nord = BOAST::Int("nord", :dir => :in)
   idim = BOAST::Int("idim", :dir => :in)
   a = BOAST::Real("a", :dir => :in)
   bc = BOAST::Real("bc", :dir => :in)
-  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1), BOAST::Dim(0, 2)] )
-  du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)])
+  du=BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
   nn = BOAST::Int("nn", :dir => :in, :dim => [BOAST::Dim(3)])
   kernel = BOAST::CKernel::new
   p = BOAST::Procedure(function_name, [nord,idim, nn, bc, u, du, a])
@@ -2118,9 +2118,9 @@ def div_u_i(n1,n2,n3,k2)
         BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,2].address, tmp[0,0,0,4], a1)
 
         BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3,u0,u1,u2]) { 
-          BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
-            BOAST::pr BOAST::For(i2, 0,n2-1){
-              BOAST::pr BOAST::For(i1, 0,n1-1, :step => 5){
+          BOAST::pr BOAST::For(i3, 0,n03-1,openmp: true){
+            BOAST::pr BOAST::For(i2, 0,n02-1){
+              BOAST::pr BOAST::For(i1, 0,n01-1, :step => 5){
                 block = lambda {
                   BOAST::pr u0 === u[i1+w,i2,i3,0]
                   BOAST::pr u1 === u[i1+w,i2,i3,1]
@@ -2140,9 +2140,21 @@ def div_u_i(n1,n2,n3,k2)
 
       tmp.dealloc
     },lambda{
-        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
-        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, du, a1)
-        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, du, a2)
+#we could accumulate in the u array, but it would mean optimize everything again hust for this case (and generate double the amount of lines just for it)
+tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,2)])
+        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, tmp[0,0,0,0], a0)
+        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, tmp[0,0,0,1], a1)
+        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, tmp[0,0,0,2], a2)
+    BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
+        BOAST::pr BOAST::For(i3, 0,n03-1,openmp: true){
+          BOAST::pr BOAST::For(i2, 0,n02-1){
+            BOAST::pr BOAST::For(i1, 0,n01-1){
+               BOAST::pr du[i1,i2,i3] === tmp[i1,i2,i3,0] + tmp[i1,i2,i3,1] + tmp[i1,i2,i3,2]
+            }
+          }
+        }
+      }
+
     })
     }
     BOAST::pr p
@@ -2155,13 +2167,13 @@ end
 def nabla_u_and_square(n1,n2,n3,k2)
 
   function_name = "nabla_u_and_square"
-  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1), BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1), BOAST::Dim(0, 2)] )
-  ddu = BOAST::Real("ddu", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01-1), BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1), BOAST::Dim(0, 2)] )
+  ddu = BOAST::Real("ddu", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
   nord = BOAST::Int("nord", :dir => :in)
   geocode = BOAST::Int("geocode", :dir => :in)
 
@@ -2216,9 +2228,9 @@ def nabla_u_and_square(n1,n2,n3,k2)
     BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u, du[0,0,0,1].address, a1)
     BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
-        BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
-          BOAST::pr BOAST::For(i2, 0,n2-1){
-            BOAST::pr BOAST::For(i1, 0,n1-1){
+        BOAST::pr BOAST::For(i3, 0,n03-1,openmp: true){
+          BOAST::pr BOAST::For(i2, 0,n02-1){
+            BOAST::pr BOAST::For(i1, 0,n01-1){
                BOAST::pr ddu[i1,i2,i3] === (du[i1,i2,i3,0]*du[i1,i2,i3,0]) + (du[i1,i2,i3,1]*du[i1,i2,i3,1]) + (du[i1,i2,i3,2]*du[i1,i2,i3,2])
             }
           }
@@ -2236,12 +2248,12 @@ end
 def nabla_u_square(n1,n2,n3,k2)
 
   function_name = "nabla_u_square"
-  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  ddu = BOAST::Real("ddu", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  ddu = BOAST::Real("ddu", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
   nord = BOAST::Int("nord", :dir => :in)
   geocode = BOAST::Int("geocode", :dir => :in)
 
@@ -2298,9 +2310,9 @@ def nabla_u_square(n1,n2,n3,k2)
     BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u, du[0,0,0,1].address, a1)
     BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
-        BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
-          BOAST::pr BOAST::For(i2, 0,n2-1){
-            BOAST::pr BOAST::For(i1, 0,n1-1){
+        BOAST::pr BOAST::For(i3, 0,n03-1,openmp: true){
+          BOAST::pr BOAST::For(i2, 0,n02-1){
+            BOAST::pr BOAST::For(i1, 0,n01-1){
                BOAST::pr ddu[i1,i2,i3] === (du[i1,i2,i3,0]*du[i1,i2,i3,0]) + (du[i1,i2,i3,1]*du[i1,i2,i3,1]) + (du[i1,i2,i3,2]*du[i1,i2,i3,2])
             }
           }
@@ -2320,13 +2332,13 @@ end
 def nabla_u_epsilon(n1,n2,n3,k2)
 
   function_name = "nabla_u_epsilon"
-  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1), BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1),BOAST::Dim(0, 2)] )
-  eps = BOAST::Real("eps", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01-1), BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1),BOAST::Dim(0, 2)] )
+  eps = BOAST::Real("eps", :dir => :in, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
   nord = BOAST::Int("nord", :dir => :in)
   geocode = BOAST::Int("geocode", :dir => :in)
 
@@ -2381,9 +2393,9 @@ def nabla_u_epsilon(n1,n2,n3,k2)
     BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u, du[0,0,0,1].address, a1)
     BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
-        BOAST::pr BOAST::For(i3, 0,n3-1,openmp: true){
-          BOAST::pr BOAST::For(i2, 0,n2-1){
-            BOAST::pr BOAST::For(i1, 0,n1-1){
+        BOAST::pr BOAST::For(i3, 0,n03-1,openmp: true){
+          BOAST::pr BOAST::For(i2, 0,n02-1){
+            BOAST::pr BOAST::For(i1, 0,n01-1){
               BOAST::pr du[i1,i2,i3,0] === du[i1,i2,i3,0]*eps[i1,i2,i3]
               BOAST::pr du[i1,i2,i3,1] === du[i1,i2,i3,1]*eps[i1,i2,i3]
               BOAST::pr du[i1,i2,i3,2] === du[i1,i2,i3,2]*eps[i1,i2,i3]
@@ -2404,13 +2416,13 @@ end
 def update_rhopol(n1,n2,n3,k2)
 
   function_name = "update_rhopol"
-  u       = BOAST::Real("u",       :dir => :in,    :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  rhopol  = BOAST::Real("rhopol",  :dir => :inout, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  dlogeps = BOAST::Real("dlogeps", :dir => :in,    :dim => [ BOAST::Dim(3),        BOAST::Dim(0, n1-1), BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  hgrids  = BOAST::Real("hgrids",  :dir => :in,    :dim => [ BOAST::Dim(0, 2)])
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
+  u       = BOAST::Real("u",       :dir => :in,    :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  rhopol  = BOAST::Real("rhopol",  :dir => :inout, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  dlogeps = BOAST::Real("dlogeps", :dir => :in,    :dim => [ BOAST::Dim(3),        BOAST::Dim(0, n01-1), BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+  hgrids  = BOAST::Real("hgrids",  :dir => :in,    :dim => [ BOAST::Dim(0, 2)])
   nord = BOAST::Int("nord")
   rhores2 = BOAST::Real("rhores2", :dir => :out)
   geocode = BOAST::Int("geocode", :dir => :in)
@@ -2457,7 +2469,7 @@ def update_rhopol(n1,n2,n3,k2)
     BOAST::pr i1 === 0
     BOAST::pr i2 === 0
     BOAST::pr i3 === 0
-    BOAST::pr oneo4pi === 0.0079577471545947673
+    BOAST::pr oneo4pi ===  0.07957747154594766788444188168625718101722982287022822437383367203
 
 
     BOAST::pr bc0===BC::PERIODIC
@@ -2482,9 +2494,9 @@ def update_rhopol(n1,n2,n3,k2)
     BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
     BOAST::pr tmp_rhores2 === 0.0
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: {"+" => tmp_rhores2}, private: [i1,i2,i3,res,rho]) { 
-      BOAST::pr BOAST::For(i3, 0,n3-1, openmp: true){
-        BOAST::pr BOAST::For(i2, 0,n2-1){
-          BOAST::pr BOAST::For(i1, 0,n1-1){
+      BOAST::pr BOAST::For(i3, 0,n03-1, openmp: true){
+        BOAST::pr BOAST::For(i2, 0,n02-1){
+          BOAST::pr BOAST::For(i1, 0,n01-1){
             BOAST::pr res === dlogeps[1,i1,i2,i3]*du[i1,i2,i3,0]+dlogeps[2,i1,i2,i3]*du[i1,i2,i3,1]+dlogeps[3,i1,i2,i3]*du[i1,i2,i3,2]
             BOAST::pr res === res*oneo4pi
             BOAST::pr rho === rhopol[i1,i2,i3]
@@ -2511,16 +2523,14 @@ end
 def nabla_u(n1,n2,n3,k2)
 
   function_name = "nabla_u"
-  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-    du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1),BOAST::Dim(0,2)] )
-#  du0 = BOAST::Real("du0", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-#  du1 = BOAST::Real("du1", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-#  du2 = BOAST::Real("du2", :dir => :out, :dim => [ BOAST::Dim(0, n1-1),  BOAST::Dim(0, n2-1), BOAST::Dim(0, n3-1)] )
-  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
-  geocode = BOAST::Int("geocode", :dir => :in)
   n01 = BOAST::Int("n01", :dir => :in)
   n02 = BOAST::Int("n02", :dir => :in)
   n03 = BOAST::Int("n03", :dir => :in)
+  u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1)] )
+    du = BOAST::Real("du", :dir => :out, :dim => [ BOAST::Dim(0, n01-1),  BOAST::Dim(0, n02-1), BOAST::Dim(0, n03-1),BOAST::Dim(0,2)] )
+  hgrids = BOAST::Real("hgrids",:dir => :in, :dim => [ BOAST::Dim(0, 2)])
+  geocode = BOAST::Int("geocode", :dir => :in)
+
   nord = BOAST::Int("nord", :dir => :in)
 
   kernel = BOAST::CKernel::new(:kernels => [k2])
