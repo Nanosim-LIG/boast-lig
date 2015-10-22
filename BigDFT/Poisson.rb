@@ -1903,7 +1903,7 @@ end
 #  end
 
 
-def Poisson_conv(conv_filter, optims=GenericOptimization::new, accum=1)
+def Poisson_conv(conv_filter, optims=GenericOptimization::new, accum=0)
     
 if (accum !=0) then
   conv_operation = GenericConvolutionOperator1d::new(conv_filter, :transpose => 0, :work => false, :a_y => accum, :ld => false, :narr => false, :a => true, :poisson => true)
@@ -2140,9 +2140,21 @@ def div_u_i(n1,n2,n3,k2)
 
       tmp.dealloc
     },lambda{
-        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
-        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, du, a1)
-        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, du, a2)
+#we could accumulate in the u array, but it would mean optimize everything again hust for this case (and generate double the amount of lines just for it)
+tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,2)])
+        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, tmp[0,0,0,0], a0)
+        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, tmp[0,0,0,1], a1)
+        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, tmp[0,0,0,2], a2)
+    BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
+        BOAST::pr BOAST::For(i3, 0,n03-1,openmp: true){
+          BOAST::pr BOAST::For(i2, 0,n02-1){
+            BOAST::pr BOAST::For(i1, 0,n01-1){
+               BOAST::pr du[i1,i2,i3] === tmp[i1,i2,i3,0] + tmp[i1,i2,i3,1] + tmp[i1,i2,i3,2]
+            }
+          }
+        }
+      }
+
     })
     }
     BOAST::pr p
