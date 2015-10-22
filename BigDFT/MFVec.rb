@@ -31,69 +31,135 @@ def comp_tile_n1( n1 = 1, n2 = 1, vector_length = 1, real_size = 8 )
   n1_stride_output = Int( "n1_stride_out", :dir => :in)
   input =  Real( "input", :dir => :in, :align => vector_length * real_size, :dim => Dim() )
   output = Real( "output", :dir => :out, :align => vector_length * real_size, :dim => Dim() )
-  p = Procedure( "comp_n1_#{n1}_#{n2}_#{vector_length}_#{real_size}", [n1_stride_input, n1_stride_output, input, output], [filter], :inline => true, :local => true ) {
-    f = Real( "f", :vector_length => vector_length )
-    decl f
-    tt = (n1/vector_length).times.collect { |i|
-      n2.times.collect { |j|
-        Real( "tt#{i}#{j}", :vector_length => vector_length )
-      }
-    }
-    xx = (n1/vector_length).times.collect { |i|
-      n2.times.collect { |j|
-        Real( "xx#{i}#{j}", :vector_length => vector_length )
-      }
-    }
-    decl *tt.flatten
-    decl *xx.flatten
-    (n1/vector_length).times.collect { |i|
-      n2.times.collect { |j|
-        pr tt[i][j].set( 0.0 )
-      }
-    }
-    FILTER.length.times { |k|
-      pr f.set(filter[k])
-      (n1/vector_length).times.collect { |i|
+  return (1..n1).collect { |n|
+    Procedure( "comp_n1_#{n}_#{n2}_#{vector_length}_#{real_size}", [n1_stride_input, n1_stride_output, input, output], [filter], :inline => true, :local => true ) {
+      f = Real( "f", :vector_length => vector_length )
+      decl f
+      tt = ((n+vector_length-1)/vector_length).times.collect { |i|
         n2.times.collect { |j|
-          pr xx[i][j] === input[n1_stride_input*j+vector_length*i+k]
-          pr tt[i][j] === FMA(xx[i][j], f, tt[i][j])
+          Real( "tt#{i}#{j}", :vector_length => vector_length )
+        }
+      }
+      xx = ((n+vector_length-1)/vector_length).times.collect { |i|
+        n2.times.collect { |j|
+          Real( "xx#{i}#{j}", :vector_length => vector_length )
+        }
+      }
+      decl *tt.flatten
+      decl *xx.flatten
+
+      tt.flatten.each { |t| pr t.set( 0.0 ) }
+      FILTER.length.times { |k|
+        pr f.set(filter[k])
+        ((n+vector_length-1)/vector_length).times.collect { |i|
+          n2.times.collect { |j|
+            if (n-i*vector_length) / vector_length > 0 then
+              pr xx[i][j] === input[n1_stride_input*j+vector_length*i+k]
+            else
+              pr xx[i][j] === MaskLoad(input[n1_stride_input*j+vector_length*i+k], [true]*(n-i*vector_length)+[false]*((i+1)*vector_length-n), xx[i][j])
+            end
+            pr tt[i][j] === FMA(xx[i][j], f, tt[i][j])
+          }
+        }
+      }
+      ((n+vector_length-1)/vector_length).times.collect { |i|
+        n2.times.collect { |j|
+          out_index = output[n1_stride_output*j+vector_length*i]
+          out_index.align = vector_length * real_size
+          if (n-i*vector_length) / vector_length > 0 then
+            pr out_index === tt[i][j]
+          else
+            pr MaskStore( out_index, tt[i][j], [-1]*(n-i*vector_length)+[0]*((i+1)*vector_length-n))
+          end
         }
       }
     }
-    (n1/vector_length).times.collect { |i|
-      n2.times.collect { |j|
-        out_index = output[n1_stride_output*j+vector_length*i]
-        out_index.align = vector_length * real_size
-        pr out_index === tt[i][j]
-      }
-    }
   }
-  return p 
 end
 
-def mfvec( n1 = 1, n2 = 1, vector_length = 1, real_size = 8 )
+def mfvec( n1 = 1, n2 = 1, n3 = 1, vector_length = 1, real_size = 8 )
+
+  input_n1_size = 128+16
+  output_n1_size = 128
+  input_n2_size = 128+16
+  output_n2_size = 128
+  input_n3_size = 128+16
+  output_n3_size = 128
+  input_n1_stride = input_n1_size
+  output_n1_stride = output_n1_size
+  input_n2_stride = input_n2_size
+  output_n2_stride = output_n2_size
+  input_n3_stride = input_n3_size
+  output_n3_stride = output_n3_size
 
   kern = CKernel::new
-  input  = Real( "input",  :dir => :in, :align => 32, :dim => [Dim(128+16), Dim(128*128)] )
-  output = Real( "output", :dir => :out, :align => 32, :dim => [Dim(128), Dim(128*128)] )
+  input     = Real( "input",     :dir => :in,  :align => 32, :dim => [ Dim(input_n1_stride),  Dim(input_n2_stride *      input_n3_stride) ] )
+  output_d1 = Real( "output_d1", :dir => :out, :align => 32, :dim => [ Dim(output_n1_stride), Dim(input_n2_stride *      input_n3_stride) ] )
+  input_d2  = Real( "output_d1", :dir => :out, :align => 32, :dim => [ Dim(output_n1_stride), Dim(input_n2_stride),  Dim(input_n3_stride) ] )
+  output_d2 = Real( "output_d2", :dir => :out, :align => 32, :dim => [ Dim(output_n1_stride), Dim(output_n2_stride), Dim(input_n3_stride) ] )
+  input_d3  = Real( "output_d2", :dir => :out, :align => 32, :dim => [ Dim(output_n1_stride), Dim(output_n2_stride), Dim(input_n3_stride) ] )
+  output    = Real( "output",    :dir => :out, :align => 32, :dim => [ Dim(output_n1_stride), Dim(output_n2_stride), Dim(output_n3_stride)] )
 
-  sub = comp_tile_n1( n1, n2, vector_length, real_size)
-  get_output.puts "#include <immintrin.h>"
+  subs_n1 = comp_tile_n1( n1, 1, vector_length, real_size)
+  subs_n2 = comp_tile_n2( n2, vector_length, real_size)
+  subs_n3 = comp_tile_n2( n3, vector_length, real_size)
+  get_output.print <<EOF
+#include <immintrin.h>
+static inline __m128i _mm_setr_epi64x(long long __q1, long long __q0)
+{
+  return _mm_set_epi64x(__q0, __q1);
+}
+EOF
 
-  p = Procedure( "mfs", [input,output] ) {
+  p = Procedure( "mfsd1", [input,output] ) {
     i = Int "i"
     j = Int "j"
     tt = Real "tt"
-    decl i,j
+    decl i,j,k
     decl tt
-    pr For( j, 1, 128*128, :step => n2 ) {
-      pr For( i, 1, 128, :step => n1 ) {
-        pr sub.call(128+16, 128, input[i, j].address, output[i,j].address)
+    conditions_lambdas_n1 = (1...n1).to_a.reverse.collect { |i|
+      [ i, lambda { pr subs_n1[i-1].call(input_n1_stride, output_n1_stride, input[output_n1_size-1-i,j].address, output_d1[output_n1_size-1-i,j].address ) } ]
+    }
+    conditions_lambdas_n2 = (1...n2).to_a.reverse.collect { |k|
+      [ i, lambda {
+        pr For( i, 0, output_n2_size-1 ) {
+          pr subs_n2[k-1].call(output_n1_stride, output_n1_stride, input_d2[output_n1_size-1-k,i,j].address, output_d2[output_n1_size-1-k,i,j].address )
+        }
+      } ]
+    }
+    conditions_lambdas_n3 = (1...n3).to_a.reverse.collect { |k|
+      [ i, lambda {
+        pr For( i, 0, output_n2_size-1 ) {
+          pr subs_n3[i-1].call(input_n1_stride, output_n1_stride, input_d2[output_n1_size-1-k,j,i].address, output_d2[output_n1_size-1-k,j,i].address )
+        }
+      } ]
+    }
+    conditions_lambdas.flatten!
+    pr For( j, 0, output_n2_size*output_n3_size-1, :step => 1 ) {
+      pr For( i, 0, output_n1_size-n1, :step => n1 ) {
+        pr subs_n1[-1].call(input_n1_stride, output_n1_stride, input[i, j].address, output_d1[i,j].address)
       }
+      pr Case(output_n1_size % n1, *conditions_lambdas_n1)
+    }
+    pr For( j, 0, output_n3_size-1 ) {
+      pr For( k, 0, output_n1_size-1, :step => n2 ) {
+        pr For( i, 0, output_n2_size-1 ) {
+          pr subs_n2[-1].call(output_n1_stride, output_n1_stride, input_d2[k, i, j], output_d2[k, i, j])
+        }
+      }
+      pr Case(output_n1_size % n2, *conditions_lambdas_n2)
+    }
+    pr For( j, 0, output_n2_size-1) {
+      pr For( k, 0, output_n1_size-1, :step => n3 ) {
+        pr For( i, 0, output_n3_size-1 ) {
+          pr subs_n3[-1].call(output_n1_stride*output_n2_stride, output_n1_stride*output_n2_stride, input_d3[k, j, i], output_d3[k, j, i])
+        }
+      }
+      pr Case(output_n1_size % n3, *conditions_lambdas_n3)
     }
   }
 
-  pr sub
+  subs.each { |sub| pr sub }
   pr p
   kern.procedure = p
 
@@ -101,7 +167,7 @@ def mfvec( n1 = 1, n2 = 1, vector_length = 1, real_size = 8 )
 
 end
 
-k = mfvec(8,1,4)
+k = mfvec(8,8,8,4)
 
 puts k
 k.build
