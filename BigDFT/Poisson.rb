@@ -2041,7 +2041,7 @@ end
 
 
 
-def div_u_i(n1,n2,n3,k2)
+def div_u_i(k2)
 
   function_name = "div_u_i"
   n01 = BOAST::Int("n01", :dir => :in)
@@ -2164,7 +2164,7 @@ tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Di
 end
 
 
-def nabla_u_and_square(n1,n2,n3,k2)
+def nabla_u_and_square(k2)
 
   function_name = "nabla_u_and_square"
   n01 = BOAST::Int("n01", :dir => :in)
@@ -2245,7 +2245,7 @@ def nabla_u_and_square(n1,n2,n3,k2)
     return kernel
 end
 
-def nabla_u_square(n1,n2,n3,k2)
+def nabla_u_square(k2)
 
   function_name = "nabla_u_square"
   n01 = BOAST::Int("n01", :dir => :in)
@@ -2329,7 +2329,7 @@ def nabla_u_square(n1,n2,n3,k2)
 end
 
 
-def nabla_u_epsilon(n1,n2,n3,k2)
+def nabla_u_epsilon(k2)
 
   function_name = "nabla_u_epsilon"
   n01 = BOAST::Int("n01", :dir => :in)
@@ -2413,7 +2413,7 @@ def nabla_u_epsilon(n1,n2,n3,k2)
 end
 
 
-def update_rhopol(n1,n2,n3,k2)
+def update_rhopol(k2)
 
   function_name = "update_rhopol"
   n01 = BOAST::Int("n01", :dir => :in)
@@ -2520,7 +2520,7 @@ end
 
 
 
-def nabla_u(n1,n2,n3,k2)
+def nabla_u(k2)
 
   function_name = "nabla_u"
   n01 = BOAST::Int("n01", :dir => :in)
