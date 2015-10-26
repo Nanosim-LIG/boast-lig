@@ -58,6 +58,33 @@ du_3D = NArray.float(n01,n02,n03)
 du_boast = NArray.float(n01,n02,n03)
 cc_ref = NArray.float(n01,n02,n03)
 
+
+
+
+#compute and optimize outside of the kernel, as we will reuse these convolutions later
+conv_filter = PoissonFilter::new('poisson',filter.to_a,nord)
+
+
+if $options[:input_file] then
+  puts "Reading already optimized kernels from #{$options[:input_file]}"
+  kconv = Poisson_broker_from_file($options[:input_file],n01,n02,n03)
+  puts "Compiling"
+  kconv.build(:openmp => true)
+  puts "Compilation done."
+else
+
+  if $options[:fast] then
+  optims = GenericOptimization::new(:unroll_range => [5,5], :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => false, :unroll_inner_test =>false, :dimensions => [n01,n02,n03])
+  else
+  optims = GenericOptimization::new(:unroll_range => 5, :mod_arr_test => true,:tt_arr_test => true,:unrolled_dim_index_test => true, :unroll_inner_test =>true, :dimensions => [n01,n02,n03])
+  end
+
+  kconv = Poisson_broker(optims,n01,n02,n03)
+  kconv.build(:openmp => true)
+end
+
+
+
 k = div_u_i_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref, nord, hgrids, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
@@ -92,30 +119,6 @@ diff.each { |elem|
 
 
 
-#single kernel that calls the 3 convolutions
-
-#compute and optimize outside of the kernel, as we will reuse these convolutions later
-conv_filter = PoissonFilter::new('poisson',filter.to_a,nord)
-
-
-if $options[:input_file] then
-  puts "Reading already optimized kernels from #{$options[:input_file]}"
-  kconv = Poisson_broker_from_file($options[:input_file],n01,n02,n03)
-  puts "Compiling"
-  kconv.build(:openmp => true)
-  puts "Compilation done."
-else
-
-  if $options[:fast] then
-  optims = GenericOptimization::new(:unroll_range => [5,5], :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => false, :unroll_inner_test =>false, :dimensions => [n01,n02,n03])
-  else
-  optims = GenericOptimization::new(:unroll_range => 5, :mod_arr_test => true,:tt_arr_test => true,:unrolled_dim_index_test => true, :unroll_inner_test =>true, :dimensions => [n01,n02,n03])
-  end
-
-  kconv = Poisson_broker(optims,n01,n02,n03)
-  kconv.build(:openmp => true)
-end
-
 cc = NArray.float(n01,n02,n03)
 
 #kconv = Poisson_conv(conv_filter, optims)
@@ -127,12 +130,12 @@ cc = NArray.float(n01,n02,n03)
 #    f.puts kconv
 #  }
 
-k2 = div_u_i(n01,n02,n03,kconv)
+
+
+k2=div_u_i(kconv)
 k2.build(:openmp => true)
 
-
-stats_a = []
-stats_a.push k2.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids,cc)
+k2.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids,cc)
 
 diff = (du_ref - du_boast).abs
 diff.each { |elem|
@@ -145,7 +148,8 @@ diff.each { |elem|
 }
 #div_u_i_boast(geocode, n01, n02, n03, u, du_3D3, nord, hgrids)
 #stats = k2.run(geocode, n01,n02,n03,hgrids,u,u1,u2,du_boast)
-repeat = 5
+stats_a = []
+repeat = 10
 begin
   repeat.times { |i|
   stats_a.push k2.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids,cc)
@@ -182,7 +186,7 @@ puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats
 #annoyingly, too much computation to get a good precision here ...
 epsilon = 10e-6
 
-k3 = nabla_u_and_square(n01,n02,n03,kconv)
+k3 = nabla_u_and_square(kconv)
 
 k3.build(:openmp => true)
 #du0=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 0]
@@ -197,7 +201,7 @@ diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
 
-repeat = 5
+repeat = 10
 begin
   repeat.times { |i|
   stats_a.push k3.run(geocode, n01,n02,n03,u,du_boast,du2_boast, nord, hgrids)
@@ -236,7 +240,7 @@ stats = k.run(geocode, n01, n02, n03, u, nord, hgrids,eta,dlogeps,rhopol_ref,rho
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 
-k4 = update_rhopol(n01,n02,n03,kconv)
+k4 = update_rhopol(kconv)
 
 
 k4.build(:openmp => true)
@@ -253,7 +257,7 @@ diff.each { |elem|
 }
 
 
-repeat = 5
+repeat = 10
 begin
   repeat.times { |i|
   stats_a.push k4.run(geocode, n01,n02,n03,u,nord, hgrids,eta,dlogeps,rhopol_boast,rhores2_boast)
@@ -285,7 +289,7 @@ stats = k.run(geocode, n01, n02, n03, u, du_ref, nord, hgrids,filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 
-k5 = nabla_u(n01,n02,n03,kconv)
+k5 = nabla_u(kconv)
 
 
 k5.build(:openmp => true)
@@ -298,7 +302,7 @@ diff.each { |elem|
   raise "Warning: residue 0 too big: #{elem}" if elem > epsilon
 }
 
-repeat = 5
+repeat = 10
 begin
   repeat.times { |i|
   stats_a.push k5.run(geocode, n01,n02,n03,u,du_boast,nord,hgrids)
@@ -332,7 +336,7 @@ stats = k.run(geocode, n01, n02, n03, u, du_ref,nord, hgrids,du_3D, filter)
 puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{3*59*n01*n02*n03 / (stats[:duration]*1.0e9)} GFlops"
 
 
-k6 = nabla_u_epsilon(n01,n02,n03,kconv)
+k6 = nabla_u_epsilon(kconv)
 
 
 k6.build(:openmp => true)
@@ -346,7 +350,7 @@ diff.each { |elem|
   raise "Warning: residue 0 too big: #{elem}" if elem > epsilon
 }
 
-repeat = 5
+repeat = 10
 begin
   repeat.times { |i|
   stats_a.push k6.run(geocode, n01,n02,n03,u,du_boast, nord,hgrids,du_3D)
@@ -382,7 +386,7 @@ epsilon = 10e-6
 
 
 #cheat to use and square ?
-k7 = nabla_u_square(n01,n02,n03,kconv)
+k7 = nabla_u_square(kconv)
 
 k7.build(:openmp => true)
 #du0=du_boast[0..(n01-1), 0..(n02-1), 0..(n03-1), 0]
@@ -397,7 +401,7 @@ diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
 
-repeat = 5
+repeat = 10
 begin
   repeat.times { |i|
   stats_a.push k7.run(geocode, n01,n02,n03,u,du2_boast,nord,hgrids)
