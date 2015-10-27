@@ -29,10 +29,10 @@ conv_filter = ConvolutionFilter::new('sfrf',SYM8_MF,8)
 ksym8 = MagicFilter1d( conv_filter, optims )
 puts ksym8
 
-input = NArray.float(n1,n2,n3).random!
-work1 = NArray.float(n1,n2,n3)
-work2 = NArray.float(n1,n2,n3)
-output = NArray.float(n1,n2,n3)
+input = ANArray.float(256,n1,n2,n3).random!
+work1 = ANArray.float(256,n1,n2,n3)
+work2 = ANArray.float(256,n1,n2,n3)
+output = ANArray.float(256,n1,n2,n3)
 
 n = NArray.int(3)
 n[0] = n1

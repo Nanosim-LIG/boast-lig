@@ -286,6 +286,8 @@ class GenericOptimization
   end
 
   def initialize(options = {})
+    vector_length = 1
+    vector_length = options[:vector_length] if options[:vector_length]
     unroll_range = 1
     unroll_range = options[:unroll_range] if options[:unroll_range]
     mod_arr_test = true
@@ -317,6 +319,7 @@ class GenericOptimization
     space[:unrolled_dim_index_range] = [0,1] if unrolled_dim_index_test
     space[:unroll_inner_range] = [true]
     space[:unroll_inner_range] = [true, false] if unroll_inner_test
+    space[:vector_length_range] = [vector_length].flatten
     @space=ParamSpace::new(space)
   end
   
@@ -619,20 +622,21 @@ class ConvolutionOperator1d
       raise "Unsupported precision!"
     end
 
+    align = 256
     if @wavelet then
-      vars.push(NArray::new(type, *varsin,2).random)
-      vars.push(NArray::new(type, *varsout,2))
+      vars.push(ANArray::new(type, align, *varsin,2).random)
+      vars.push(ANArray::new(type, align, *varsout,2))
     else
-      vars.push(NArray::new(type, *varsin).random)
+      vars.push(ANArray::new(type, align, *varsin).random)
       if @kinetic and @kinetic != :inplace then
         if @bc.grow then
-          vars.push(NArray::new(type, *varsout).random)
+          vars.push(ANArray::new(type, align, *varsout).random)
         else
-          vars.push(NArray::new(type, *varsin).random)
+          vars.push(ANArray::new(type, align, *varsin).random)
         end
       end
-      vars.push(NArray::new(type, *varsout))
-      vars.push(NArray::new(type, *varsout)) if @kinetic and @transpose != 0
+      vars.push(ANArray::new(type, align, *varsout))
+      vars.push(ANArray::new(type, align, *varsout)) if @kinetic and @transpose != 0
     end
     #accessory scalars
     nscal=0
@@ -712,11 +716,11 @@ class ConvolutionOperator1d
     if tt_arr then
       if @wavelet then
         if @wavelet == :decompose then
-          tt = [ Real("lt", :dim => [ Dim(0,unroll-1)], :allocate => true, :vector_length => vec_len),
-                 Real("ht", :dim => [ Dim(0,unroll-1)], :allocate => true, :vector_length => vec_len) ]
+          tt = [ Real("lt", :dim => [ Dim(0,unroll/vec_len-1)], :allocate => true, :vector_length => vec_len),
+                 Real("ht", :dim => [ Dim(0,unroll/vec_len-1)], :allocate => true, :vector_length => vec_len) ]
         else
-          tt = [ Real("et", :dim => [ Dim(0,unroll-1)], :allocate => true, :vector_length => vec_len),
-                 Real("ot", :dim => [ Dim(0,unroll-1)], :allocate => true, :vector_length => vec_len) ]
+          tt = [ Real("et", :dim => [ Dim(0,unroll/vec_len-1)], :allocate => true, :vector_length => vec_len),
+                 Real("ot", :dim => [ Dim(0,unroll/vec_len-1)], :allocate => true, :vector_length => vec_len) ]
         end
       else
         tt = Real("tt", :dim => [ Dim(0,unroll/vec_len-1)], :allocate => true, :vector_length => vec_len)
@@ -724,14 +728,14 @@ class ConvolutionOperator1d
     else
       if @wavelet then
         if @wavelet == :decompose then
-          tt = [ (0..(unroll > 0 ? unroll - 1 : 0)).collect{ |index| Real("lt#{index}", :vector_length => vec_len) },
-                 (0..(unroll > 0 ? unroll - 1 : 0)).collect{ |index| Real("ht#{index}", :vector_length => vec_len) } ]
+          tt = [ (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect{ |index| Real("lt#{index}", :vector_length => vec_len) },
+                 (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect{ |index| Real("ht#{index}", :vector_length => vec_len) } ]
         else
-          tt = [ (0..(unroll > 0 ? unroll - 1 : 0)).collect{ |index| Real("et#{index}", :vector_length => vec_len) },
-                 (0..(unroll > 0 ? unroll - 1 : 0)).collect{ |index| Real("ot#{index}", :vector_length => vec_len) } ]
+          tt = [ (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect{ |index| Real("et#{index}", :vector_length => vec_len) },
+                 (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect{ |index| Real("ot#{index}", :vector_length => vec_len) } ]
         end
       else
-        tt = (0..(unroll > 0 ? unroll - 1 : 0)).collect{ |index| Real("tt#{index}", :vector_length => vec_len) }
+        tt = (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect{ |index| Real("tt#{index}", :vector_length => vec_len) }
       end
     end
     return tt
@@ -791,7 +795,7 @@ class ConvolutionOperator1d
 
     unrolled_dim=@dim_indexes[0]
     unrolled_dim=@dim_indexes[options[:unrolled_dim_index]] if @dim_indexes.length > 2 and options[:unrolled_dim_index]
-   
+
     vec_len = options[:vector_length] if not @dot_in and unrolled_dim == 0 and options[:vector_length] and unroll % options[:vector_length] == 0
 
     mod_arr = false if @bc.free
@@ -2043,6 +2047,7 @@ end
 
 def print_header(macro = false)
   if get_lang == C then
+    get_output.puts "#include <immintrin.h>"
     if macro then
       get_output.print "#define modulo(a, b) ((a+b)%(b))\n"
       get_output.print "#define min( a, b) ((a) < (b) ? a : b)\n"
