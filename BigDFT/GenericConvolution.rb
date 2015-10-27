@@ -778,6 +778,7 @@ class ConvolutionOperator1d
   def procedure(options={})
     #(unroll, unrolled_dim, use_mod, tt_arr)
     #default values
+    register_funccall("modulo")
     unroll = 1
     vec_len = 1
     mod_arr = true
@@ -848,6 +849,7 @@ class ConvolutionOperator1d
 
   #here follows the internal operations for the convolution 1d
   def convolution1d(iters, l, t, mods, unro, unrolling_length, unroll_inner)
+    vec_len = t.flatten[0].type.vector_length
     convgen= lambda { |t,tlen,reliq|
       ises0 = startendpoints(@dims[@dim_indexes[0]], unro == @dim_indexes[0], unrolling_length, reliq)
       For(iters[@dim_indexes[0]], ises0[0], ises0[1], step: ises0[2], openmp: true ) {
@@ -859,7 +861,6 @@ class ConvolutionOperator1d
         else
           conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
         end
-        vec_len = tt.flatten[0].type.vector_length
         if @options[:dot_in] and vec_len > 1 then
           Reduce(@dot_in_tmp, @dot_in)
         end
@@ -900,6 +901,8 @@ class ConvolutionOperator1d
   end
 
   def get_loop_start_end( side, iters )
+    register_funccall("min")
+    register_funccall("max")
     processed_dim = @dim_indexes[-1]
     if ( @bc.free and side == :begin) then
       loop_start = max(-iters[processed_dim], @filter.lowfil)
