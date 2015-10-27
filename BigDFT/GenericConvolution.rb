@@ -728,14 +728,14 @@ class ConvolutionOperator1d
     else
       if @wavelet then
         if @wavelet == :decompose then
-          tt = [ (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect{ |index| Real("lt#{index}", :vector_length => vec_len) },
-                 (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect{ |index| Real("ht#{index}", :vector_length => vec_len) } ]
+          tt = [ (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect { |index| Real("lt#{index}", :vector_length => vec_len) },
+                 (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect { |index| Real("ht#{index}", :vector_length => vec_len) } ]
         else
-          tt = [ (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect{ |index| Real("et#{index}", :vector_length => vec_len) },
-                 (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect{ |index| Real("ot#{index}", :vector_length => vec_len) } ]
+          tt = [ (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect { |index| Real("et#{index}", :vector_length => vec_len) },
+                 (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect { |index| Real("ot#{index}", :vector_length => vec_len) } ]
         end
       else
-        tt = (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect{ |index| Real("tt#{index}", :vector_length => vec_len) }
+        tt = (0..(unroll > 0 ? unroll/vec_len - 1 : 0)).collect { |index| Real("tt#{index}", :vector_length => vec_len) }
       end
     end
     return tt
@@ -838,7 +838,7 @@ class ConvolutionOperator1d
           pr mods[l] === modulo(l, @dim_n)
         }
       end
-      vec_len = tt.flatten[0].type.vector_length
+      vec_len = [tt].flatten[0].type.vector_length
       if @options[:dot_in] and vec_len > 1 then
         decl @dot_in_tmp = @dot_in.copy("dot_in_tmp", :vector_length => vec_len, :dir => nil, :direction => nil)
       else
@@ -853,7 +853,7 @@ class ConvolutionOperator1d
 
   #here follows the internal operations for the convolution 1d
   def convolution1d(iters, l, t, mods, unro, unrolling_length, unroll_inner)
-    vec_len = t.flatten[0].type.vector_length
+    vec_len = [t].flatten[0].type.vector_length
     convgen= lambda { |t,tlen,reliq|
       ises0 = startendpoints(@dims[@dim_indexes[0]], unro == @dim_indexes[0], unrolling_length, reliq)
       For(iters[@dim_indexes[0]], ises0[0], ises0[1], step: ises0[2], openmp: true ) {
@@ -922,7 +922,7 @@ class ConvolutionOperator1d
   end
 
   def init_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
-    vec_len = t.flatten[0].type.vector_length
+    vec_len = [t].flatten[0].type.vector_length
     (0...tlen).step(vec_len).each{ |ind|
       #WARNING: the eks conditional here can be relaxed
       tt_ind = ind/vec_len
@@ -937,7 +937,7 @@ class ConvolutionOperator1d
 
   def compute_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
     processed_dim = @dim_indexes[-1]
-    vec_len = t.flatten[0].type.vector_length
+    vec_len = [t].flatten[0].type.vector_length
     (0...tlen).step(vec_len).each{ |ind|
       tt_ind = ind/vec_len
       if @wavelet then
@@ -985,7 +985,7 @@ class ConvolutionOperator1d
   
   def post_process_and_store_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
     processed_dim = @dim_indexes[-1]
-    vec_len = t.flatten[0].type.vector_length
+    vec_len = [t].flatten[0].type.vector_length
     (0...tlen).step(vec_len).each{ |ind|
       i_out = output_index(unro, iters, ind)
       i_in = input_index(unro, iters, ind)

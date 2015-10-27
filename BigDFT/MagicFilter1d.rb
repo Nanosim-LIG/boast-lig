@@ -24,10 +24,10 @@ end
 n1 = 32
 n2 = 32
 n3 = 32
-optims = GenericOptimization::new(:unroll_range => 6, :mod_arr_test => true, :tt_arr_test => true, :dimensions => [n1,n2,n3])
+optims = GenericOptimization::new(:unroll_range => [2,8,2], :mod_arr_test => true, :tt_arr_test => true, :dimensions => [n1,n2,n3], :vector_length => [2,4], :unrolled_dim_index_test => true)
 conv_filter = ConvolutionFilter::new('sfrf',SYM8_MF,8)
 ksym8 = MagicFilter1d( conv_filter, optims )
-puts ksym8
+#puts ksym8
 
 input = ANArray.float(256,n1,n2,n3).random!
 work1 = ANArray.float(256,n1,n2,n3)
