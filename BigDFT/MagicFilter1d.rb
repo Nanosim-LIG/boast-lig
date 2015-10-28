@@ -24,15 +24,15 @@ end
 n1 = 32
 n2 = 32
 n3 = 32
-optims = GenericOptimization::new(:unroll_range => [2,8,2], :mod_arr_test => true, :tt_arr_test => true, :dimensions => [n1,n2,n3], :vector_length => [2,4], :unrolled_dim_index_test => true)
+optims = GenericOptimization::new(:repeat => 9, :unroll_range => [8,8], :mod_arr_test => true, :tt_arr_test => true, :dimensions => [n1,n2,n3], :vector_length => [2,4], :unrolled_dim_index_test => true)
 conv_filter = ConvolutionFilter::new('sfrf',SYM8_MF,8)
 ksym8 = MagicFilter1d( conv_filter, optims )
 #puts ksym8
 
-input = ANArray.float(256,n1,n2,n3).random!
-work1 = ANArray.float(256,n1,n2,n3)
-work2 = ANArray.float(256,n1,n2,n3)
-output = ANArray.float(256,n1,n2,n3)
+input = ANArray.float(64,n1,n2,n3).random!
+work1 = ANArray.float(64,n1,n2,n3)
+work2 = ANArray.float(64,n1,n2,n3)
+output = ANArray.float(64,n1,n2,n3)
 
 n = NArray.int(3)
 n[0] = n1
@@ -48,3 +48,4 @@ puts "#{ksym8.procedure.name} d0: #{stats0[:duration]*1.0e3} ms #{32*n1*n2*n3 / 
 puts "#{ksym8.procedure.name} d1: #{stats1[:duration]*1.0e3} ms #{32*n1*n2*n3 / (stats1[:duration]*1.0e9)} GFlops"
 puts "#{ksym8.procedure.name} d2: #{stats2[:duration]*1.0e3} ms #{32*n1*n2*n3 / (stats2[:duration]*1.0e9)} GFlops"
 puts "#{ksym8.procedure.name}: #{(stats0[:duration]+stats1[:duration]+stats2[:duration])*1.0e3} ms #{3*32*n1*n2*n3 / ((stats0[:duration]+stats1[:duration]+stats2[:duration])*1.0e9)} GFlops"
+ksym8.dump_source

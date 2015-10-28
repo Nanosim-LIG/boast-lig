@@ -622,7 +622,7 @@ class ConvolutionOperator1d
       raise "Unsupported precision!"
     end
 
-    align = 256
+    align = 64
     if @wavelet then
       vars.push(ANArray::new(type, align, *varsin,2).random)
       vars.push(ANArray::new(type, align, *varsout,2))
@@ -665,33 +665,29 @@ class ConvolutionOperator1d
       next if already_tested[p.name]
       #kernel.print #if @bc.free
       kernel.build(:openmp => true)
-      t_mean = 0
       dimensions = opt_space.dimensions
       par = nil
       if dimensions.length < @dims.length then
         dimensions += [dimensions[0]]*(@dims.length-dimensions.length)
       end
-      dimensions.length.times { |indx|
-        stats_a = []
-        par = self.params(dimensions.dup, indx)
-        #puts par.inspect
-        opt_space.repeat.times {
-          stats_a.push kernel.run(*par)
-        }
-        stats_a.sort_by! { |a| a[:duration] }
-        stats = stats_a.first
-        #puts *par[0...@dims.length]
-        if get_verbose then
-          puts "#{indx} - [#{par[0...@dims.length].join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} ms #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
-          puts optim
-        end
-        t_mean += stats[:duration]
+      stats_a = []
+      par = self.params(dimensions.dup,@dim_indexes.last)
+      #puts par.inspect
+      opt_space.repeat.times {
+        stats_a.push kernel.run(*par)
       }
-      t_mean /= dimensions.length
-      puts "#{kernel.procedure.name}: #{t_mean*1.0e3} ms #{self.cost(*par[0...@dims.length]) / (t_mean*1.0e9)} GFlops"
+      stats_a.sort_by! { |a| a[:duration] }
+      stats = stats_a.first
+      #puts *par[0...@dims.length]
+      if get_verbose then
+        puts "#{indx} - [#{par[0...@dims.length].join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} ms #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
+        puts optim
+      end
+      t_min = stats[:duration]
+      puts "#{kernel.procedure.name}: #{t_min*1.0e3} ms #{self.cost(*par[0...@dims.length]) / (t_min*1.0e9)} GFlops"
       already_tested[p.name] = true
-      if t_best > t_mean then
-        t_best = t_mean
+      if t_best > t_min then
+        t_best = t_min
         p_best = p
       end
     }
@@ -796,7 +792,7 @@ class ConvolutionOperator1d
     unrolled_dim=@dim_indexes[0]
     unrolled_dim=@dim_indexes[options[:unrolled_dim_index]] if @dim_indexes.length > 2 and options[:unrolled_dim_index]
 
-    vec_len = options[:vector_length] if not @dot_in and unrolled_dim == 0 and options[:vector_length] and unroll % options[:vector_length] == 0
+    vec_len = options[:vector_length] if get_lang == C and not @dot_in and unrolled_dim == 0 and options[:vector_length] and unroll % options[:vector_length] == 0
 
     mod_arr = false if @bc.free
     util = options[:util]
@@ -831,6 +827,7 @@ class ConvolutionOperator1d
       decl *iters
       decl l
       decl *([tt].flatten)
+      decl @filter_val = tt[0].copy("filter_val")
       if mod_arr then
         decl mods 
         #pr For(l, @filter.lowfil, @dim_n -1 + @filter.upfil) {
@@ -845,7 +842,7 @@ class ConvolutionOperator1d
         @dot_in_tmp = @dot_in
       end
       pr @dot_in.set(0.0) if @options[:dot_in]
-      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => dot_in} : nil ), private: iters + [tt]) { 
+      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => dot_in} : nil ), private: iters + [tt] + [@filter_val]) { 
         convolution1d(iters, l, tt, mods, unrolled_dim, unroll, unroll_inner)
       }
     }
@@ -855,10 +852,10 @@ class ConvolutionOperator1d
   def convolution1d(iters, l, t, mods, unro, unrolling_length, unroll_inner)
     vec_len = [t].flatten[0].type.vector_length
     convgen= lambda { |t,tlen,reliq|
-      ises0 = startendpoints(@dims[@dim_indexes[0]], unro == @dim_indexes[0], unrolling_length, reliq)
+      ises0 = startendpoints(@dims[@dim_indexes[0]], unro == @dim_indexes[0], unrolling_length, reliq, vec_len)
       For(iters[@dim_indexes[0]], ises0[0], ises0[1], step: ises0[2], openmp: true ) {
         if @dim_indexes.length == 3 then
-          ises1 = startendpoints(@dims[@dim_indexes[1]], unro == @dim_indexes[1], unrolling_length, reliq)
+          ises1 = startendpoints(@dims[@dim_indexes[1]], unro == @dim_indexes[1], unrolling_length, reliq, vec_len)
           For(iters[@dim_indexes[1]], ises1[0], ises1[1], step: ises1[2]) {
             conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
           }.pr
@@ -877,10 +874,10 @@ class ConvolutionOperator1d
   end
 
   #returns the starting and ending points of the convolutions according to unrolling and unrolled dimension
-  def startendpoints(dim,unroll,unrolling_length,in_reliq)
+  def startendpoints(dim,unroll,unrolling_length,in_reliq,vec_len)
     istart= (in_reliq and unroll) ? (dim/unrolling_length)*unrolling_length : 0
     iend  = (unroll and not in_reliq) ? dim-unrolling_length : dim-1
-    istep = (unroll and not in_reliq) ? unrolling_length : 1 
+    istep = (unroll and not in_reliq) ? unrolling_length : ( unroll ? vec_len : 1 )
     return [istart,iend,istep]
   end
 
@@ -977,7 +974,7 @@ class ConvolutionOperator1d
         end
 
       else
-        pr out === FMA(Load(@x[*i_in], out), Set(@filter.fil[l], out), out) # + @x[*i_in]*@filter.fil[l]
+        pr out === FMA(Load(@x[*i_in], out), @filter_val, out) # + @x[*i_in]*@filter.fil[l]
       end
     }
   end
@@ -1039,7 +1036,9 @@ class ConvolutionOperator1d
         elsif @a_y then
           pr out === FMA(Set(@a_y, out), Load(@y[*i_out], out), out)
         end
-        pr @y[*i_out] === out
+        y_index = @y[*i_out]
+        y_index.align = out.type.total_size
+        pr y_index === out
         pr @y2[*i_out] === Load(@x[*i_in], out) if @kinetic and @transpose != 0
       end
     }
@@ -1052,6 +1051,7 @@ class ConvolutionOperator1d
     loop_start, loop_end = get_loop_start_end( side, iters)
 
     f = For( l, loop_start, loop_end) {
+      pr @filter_val === Set(@filter.fil[l], t[0])
       compute_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
     }
     if unroll_inner then
