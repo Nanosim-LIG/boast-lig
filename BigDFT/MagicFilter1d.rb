@@ -1,5 +1,6 @@
 require './GenericConvolution.rb'
 require './WaveletFilters.rb'
+openmp = true
 def MagicFilter1d(filter, optims=GenericOptimization::new)
   conv_operation = GenericConvolutionOperator1d::new(filter, :ld => true)
   conv_operation.optimize(optims) if optims
@@ -24,7 +25,7 @@ end
 n1 = 32
 n2 = 32
 n3 = 32
-optims = GenericOptimization::new(:repeat => 9, :unroll_range => [8,8], :mod_arr_test => true, :tt_arr_test => true, :dimensions => [n1,n2,n3], :vector_length => [2,4], :unrolled_dim_index_test => true)
+optims = GenericOptimization::new(:repeat => 9, :unroll_range => [8,8], :mod_arr_test => true, :tt_arr_test => true, :dimensions => [n1,n2,n3], :vector_length => [2,4], :unrolled_dim_index_test => true, :openmp => openmp)
 conv_filter = ConvolutionFilter::new('sfrf',SYM8_MF,8)
 ksym8 = MagicFilter1d( conv_filter, optims )
 #puts ksym8
@@ -39,7 +40,7 @@ n[0] = n1
 n[1] = n2
 n[2] = n3
 
-ksym8.build(:openmp => true)
+ksym8.build(:openmp => openmp)
 stats0 = ksym8.run(3, 0, n, BC::PERIODIC, n, n, input, work1)
 stats0 = ksym8.run(3, 0, n, BC::PERIODIC, n, n, input, work1)
 stats1 = ksym8.run(3, 1, n, BC::PERIODIC, n, n, work1, work2)

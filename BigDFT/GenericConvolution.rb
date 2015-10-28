@@ -241,6 +241,7 @@ class GenericOptimization
 
   attr_reader :repeat
   attr_reader :dimensions
+  attr_reader :openmp
   
   class DataRange
     def initialize(start,stop,step)
@@ -302,6 +303,8 @@ class GenericOptimization
     @repeat = options[:repeat] if options[:repeat]
     @dimensions = [124,132,130]
     @dimensions = [options[:dimensions]].flatten if options[:dimensions]
+    @openmp = true
+    @openmp = false if options[:openmp] == false
 
     unrl_rng=[unroll_range].flatten
     if unrl_rng.length == 2 then
@@ -664,7 +667,7 @@ class ConvolutionOperator1d
       kernel.procedure = p
       next if already_tested[p.name]
       #kernel.print #if @bc.free
-      kernel.build(:openmp => true)
+      kernel.build(:openmp => opt_space.openmp)
       dimensions = opt_space.dimensions
       par = nil
       if dimensions.length < @dims.length then
