@@ -830,7 +830,7 @@ class ConvolutionOperator1d
       decl *iters
       decl l
       decl *([tt].flatten)
-      decl @filter_val = tt[0].copy("filter_val")
+      decl @filter_val = tt[0].copy("filter_val") if not @wavelet
       if mod_arr then
         decl mods 
         #pr For(l, @filter.lowfil, @dim_n -1 + @filter.upfil) {
@@ -845,7 +845,7 @@ class ConvolutionOperator1d
         @dot_in_tmp = @dot_in
       end
       pr @dot_in.set(0.0) if @options[:dot_in]
-      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => dot_in} : nil ), private: iters + [tt] + [@filter_val]) { 
+      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => dot_in} : nil ), private: iters + [tt] + ( @filter_val ? [@filter_val] : [] )) { 
         convolution1d(iters, l, tt, mods, unrolled_dim, unroll, unroll_inner)
       }
     }
@@ -1054,7 +1054,7 @@ class ConvolutionOperator1d
     loop_start, loop_end = get_loop_start_end( side, iters)
 
     f = For( l, loop_start, loop_end) {
-      pr @filter_val === Set(@filter.fil[l], t[0])
+      pr @filter_val === Set(@filter.fil[l], t[0]) unless @wavelet
       compute_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
     }
     if unroll_inner then
