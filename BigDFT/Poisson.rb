@@ -2031,8 +2031,6 @@ end
 
 #used to skip the optimization phase, by reusing already printed kernels and broker
 def Poisson_broker_from_file(inputfile,n01,n02,n03)
-  lang = BOAST::get_lang
-  BOAST::set_lang(BOAST::FORTRAN)
 
   function_name = "Poisson_broker"
   j = BOAST::Int "j"
@@ -2049,8 +2047,6 @@ def Poisson_broker_from_file(inputfile,n01,n02,n03)
   kernel.procedure = p
   c = lambda { |*args| 3 }
   kernel.cost_function = c
-
-  BOAST::set_lang(lang)
   return kernel
 end
 
