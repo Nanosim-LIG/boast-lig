@@ -3,6 +3,20 @@ require 'BOAST'
 require 'narray'
 require "./GenericConvolution.rb" 
 
+
+alias :my_header :print_header
+def print_header(macro = false)
+  my_header(macro)
+  if BOAST::get_lang == BOAST::C then
+    if macro then
+      BOAST::get_output.print "#define present( a) ( a != NULL )\n"
+    else
+      BOAST::get_output.print "static inline #{BOAST::Int::new.decl} present( void* a) { return a !=NULL;}\n"
+    end
+  end
+end
+
+
 def generate_filter
   lang = BOAST::get_lang
   BOAST::set_lang(BOAST::FORTRAN)
@@ -2002,6 +2016,7 @@ def Poisson_broker(optims,n1,n2,n3)
     kernel.cost_function = c
 
   File::open("poisson_kernels#{suffix}","w") { |f|
+    print_header
     f.puts kernels[0]
     f.puts kernels[1]
     f.puts kernels[2]
@@ -2063,7 +2078,7 @@ def div_u_i(k2)
 #    f.puts k2
 #  }
 
-#  print_header
+  print_header
 
 
   p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03,u,du,nord,hgrids,cc]){
@@ -2077,7 +2092,7 @@ def div_u_i(k2)
     a0 = BOAST::Real("a0")
     a1 = BOAST::Real("a1")
     a2 = BOAST::Real("a2")
-    tmp=BOAST::Real("tmp", :dim => [ BOAST::Dim(),BOAST::Dim(), BOAST::Dim(),BOAST::Dim()], :allocate => :heap, :local => true )
+    tmp=BOAST::Real("tmp", :dim => [ BOAST::Dim(),BOAST::Dim(), BOAST::Dim(),BOAST::Dim()], :allocate => :heap )
     u0 = BOAST::Real("u0")
     u1 = BOAST::Real("u1")
     u2 = BOAST::Real("u2")
@@ -2111,27 +2126,34 @@ def div_u_i(k2)
     BOAST::pr BOAST::If(BOAST::present(cc), lambda{
         tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,4)])
         BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
-        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, tmp[0,0,0,0], a1)
-        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, tmp[0,0,0,1], a2)
-        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,1].address, tmp[0,0,0,2], a0)
-        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,2].address, tmp[0,0,0,3], a0)
-        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,2].address, tmp[0,0,0,4], a1)
+        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, tmp[0,0,0,0].address, a1)
+        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, tmp[0,0,0,1].address, a2)
+        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,1].address, tmp[0,0,0,2].address, a0)
+        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,2].address, tmp[0,0,0,3].address, a0)
+        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,2].address, tmp[0,0,0,4].address, a1)
 
         BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3,u0,u1,u2]) { 
           BOAST::pr BOAST::For(i3, 0,n03-1,openmp: true){
             BOAST::pr BOAST::For(i2, 0,n02-1){
-              BOAST::pr BOAST::For(i1, 0,n01-1, :step => 5){
+              BOAST::pr BOAST::For(i1, 0,n01-1, :step => 1){
                 block = lambda {
                   BOAST::pr u0 === u[i1+w,i2,i3,0]
                   BOAST::pr u1 === u[i1+w,i2,i3,1]
                   BOAST::pr u2 === u[i1+w,i2,i3,2]
-                  BOAST::pr cc[i1+w, i2, i3] === (u0*u0)*du[i1+w,i2,i3] + 
-                         (u1*u1)*tmp[i1+w,i2,i3,0] + 
-                         (u2*u2)*tmp[i1+w,i2,i3,1] +
-                         BOAST::Real(2.0)*(u0*u1*tmp[i1+w,i2,i3,2]+ u0*u2*tmp[i1+w,i2,i3,3] + u1*u2*tmp[i1+w,i2,i3,4])
-                  BOAST::pr du[i1+w,i2,i3]===du[i1+w,i2,i3]+tmp[i1+w,i2,i3,0]+tmp[i1+w,i2,i3,1]
+                  du0 = du[i1+w,i2,i3]
+                  du1 =tmp[i1+w,i2,i3,0]
+                  du2 =tmp[i1+w,i2,i3,1]
+                  BOAST::pr cc[i1+w, i2, i3] ===
+                         (u0*u0)*du0 +
+                         (u1*u1)*du1 +
+                         (u2*u2)*du2 +
+                         2.0.to_var*(
+                            u0*u1*tmp[i1+w,i2,i3,2] +
+                            u0*u2*tmp[i1+w,i2,i3,3] +
+                            u1*u2*tmp[i1+w,i2,i3,4])
+                  BOAST::pr du[i1+w,i2,i3]===du0+du1+du2
                 }
-                f = BOAST::For(w, 0, 4, &block)
+                f = BOAST::For(w, 0, 0, &block)
                 f.unroll
               }
             }
@@ -2142,9 +2164,9 @@ def div_u_i(k2)
     },lambda{
 #we could accumulate in the u array, but it would mean optimize everything again hust for this case (and generate double the amount of lines just for it)
 tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,2)])
-        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, tmp[0,0,0,0], a0)
-        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, tmp[0,0,0,1], a1)
-        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, tmp[0,0,0,2], a2)
+        BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, tmp[0,0,0,0].address, a0)
+        BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, tmp[0,0,0,1].address, a1)
+        BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, tmp[0,0,0,2].address, a2)
     BOAST::pr BOAST::OpenMP::Parallel(default: :shared, reduction: nil, private: [i1,i2,i3]) { 
         BOAST::pr BOAST::For(i3, 0,n03-1,openmp: true){
           BOAST::pr BOAST::For(i2, 0,n02-1){
@@ -2280,7 +2302,7 @@ def nabla_u_square(k2)
     a0 = BOAST::Real("a0")
     a1 = BOAST::Real("a1")
     a2 = BOAST::Real("a2")
-    du = BOAST::Real("du", :dim => [ BOAST::Dim(), BOAST::Dim(), BOAST::Dim(), BOAST::Dim()] , :local =>true, :allocate => :heap)
+    du = BOAST::Real("du", :dim => [ BOAST::Dim(), BOAST::Dim(), BOAST::Dim(), BOAST::Dim()] , :allocate => :heap)
     BOAST::decl nn, bc0, bc1, bc2, a0, a1, a2
     BOAST::decl du
     BOAST::decl i1,i2,i3
@@ -2442,7 +2464,7 @@ def update_rhopol(k2)
 
   p = BOAST::Procedure::new(function_name,[geocode, n01,n02,n03, u,nord, hgrids,eta,dlogeps,rhopol,rhores2]){
     nn = BOAST::Int("nn", :dim => [BOAST::Dim(3)], :local =>true)
-    du      = BOAST::Real("du",:dim => [ BOAST::Dim(),  BOAST::Dim(), BOAST::Dim(), BOAST::Dim()],  :local =>true, :allocate =>:heap )
+    du      = BOAST::Real("du",:dim => [ BOAST::Dim(),  BOAST::Dim(), BOAST::Dim(), BOAST::Dim()], :allocate =>:heap )
     bc0 = BOAST::Int("bc0")
     bc1 = BOAST::Int("bc1")
     bc2 = BOAST::Int("bc2")
