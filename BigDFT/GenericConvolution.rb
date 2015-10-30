@@ -845,7 +845,7 @@ class ConvolutionOperator1d
         @dot_in_tmp = @dot_in
       end
       pr @dot_in.set(0.0) if @options[:dot_in]
-      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => dot_in} : nil ), private: iters + [tt] + ( @filter_val ? [@filter_val] : [] )) { 
+      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => dot_in} : nil ), private: iters + [l] + [tt] + ( @filter_val ? [@filter_val] : [] )) { 
         convolution1d(iters, l, tt, mods, unrolled_dim, unroll, unroll_inner)
       }
     }
