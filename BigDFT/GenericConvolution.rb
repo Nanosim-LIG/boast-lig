@@ -627,15 +627,15 @@ class ConvolutionOperator1d
 
     align = 64
     if @wavelet then
-      vars.push(ANArray::new(type, align, *varsin,2).random)
+      vars.push(ANArray::new(type, align, *varsin,2).random!)
       vars.push(ANArray::new(type, align, *varsout,2))
     else
-      vars.push(ANArray::new(type, align, *varsin).random)
+      vars.push(ANArray::new(type, align, *varsin).random!)
       if @kinetic and @kinetic != :inplace then
         if @bc.grow then
-          vars.push(ANArray::new(type, align, *varsout).random)
+          vars.push(ANArray::new(type, align, *varsout).random!)
         else
-          vars.push(ANArray::new(type, align, *varsin).random)
+          vars.push(ANArray::new(type, align, *varsin).random!)
         end
       end
       vars.push(ANArray::new(type, align, *varsout))
@@ -647,7 +647,7 @@ class ConvolutionOperator1d
     nscal+=1 if @a_x
     nscal+=1 if @a_y
     nscal.times{vars.push(0.5)}
-    vars.push(NArray::new(type, 1).random) if @dot_in
+    vars.push(NArray::new(type, 1).random!) if @dot_in
     return vars
   end
 
