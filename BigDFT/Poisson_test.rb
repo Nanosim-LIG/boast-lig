@@ -51,7 +51,7 @@ end
 
 generate_filter.run(nord, filter)
 
-u = ANArray.float(64,n01,n02,n03,3).random
+u = ANArray.float(64,n01,n02,n03,3).random!
 du_ref = ANArray.float(64,n01,n02,n03)
 du = ANArray.float(64,n01,n02,n03)
 du_3D = ANArray.float(64,n01,n02,n03)
@@ -173,7 +173,7 @@ du_boast = nil
 
 #test for the fssnord3dmatnabla3varde2_lg function
 
-u = ANArray.float(64,n01,n02,n03).random
+u = ANArray.float(64,n01,n02,n03).random!
 du_ref = ANArray.float(64,n01,n02,n03,3)
 du2_ref = ANArray.float(64,n01,n02,n03)
 du_boast = ANArray.float(64,n01,n02,n03,3)
@@ -225,8 +225,8 @@ du2_ref=nil
 #now the fssnord3dmatnabla_lg variant
 
 
-u = ANArray.float(64,n01,n02,n03).random
-dlogeps = ANArray.float(64,3,n01,n02,n03).random
+u = ANArray.float(64,n01,n02,n03).random!
+dlogeps = ANArray.float(64,3,n01,n02,n03).random!
 rhopol_ref = ANArray.float(64,n01,n02,n03)
 rhopol_boast = ANArray.float(64,n01,n02,n03)
 rhores2_ref = 0.0
@@ -280,7 +280,7 @@ rhopol_boast = nil
 #now the fssnord3dmatnabla3var_lg variant
 epsilon = 10e-11
 
-u = ANArray.float(64,n01,n02,n03).random
+u = ANArray.float(64,n01,n02,n03).random!
 du_boast = ANArray.float(64,n01,n02,n03,3)
 du_ref = ANArray.float(64,n01,n02,n03,3)
 
@@ -326,10 +326,10 @@ du_ref = nil
 #now the nabla_u_epsilon variant
 
 
-u = ANArray.float(64,n01,n02,n03).random
+u = ANArray.float(64,n01,n02,n03).random!
 du_boast = ANArray.float(64,n01,n02,n03,3)
 du_ref = ANArray.float(64,n01,n02,n03,3)
-du_3D = ANArray.float(64,n01,n02,n03).random
+du_3D = ANArray.float(64,n01,n02,n03).random!
 
 k = nabla_u_epsilon_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref,nord, hgrids,du_3D, filter)
@@ -372,7 +372,7 @@ du_3D = nil
 
 #test for the nabla_u_square function
 
-u = ANArray.float(64,n01,n02,n03).random
+u = ANArray.float(64,n01,n02,n03).random!
 du2_ref = ANArray.float(64,n01,n02,n03)
 du_boast = ANArray.float(64,n01,n02,n03,3)
 du2_boast = ANArray.float(64,n01,n02,n03)
