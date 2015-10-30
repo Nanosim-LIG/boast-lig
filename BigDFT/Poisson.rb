@@ -2016,7 +2016,6 @@ def Poisson_broker(optims,n1,n2,n3)
     kernel.cost_function = c
 
   File::open("poisson_kernels#{suffix}","w") { |f|
-    print_header
     f.puts kernels[0]
     f.puts kernels[1]
     f.puts kernels[2]

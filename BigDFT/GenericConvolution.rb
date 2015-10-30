@@ -795,7 +795,7 @@ class ConvolutionOperator1d
     unrolled_dim=@dim_indexes[0]
     unrolled_dim=@dim_indexes[options[:unrolled_dim_index]] if @dim_indexes.length > 2 and options[:unrolled_dim_index]
 
-    vec_len = options[:vector_length] if get_lang == C and not @dot_in and unrolled_dim == 0 and options[:vector_length] and unroll % options[:vector_length] == 0
+    vec_len = options[:vector_length] if get_lang == C and not @dot_in and unrolled_dim == 0 and options[:vector_length] and options[:vector_length] <= @filter.length and unroll % options[:vector_length] == 0
 
     mod_arr = false if @bc.free
     util = options[:util]
@@ -967,15 +967,6 @@ class ConvolutionOperator1d
           pr out_even === FMA(Load(@x[*(i_in[1])], out_even), Set(@filter.high_reverse_odd.fil[l] , out_even), out_even)
           pr out_odd  === FMA(Load(@x[*(i_in[1])], out_odd ), Set(@filter.high_reverse_even.fil[l], out_odd ), out_odd )
         end
-      elsif @poisson and @bc.nper and (side != :center) then
-        if(side == :begin) then
-#          pr testindex = iters[processed_dim] - @filter.upfil
-          pr out === out + @x[*i_in]*@filter.filters_array[((iters[processed_dim] - (@filter.upfil))*(2*@filter.center+1)) + (@filter.center)*(2*@filter.center+1) + (l) + (@filter.center) ]
-        else
-#          pr testindex = iters[processed_dim] + @filter.lowfil - @dims[processed_dim]+1
-          pr out === out + @x[*i_in]*@filter.filters_array[((iters[processed_dim] + (@filter.center) - @dims[processed_dim] +1)*(2*@filter.center+1)) + (@filter.center)*(2*@filter.center+1) + (l) + @filter.center]
-        end
-
       else
         pr out === FMA(Load(@x[*i_in], out), @filter_val, out) # + @x[*i_in]*@filter.fil[l]
       end
@@ -1054,7 +1045,16 @@ class ConvolutionOperator1d
     loop_start, loop_end = get_loop_start_end( side, iters)
 
     f = For( l, loop_start, loop_end) {
-      pr @filter_val === Set(@filter.fil[l], t[0]) unless @wavelet
+      if not (@poisson and @bc.nper and (side != :center))
+        pr @filter_val === Set(@filter.fil[l], t[0]) unless @wavelet 
+      else 
+        processed_dim = @dim_indexes[-1]
+        if side == :begin then
+          pr @filter_val === Set(@filter.filters_array[((iters[processed_dim] - (@filter.upfil))*(2*@filter.center+1)) + (@filter.center)*(2*@filter.center+1) + (l) + (@filter.center) ], t[0])
+        elsif side == :end then
+          pr @filter_val === Set(@filter.filters_array[((iters[processed_dim] + (@filter.center) - @dims[processed_dim] +1)*(2*@filter.center+1)) + (@filter.center)*(2*@filter.center+1) + (l) + @filter.center], t[0])
+        end
+      end
       compute_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
     }
     if unroll_inner then
