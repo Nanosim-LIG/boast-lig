@@ -1,5 +1,6 @@
 require './GenericConvolution.rb'
 require './WaveletFilters.rb'
+require './MagicFilter.rb'
 openmp = true
 def MagicFilter1d(filter, optims=GenericOptimization::new)
   conv_operation = GenericConvolutionOperator1d::new(filter, :ld => true)
@@ -26,7 +27,7 @@ n1 = 32
 n2 = 32
 n3 = 32
 optims = GenericOptimization::new(:repeat => 9, :unroll_range => [8,8], :mod_arr_test => true, :tt_arr_test => true, :dimensions => [n1,n2,n3], :vector_length => [2,4], :unrolled_dim_index_test => true, :openmp => openmp)
-conv_filter = ConvolutionFilter::new('sfrf',SYM8_MF,8)
+conv_filter = ConvolutionFilter::new('sfrf',SYM8_MF.reverse,8)
 ksym8 = MagicFilter1d( conv_filter, optims )
 #puts ksym8
 
@@ -34,6 +35,14 @@ input = ANArray.float(64,n1,n2,n3).random!
 work1 = ANArray.float(64,n1,n2,n3)
 work2 = ANArray.float(64,n1,n2,n3)
 output = ANArray.float(64,n1,n2,n3)
+output_ref = ANArray.float(64,n1,n2,n3)
+epsilon = 10e-15
+
+k_ref = magicfilter_ref
+stats = k_ref.run(n1, n2*n3, input, output_ref)
+stats = k_ref.run(n2, n1*n3, output_ref, work1)
+stats = k_ref.run(n3, n2*n1, work1, output_ref)
+k_ref.dump_source
 
 n = NArray.int(3)
 n[0] = n1
@@ -50,3 +59,8 @@ puts "#{ksym8.procedure.name} d1: #{stats1[:duration]*1.0e3} ms #{32*n1*n2*n3 / 
 puts "#{ksym8.procedure.name} d2: #{stats2[:duration]*1.0e3} ms #{32*n1*n2*n3 / (stats2[:duration]*1.0e9)} GFlops"
 puts "#{ksym8.procedure.name}: #{(stats0[:duration]+stats1[:duration]+stats2[:duration])*1.0e3} ms #{3*32*n1*n2*n3 / ((stats0[:duration]+stats1[:duration]+stats2[:duration])*1.0e9)} GFlops"
 ksym8.dump_source
+
+diff = (output_ref - output).abs
+diff.each { |elem|
+  raise "Warning: residue too big: #{elem}" if elem > epsilon
+}
