@@ -76,7 +76,7 @@ else
   if $options[:fast] then
   optims = GenericOptimization::new(:unroll_range => [5,5], :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => false,:vector_length => [4,4], :unroll_inner_test =>false, :dimensions => [n01,n02,n03])
   else
-  optims = GenericOptimization::new(:unroll_range => [4,4], :mod_arr_test => true,:vector_length => [1,2,4], :unroll_inner_test =>true, :dimensions => [n01,n02,n03])
+  optims = GenericOptimization::new(:unroll_range => [8,8], :mod_arr_test => true,:tt_arr_test => true,:vector_length => [1,2,4], :unroll_inner_test =>true,:unrolled_dim_index_test => true, :dimensions => [n01,n02,n03])
   end
 
   kconv = Poisson_broker(optims,n01,n02,n03)
