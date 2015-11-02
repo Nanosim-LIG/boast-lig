@@ -88,11 +88,11 @@ wave_filter = WaveletFilter::new("sym#{L.length/2}", L)
 n1 = 62
 n2 = 66
 n3 = 65
-input   = NArray::new(type, n1*2, n2*2, n3*2).random
-work1   = NArray::new(type, n1*2, n2*2, n3*2)
-work2   = NArray::new(type, n1*2, n2*2, n3*2)
-output  = NArray::new(type, n1*2, n2*2, n3*2)
-output2 = NArray::new(type, n1*2, n2*2, n3*2)
+input   = ANArray::new(type, 32, n1*2, n2*2, n3*2).random!
+work1   = ANArray::new(type, 32, n1*2, n2*2, n3*2)
+work2   = ANArray::new(type, 32, n1*2, n2*2, n3*2)
+output  = ANArray::new(type, 32, n1*2, n2*2, n3*2)
+output2 = ANArray::new(type, 32, n1*2, n2*2, n3*2)
 
 n = NArray.int(3)
 n[0] = n1
@@ -154,11 +154,11 @@ diff.each { |elem|
 
 puts "again grow then shrink"
 
-input   = NArray::new(type, n1*2, n2*2, n3*2).random
-work1   = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
-work2   = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
-output  = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
-output2 = NArray::new(type, n1*2, n2*2, n3*2)
+input   = ANArray::new(type, 32, n1*2, n2*2, n3*2).random!
+work1   = ANArray::new(type, 32, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+work2   = ANArray::new(type, 32, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+output  = ANArray::new(type, 32, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+output2 = ANArray::new(type, 32, n1*2, n2*2, n3*2)
 
 bc[0] = BC::GROW
 bc[1] = BC::GROW
@@ -200,11 +200,11 @@ diff.each { |elem|
 
 puts "again shrink then grow"
 
-input   = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2).random
-work1   = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
-work2   = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
-output  = NArray::new(type, n1*2, n2*2, n3*2)
-output2 = NArray::new(type, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+input   = ANArray::new(type, 32, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2).random!
+work1   = ANArray::new(type, 32, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+work2   = ANArray::new(type, 32, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
+output  = ANArray::new(type, 32, n1*2, n2*2, n3*2)
+output2 = ANArray::new(type, 32, n1*2 + L.length - 2, n2*2 + L.length - 2, n3*2 + L.length - 2)
 
 
 bc[0] = BC::SHRINK
