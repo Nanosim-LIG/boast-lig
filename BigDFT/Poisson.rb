@@ -2119,7 +2119,7 @@ def div_u_i(k2)
     }
     BOAST::register_funccall("present")
     BOAST::pr BOAST::If(BOAST::present(cc), lambda{
-        tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,4)])
+        tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,4)], 32)
         BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
         BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, tmp[0,0,0,0].address, a1)
         BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, tmp[0,0,0,1].address, a2)
@@ -2158,7 +2158,7 @@ def div_u_i(k2)
       tmp.dealloc
     },lambda{
 #we could accumulate in the u array, but it would mean optimize everything again hust for this case (and generate double the amount of lines just for it)
-tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,2)])
+tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,2)],32)
         BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, tmp[0,0,0,0].address, a0)
         BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, tmp[0,0,0,1].address, a1)
         BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u[0,0,0,2].address, tmp[0,0,0,2].address, a2)
@@ -2322,7 +2322,7 @@ def nabla_u_square(k2)
     BOAST::pr a0 === BOAST::Real(1.0) / hgrids[0]
     BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
     BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
-    du.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,2)])
+    du.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,2)],32)
     BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u, du[0,0,0,0].address, a0)
     BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u, du[0,0,0,1].address, a1)
     BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
@@ -2505,7 +2505,7 @@ def update_rhopol(k2)
     BOAST::pr a1 === BOAST::Real(1.0) / hgrids[1]
     BOAST::pr a2 === BOAST::Real(1.0) / hgrids[2]
     
-    du.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,2)])
+    du.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,2)],32)
     BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u, du[0,0,0,0].address, a0)
     BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u, du[0,0,0,1].address, a1)
     BOAST::pr k2.procedure.call(nord, 2, nn, bc2, u, du[0,0,0,2].address, a2)
