@@ -683,7 +683,7 @@ class ConvolutionOperator1d
       stats = stats_a.first
       #puts *par[0...@dims.length]
       if get_verbose then
-        puts "#{indx} - [#{par[0...@dims.length].join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} ms #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
+        puts "#{optim} - [#{par[0...@dims.length].join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} ms #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
         puts optim
       end
       t_min = stats[:duration]
