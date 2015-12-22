@@ -1,0 +1,57 @@
+BOAST: a Metaprogramming Framework to Write Portable and Efficient Computing Kernels for HPC Applications
+
+#Performance portability of HPC Applications using BOAST
+
+#Porting HPC Applications to the Mont-Blanc Prototype using BOAST
+
+
+
+I. Introduction
+
+Human ressources cost
+
+
+II. Problematic and State of the Art
+
+
+  A. Performance Portability
+
+    An increasing concern for HPC Applications
+
+
+  B. One extreme case: the Mont-Blanc prototype
+
+
+  C. State of the Art: Application Autotuning
+
+
+III. Use Cases
+
+  A. BigDFT
+
+
+  B. SPECFEM3D
+
+
+VI. Using Code Generation in Application Autotuning
+
+  A. General Principles
+
+
+  B. Our Contribution: BOAST
+     + dumper pour tests de non régression
+
+
+VII. Creating an Auto-Tuned Convolution Library for BigDFT using BOAST
+
+
+
+VIII. Porting SPECFEM3D to OpenCL using BOAST
+
+
+
+XI. Feedback and Future Works
+
+
+
+X. Conclusion
