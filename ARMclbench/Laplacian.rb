@@ -278,7 +278,45 @@ opt_space = GenericOptimization::new( :x_component_number => [1,2,4,8,16],
                                       :temporary_size     => [2,4],
                                       :vector_recompute   => [true, false],
                                       :load_overlap       => [true, false] )
-check = true
+check = false
+
+optimizer = BruteForceOptimizer::new(opt_space, :randomize => true)
+
+puts optimizer.optimize { |opt|
+  id = opt.to_s            
+  puts id
+  k = laplacian(opt)
+  puts k
+  results = []
+  sizes.each_index { |indx|
+    width, height = sizes[indx]
+    puts "#{width} x #{height} :"
+    output = NArray.byte(width*3,height).random!(256)
+    time_per_pixel=[]
+    (0..3).each {
+      stats = k.run(inputs[indx], output, width, height, :global_work_size => [rndup((width*3/opt[:x_component_number].to_f).ceil,32), (height/opt[:y_component_number].to_f).ceil, 1], :local_work_size => [32, 1, 1])
+      time_per_pixel.push( stats[:duration]/((width-2) * (height-2) ) )
+    }
+    #Fix for ARM counter looping every few minutes
+    time_per_pixel.reject!{ |d| d < 0 }
+    puts "#{time_per_pixel.min} s"
+
+    if check then 
+      diff = ( refs[indx] - output[3..-4,1..-2] ).abs
+      i = 0
+      diff.each { |elem|
+        #puts elem
+        i += 1
+        raise "Warning: residue too big: #{elem} #{i%3},#{(i / 3 ) % (width-2)},#{i / 3 / (width - 2)}" if elem > 0
+      }
+    end
+    results.push( time_per_pixel.min )
+  }
+  results.reduce(:+) / results.length
+}
+
+exit
+
 opt_space.each_random { |opt|
   id = opt.to_s            
   puts id

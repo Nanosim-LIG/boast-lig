@@ -2,9 +2,9 @@ require './Poisson.rb'
 
 #for a common case, the 3 filters are the same in all directions. This is the middle line divided by hgrids(x)
 
-n01 = 200
-n02 = 200
-n03 = 200
+n01 = 256
+n02 = 256
+n03 = 256
 nord = 16
 
 filter= NArray.float(nord+1, nord+1)
@@ -51,12 +51,12 @@ end
 
 generate_filter.run(nord, filter)
 
-u = NArray.float(n01,n02,n03,3).random
-du_ref = NArray.float(n01,n02,n03)
-du = NArray.float(n01,n02,n03)
-du_3D = NArray.float(n01,n02,n03)
-du_boast = NArray.float(n01,n02,n03)
-cc_ref = NArray.float(n01,n02,n03)
+u = ANArray.float(64,n01,n02,n03,3).random!
+du_ref = ANArray.float(64,n01,n02,n03)
+du = ANArray.float(64,n01,n02,n03)
+du_3D = ANArray.float(64,n01,n02,n03)
+du_boast = ANArray.float(64,n01,n02,n03)
+cc_ref = ANArray.float(64,n01,n02,n03)
 
 
 
@@ -74,16 +74,14 @@ if $options[:input_file] then
 else
 
   if $options[:fast] then
-  optims = GenericOptimization::new(:unroll_range => [5,5], :mod_arr_test => false,:tt_arr_test => false,:unrolled_dim_index_test => false, :unroll_inner_test =>false, :dimensions => [n01,n02,n03])
+  optims = GenericOptimization::new(:unroll_range => [4,4], :mod_arr_test => false,:tt_arr_test => false,:vector_length => [1,2,4], :unroll_inner_test =>false, :dimensions => [n01,n02,n03])
   else
-  optims = GenericOptimization::new(:unroll_range => 5, :mod_arr_test => true,:tt_arr_test => true,:unrolled_dim_index_test => true, :unroll_inner_test =>true, :dimensions => [n01,n02,n03])
+  optims = GenericOptimization::new(:unroll_range => [8,8], :mod_arr_test => true,:tt_arr_test => true,:vector_length => [1,2,4], :unroll_inner_test =>true,:unrolled_dim_index_test => false, :dimensions => [n01,n02,n03])
   end
 
   kconv = Poisson_broker(optims,n01,n02,n03)
   kconv.build(:openmp => true)
 end
-
-
 
 k = div_u_i_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref, nord, hgrids, filter)
@@ -119,7 +117,7 @@ diff.each { |elem|
 
 
 
-cc = NArray.float(n01,n02,n03)
+cc = ANArray.float(64,n01,n02,n03)
 
 #kconv = Poisson_conv(conv_filter, optims)
 #kconv.build(:openmp => true)
@@ -173,11 +171,11 @@ du_boast = nil
 
 #test for the fssnord3dmatnabla3varde2_lg function
 
-u = NArray.float(n01,n02,n03).random
-du_ref = NArray.float(n01,n02,n03,3)
-du2_ref = NArray.float(n01,n02,n03)
-du_boast = NArray.float(n01,n02,n03,3)
-du2_boast = NArray.float(n01,n02,n03)
+u = ANArray.float(64,n01,n02,n03).random!
+du_ref = ANArray.float(64,n01,n02,n03,3)
+du2_ref = ANArray.float(64,n01,n02,n03)
+du_boast = ANArray.float(64,n01,n02,n03,3)
+du2_boast = ANArray.float(64,n01,n02,n03)
 
 k = nabla_u_and_square_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref,du2_ref , nord, hgrids, filter)
@@ -225,15 +223,15 @@ du2_ref=nil
 #now the fssnord3dmatnabla_lg variant
 
 
-u = NArray.float(n01,n02,n03).random
-dlogeps = NArray.float(3,n01,n02,n03).random
-rhopol_ref = NArray.float(n01,n02,n03)
-rhopol_boast = NArray.float(n01,n02,n03)
+u = ANArray.float(64,n01,n02,n03).random!
+dlogeps = ANArray.float(64,3,n01,n02,n03).random!
+rhopol_ref = ANArray.float(64,n01,n02,n03)
+rhopol_boast = ANArray.float(64,n01,n02,n03)
 rhores2_ref = 0.0
 rhores2_boast = 0.0
 eta = 0.5
-du_boast = NArray.float(n01,n02,n03,3)
-#du2_boast = NArray.float(n01,n02,n03)
+du_boast = ANArray.float(64,n01,n02,n03,3)
+#du2_boast = ANArray.float(64,n01,n02,n03)
 
 k = update_rhopol_ref
 stats = k.run(geocode, n01, n02, n03, u, nord, hgrids,eta,dlogeps,rhopol_ref,rhores2_ref,  filter)
@@ -280,9 +278,9 @@ rhopol_boast = nil
 #now the fssnord3dmatnabla3var_lg variant
 epsilon = 10e-11
 
-u = NArray.float(n01,n02,n03).random
-du_boast = NArray.float(n01,n02,n03,3)
-du_ref = NArray.float(n01,n02,n03,3)
+u = ANArray.float(64,n01,n02,n03).random!
+du_boast = ANArray.float(64,n01,n02,n03,3)
+du_ref = ANArray.float(64,n01,n02,n03,3)
 
 k = nabla_u_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref, nord, hgrids,filter)
@@ -326,10 +324,10 @@ du_ref = nil
 #now the nabla_u_epsilon variant
 
 
-u = NArray.float(n01,n02,n03).random
-du_boast = NArray.float(n01,n02,n03,3)
-du_ref = NArray.float(n01,n02,n03,3)
-du_3D = NArray.float(n01,n02,n03).random
+u = ANArray.float(64,n01,n02,n03).random!
+du_boast = ANArray.float(64,n01,n02,n03,3)
+du_ref = ANArray.float(64,n01,n02,n03,3)
+du_3D = ANArray.float(64,n01,n02,n03).random!
 
 k = nabla_u_epsilon_ref
 stats = k.run(geocode, n01, n02, n03, u, du_ref,nord, hgrids,du_3D, filter)
@@ -372,10 +370,10 @@ du_3D = nil
 
 #test for the nabla_u_square function
 
-u = NArray.float(n01,n02,n03).random
-du2_ref = NArray.float(n01,n02,n03)
-du_boast = NArray.float(n01,n02,n03,3)
-du2_boast = NArray.float(n01,n02,n03)
+u = ANArray.float(64,n01,n02,n03).random!
+du2_ref = ANArray.float(64,n01,n02,n03)
+du_boast = ANArray.float(64,n01,n02,n03,3)
+du2_boast = ANArray.float(64,n01,n02,n03)
 
 k = nabla_u_square_ref
 stats = k.run(geocode, n01, n02, n03, u, du2_ref , nord, hgrids, filter)
