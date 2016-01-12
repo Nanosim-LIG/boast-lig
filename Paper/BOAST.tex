@@ -114,140 +114,138 @@ uchar, uchar16, int16, short16}
 \title{BOAST: a Metaprogramming Framework to Produce Portable and Efficient Computing Kernels for HPC Applications}
 
 %% or include affiliations in footnotes:
-\author[mymainaddress]{Brice Videau}
+\author[lig,cnrs]{Brice Videau}
 \ead{brice.videau@imag.fr}
-\author{Kevin Pouget}
-\author{Luigi Genovese}
-\author{Thierry Deutsch}
-\author{Dimitri Komatitsch}
-\author{Jean-François Méhaut}
+\author[lig,ujf]{Kevin Pouget}
+\author[cea]{Luigi Genovese}
+\author[cea]{Thierry Deutsch}
+\author[cnrs]{Dimitri Komatitsch}
+\author[lig,inria]{Frédéric Desprez}
+\author[lig,ujf]{Jean-François Méhaut}
 
-\address[mymainaddress]{LIG/CNRS}
-
+\address[lig]{Laboratoire d'Informatique de Grenoble}
+\address[cnrs]{Centre National de la Recherche Scientifique}
+\address[cea]{CEA/INAC/SP2M/L\_Sim}
+\address[ujf]{Université Joseph Fourier}
+\address[inria]{Inria}
 \begin{abstract}
 The Abstract.
 \end{abstract}
 
 \begin{keyword}
-Code Generation \sep Portability \sep Genericity \sep Productivity and Software
-Design \sep High Performance Computing \sep Autotuning \sep Non Regression
-Testing
+Code Generation \sep Portability \sep Genericity \sep Autotuning \sep Non
+Regression Testing \sep Productivity and Software Design \sep High Performance
+Computing
 \end{keyword}
 
 \end{frontmatter}
 
 \section{Introduction}
 
-Porting and tuning HPC applications to new platforms is tedious and costly in term of human resources.
-Many developer teams are more concentrated on solving the physical problems faster and better with new algorithms
-and simulating new physics. 
-This is why optimization even if it is important is a task which is sometimes neglected or hidden for many developers.
-In the same way, the domain specific language (DSL) has exactly this goal,  the complete separation of the high-level code dedicated to simulate new physics
-and the low-level one which is more dependent to the HPC architecture. 
-Nevertheless, decoupling the high and low levels don't avoid the need of optimization which becomes more and more unavoidable 
-with the new architectures based on many cores and accelerators.
+Porting and tuning HPC applications to new platforms is tedious and costly in
+term of human resources.  Many developer teams are more concentrated on solving
+the physical problems faster and better with new algorithms and simulating new
+physics. This is why optimization, while important, is a task which is
+sometimes neglected or hidden for many developers.  In the same way, Domain
+Specific Language (DSLs) have exactly this goal, the complete separation of the
+high-level code dedicated to simulate new physics and the low-level one which
+is more dependent on the HPC architecture. Nevertheless, decoupling the high
+and low levels don't avoid the need of optimization which becomes more and more
+unavoidable with new architectures based on many cores and accelerators.
 
-Unfortunately, portability efforts of the low level i.e. computing kernels are often lost when migrating to a new
-architecture. Worse, code may lose maintainability because several versions of
-some functionalities coexist, usually with a lot of duplication.
-Thus productivity of porting and tuning efforts is low as a huge fraction of
-those developments are never used after the platform they were intended for is
-decommissioned.
+Unfortunately, portability efforts of the low level i.e. computing kernels are
+often lost when migrating to a new architecture. Worse, code may lose
+maintainability because several versions of some functionalities coexist,
+usually with a lot of duplication.  Thus productivity of porting and tuning
+efforts is low as a huge fraction of those developments are never used after
+the platform they were intended for is decommissioned.
 
-The primary goal of the metaprogramming framework BOAST is to simplify the optimization of the computing kernels for HPC
-applications. The main idea is to use a high level language to define an API of computing kernels i.e. subroutines and
-their related arguments, but also describe the way to optimize it (unrolling, vectorization, parametrization, templating, tiling).
-BOAST will test automatically the many possibilities of optimizations and choose the best one after validation from a
-reference version.
-Then BOAST can generate pieces of Fortran, C, OpenCL or CUDA codes, test if for a specific target architecture.
+The primary goal of the BOAST metaprogramming framework is to simplify the
+optimization of computing kernels for HPC applications. The main idea is to use
+a high level language to define an API of computing kernels i.e.  subroutines
+and their related arguments, but also describe the way to optimize it
+(unrolling, vectorization, parametrization, templating, tiling).  BOAST will
+test automatically the many possibilities of optimizations and choose the best
+one after validation from a reference version.  Then BOAST can generate pieces
+of Fortran, C, OpenCL, or CUDA codes, test it for a specific target
+architecture.
 
-With the definition of an API, BOAST can hide the details of the implementation at high level but also is the way to
-factorize different kernels depending only on parameters as datatypes, the length of filters or the boundary conditions.
-The maintainability and genericity of HPC codes is often limited. One of the reason is that producing
-generic code in Fortran 90/95 is difficult as the language does not really fit
-for it. Sometimes, adding genericity or functionalities can be quite costly and degrades performance as optimization
-opportunities that come from over-specification are lost.
-BOAST can provide a solution to handle genericity and add new functionalities at low levels.
-For instance, the optimization of short convolutions depends strongly
-on the length of the filters. This is why HPC codes using finite differences handle only one order. BOAST allows
-handling any order and even more generalizing to another numerical scheme.
+With the definition of an API, BOAST can hide the implementation details at
+high level but also is a way to factorize different kernels depending only on
+parameters such as data types, length of filters or boundary conditions.  The
+maintainability and genericity of HPC codes is often limited. One of the reason
+is that producing generic code in Fortran 90/95 is difficult as the language
+does not really fit for it. Sometimes, adding genericity or functionalities can
+be quite costly and degrades performance as optimization opportunities that
+come from over-specification are lost. BOAST can provide a solution to handle
+genericity and add new functionalities at low levels.
 
-In this paper, we illustrate the optimization problems related to scientific computing with the Laplace equation.
-Then we present our solution, BOAST, its architecture and its functionalities. We apply BOAST to three use cases, the
-Laplace equation, short multi-dimensional convolutions to perform differential operators and finally
-the wavelet transform which are used in a quantum chemistry code, BigDFT.
-Then BOAST is applied to a full application, SPECFEM3D dedicated to the seismic wave propagation simulator.
-80 GPU computing kernels have been ported improving considerably the maintanability and providing a single code base for
-OpenCL and CUDA kernel versions.
-Finally we compare BOAST with other related works.
+%For instance, the optimization of short convolutions depends strongly on the
+%length of the filters. This is why HPC codes using finite differences handle
+%only one order. BOAST allows handling any order and even more generalizing to
+%another numerical scheme.
 
+The paper is organized as follows. First we further motivate the need for
+metaprogramming frameworks.  Secondly we illustrate the optimization problems
+related to scientific computing with the Laplace equation. Thirdly we present
+our solution, called BOAST, its architecture and its functionalities. Fourthly
+we apply BOAST to three use cases: the Laplace equation motivating example;
+short multi-dimensional convolutions from the BigDFT quantum chemistry
+application; and the seismic wave propagation simulator SPECFEM3D where 80 GPU
+computing kernels have been ported improving, considerably the maintainability
+and providing a single code base for OpenCL and CUDA kernel versions. Finally
+we compare BOAST with other related works.
 
-% Porting and tuning HPC applications to new platforms is tedious and costly in
-% terms of human resources. Nonetheless, it is a very important aspect of the
-% Mont-Blanc project. Indeed, for the project, more than ten applications were
-% selected to be ported and optimized for the prototype platform.
-% 
-% Unfortunately, portability efforts are often lost when migrating to a new
-% architecture. Worse, code may lose maintainability because several versions of
-% some functionalities coexist, usually with a lot of duplication.
-% 
-% Thus productivity of porting and tuning efforts is low as a huge fraction of
-% those developments are never used after the platform they were intended for is
-% decommissioned.
-% 
-% Genericity of HPC codes is often limited. One of the reason is that producing
-% generic code in Fortran 90/95 is difficult as the language does not really fit
-% for it. Sometimes, adding genericity degrades performance as optimization
-% opportunities that come from over-specification are lost.
-% 
-% Functionality of HPC codes is tied to the previous point. Without genericity,
-% adding new functionalities can be quite costly.
 
 \section{Background and Motivation}
 
-The motivation of the BOAST project comes from the need of the HPC communities which have full and large applications
-difficult to port and maintain for emerging architectures based on accelerators, longer vector lengths, or low power
+The motivation of the BOAST project comes from the need of the HPC communities
+which have full and large applications.  These applications are difficult to
+port and maintain for emerging architectures. Especially since new
+architectures are based on accelerators, longer vector units, or low power
 processors.
 
 
   \subsection{Evolution of HPC Architectures}
 
-Evolution of HPC Architectures is rapid and also diverse: in the last 5
-years no less than 6 architectures have been number one in the Top500:
+Evolution of HPC Architectures is rapid and also diverse: in the last 7 years
+no less than 6 architectures have been number one in the
+Top500~\cite{webtop500}:
 \begin{itemize}
-\item Intel Processor + Xeon Phi (Tianhe-2)
-\item AMD Processor + NVIDIA GPU (Titan)
-\item IBM BlueGene/Q (Sequoia)
-\item Fujitsu SPARC64 (K computer)
-\item Intel Processor + NVIDIA GPU (Tianhe-1)
-\item AMD Processor (Jaguar)
+\item Intel Processor + Xeon Phi (Tianhe-2, 2013)
+\item AMD Processor + NVIDIA GPU (Titan, 2012)
+\item IBM BlueGene/Q (Sequoia, 2012)
+\item Fujitsu SPARC64 (K computer, 2011)
+\item Intel Processor + NVIDIA GPU (Tianhe-1, 2010)
+\item AMD Processor (Jaguar, 2009)
 \end{itemize}
-Being able to efficiently use those architectures on such a small
-time-frame is challenging.
+Being able to efficiently use those architectures on such a small period is
+challenging for scientists and application developers.
 
 The race to exascale is not going to simplify the environment. All of the above
-architectures can be considered. Network architectures also can be very
-diverse.  For instance European FP7 project DEEP considers using Accelerators
-(XEON Phi) while the European FP7 project Mont-Blanc considers using low-power
-embedded processor with integrated GPU.
+machine architectures can be considered to build these supercomputers and other
+will appear soon. For instance European FP7 project DEEP considers using
+Accelerators (XEON Phi) while the European FP7 project Mont-Blanc considers
+using low-power embedded processor with integrated GPU.
 
-Running existing applications on those new architectures is an open research
+Running existing applications on these new architectures is an open research
 subject as well as an ongoing porting effort.  Thus, those projects have work
-packages dedicated to applications. Those work packages are dedicated to porting
-and optimizing Scientific applications on those new architectures. In the DEEP
-project six applications were selected for porting and optimizing, eleven were
-selected in the Mont-Blanc project.
+packages dedicated to applications. Those work packages are dedicated to
+porting and optimizing Scientific applications on those new architectures. In
+the DEEP project six applications were selected for porting and optimizing,
+eleven were selected in the Mont-Blanc project.
 
   \subsection{Scientific Computing Applications}
 
-Scientific Computing Applications are usually developed by physicist, chemist or
-meteorologist. Those codes are usually written in Fortran for historical and
-performance reasons. Codes can be quite huge (several thousands lines of code [LOC])
-with lots of functionalities. Nonetheless, they are usually based on computing
-kernels.  Computing kernels are resource intensive and well-defined parts of a
-program that usually work on precisely defined data. Those kernels represent the most
-time-consuming part of an HPC application, and consequently, they are the prime target for
-optimization.
+Scientific Computing Applications are usually developed by other science
+researchers such as physicists, chemists or meteorologists. Those codes are
+usually written in Fortran for historical and performance reasons. Codes can be
+quite huge (several thousands lines of code [LOC]) with lots of
+functionalities. Nonetheless, they are usually based on computing kernels.
+Computing kernels are resource intensive and well-defined parts of a program
+that usually work on precisely defined data. Those kernels represent the most
+time-consuming part of an HPC application, and consequently, they are the prime
+target for optimization.
 
 Those applications are often developed by several individuals. Sometimes, some
 of those developers only work a few months on the application. Maintaining
@@ -256,7 +254,7 @@ and programming paradigms can also be used in a project and thus the maintainer
 must be knowledgeable in several areas of expertise. Portability problems can
 also be caused by the availability of an optimizing compiler for a specific
 language and architecture. C compilers are usually the first available while
-Fortran may sometimes arrive later.
+Fortran may sometimes come later.
 
 In Section~\ref{use_cases} we will present two HPC applications that we used
 as use cases: SPECFEM3D and BigDFT. They are both based on computing
@@ -265,10 +263,10 @@ kernels and were selected as candidate applications in the Mont-Blanc project.
   \subsection{How Should Computing Kernels be Written?}
 
 The problematic here is to obtain computing kernels that present good
-performances on the architectures encountered by the application while still
-being portable after the optimization process took place. Indeed the
-application might encounter one of the many architectures that can be found in
-HPC. Investing manpower to optimize the application for a new architecture is
+performance on the architectures encountered by the application while staying
+portable after the optimization process took place. Indeed the application
+might encounter one of the many architectures that can be found in HPC.
+Investing manpower to optimize the application for a new architecture is
 reasonable, suffering hindrance from previous optimization work is not. Thus
 optimizations have to be as orthogonal as possible from one another so as to be
 easily activated and deactivated.
@@ -279,21 +277,15 @@ easily the performance impact of the chosen optimizations without running the
 full application. The same reasoning implies that kernels should be tested for
 non regression without running the full application.
 
-What we want is computing kernels that are written:
-\begin{itemize}
-\item in a \emph{portable} manner,
-\item in a way that raises developer \emph{productivity},
-\item and, present good \emph{performance}.
-\end{itemize}
-
-
+What we want is computing kernels that are written in a \emph{portable} manner,
+in a way that raises developer \emph{productivity}, and they must present good
+\emph{performance}.
 
 \section{Basic Example: OpenCL Laplace}
 \label{sec:laplace}
 
 During one of the Mont-Blanc face to face meeting a talk on OpenCL optimization
-on the Mali GPU was given. One of the case study was a Laplace filter on the
-GPU~\cite{opencl_arm_training}.
+on the Mali GPU was given. One of the case study was a Laplace filter~\cite{opencl_arm_training}.
 
 This is a good example of an algorithm that is simple in its formulation but
 can be complex to optimize because many different optimizations are available
@@ -306,7 +298,7 @@ Listing~\ref{lst:laplace_c_filter} shows a simple implementation of the Laplace
 filter in C99. For clarity, boundary conditions have been omitted.
 
 \lstset{style=customc,
-        caption={Laplace C99 Filter},
+        caption={Laplace C99 Filter.},
         breaklines=true,
         breakautoindent=false,
         label={lst:laplace_c_filter}}
@@ -333,7 +325,7 @@ Listing~\ref{lst:laplace_opencl_filter}. Each work item processes one pixel of
 the resulting image.
 
 \lstset{style=customcl,
-        caption={Laplace OpenCL Filter},
+        caption={Laplace OpenCL Filter.},
         breaklines=true,
         breakautoindent=false,
         label={lst:laplace_opencl_filter}}
@@ -367,14 +359,15 @@ Several optimizations were proposed and successively applied to the previous
 implementation.
 
 \paragraph{Vectorization}
-The first proposed optimization involves computing five pixels instead of one using the
-vectors available to the Mali architecture. The vectors have to reside in memory to
-ensure an efficient execution. Using vectors of 16 elements, 15 useful components
-are simultaneously loaded and can be used in computation. This optimization
-yields speedups between 1.5 and 6 depending on the image size.
+The first proposed optimization involves computing five pixels instead of one
+using the vectors available on the Mali architecture. The vectors have to be
+kept in memory to ensure an efficient execution. Using vectors of 16 elements,
+15 useful components are simultaneously loaded and can be used in computation.
+This optimization yields speedups between 1.5 and 6 depending on the image
+size.
 
 \lstset{style=customcl,
-        caption={Laplace OpenCL Filter Vectorized},
+        caption={Laplace OpenCL Filter Vectorized.},
         breaklines=true,
         breakautoindent=false,
         label={lst:laplace_opencl_filter_vector}}
@@ -423,7 +416,7 @@ Listing~\ref{lst:laplace_opencl_filter_vector_synth} shows how the vectors are
 loaded in this case. This optimization yields marginal improvements.
 
 \lstset{style=customcl,
-        caption={Laplace OpenCL Filter Vectorized with Synthesized Loads},
+        caption={Laplace OpenCL Filter Vectorized with Synthesized Loads.},
         breaklines=true,
         breakautoindent=false,
         label={lst:laplace_opencl_filter_vector_synth}}
@@ -445,7 +438,7 @@ the code is modified to use smaller types. This yields a speedup of 1.3 for most
 image sizes.
 
 \lstset{style=customcl,
-        caption={Laplace OpenCL Filter Vectorized Using \textit{short}},
+        caption={Laplace OpenCL Filter Vectorized Using \textit{short}.},
         breaklines=true,
         breakautoindent=false,
         label={lst:laplace_opencl_filter_short}}
@@ -479,12 +472,12 @@ as speedups of almost 10 are observed compared to the naive OpenCL
 implementation.
 
 Nonetheless, the process is frustrating. The optimizations are never evaluated
-independently from one another. Some were arbitrarily configured (the number of
-pixels chosen for instance). Testing the different combinations of those
-optimizations and the different parameters would be very costly in developer
-time and, moreover, like all repetitive and tedious tasks, error prone. Thus
-every created kernel would have to be thoroughly tested to ensure no error was
-done.
+independently from one another. Some were arbitrarily configured (like the
+number of pixels chosen for instance). Testing the different combinations of
+those optimizations and the different parameters would be very costly in
+developer time and, moreover, like all repetitive and tedious tasks, error
+prone. Thus every created kernel would have to be thoroughly tested to ensure
+no error was done.
 
 In the next Section we will present our answer to these issues: BOAST.  BOAST is
 a framework dedicated to kernel description, optimization, regression testing
@@ -602,8 +595,9 @@ to use the libraries needed during the development of the framework.
 In order to clearly differentiate what is going to be generated from what is
 related to manipulations in the host language four keywords were defined. They
 are \emph{decl}, \emph{pr}, \emph{opn} and \emph{close}. As the language is an
-EDSL, these four keywords are methods in the BOAST namespace. Sample usage of
-these keywords will be found in the next Figures.
+Embedded Domain Specific Language (EDSL), these four keywords are methods in
+the BOAST namespace. Sample usage of these keywords will be found in the next
+Figures.
 %Usage of these keywords can be found on Figure~\ref{fig:keywords}.
 
 The \emph{decl} method is used to declare variables or procedures and functions.
@@ -630,7 +624,7 @@ flow related.
 
 \begin{figure}
 \lstset{style=BOAST,
-        caption={BOAST code}, 
+        caption={BOAST code.}, 
         label={lst:BOAST_algebra},
         numbers=left }
 \begin{lstlisting}
@@ -725,7 +719,7 @@ of a FuncCall object.  The possibility to use this method is declared using the
 
 \begin{figure}
 \lstset{style=BOAST,
-        caption={BOAST code}, 
+        caption={BOAST code.}, 
         label={lst:BOAST_control},
         numbers=left }
 \begin{lstlisting}
@@ -792,7 +786,7 @@ passed as parameters using the \emph{lambda} Ruby keyword.
 
 \begin{figure}
 \lstset{style=BOAST,
-        caption={BOAST code}, 
+        caption={BOAST code.}, 
         label={lst:BOAST_procedure},
         numbers=left }
 \begin{lstlisting}
