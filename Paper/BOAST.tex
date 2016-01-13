@@ -1555,6 +1555,15 @@ BOAST. We speculate that the three-dimensional nature of our convolutions, as
 well as the filter length, can be considered edge cases in Halide and quite far
 from the intended target.
 
+  Heterogeneous Programming Library~\cite{vinas2013exploiting} (HPL) is maybe
+the most similar to BOAST. It is an autotuning kernel library in C++ that targets
+OpenCL. It uses an EDSL in C++ to describe generic computing kernels. Like when
+using BOAST, optimization are left to the users and written directly using the
+EDSL. The syntax is very close to real C++ with the classical control
+structures having a trailing underscore. But whereas BOAST re-interprets the
+same code while changing the environment, in HPL each expression is stored in a
+tree and the tree is reevaluated in a different environment.
+
   \subsection{Optimization Space Pruner}
 
   Once auto-tuning techniques are used, the parameter space explodes and the
