@@ -11,9 +11,6 @@
 \newcommand{\eg}{\latin{e.g.,}\xspace}
 \newcommand{\etc}[1]{\latin{etc...}}
 
-\newcommand{\Specfem}{\productname{Specfem 3D}\xspace}
-\newcommand{\Cuda}{\productname{Cuda}\xspace}
-\newcommand{\OCL}{\productname{OpenCL}\xspace}
 \newcommand{\code}[1]{\texttt{#1}}
 
 
@@ -432,13 +429,13 @@ loaded in this case. This optimization yields marginal improvements.
   uchar16 v32_ = uchar16( v31_.s3456789a, v33_.s56789abc );
 \end{lstlisting}
 
-\paragraph{Temporary Variables Size} Using \textit{int} to store intermediary
+\paragraph{Temporary Variables Size} Using \emph{int} to store intermediary
 results is unnecessary. Listing~\ref{lst:laplace_opencl_filter_short} show how
 the code is modified to use smaller types. This yields a speedup of 1.3 for most
 image sizes.
 
 \lstset{style=customcl,
-        caption={Laplace OpenCL Filter Vectorized Using \textit{short}.},
+        caption={Laplace OpenCL Filter Vectorized Using \emph{short}.},
         breaklines=true,
         breakautoindent=false,
         label={lst:laplace_opencl_filter_short}}
@@ -857,13 +854,11 @@ for evaluation, the automation will bring improved portability, better performan
 and in the end will improve the productivity of the developer.
 
 In this section we will present the different aspects of BOAST run-time that
-allow this automation. Those aspects include:
-  \begin{itemize}
-  \item multi target language generation ( performance, portability )
-  \item compilation ( productivity, performance )
-  \item execution ( productivity, performance )
-  \item tracer, dumper and replay for non regression tests ( productivity )
-  \end{itemize}
+allow this automation. Those aspects are multi-target language generation
+(\emph{performance}, \emph{portability}), kernel compilation
+(\emph{productivity}, \emph{performance}), kernel execution
+(\emph{productivity}, \emph{performance}) and last, kernel tracer, dumper and
+replay for non regression tests (\emph{productivity}).
 
   \subsubsection{Multi-target Language Generation}
 \label{sec:multitarget}
@@ -960,7 +955,7 @@ collects the function name, execution range and argument values (input
 \emph{and} output) of the relevant function calls. These information
 are traced in a unified format for all the APIs. This is a custom
 trace format. Listing~\ref{lst:GPUTrace} presents a sample output
-generated during \Specfem tracing.
+generated during SPECFEM3D tracing.
 
 However, in contrast with \code{strace} and \code{ltrace},
 \code{GPUTrace} has to be \emph{state-full}. Indeed, most of API
@@ -1022,8 +1017,8 @@ testing.
 \label{use_cases}
 
 In this section we will present the benefits of using BOAST on the Laplace
-motivating example as well as two scientific applications that use BOAST. The
-first one, BigDFT~\cite{genovese2008daubechies}, uses BOAST in order to develop new
+motivating example as well as on two scientific applications. The first one,
+BigDFT~\cite{genovese2008daubechies}, uses BOAST in order to develop new
 functionalities with performance portability in mind. The second one,
 SPECFEM3D~\cite{komatitsch2011fluid}, uses BOAST to factorize OpenCL and CUDA
 development, while having robust non regression tests.
@@ -1049,18 +1044,18 @@ to being able to process tiles instead of only rows.
 Here are the parameters we finally selected for our kernel optimization and
 their possible values:
 \begin{itemize}
-\item \textit{x\_component\_number}: a positive integer
-\item \textit{y\_component\_number}: a positive integer
-\item \textit{vector\_length}: 1, 2, 4, 8 or 16
-\item \textit{temporary\_size}: 2 or 4
-\item \textit{synthesize\_loads}: \textit{true} or \textit{false}
-\item \textit{vector\_recompute}: \textit{true} or \textit{false}
+\item \emph{x\_component\_number}: a positive integer
+\item \emph{y\_component\_number}: a positive integer
+\item \emph{vector\_length}: 1, 2, 4, 8 or 16
+\item \emph{temporary\_size}: 2 or 4
+\item \emph{synthesize\_loads}: \emph{true} or \emph{false}
+\item \emph{vector\_recompute}: \emph{true} or \emph{false}
 \end{itemize}
-The last parameter is used when \textit{x\_component\_number} is not divisible by
-\textit{vector\_length}. Two solutions are possible then, divide the remainder
-of the division in vectors of smaller sizes (\textit{vector\_recompute} =
-\textit{false}) or load more data and compute useless values in vectors of the
-specified size (\textit{vector\_recompute} = \textit{true}).
+The last parameter is used when \emph{x\_component\_number} is not divisible by
+\emph{vector\_length}. Two solutions are possible then, divide the remainder
+of the division in vectors of smaller sizes (\emph{vector\_recompute} =
+\emph{false}) or load more data and compute useless values in vectors of the
+specified size (\emph{vector\_recompute} = \emph{true}).
 This last option mimics the behavior of the ARM implementation, although when
 working at the component level it may not be a valuable thing to try.
 
@@ -1071,11 +1066,11 @@ compared to the naive implementation and to the best version version BOAST
 found. It shows that the generated version systematically outperforms the hand
 optimized version. As far as the optimization options are concerned, the results
 are disappointing: the same kernel configuration is the best for all image
-sizes. This kernel uses \textit{x\_component\_number} = 16,
-\textit{y\_component\_number} = 1, \textit{vector\_length} = 16,
-\textit{temporary\_size} = 2 and \textit{synthesize\_loads} = false.
-\textit{vector\_recompute} because \textit{x\_component\_number}
-== \textit{vector\_length}. Those results show that, when working on full
+sizes. This kernel uses \emph{x\_component\_number} = 16,
+\emph{y\_component\_number} = 1, \emph{vector\_length} = 16,
+\emph{temporary\_size} = 2 and \emph{synthesize\_loads} = false.
+\emph{vector\_recompute} because \emph{x\_component\_number}
+== \emph{vector\_length}. Those results show that, when working on full
 vectors, synthesizing the loads is harmful to performance and the programmer is
 better of trusting the cache to load each vector in one cycle without
 compromising the bandwidth. The results shown here are the best of four runs for
@@ -1111,15 +1106,15 @@ architectures is stable across image sizes.
 
 The optimization parameters selected are not the same for those architectures.
 Indeed, the Intel CPU favors kernels that have the parameters,
-\textit{x\_compo-nent\_number} = 16, \textit{vector\_length} = 8,
-\textit{temporary\_size} = 2 and \textit{synthesize\_loads} = false. Once again
-\textit{vector\_recompute} does not apply. \textit{y\_component\_number} varies
+\emph{x\_compo-nent\_number} = 16, \emph{vector\_length} = 8,
+\emph{temporary\_size} = 2 and \emph{synthesize\_loads} = false. Once again
+\emph{vector\_recompute} does not apply. \emph{y\_component\_number} varies
 from 4 to 2 when image size increase, thus decreasing task granularity as the
 global work size increase. This result is unexpected and understanding why this
 happen could be interesting. The NVIDIA GPU favors processing square tiles:
-\textit{x\_component\_number} = 4, \textit{y\_component\_number} = 4,
-\textit{vector\_length} = 4, \textit{temporary\_size} = 2 and
-\textit{synthesize\_loads} = false. Once more, \textit{vector\_recompute} has no
+\emph{x\_component\_number} = 4, \emph{y\_component\_number} = 4,
+\emph{vector\_length} = 4, \emph{temporary\_size} = 2 and
+\emph{synthesize\_loads} = false. Once more, \emph{vector\_recompute} has no
 meaning.
 
 
@@ -1251,13 +1246,12 @@ loop structure, as well as on the size of the data.
 The number of convolution kernels needed in BigDFT has been continuously
 growing in the recent years.  Various boundary conditions and functionalities
 have been added, making the BigDFT more and more powerful in terms of
-scientific applications.  However, the cost of the maintenance and of
-development of the convolutions is always a delicate point to be considered
-while including a new functionality.  The convolution patterns are usually
-rather similar, leading to code duplication and difficulties in code
-maintainability.
+scientific applications.  However, the cost of maintenance and development of
+the convolutions is always a delicate point to be considered while including a
+new functionality.  The convolution patterns are usually rather similar,
+leading to code duplication and difficulties in code maintainability.
 
-It appears therefore very interesting to benefit from an automatic tool to drive
+Therefore it appears very interesting to benefit from an automatic tool to drive
 the implementation and the generation of new convolutions.  This would lead to
 an optimized code, adapted to different computing platforms, that is optimally
 factorized.  In addition to this point, the help of such code generator is also
@@ -1281,18 +1275,18 @@ compiled to meet the API of the library. A library written in this way might
 have an impact going largely beyond the community of BigDFT developers. 
 
 The interest in having a robust and optimally tuned library in this scientific
-field is therefore evident. Techniques are under investigation to provide also
-fine-tuned binaries to the end-user rather than the code sources, such that
-more aggressive inter procedural optimization can be performed. Indeed, BOAST
-finds the optimal source code for a given kernel and compiler configuration but
-one could imagine using binary optimizer to the compiled binaries. Those
-optimizers could be coupled to BOAST and the output of the process would be the
-final binary rather than the source code. This experience therefore would be a
-first step toward the release of a tunable optimised convolution library
-oriented to computational physics communities.
+field is therefore evident. Techniques are under investigation to also provide
+end users with fine-tuned binaries rather than the source codes, such that more
+aggressive inter procedural optimization can be performed. Indeed, BOAST finds
+the optimal source code for a given kernel and compiler configuration but one
+could imagine using binary optimizer to the compiled binaries. Those optimizers
+could be coupled to BOAST and the output of the process would be the final
+binary rather than the source code. This experience therefore would be a first
+step toward the release of a tunable optimized convolution library oriented to
+computational physics communities.
 
 
-    \subsubsection{Performance report}
+    \subsubsection{Performance Report}
 
 Several kernels have already been implemented in BOAST for the convolution
 library. Figure~\ref{fig:synthesis} shows the performance of the wavelet
@@ -1306,7 +1300,7 @@ Intel Xeon X5550 that was used to hand optimize the code.
 \begin{center}
 \includegraphics[width=\linewidth]{Res_synthesis}
 \end{center}
-\caption{Impact of Unrolling, Language and OpenMP on a Wavelet Transform}
+\caption{Impact of Unrolling, Language Used and OpenMP on a Wavelet Transform Code.}
 \label{fig:synthesis}
 \end{figure}
 
@@ -1344,23 +1338,22 @@ architectures/compilers combinations than that of the hand tuned code.
   \subsection{Porting SPECFEM3D to OpenCL using BOAST}
   \label{subsec:specfem}
 
-In this last subsection, we study a free seismic wave propagation
-simulator, \Specfem, in its \productname{Globe}
-flavor\footnote{Specfem3d Globe --- CIG
-  \url{http://www.geodynamics.org/cig/software/specfem3d-globe}}. \Specfem
-simulates seismic wave propagation at the local or regional scale
-based upon spectral-element method (SEM), with very good accuracy and
-convergence properties. It is a reference application for super
-computer benchmarking, thanks to its good scaling capabilities.
+In this last subsection, we study a free seismic wave propagation simulator,
+SPECFEM3D, in its GLOBE flavor\footnote{Specfem3d Globe --- CIG
+\url{http://www.geodynamics.org/cig/software/specfem3d-globe}}. SPECFEM3D
+simulates seismic wave propagation at the local or regional scale based upon
+spectral-element method (SEM), with very good accuracy and convergence
+properties. It is a reference application for supercomputer benchmarking,
+thanks to its good scaling capabilities.
 
 
     \subsubsection{SPECFEM3D}
 
 When we started to work on the project (version v2.1 of July 2013) it
-supported graphics card GPU acceleration through NVidia \Cuda. This
+supported graphics card GPU acceleration through NVidia CUDA. This
 GPU support came in addition to the MPI support implemented to enable
-multi-CPU parallel computing. Most of \Specfem code-base is written in
-\productname{Fortran2003}, only the GPU related parts are written in
+multi-CPU parallel computing. Most of SPECFEM3D code-base is written in
+Fortran 2003 and only the GPU related parts are written in
 C.  The split between CPU and GPU code was done at a rather fine
 grain, as the application counted more than 40 GPU kernels. Some of
 them were quite simple (\eg performing a few vector operations, but at
@@ -1377,79 +1370,79 @@ testing (after new developments) is also based on these seismograms,
 with measurements of the relative error between two identical
 simulations.
 
-As part of the Mont-Blanc project, we had to port \Specfem to \OCL, so
+As part of the Mont-Blanc project, we had to port SPECFEM3D to OpenCL, so
 that it could be used to benchmark Mont-Blanc HPC platforms.
 
 \subsubsection{Porting to OpenCL}
 
 \subparagraph{Porting kernels to BOAST} 
 
-Nvidia \Cuda and \OCL are based on the same programming model: a
+Nvidia CUDA and OpenCL are based on the same programming model: a
 massively parallel accelerator running in disjoint, non addressable
 memory environment. Thanks to that proximity, we have been able to carry
 out most of the porting task with only a limited knowledge about
-\Specfem internal physics.
+SPECFEM3D internal physics.
 
-This lack of \Specfem internal knowledge led us to be particularly
+This lack of SPECFEM3D internal knowledge led us to be particularly
 careful to the path we undertook for the port, as we would have
 been unable to understand how and why the application was not
 operating properly, if it was to fail.
 
 Hence, our first milestone in the port was the translation of
-\Specfem's \Cuda kernels into BOAST EDSL. This way, we could ask BOAST
+SPECFEM3D's CUDA kernels into BOAST EDSL. This way, we could ask BOAST
 framework to generate a CUDA version of the kernels, plug them back
-into \Specfem and get (after fixing compile-time errors---prototypes
-and naming mistakes mainly) a first set of \Specfem seismograms.
+into SPECFEM3D and get (after fixing compile-time errors---prototypes
+and naming mistakes mainly) a first set of SPECFEM3D seismograms.
 
 As we had expected, the seismograms were erroneous. But with the help
 of shell scripts and BOAST framework ability to store and provide the
-kernels' original source code, we built a set of \Specfem binaries
+kernels' original source code, we built a set of SPECFEM3D binaries
 including only \emph{one} BOAST-generated kernel, with all others
 reference-kernels. Running and validating all these binaries enabled
 use to pinpoint the misbehaving kernels. We finished the debugging
 with a side-by-side comparison that highlighted the coding mistakes.
 
-\subparagraph{Porting run-time to \OCL} The second part of the port
+\subparagraph{Porting run-time to OpenCL} The second part of the port
 consisted in the translation of the CPU-side of the application, from
-\Cuda API to \OCL API. Most of the functions of the interfaces are
+CUDA API to OpenCL API. Most of the functions of the interfaces are
 very similar, with only naming-convention and data-structure
 distinctions. Hence, it was clear that automatic rewriting tools
 (namely \code{sed} regexp and \code{emacs-lisp} functions) could be
 useful. To give an idea of the cost of a \emph{manual} rewriting, we
-can count (in \# of \OCL API function calls): 70 kernel ``function
+can count (in \# of OpenCL API function calls): 70 kernel ``function
 calls'', 790 arguments to set, 230 memory transfers, 160 buffer
 creations, and 270 releases.
 
 Once the transformations were applied,
-compilation errors fixed, and \OCL unsuccessful function calls solved,
+compilation errors fixed, and OpenCL unsuccessful function calls solved,
 the application managed to complete its execution and generate a first
 set of seismograms. And again, as expected and feared, these
 seismograms were not valid as their shape was completely different from the
 reference ones.
 
-As we had already validated BOAST-generated kernels (and trusted \Cuda and \OCL
+As we had already validated BOAST-generated kernels (and trusted CUDA and OpenCL
 versions to be semantically identical), we knew that the bugs were now in the
-usage of the run-time, and we had to find a way to understand where \Specfem's
-\Cuda version of the code diverged from its \OCL counterpart. To help us in
+usage of the run-time, and we had to find a way to understand where SPECFEM3D's
+CUDA version of the code diverged from its OpenCL counterpart. To help us in
 that purpose, we had a strong assumption: both versions of the code were
 supposed to perform exactly the same operations, with the same ``logical''
-parameters (the APIs have \emph{implementation} differences, for instance \OCL
+parameters (the APIs have \emph{implementation} differences, for instance OpenCL
 has two memory transfer functions, \code{clEnqueueReadBuffer},
-\code{clEnqueueWriteBuffer}, whereas \Cuda has only one, with a direction
+\code{clEnqueueWriteBuffer}, whereas CUDA has only one, with a direction
 parameter \code{cudaMemcpy(..., dir)}, but above that, it is the same
 functionality).
 
 Hence, our idea for locating the execution problems was to make sure
-that both execution actually did the same thing. As the \OCL results
+that both execution actually did the same thing. As the OpenCL results
 were invalid, we knew the executions would diverge at one or several
 points.
 
-\subparagraph{Debugging \OCL Execution: \code{GPUTrace}} 
+\subparagraph{Debugging OpenCL Execution: \code{GPUTrace}} 
 
-With the help of \code{GPUTrace} (Section~\ref{sec:gputrace}), we
-could confront \Cuda and \OCL execution traces with a graphical
-\code{diff} tool, and spot the different porting mistakes: some
-parameters reversed, offsets incorrectly applied, \etc{}. 
+With the help of \code{GPUTrace} (described in Section~\ref{sec:gputrace}), we
+could confront CUDA and OpenCL execution traces with a graphical \code{diff}
+tool, and spot the different porting mistakes: some parameters reversed,
+offsets incorrectly applied, \etc{}. 
 
 One last problem remained, clearly highlighted by the seismograms not
 matching perfectly (they had a similar shape, but with a reduced
@@ -1457,46 +1450,46 @@ intensity). We added more verbosity to \code{GPUTrace} output: first
 the initial bits of the GPU memory buffers, then their full
 content. The drift was visible in the trace, but it was nonetheless
 unclear where it started. We finally got it after hours of code review
-of BOAST kernels and \OCL code. One kernel was
+of BOAST kernels and OpenCL code. One kernel was
 \emph{three}-dimensional, whereas the others were two-dimensional. But
 for all of them, only two dimensions were passed, and one was
 missing.
-%As it was the same person who coded the \OCL port and the GPU
+%As it was the same person who coded the OpenCL port and the GPU
 %tracer, this third dimension was forgotten in both codes.
 
-\subparagraph{Evaluation} Our \OCL/BOAST port of \Specfem is now
-merged in \Specfem's development tree and under test and extension by
+\subparagraph{Evaluation} Our OpenCL/BOAST port of SPECFEM3D is now
+merged in SPECFEM3D's development tree and under test and extension by
 different research teams. On a platform with two K40x GPUs and N Intel
 Xeon processors, we measured similar results between the original
-\Cuda version and our BOAST-\Cuda version. With the same set of
-optimization flags, BOAST \Cuda and \OCL version reported similar
-execution time spans. The best execution speed was achieved with \Cuda
-version though (25\% higher than \OCL), as one optimization parameter
-(\code{CUDA\_LAUNCH\_BOUND}) cannot be passed, to \OCL run-time, as of version
+CUDA version and our BOAST-CUDA version. With the same set of
+optimization flags, BOAST CUDA and OpenCL version reported similar
+execution time spans. The best execution speed was achieved with CUDA
+version though (25\% higher than OpenCL), as one optimization parameter
+(\code{CUDA\_LAUNCH\_BOUND}) cannot be passed to OpenCL run-time, as of version
 1.1. This parameter, in addition to specifying the work group size (which can
-be done in \OCL), also constrains the number of work group that must run in
-parallel on a multiprocessor. This value is set to 7 in \Cuda. This means that
+be done in OpenCL), also constrains the number of work group that must run in
+parallel on a multiprocessor. This value is set to 7 in CUDA. This means that
 the compiler must be very conservative on register usage in order to allow this
 parallelism which allows better overlapping of communications end computations.
-This functionality is not supported in \OCL.
+This functionality is not supported in OpenCL.
 
 By refactoring GPU kernel code in BOAST EDSL, the size of kernel code
 shrank by a factor of 1.8 (from 7500 to less than 4000 LOC, partly
 because of code duplication, also removing manually unrolled
-loops). This is beneficial for \Specfem as it improves the readability
+loops). This is beneficial for SPECFEM3D as it improves the readability
 and maintainability of its source code.
 
-We have also been able to enhance \Specfem's non-regression test-suite
+We have also been able to enhance SPECFEM3D's non-regression test-suite
 by adding per-kernel non-regression tests. This was done with the help
 of \code{GPUTrace}, that we used to capture all the input parameters
 of a particular \emph{valid} kernel execution, as well as the output
 values. Then, during the non-regression testing, BOAST framework
 loads these buffer files, allocates GPU memory and initializes it through
-\Cuda or \OCL run-time, and triggers the kernel execution. A comparison
+CUDA or OpenCL run-time, and triggers the kernel execution. A comparison
 of the output values (for instance against a maximal error level)
 validates the non-regression.
 
-In the same mindset, we provided \Specfem test-suite with kernel
+In the same mindset, we provided SPECFEM3D test-suite with kernel
 performance evaluation mechanisms. These tests will help developers to
 try new optimizations in kernel code and measure their impact, without
 executing the whole application.
@@ -1539,14 +1532,14 @@ art generic implementations.
 
   The idea to describe computing kernels using a DSL has been already explored.
 SPIRAL~\cite{puschel2004spiral} is a decade old generation
-framework for signal processing. It uses a proprietary DSL, SPL (Signal
+framework for signal processing. It uses a proprietary DSL called SPL (Signal
 Processing Language), to describe a DSP algorithm. This DSL is then transformed
 into efficient programs in high level languages like C or Fortran.
 POET~\cite{yi2007poet} also uses a DSL to describe custom code transformations,
-like loop unrolling, loop blocking and loop interchange. Those transformation
+like loop unrolling, loop blocking and loop interchange. Those transformations
 can be parametrized in order to tune the application. Orio~\cite{Hart2009:Orio}
 can be compared to POET as it aims at describing possible code transformations
-using a DSL. All those approaches are very different from our as they put the
+using a DSL. All those approaches are very different from ours as they put the
 emphasis on compilation techniques whereas BOAST relies on the user to express
 the different optimizations.
 
@@ -1598,7 +1591,7 @@ vectorized version of our algorithm.
 
 
 
-%\section*{References}
+\section*{References}
 
 \bibliography{BOAST}
 
