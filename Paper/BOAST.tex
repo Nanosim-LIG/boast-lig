@@ -126,7 +126,16 @@ uchar, uchar16, int16, short16}
 \address[ujf]{Université Joseph Fourier}
 \address[inria]{Inria}
 \begin{abstract}
-The Abstract.
+The portability of real HPC applications on new platforms is an open and very
+delicate problem.  Especially the performance portability of the underlying
+computing kernels, is problematic as they need to be tuned for each and every
+platform the application encounters.  This paper presents BOAST, a
+metaprogramming framework dedicated computing kernels.  BOAST allows the
+description of a kernel and its possible optimizations using a DSL.  BOAST
+runtime will then compare the different version's performance as well as verify
+their exactness. BOAST is applied to three use cases: a Laplace kernel in
+OpenCL, and two HPC applications BigDFT (electronic density computation) and
+SPECFEM3D (seismic and wave propagation).
 \end{abstract}
 
 \begin{keyword}
@@ -1585,18 +1594,20 @@ compilers/versions easing the exploration process.
 
 \section{Conclusion and Future Works}
 
-In this paper we presented the BOAST infrastructure as well as its
-application to three use cases from the Mont-Blanc project. Results are
-encouraging as BOAST proved to be a powerful and flexible tool that allowed
-gains in performance and performance portability.
+In this paper we presented the BOAST infrastructure as well as its application
+to three use cases from the Mont-Blanc project. Results are encouraging as
+BOAST proved to be a powerful and flexible tool that allowed gains in
+performance compared to hand tuned codes. Performance portability of those
+codes is also improved.
 
 Future development will focus on three goals. Interfacing with binary analysis
-tools like MAQAO~\cite{djoudi2005exploring} in order to build a feedback loop to
-guide optimization. Interfacing with search space modellers/pruners in order to
-optimize the search of the optimal version of a kernel. Continue working on
-vector code. For instance producing a collection of small to medium useful
-vector patterns (transposition, for instance) in BOAST could really help develop
-vectorized version of our algorithm.
+tools like MAQAO~\cite{djoudi2005exploring} in order to build a feedback loop
+to guide optimization. Interfacing with search space modellers/pruners in order
+to optimize the search of the optimal version of a kernel. Work should also
+continue on improving the support for vector codes. For instance producing a
+collection of small to medium useful vector patterns (transposition, for
+instance) in BOAST could really help users develop vectorized version of their
+algorithm.
 
 \section*{Acknowledgments}
 
