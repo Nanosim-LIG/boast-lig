@@ -137,7 +137,7 @@ __global__ void compute_stacey_acoustic_kernel(const float * potential_dot_acous
         }
         fac1 = wgllwgll[(j) * (NGLLX) + i];
         break;
-      }
+    }
   }
   iglob = ibool[INDEX4(NGLLX, NGLLX, NGLLX, i, j, k, ispec)] - (1);
   sn = (potential_dot_acoustic[iglob]) / (vpstore[INDEX4(NGLLX, NGLLX, NGLLX, i, j, k, ispec)]);

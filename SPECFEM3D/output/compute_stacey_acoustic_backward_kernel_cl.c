@@ -140,7 +140,7 @@ __kernel void compute_stacey_acoustic_backward_kernel(__global float * b_potenti
            return ;\n\
         }\n\
         break;\n\
-      }\n\
+    }\n\
   }\n\
   iglob = ibool[INDEX4(NGLLX, NGLLX, NGLLX, i, j, k, ispec)] - (1);\n\
   atomicAdd(b_potential_dot_dot_acoustic + iglob,  -(b_absorb_potential[INDEX2(NGLL2, igll, iface)]));\n\

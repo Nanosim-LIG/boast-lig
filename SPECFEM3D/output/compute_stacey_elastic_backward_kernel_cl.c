@@ -129,7 +129,7 @@ __kernel void compute_stacey_elastic_backward_kernel(__global float * b_accel, c
            return ;\n\
         }\n\
         break;\n\
-      }\n\
+    }\n\
   }\n\
   iglob = ibool[INDEX4(NGLLX, NGLLX, NGLLX, i, j, k, ispec)] - (1);\n\
   atomicAdd(b_accel + (iglob) * (3) + 0,  -(b_absorb_field[INDEX3(NDIM, NGLL2, 0, igll, iface)]));\n\

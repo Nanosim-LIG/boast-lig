@@ -147,7 +147,7 @@ __kernel void compute_stacey_elastic_kernel(const __global float * veloc, __glob
         }\n\
         fac1 = wgllwgll[(k) * (NGLLX) + i];\n\
         break;\n\
-      }\n\
+    }\n\
   }\n\
   iglob = ibool[INDEX4(NGLLX, NGLLX, NGLLX, i, j, k, ispec)] - (1);\n\
   vx = veloc[(iglob) * (3) + 0];\n\

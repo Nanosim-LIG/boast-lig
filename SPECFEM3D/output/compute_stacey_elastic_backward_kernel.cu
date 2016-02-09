@@ -118,7 +118,7 @@ __global__ void compute_stacey_elastic_backward_kernel(float * b_accel, const fl
            return ;
         }
         break;
-      }
+    }
   }
   iglob = ibool[INDEX4(NGLLX, NGLLX, NGLLX, i, j, k, ispec)] - (1);
   atomicAdd(b_accel + (iglob) * (3) + 0,  -(b_absorb_field[INDEX3(NDIM, NGLL2, 0, igll, iface)]));
