@@ -25,8 +25,7 @@ module BOAST
               print sum === sum + a[k + w,i] * b[k + w,j]
             }
 
-            f = For(w, 0, unroll-1, &block)
-            f.unroll
+            print For(w, 0, unroll-1, &block).unroll
           }
           print c[i,j] === sum
         }
