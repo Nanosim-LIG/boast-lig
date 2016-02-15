@@ -65,7 +65,7 @@ def comp_tile_n1( n1 = 1, n2 = 1, vector_length = 1, real_size = 8 )
       ((n+vector_length-1)/vector_length).times.collect { |i|
         n2.times.collect { |j|
           out_index = output[n1_stride_output*j+vector_length*i]
-          out_index.align = vector_length * real_size
+          out_index.alignment = vector_length * real_size
           if (n-i*vector_length) / vector_length > 0 then
             pr out_index === tt[i][j]
           else

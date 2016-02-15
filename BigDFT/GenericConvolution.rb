@@ -856,19 +856,19 @@ class ConvolutionOperator1d
     vec_len = [t].flatten[0].type.vector_length
     convgen= lambda { |t,tlen,reliq|
       ises0 = startendpoints(@dims[@dim_indexes[0]], unro == @dim_indexes[0], unrolling_length, reliq, vec_len)
-      For(iters[@dim_indexes[0]], ises0[0], ises0[1], step: ises0[2], openmp: true ) {
+      pr For(iters[@dim_indexes[0]], ises0[0], ises0[1], step: ises0[2], openmp: true ) {
         if @dim_indexes.length == 3 then
           ises1 = startendpoints(@dims[@dim_indexes[1]], unro == @dim_indexes[1], unrolling_length, reliq, vec_len)
-          For(iters[@dim_indexes[1]], ises1[0], ises1[1], step: ises1[2]) {
+          pr For(iters[@dim_indexes[1]], ises1[0], ises1[1], step: ises1[2]) {
             conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
-          }.pr
+          }
         else
           conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
         end
         if @options[:dot_in] and vec_len > 1 then
           Reduce(@dot_in_tmp, @dot_in)
         end
-      }.pr
+      }
     }
     #first without the reliq
     convgen.call(t,unrolling_length,false)
@@ -888,19 +888,19 @@ class ConvolutionOperator1d
     # the shrink operation contains the central part only
     iter = iters[@dim_indexes[-1]]
     if @bc.shrink then
-      For(iter, @line_start, @line_end) {
+      pr For(iter, @line_start, @line_end) {
         for_conv(:center, iters, l, t, tlen, unro, mods, unroll_inner)
-      }.pr
+      }
     else
-      For(iter, @line_start, @border_low - 1) {
+      pr For(iter, @line_start, @border_low - 1) {
         for_conv(:begin, iters, l, t, tlen, unro, mods, unroll_inner)
-      }.pr
-      For(iter, @border_low, @border_high - 1) {
+      }
+      pr For(iter, @border_low, @border_high - 1) {
         for_conv(:center, iters, l, t, tlen, unro, mods, unroll_inner)
-      }.pr
-      For(iter, @border_high, @line_end) {
+      }
+      pr For(iter, @border_high, @line_end) {
         for_conv(:end, iters, l, t, tlen, unro, mods, unroll_inner)
-      }.pr
+      }
     end
   end
 
@@ -1031,7 +1031,7 @@ class ConvolutionOperator1d
           pr out === FMA(Set(@a_y, out), Load(@y[*i_out], out), out)
         end
         y_index = @y[*i_out]
-        y_index.align = out.type.total_size
+        y_index.alignment = out.type.total_size
         pr y_index === out
         pr @y2[*i_out] === Load(@x[*i_in], out) if @kinetic and @transpose != 0
       end
@@ -1058,9 +1058,9 @@ class ConvolutionOperator1d
       compute_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
     }
     if unroll_inner then
-      f.unroll
+      pr f.unroll
     else
-      f.pr
+      pr f
     end
 
     post_process_and_store_values(side, iters, l, t, tlen, unro, mods, unroll_inner)
@@ -1393,10 +1393,10 @@ class GenericConvolutionOperator1d
           pr @cost === 0
           args = dims + [tmp_cost.address]
         end
-        f.open if @narr
+        opn f if @narr
           pr @procs[procname].call( *args )
           pr @cost === @cost + tmp_cost if util == :cost
-        f.close if @narr
+        close f if @narr
       }
 
       print_call_param_a_y = lambda { |bc, a, a_x|
@@ -1806,12 +1806,12 @@ class GenericConvolutionOperator
             pr ndat_tot_out === ndat_tot_out * dims_actual[indx] if not @ld
             dats[0] = (datas[0][ndat_tot_in*j+1]).address
             dats[1] = (datas[1][ndat_tot_out*j+1]).address
-            f.pr
+            pr f
           else
             dats = datas.dup
           end
           pr @procs[procname].call( *vars, *dats, *vars2 )
-          f.close if multi_conv
+          close f if multi_conv
           pr dims_actual[indx] === @ny[indx]  if @ld
 
         },BC::NPERIODIC, lambda {
@@ -1822,12 +1822,12 @@ class GenericConvolutionOperator
             pr ndat_tot_out === ndat_tot_out * dims_actual[indx] if not @ld
             dats[0] = (datas[0][ndat_tot_in*j+1]).address
             dats[1] = (datas[1][ndat_tot_out*j+1]).address
-            f.pr
+            pr f
           else
             dats = datas.dup
           end
           pr @procs[procname].call( *vars, *dats, *vars2 )
-          f.close if multi_conv
+          close f if multi_conv
           pr dims_actual[indx] === @ny[indx]  if @ld
           end
         }, BC::GROW, lambda {
@@ -1843,12 +1843,12 @@ class GenericConvolutionOperator
             end
             dats[0] = (datas[0][ndat_tot_in*j+1]).address
             dats[1] = (datas[1][ndat_tot_out*j+1]).address
-            f.pr
+            pr f
           else
             dats = datas.dup
           end
           pr @procs[procname].call( *vars, *dats, *vars2 )
-          f.close if multi_conv
+          close f if multi_conv
           if @ld then
             pr dims_actual[indx] === @ny[indx]  if @ld
           else
@@ -1871,12 +1871,12 @@ class GenericConvolutionOperator
             end
             dats[0] = (datas[0][ndat_tot_in*j+1]).address
             dats[1] = (datas[1][ndat_tot_out*j+1]).address
-            f.pr
+            pr f
           else
             dats = datas.dup
           end
           pr @procs[procname].call( *vars, *dats, *vars2 )
-          f.close if multi_conv
+          close f if multi_conv
           if @ld then
             pr dims_actual[indx] === @ny[indx]  if @ld
           else

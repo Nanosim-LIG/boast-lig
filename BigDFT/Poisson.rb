@@ -2150,7 +2150,7 @@ def div_u_i(k2)
                   BOAST::pr du[i1+w,i2,i3]===du0+du1+du2
                 }
                 f = BOAST::For(w, 0, 0, &block)
-                f.unroll
+                pr f.unroll
               }
             }
           }
