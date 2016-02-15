@@ -765,7 +765,7 @@ module BOAST
             }
           }
           output.puts "#ifdef #{manually_unrolled_loops}"
-            for_loop.unroll
+            print for_loop.unroll
           output.puts "#else"
             print for_loop
           output.puts "#endif"
@@ -953,7 +953,7 @@ module BOAST
             }
           }
           output.puts "#ifdef #{manually_unrolled_loops}"
-            for_loop.unroll
+            print for_loop.unroll
           output.puts "#else"
             print for_loop
           output.puts "#endif"

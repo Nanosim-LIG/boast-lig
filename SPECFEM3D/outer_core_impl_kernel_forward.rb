@@ -235,7 +235,7 @@ module BOAST
              print templ[2] === templ[2] + s_dummy_loc[l*ngll2+j*ngllx+i]*sh_hprime_xx[l*ngllx+k]
           }
           output.puts "#ifdef #{manually_unrolled_loops}"
-            for_loop.unroll
+            print for_loop.unroll
           output.puts "#else"
             print for_loop
           output.puts "#endif"
@@ -313,7 +313,7 @@ module BOAST
              print templ[2] === templ[2] + s_temp[2][l*ngll2+j*ngllx+i]*sh_hprimewgll_xx[k*ngllx+l]
           }
           output.puts "#ifdef #{manually_unrolled_loops}"
-            for_loop.unroll
+            print for_loop.unroll
           output.puts "#else"
             print for_loop
           output.puts "#endif"
