@@ -514,7 +514,7 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void inner_cor
       sigma_xz = (mul) * (duzdxl_plus_duxdzl);\n\
       sigma_yz = (mul) * (duzdyl_plus_duydzl);\n\
     }\n\
-    if (ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY) {\n\
+    if (ATTENUATION &&  !(PARTIAL_PHYS_DISPERSION_ONLY)) {\n\
       compute_element_ic_att_stress(tx, working_element, R_xx, R_yy, R_xy, R_xz, R_yz,  &sigma_xx,  &sigma_yy,  &sigma_zz,  &sigma_xy,  &sigma_xz,  &sigma_yz);\n\
     }\n\
     sigma_yx = sigma_xy;\n\
@@ -684,7 +684,7 @@ __kernel __attribute__((reqd_work_group_size(NGLL3_PADDED,1,1)))  void inner_cor
       atomicAdd(d_accel + (iglob) * (3) + 2, sum_terms3);\n\
     }\n\
 #endif\n\
-    if (ATTENUATION &&  ! PARTIAL_PHYS_DISPERSION_ONLY) {\n\
+    if (ATTENUATION &&  !(PARTIAL_PHYS_DISPERSION_ONLY)) {\n\
       compute_element_ic_att_memory(tx, working_element, d_muvstore, factor_common, alphaval, betaval, gammaval, R_xx, R_yy, R_xy, R_xz, R_yz, epsilondev_xx, epsilondev_yy, epsilondev_xy, epsilondev_xz, epsilondev_yz, epsilondev_xx_loc, epsilondev_yy_loc, epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc, USE_3D_ATTENUATION_ARRAYS);\n\
     }\n\
     if (COMPUTE_AND_STORE_STRAIN) {\n\
