@@ -272,12 +272,12 @@ sizes.each { |width, height|
 
 set_lang(CL)
 
-opt_space = GenericOptimization::new( :x_component_number => [1,2,4,8,16],
-                                      :vector_length      => [1,2,4,8,16],
-                                      :y_component_number => 1..4,
-                                      :temporary_size     => [2,4],
-                                      :vector_recompute   => [true, false],
-                                      :load_overlap       => [true, false] )
+opt_space = OptimizationSpace::new( :x_component_number => [1,2,4,8,16],
+                                    :vector_length      => [1,2,4,8,16],
+                                    :y_component_number => 1..4,
+                                    :temporary_size     => [2,4],
+                                    :vector_recompute   => [true, false],
+                                    :load_overlap       => [true, false] )
 check = false
 
 optimizer = BruteForceOptimizer::new(opt_space, :randomize => true)
