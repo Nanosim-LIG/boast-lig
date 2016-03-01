@@ -40,9 +40,9 @@ module BOAST
       print bx === get_group_id(1)*get_num_groups(0) + get_group_id(0)
       print i === tid + bx*get_local_size(0)
       if type == :scalar then
-        print sdata[tid] === Ternary( i < size, fabs(array[i]), 0.0.to_var)
+        print sdata[tid] === Ternary( i < size, fabs(array[i]), 0.0)
       else
-        print sdata[tid] === Ternary( i < size, sqrt(array[i*3+0]*array[i*3+0]+array[i*3+1]*array[i*3+1]+array[i*3+2]*array[i*3+2]), 0.0.to_var)
+        print sdata[tid] === Ternary( i < size, sqrt(array[i*3+0]*array[i*3+0]+array[i*3+1]*array[i*3+1]+array[i*3+2]*array[i*3+2]), 0.0)
       end
       print barrier(:local)
       print s === get_local_size(0)/2
