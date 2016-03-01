@@ -74,14 +74,6 @@ kernels = [
 langs = [ :CL,:CUDA]
 BOAST::set_default_real_size(4)
 BOAST::set_replace_constants(false)
-class Float
-  alias_method :old_to_s, :to_s
-  def to_s
-    s = ""+old_to_s
-    s += "f" if BOAST::get_default_real_size == 4
-    return s
-  end
-end
 
 kernels.each { |kern|
   require "./#{kern.to_s}.rb"

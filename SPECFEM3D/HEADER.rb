@@ -27,7 +27,7 @@ module BOAST
     iregion_crust_mantle = opts[:iregion_crust_mantle].nil? ? 1 : opts[:iregion_crust_mantle]
     iregion_inner_core = opts[:iregion_inner_core].nil? ? 3 : opts[:iregion_inner_core]
     iflag_in_fictitious_cube = opts[:iflag_in_fictitious_cube].nil? ? 11 : opts[:iflag_in_fictitious_cube]
-    r_earth_km = opts[:r_earth_km].nil? ? 6371.0 : opts[:r_earth_km]
+    r_earth_km = opts[:r_earth_km].nil? ? 6371.0.to_var : opts[:r_earth_km].to_var
     coloring_min_nspec_inner_core = opts[:coloring_min_nspec_inner_core].nil? ? 1000 : opts[:coloring_min_nspec_inner_core]
     coloring_min_nspec_outer_core = opts[:coloring_min_nspec_outer_core].nil? ? 1000 : opts[:coloring_min_nspec_outer_core]
     blocksize_transfer = opts[:blocksize_transfer].nil? ? 256 : opts[:blocksize_transfer]
