@@ -260,21 +260,26 @@ module libconw
          1.0_8,0.0_8,&
          psig,psi_fscf,work)
 
-    call s0s0_1ds_dot(kin_fil,8,3,2*ns0,3*[nogrow],2*ns0,2*ns0,1,&
-         -0.5_8/[hx,hy,hz],0.0_8,0.0_8,&
-         psi_fscf,hpsi,ekin,work)
-
     call s0s0_md(md_fil,8,3,2*ns0,3*[grow],2*ns0,npsir,1,&
          1.0_8,0.0_8,0.0_8,&
          psi_fscf,psir,work)
+
+    !density construction
+    !rho=rho+psir**2
     
     !potential multiplication
     !psir=v*psir
+    !and other treatments
 
     !inverse magic filter
     call s0s0_md(mi_fil,8,3,2*ns0,3*[shrink],npsir,2*ns0,1,&
-         1.0_8,0.0_8,1.0_8,&
+         1.0_8,0.0_8,0.0_8,&
          psir,hpsi,work)
+
+    call s0s0_1ds_dot(kin_fil,8,3,2*ns0,3*[nogrow],2*ns0,2*ns0,1,&
+         -0.5_8/[hx,hy,hz],0.0_8,1.0_8,&
+         psi_fscf,hpsi,ekin,work)
+
 
     !dwt 
     call s0s1_md(dwt_fil,8,3,[n1,n2,n3],3*[shrink],ns0,ns1,1,&
@@ -283,3 +288,168 @@ module libconw
 
 
 end module libconvw
+
+!->>>>>>>>>>>>lighter version for alpha release
+!-----------wavelet transforms
+!> normal wavelet transform in only one direction
+!! y := a * dwt_fil |X_i| x(x_1,...,x_i,...,x_d,j)  + a_y * y
+subroutine s0s1_1d_sym8_lp_d(d,idim,n,bc_id,nx,ny,narr,a,a_y,x,y)
+  implicit none
+  integer, intent(in) :: d
+  integer, intent(in) :: idim
+  integer, dimension(d), intent(in) :: n
+  integer, intent(in) :: bc_id 
+  integer, dimension(d), intent(in) :: nx
+  integer, dimension(d), intent(in) :: ny
+  integer, intent(in) :: narr
+  real(kind=8), intent(in) :: a
+  real(kind=8), intent(in) :: a_y
+  real(kind=8), dimension(*), intent(in) :: x !< @copydoc doc::sf
+  real(kind=8), dimension(*), intent(inout)  :: y !< @copydoc doc::sw
+end subroutine s0s1_1d_sym8_lp_d
+
+!> inverse wavelet transform in only one direction
+!! y := a idwt_fil |X_i| x(x_1,...,x_i,...,x_d,j)  + a_y * y
+subroutine s1s0_1d_sym8_lp_d(d,idim,n,bc_id,nx,ny,narr,a,a_y,x,y)
+  implicit none
+  integer, intent(in) :: d
+  integer, dimension(d), intent(in) :: n
+  integer, dimension(d), intent(in) :: bc_id
+  integer, dimension(d), intent(in) :: nx
+  integer, dimension(d), intent(in) :: ny
+  integer, intent(in) :: narr
+  real(kind=8), intent(in) :: a
+  real(kind=8), intent(in) :: a_y
+  real(kind=8), dimension(*), intent(in) :: x !< @copydoc doc::sw
+  real(kind=8), dimension(*), intent(inout) :: y !< @copydoc doc::sf
+end subroutine s1s0_1d_sym8_lp_d
+
+!> normal wavelet transform
+!! y := a * dwt_fil (x) x + a_y * y
+subroutine s0s1_sym8_lp_d(d,n,bc,nx,ny,narr,a,a_y,x,y,work)
+  implicit none
+  integer, intent(in) :: d
+  integer, dimension(d), intent(in) :: n
+  integer, dimension(d), intent(in) :: bc  
+  integer, dimension(d), intent(in) :: nx
+  integer, dimension(d), intent(in) :: ny
+  integer, intent(in) :: narr
+  real(kind=8), intent(in) :: a
+  real(kind=8), intent(in) :: a_y
+  real(kind=8), dimension(*), intent(in) :: x !< @copydoc doc::sf
+  real(kind=8), dimension(*), intent(inout)  :: y !< @copydoc doc::sw
+  real(kind=8), dimension(*), intent(inout) :: work
+end subroutine s0s1_sym8_lp_d
+
+!> inverse wavelet transform
+!! sf := a * idwt_fil (x) sw + a_y * sf 
+subroutine s1s0_sym8_lp_d(d,n,bc,nx,ny,narr,a,a_y,x,y,work)
+  implicit none
+  integer, intent(in) :: d
+  integer, dimension(d), intent(in) :: n
+  integer, dimension(d), intent(in) :: bc  
+  integer, dimension(d), intent(in) :: nx
+  integer, dimension(d), intent(in) :: ny
+  integer, intent(in) :: narr
+  real(kind=8), intent(in) :: a
+  real(kind=8), intent(in) :: a_y
+  real(kind=8), dimension(*), intent(in) :: x !< @copydoc doc::sw
+  real(kind=8), dimension(*), intent(inout) :: y !< @copydoc doc::sf
+  real(kind=8), dimension(*), intent(inout) :: work
+end subroutine s1s0_sym8_lp_d
+
+!------ end of wavelet transforms
+
+!-------filters in one direction
+!> One dimensional convolution of the filter in the direction specified by the user
+!! useful to calculate for example the vector component of the gradient
+!! y := a * fil |X_i| x(x_1,...,x_i,...,x_d,i) + a_x * x + a_y * y
+subroutine s0s0_1d_sym8_md_d(d,idim,n,bc_id,nx,ny,narr,a,a_x,a_y,x,y)
+  implicit none
+  integer, intent(in) :: d
+  integer, intent(in) :: idim
+  integer, dimension(d), intent(in) :: n
+  integer, intent(in) :: bc_id  !<only of the convolved dimension
+  integer, dimension(d), intent(in) :: nx
+  integer, dimension(d), intent(in) :: ny
+  integer, intent(in) :: narr
+  real(tp), intent(in) :: a
+  real(tp), intent(in) :: a_x
+  real(tp), intent(in) :: a_y
+  real(tp), dimension(*), intent(in) :: x !< @copydoc doc::x
+  real(tp), dimension(*), intent(inout) :: y !< @copydoc doc::y
+end subroutine s0s0_1d_sym8_md_d
+
+subroutine s0s0_1d_sym8_mi_d
+end subroutine s0s0_1d_sym8_mi_d
+!> sum of multi dimensional convolutions in the different direction
+!! y = sum_i (a_i * fil |X_i| x(x_1,...,x_i,...,x_d,i))+ a_x * x + a_y * y
+subroutine s0s0_1ds_sym8_d2_d(d,n,bc,nx,ny,narr,a,a_x,a_y,x,y,work)
+  implicit none
+  integer, intent(in) :: d
+  integer, intent(in) :: idim
+  integer, dimension(d), intent(in) :: n
+  integer, dimension(d), intent(in) :: bc
+  integer, dimension(d), intent(in) :: nx
+  integer, dimension(d), intent(in) :: ny
+  integer, intent(in) :: narr
+  real(kind=8), dimension(d), intent(in) :: a
+  real(kind=8), intent(in) :: a_x
+  real(kind=8), intent(in) :: a_y
+  real(kind=8), dimension(*), intent(in) :: x !< @copydoc doc::x
+  real(kind=8), dimension(*), intent(inout) :: y !< @copydoc doc::y
+  real(kind=8), dimension(*), intent(inout) :: work !< @copydoc doc::work
+end subroutine s0s0_1ds_sym8_d2_d
+
+subroutine s0s0_1ds_sym8_d1_d
+end subroutine s0s0_1ds_sym8_d1_d
+
+subroutine s0s0_1ds_dot_sym8_d2_d(d,n,bc,nx,ny,narr,a,a_x,a_y,x,y,dot_in,work)
+  implicit none
+  integer, intent(in) :: d
+  integer, intent(in) :: idim
+  integer, dimension(d), intent(in) :: n
+  integer, dimension(d), intent(in) :: bc
+  integer, dimension(d), intent(in) :: nx
+  integer, dimension(d), intent(in) :: ny
+  integer, intent(in) :: narr
+  real(tp), dimension(d), intent(in) :: a
+  real(tp), intent(in) :: a_x
+  real(tp), intent(in) :: a_y
+  real(tp), dimension(*), intent(in) :: x !< @copydoc doc::x
+  real(tp), dimension(*), intent(inout) :: y !< @copydoc doc::y
+  real(tp), dimension(d), intent(out) :: dot_in !<array of scalar products <x |out_i>
+  real(tp), dimension(*), intent(inout) :: work !< @copydoc doc::work
+end subroutine s0s0_1ds_dot_sym8_d2_d
+
+!-------end filters in one direction
+
+
+!---- onelevel separable kernel
+
+!> application of aq separable multi-dimensional convolution on the input array
+!! y := a * fil |X| x + a_x * x + a_y * y
+subroutine s0s0_sym8_md_d(d,n,bc,nx,ny,narr,a,a_x,a_y,x,y,work)
+  implicit none
+  integer, intent(in) :: fil_id
+  integer, intent(in) :: tp
+  integer, intent(in) :: d
+  integer, intent(in) :: idim
+  integer, dimension(d), intent(in) :: n
+  integer, dimension(d), intent(in) :: bc
+  integer, dimension(d), intent(in) :: nx
+  integer, dimension(d), intent(in) :: ny
+  integer, intent(in) :: narr
+  real(kind=8), intent(in) :: a
+  real(kind=8), intent(in) :: a_x
+  real(kind=8), intent(in) :: a_y
+  real(kind=8), dimension(*), intent(in) :: x !< @copydoc doc::x
+  real(kind=8), dimension(*), intent(inout) :: y !< @copydoc doc::y
+  real(kind=8), dimension(*), intent(inout) :: work !< @copydoc doc::work
+end subroutine s0s0_sym8_md_d
+
+subroutine s0s0_sym8_mi_d
+end subroutine s0s0_sym8_mi_d
+  
+
+!------------- end onelevel separable kernel
