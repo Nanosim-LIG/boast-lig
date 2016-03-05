@@ -1436,15 +1436,17 @@ class GenericConvolutionOperator1d
       }
 
       print_call = lambda {
-        pr Case( @bc, BC::PERIODIC, lambda {
+        case_args = [ BC::PERIODIC, lambda {
           print_call_param_a.call( BC::PERIODIC )
         }, BC::GROW, lambda {
           print_call_param_a.call( BC::GROW )
         }, BC::SHRINK, lambda {
           print_call_param_a.call( BC::SHRINK )
-        }, BC::NPERIODIC, lambda {
-          print_call_param_a.call( BC::NPERIODIC ) if @poisson 
-        })
+        } ]
+        case_args.push( BC::NPERIODIC, lambda {
+          print_call_param_a.call( BC::NPERIODIC )
+        } ) if @poisson
+        pr Case( @bc, *case_args)
       }
       pr If( @idim == 0, lambda {
         pr ndat_right === 1
@@ -1799,7 +1801,7 @@ class GenericConvolutionOperator
         vars2.push( @dot_in[indx] ) if @options[:dot_in]
         dats = []
         opt.update( opts )
-        pr Case( @bc[indx], BC::PERIODIC, lambda {
+        case_args = [ BC::PERIODIC, lambda {
           procname = ConvolutionOperator1d::new(@filter, BC::new(BC::PERIODIC), dim_indexes, opt).base_name
 
           if multi_conv then
@@ -1814,22 +1816,6 @@ class GenericConvolutionOperator
           close f if multi_conv
           pr dims_actual[indx] === @ny[indx]  if @ld
 
-        },BC::NPERIODIC, lambda {
-          if@poisson then
-          procname = ConvolutionOperator1d::new(@filter, BC::new(BC::NPERIODIC), dim_indexes, opt).base_name
-
-          if multi_conv then
-            pr ndat_tot_out === ndat_tot_out * dims_actual[indx] if not @ld
-            dats[0] = (datas[0][ndat_tot_in*j+1]).address
-            dats[1] = (datas[1][ndat_tot_out*j+1]).address
-            pr f
-          else
-            dats = datas.dup
-          end
-          pr @procs[procname].call( *vars, *dats, *vars2 )
-          close f if multi_conv
-          pr dims_actual[indx] === @ny[indx]  if @ld
-          end
         }, BC::GROW, lambda {
           procname = ConvolutionOperator1d::new(@filter, BC::new(BC::GROW), dim_indexes, opt).base_name
 
@@ -1886,7 +1872,23 @@ class GenericConvolutionOperator
               pr dims_actual[indx] === dims_actual[indx] - @filter.length + 1
             end
           end
-        })
+        } ]
+        case_args.push( BC::NPERIODIC, lambda {
+          procname = ConvolutionOperator1d::new(@filter, BC::new(BC::NPERIODIC), dim_indexes, opt).base_name
+
+          if multi_conv then
+            pr ndat_tot_out === ndat_tot_out * dims_actual[indx] if not @ld
+            dats[0] = (datas[0][ndat_tot_in*j+1]).address
+            dats[1] = (datas[1][ndat_tot_out*j+1]).address
+            pr f
+          else
+            dats = datas.dup
+          end
+          pr @procs[procname].call( *vars, *dats, *vars2 )
+          close f if multi_conv
+          pr dims_actual[indx] === @ny[indx]  if @ld
+        } ) if @poisson
+        pr Case( @bc[indx], *case_args)
       }
 
       pr If( @ndim == 1 , lambda {
