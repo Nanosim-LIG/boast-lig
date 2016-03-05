@@ -3,7 +3,7 @@ require './WaveletFilters.rb'
 require './MagicFilter.rb'
 openmp = true
 def MagicFilter1d(filter, optims=GenericOptimization::new)
-  conv_operation = GenericConvolutionOperator1d::new(filter, :ld => true)
+  conv_operation = GenericConvolutionOperator1d::new(filter, :ld => true, :narr => true, :a_x => true,:a_y=>true, :a => true)
   conv_operation.optimize(optims) if optims
 
   p, subops = conv_operation.procedure
@@ -27,7 +27,7 @@ n1 = 32
 n2 = 32
 n3 = 32
 optims = GenericOptimization::new(:repeat => 9, :unroll_range => [8,8], :mod_arr_test => true, :tt_arr_test => true, :dimensions => [n1,n2,n3], :vector_length => [2,4], :unrolled_dim_index_test => true, :openmp => openmp)
-conv_filter = ConvolutionFilter::new('sfrf',SYM8_MF.reverse,8)
+conv_filter = ConvolutionFilter::new('sym8_md',SYM8_MF.reverse,8)
 ksym8 = MagicFilter1d( conv_filter, optims )
 #puts ksym8
 
@@ -49,16 +49,18 @@ n[0] = n1
 n[1] = n2
 n[2] = n3
 
+
 ksym8.build(:openmp => openmp)
-stats0 = ksym8.run(3, 0, n, BC::PERIODIC, n, n, input, work1)
-stats0 = ksym8.run(3, 0, n, BC::PERIODIC, n, n, input, work1)
-stats1 = ksym8.run(3, 1, n, BC::PERIODIC, n, n, work1, work2)
-stats2 = ksym8.run(3, 2, n, BC::PERIODIC, n, n, work2, output)
+ksym8.dump_source
+stats0 = ksym8.run(3, 0, n, BC::PERIODIC, n, n, 1, input, work1,1.0,0.0,0.0)
+stats0 = ksym8.run(3, 0, n, BC::PERIODIC, n, n, 1, input, work1,1.0,0.0,0.0)
+stats1 = ksym8.run(3, 1, n, BC::PERIODIC, n, n, 1, work1, work2,1.0,0.0,0.0)
+stats2 = ksym8.run(3, 2, n, BC::PERIODIC, n, n, 1, work2, output,1.0,0.0,0.0)
 puts "#{ksym8.procedure.name} d0: #{stats0[:duration]*1.0e3} ms #{32*n1*n2*n3 / (stats0[:duration]*1.0e9)} GFlops"
 puts "#{ksym8.procedure.name} d1: #{stats1[:duration]*1.0e3} ms #{32*n1*n2*n3 / (stats1[:duration]*1.0e9)} GFlops"
 puts "#{ksym8.procedure.name} d2: #{stats2[:duration]*1.0e3} ms #{32*n1*n2*n3 / (stats2[:duration]*1.0e9)} GFlops"
 puts "#{ksym8.procedure.name}: #{(stats0[:duration]+stats1[:duration]+stats2[:duration])*1.0e3} ms #{3*32*n1*n2*n3 / ((stats0[:duration]+stats1[:duration]+stats2[:duration])*1.0e9)} GFlops"
-ksym8.dump_source
+
 
 diff = (output_ref - output).abs
 diff.each { |elem|
