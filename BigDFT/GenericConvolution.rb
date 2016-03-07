@@ -399,7 +399,7 @@ class ConvolutionOperator1d
     #@init = init
 
     @vars.push @x = Real("x",:dir => :in, :dim => dimx, :restrict => true)
-    if @kinetic and @kinetic != :inplace and not options[:zero_out] then
+    if @kinetic and @kinetic != :inplace and not options[:zero_out_work] then
       if @bc.grow then
         @vars.push @x2 = Real("x2",:dir => :in, :dim => dimy, :restrict => true)
       else
@@ -440,6 +440,7 @@ class ConvolutionOperator1d
     @base_name += "_acc" if @accumulate
     @base_name += "_dotin" if @dot_in
     @base_name += "_ld" if @ld
+    @base_name += "_x2" if @x2
   end
 
   def compute_dims
@@ -631,7 +632,7 @@ class ConvolutionOperator1d
       vars.push(ANArray::new(type, align, *varsout,2))
     else
       vars.push(ANArray::new(type, align, *varsin).random!)
-      if @kinetic and @kinetic != :inplace then
+      if @x2 then
         if @bc.grow then
           vars.push(ANArray::new(type, align, *varsout).random!)
         else
@@ -1552,6 +1553,7 @@ class GenericConvolutionOperator
     opts.delete(:a)
     opts.delete(:a_x)
     opts.delete(:a_y)
+    opts.delete(:zero_out_work)
     dim_indexes_a = []
     if @transpose == 0 then
       dim_indexes_a = [ [1, 0], [0, 1], [2, 0, 1] ]
@@ -1561,8 +1563,11 @@ class GenericConvolutionOperator
       dim_indexes_a = [ [0, 1] ]
     end
     opt_base = []
+    init_options = {}
+    init_options[:a_x] = @options[:a_x] if @options[:a_x]
+    init_options[:zero_out_work] = @options[:zero_out_work] if @options[:zero_out_work]
+    opt_base.push( init_options ) if init_options.length > 0
     opt_base.push( { :a => @options[:a] } ) if @options[:a]
-    opt_base.push( { :a_x => @options[:a_x] } ) if @options[:a_x]
     opt_base.push( { :a_y => @options[:a_y] } ) if @options[:a_y]
     opts_bases = []
     (0..opt_base.length).each { |indx|
@@ -1762,6 +1767,7 @@ class GenericConvolutionOperator
       opts = @options.dup
       opts.delete(:a_x)
       opts.delete(:a_y)
+      opts.delete(:zero_out_work)
 
       print_call = lambda { |indx, init, last, datas, multi_conv|
         vars = dims
@@ -1793,6 +1799,9 @@ class GenericConvolutionOperator
         if init and @options[:a_x] then
           vars2.push( @a_x )
           opt[:a_x] = @options[:a_x]
+        end
+        if init and @options[:zero_out_work]
+          opt[:zero_out_work] = @options[:zero_out_work]
         end
         if last and @options[:a_y] then
           vars2.push( @a_y )
