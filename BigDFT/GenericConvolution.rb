@@ -406,14 +406,14 @@ class ConvolutionOperator1d
         @vars.push @x2 = Real("x2",:dir => :in, :dim => dimx, :restrict => true)
       end
     end
-    @vars.push @y = Real("y",:dir => :out, :dim => dimy, :restrict => true)
+    @vars.push @y = Real("y",:dir => options[:a_y] ? :inout : :out, :dim => dimy, :restrict => true)
     if @kinetic and @transpose != 0 then
       @vars.push @y2 =  Real("y2", :dir => :out, :dim => dimy, :restrict => true)
     end
     @vars.push @a = Real("a",:dir => :in) if options[:a]
     @vars.push @a_x = Real("a_x",:dir => :in) if options[:a_x] #and init
     if options[:a_y] then
-      if options[:a_y] == 1 then
+      if options[:a_y] == 1.0 then
         @accumulate = true
       else
         @vars.push @a_y = Real("a_y",:dir => :in) if options[:a_y]
@@ -1208,7 +1208,7 @@ class GenericConvolutionOperator1d
     end
     @vars.push @narr     = Int( "narr", :dir => :in ) if @narr
     @vars.push @x     = Real("x",  :dir => :in,  :restrict => true, :dim => [ Dim() ] )
-    @vars.push @y     = Real("y",  :dir => :out, :restrict => true, :dim => [ Dim() ] )
+    @vars.push @y     = Real("y",  :dir => options[:a_y] ? :inout : :out, :restrict => true, :dim => [ Dim() ] )
     @vars.push @a = Real("a",:dir => :in) if options[:a]
     @vars.push @a_x = Real("a_x",:dir => :in) if options[:a_x]
     @vars.push @a_y = Real("a_y",:dir => :in) if options[:a_y] and options[:a_y] != 1.0
@@ -1535,7 +1535,7 @@ class GenericConvolutionOperator
     end
     @vars.push @narr     = Int( "narr", :dir => :in ) if @narr
     @vars.push @x     = Real("x",  :dir => :in,  :restrict => true, :dim => [ Dim() ] )
-    @vars.push @y     = Real("y",  :dir => :out, :restrict => true, :dim => [ Dim() ] )
+    @vars.push @y     = Real("y",  :dir => options[:a_y] ? :inout : :out, :restrict => true, :dim => [ Dim() ] )
     @vars.push @w1 = Real("w1", :dir => :inout, :restrict => true, :dim => [ Dim() ] ) if options[:work]
     @vars.push @w2 = Real("w2", :dir => :inout, :restrict => true, :dim => [ Dim() ] ) if options[:work]
     @vars.push @a = Real("a",:dir => :in,:dim => [ Dim(0, @ndim - 1)]) if options[:a]
