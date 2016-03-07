@@ -88,7 +88,7 @@ repeat = 5
 begin
   stats_a = []
   repeat.times { 
-    stats_a.push  k.run(3, n, bc, input, output, work1, work2, scal, 0.5)
+    stats_a.push  k.run(3, n, bc, input, output, work1, work2, scal, 0.5, 0.0)
   }
 
 rescue Exception => e
