@@ -2131,7 +2131,7 @@ def div_u_i(k2)
       BOAST::pr bc1 === BC::NPERIODIC
     }
     BOAST::register_funccall("present")
-    BOAST::pr BOAST::If(BOAST::present(cc), lambda{
+    BOAST::pr BOAST::If(BOAST::present(cc) => lambda{
         BOAST::pr tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,4)], 32)
         BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, du, a0)
         BOAST::pr k2.procedure.call(nord, 1, nn, bc1, u[0,0,0,1].address, tmp[0,0,0,0].address, a1)
@@ -2169,7 +2169,7 @@ def div_u_i(k2)
         }
 
       BOAST::pr tmp.dealloc
-    },lambda{
+    }, else: lambda{
 #we could accumulate in the u array, but it would mean optimize everything again hust for this case (and generate double the amount of lines just for it)
 BOAST::pr tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1),BOAST::Dim(0,2)],32)
         BOAST::pr k2.procedure.call(nord, 0, nn, bc0, u[0,0,0,0].address, tmp[0,0,0,0].address, a0)

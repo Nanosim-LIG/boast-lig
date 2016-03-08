@@ -1338,14 +1338,14 @@ class GenericConvolutionOperator1d
         pr nti === @nx[@idim]
         pr nto === @ny[@idim]
       elsif @narr then
-        pr If(@bc[i] == BC::SHRINK, lambda {
+        pr If(@bc[i] == BC::SHRINK => lambda {
           if @wavelet then
             pr nti === @dims[@idim] + @filter.low.length - 1
           else
             pr nti === @dims[@idim] + @filter.length - 1
           end
           pr nto === @dims[@idim]
-        }, @bc[i] == BC::GROW, lambda {
+        }, @bc[i] == BC::GROW => lambda {
           pr nti === @dims[@idim]
           if @wavelet then
             pr nto === @dims[@idim] + @filter.low.length - 1
@@ -1402,9 +1402,9 @@ class GenericConvolutionOperator1d
 
       print_call_param_a_y = lambda { |bc, a, a_x|
         if @a_y then
-          pr If(@a_y == 0.0, lambda {
+          pr If(@a_y == 0.0 => lambda {
             print_call_generic.call(bc, a, a_x, false)
-          }, lambda {
+          }, else: lambda {
             print_call_generic.call(bc, a, a_x, true)
           })
         else
@@ -1414,9 +1414,9 @@ class GenericConvolutionOperator1d
 
       print_call_param_a_x = lambda { |bc, a|
         if @a_x then
-          pr If(@a_x == 0.0, lambda {
+          pr If(@a_x == 0.0 => lambda {
             print_call_param_a_y.call(bc, a, false)
-          }, lambda {
+          }, else: lambda {
             print_call_param_a_y.call(bc, a, true )
           })
         else
@@ -1426,9 +1426,9 @@ class GenericConvolutionOperator1d
 
       print_call_param_a = lambda { |bc|
         if @a then
-          pr If(@a == 1.0, lambda {
+          pr If(@a == 1.0 => lambda {
             print_call_param_a_x.call(bc, false)
-          }, lambda {
+          }, else: lambda {
             print_call_param_a_x.call(bc, true )
           })
         else
@@ -1451,7 +1451,7 @@ class GenericConvolutionOperator1d
         case_args[BC::NPERIODIC] = lambda { print_call_param_a.call( BC::NPERIODIC ) } if @poisson
         pr Case( @bc, case_args)
       }
-      pr If( @idim == 0, lambda {
+      pr If( @idim == 0 => lambda {
         pr ndat_right === 1
         pr For( i, 1, @ndim - 1 ) {
           if @ld and util != :cost then
@@ -1468,7 +1468,7 @@ class GenericConvolutionOperator1d
         dim_indexes = [1,0]
         dims = [@dims[@idim], ndat_right]
         print_call.call
-      }, @idim == @ndim - 1, lambda {
+      }, @idim == @ndim - 1 => lambda {
         pr ndat_left === 1
         pr For( i, 0, @ndim - 2 ) {
           if @ld and util != :cost then
@@ -1485,7 +1485,7 @@ class GenericConvolutionOperator1d
         dim_indexes = [0,1]
         dims = [ndat_left, @dims[@idim]]
         print_call.call
-      }, lambda {
+      }, else: lambda {
         pr ndat_left === 1
         pr ndat_right === 1
         pr For( i, 0, @idim - 1 ) {
@@ -1722,13 +1722,13 @@ class GenericConvolutionOperator
             pr dims_actual[i] === @nx[i]
           end
         else
-          pr If(@bc[i] == BC::SHRINK, lambda {
+          pr If(@bc[i] == BC::SHRINK => lambda {
             if @wavelet then
               pr dims_actual[i] === @dims[i] * 2 + @filter.length - 2
             else
               pr dims_actual[i] === @dims[i] + @filter.length - 1
             end
-          }, lambda {
+          }, else: lambda {
             if @wavelet then
               pr dims_actual[i] === @dims[i] * 2
             else
@@ -1757,9 +1757,9 @@ class GenericConvolutionOperator
         pr ndat === 1
         pr ndat2 === 1
         pr For(j, 0, @ndim - 1) {
-          pr If( j < indx, lambda {
+          pr If( j < indx => lambda {
             pr ndat === ndat * dims_actual[j]
-          }, j > indx, lambda {
+          }, j > indx => lambda {
             pr ndat2 === ndat2 * dims_actual[j]
           })
         }
@@ -1905,7 +1905,7 @@ class GenericConvolutionOperator
         pr Case( @bc[indx], case_args)
       }
 
-      pr If( @ndim == 1 , lambda {
+      pr If( @ndim == 1 => lambda {
         conv_number = 1
         conv_number = @narr if @narr
         dims = [ @dims[0], conv_number ]
@@ -1914,7 +1914,7 @@ class GenericConvolutionOperator
         dim_indexes.reverse! if @transpose == -1
         datas = [ @x, @y ]
         print_call.call( 0, true, true, datas, false )
-      }, lambda {
+      }, else: lambda {
         dims, dim_indexes = compute_ni_ndat.call( 0 )
         datas = [ @x, @w1 ]
         datas = [ @x, @y ] if not @options[:work]
@@ -1950,7 +1950,7 @@ class GenericConvolutionOperator
           pr i === i + 1
           pr dims_left === dims_left - 2
         }
-        pr If( dims_left == 2, lambda {
+        pr If( dims_left == 2 => lambda {
           if @transpose == 0 then
             dims, dim_indexes = compute_ndat_ni_ndat2.call( i )
           else
@@ -1976,7 +1976,7 @@ class GenericConvolutionOperator
           end
           datas = [ @x, @y ] if not @options[:work]
           print_call.call( i, false, true, datas, @narr )
-        }, lambda {
+        }, else: lambda {
           dims, dim_indexes = compute_ni_ndat.call( i )
           if @transpose == 0 then
             dims.reverse! 

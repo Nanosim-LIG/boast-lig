@@ -702,9 +702,9 @@ module BOAST
           output.puts "#ifdef #{use_mesh_coloring}"
             print working_element === bx
           output.puts "#else"
-            print If( use_mesh_coloring_gpu, lambda {
+            print If( use_mesh_coloring_gpu => lambda {
               print working_element === bx
-            }, lambda {
+            }, :else => lambda {
               print working_element === d_phase_ispec_inner[bx + num_phase_ispec*(d_iphase-1)]-1
             })
           output.puts "#endif"
@@ -722,9 +722,9 @@ module BOAST
             output.puts "#endif"
           }
           if type == :inner_core then
-            print If( d_idoubling[working_element] == iflag_in_fictitious_cube, lambda {
+            print If( d_idoubling[working_element] == iflag_in_fictitious_cube => lambda {
               print active === 0
-            }, __texture_fetch )
+            }, :else => __texture_fetch )
           elsif type == :crust_mantle then
             __texture_fetch.call
           end
@@ -796,9 +796,9 @@ module BOAST
             print epsilondev_xy_loc === duxdyl_plus_duydxl * 0.5
             print epsilondev_xz_loc === duzdxl_plus_duxdzl * 0.5
             print epsilondev_yz_loc === duzdyl_plus_duydzl * 0.5
-            print If(nspec_strain_only == 1, lambda {
+            print If(nspec_strain_only == 1 => lambda {
               print epsilon_trace_over_3[tx] === templ
-            }, lambda {
+            }, :else => lambda {
               print epsilon_trace_over_3[tx + working_element*ngll3] === templ
             })
           }
@@ -806,18 +806,18 @@ module BOAST
           if type == :inner_core then
             print kappal === d_kappavstore[offset]
             print mul === d_muvstore[offset]
-            print If(attenuation, lambda {
-              print If(use_3d_attenuation_arrays, lambda {
+            print If(attenuation => lambda {
+              print If(use_3d_attenuation_arrays => lambda {
                 print mul_iso  === mul * one_minus_sum_beta[tx+working_element*ngll3]
                 print mul_aniso === mul * ( one_minus_sum_beta[tx+working_element*ngll3] - 1.0 )
-              }, lambda {
+              }, :else => lambda {
                 print mul_iso  === mul * one_minus_sum_beta[working_element]
                 print mul_aniso === mul * ( one_minus_sum_beta[working_element] - 1.0 )
               })
-            }, lambda {
+            }, :else => lambda {
               print mul_iso === mul
             })
-            print If(anisotropy, lambda {
+            print If(anisotropy => lambda {
               print c11 === d_c11store[offset]
               print c12 === d_c12store[offset]
               print c13 === d_c13store[offset]
@@ -836,7 +836,7 @@ module BOAST
               print sigma[0][1] === (c11-c12)*duxdyl_plus_duydxl*0.5
               print sigma[0][2] === c44*duzdxl_plus_duxdzl
               print sigma[1][2] === c44*duzdyl_plus_duydzl
-            }, lambda {
+            }, :else => lambda {
               print lambdalplus2mul === kappal + mul_iso * 1.33333333333333333333
               print lambdal === lambdalplus2mul - mul_iso * 2.0
     
@@ -850,13 +850,13 @@ module BOAST
             })
           elsif type == :crust_mantle then
             print If(attenuation) {
-              print If(use_3d_attenuation_arrays, lambda {
+              print If(use_3d_attenuation_arrays => lambda {
                 print one_minus_sum_beta_use === one_minus_sum_beta[tx+working_element*ngll3]
-              }, lambda {
+              }, :else => lambda {
                 print one_minus_sum_beta_use === one_minus_sum_beta[working_element]
               })
             }
-            print If(anisotropy, lambda {
+            print If(anisotropy => lambda {
               print sub_compute_element_cm_aniso.call( offset,
                                                       *(d_cstore.flatten.reject { |e| e.nil?}),
                                                       attenuation,
@@ -865,8 +865,8 @@ module BOAST
                                                       duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,
                                                       sigma[0][0].address, sigma[1][1].address, sigma[2][2].address,
                                                       sigma[0][1].address, sigma[0][2].address, sigma[1][2].address )
-            }, lambda {
-              print If(  ! d_ispec_is_tiso[working_element], lambda {
+            }, :else => lambda {
+              print If(  ! d_ispec_is_tiso[working_element] => lambda {
                 print sub_compute_element_cm_iso.call( offset,
                                                        d_kappavstore,d_muvstore,
                                                        attenuation,
@@ -876,7 +876,7 @@ module BOAST
                                                        duxdyl_plus_duydxl, duzdxl_plus_duxdzl, duzdyl_plus_duydzl,
                                                        sigma[0][0].address, sigma[1][1].address, sigma[2][2].address,
                                                        sigma[0][1].address, sigma[0][2].address, sigma[1][2].address )
-              }, lambda {
+              }, :else => lambda {
                 print sub_compute_element_cm_tiso.call( offset,
                                                    d_kappavstore, d_muvstore,
                                                    d_kappahstore, d_muhstore, d_eta_anisostore,
@@ -982,7 +982,7 @@ module BOAST
           output.puts "#else"
             if type == :inner_core then
               __accel_update = lambda {
-                print If( nspec_inner_core > coloring_min_nspec_inner_core, lambda {
+                print If( nspec_inner_core > coloring_min_nspec_inner_core => lambda {
                   output.puts "#ifdef #{use_textures_fields}"
                     (0..2).each { |indx|
                       print d_accel[indx,iglob] === d_accel_tex[iglob*3+indx] + sum_terms[indx]
@@ -992,7 +992,7 @@ module BOAST
                       print d_accel[indx,iglob] === d_accel[indx,iglob] + sum_terms[indx]
                     }
                   output.puts "#endif"
-                }, lambda{
+                }, :else => lambda{
                   (0..2).each { |indx|
                     print atomicAdd(d_accel+ iglob*3 +indx, sum_terms[indx])
                   }
@@ -1011,7 +1011,7 @@ module BOAST
                 output.puts "#endif"
               }
             end
-            print If( use_mesh_coloring_gpu, __accel_update, lambda {
+            print If( use_mesh_coloring_gpu => __accel_update, :else => lambda {
               (0..2).each { |indx|
                 print atomicAdd(d_accel + iglob*3 + indx, sum_terms[indx])
               }
