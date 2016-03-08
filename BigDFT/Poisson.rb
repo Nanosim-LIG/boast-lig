@@ -1980,17 +1980,23 @@ def Poisson_broker(optims,n1,n2,n3)
 
     kernel = BOAST::CKernel::new(:kernels => [kernels[0],kernels[1],kernels[2],kernels[3],kernels[4]])
     p = BOAST::Procedure(function_name, [nord,idim, nn, bc, u, du, a]){
-        BOAST::pr BOAST::Case( nord, 2, lambda {
-          BOAST::pr  kernels[0].procedure.call(3,idim,nn, bc, u, du, a)
-        },4,lambda {
-          BOAST::pr  kernels[1].procedure.call(3,idim,nn, bc, u, du, a)
-        },6,lambda {
-          BOAST::pr  kernels[2].procedure.call(3,idim,nn, bc, u, du, a)
-        },8,lambda {
-          BOAST::pr  kernels[3].procedure.call(3,idim,nn, bc, u, du, a)
-        },16,lambda {
-          BOAST::pr  kernels[4].procedure.call(3,idim,nn, bc, u, du, a)
-        })
+        BOAST::pr BOAST::Case( nord,
+            2 => lambda {
+                BOAST::pr  kernels[0].procedure.call(3,idim,nn, bc, u, du, a)
+            },
+            4 => lambda {
+                BOAST::pr  kernels[1].procedure.call(3,idim,nn, bc, u, du, a)
+            },
+            6 => lambda {
+                BOAST::pr  kernels[2].procedure.call(3,idim,nn, bc, u, du, a)
+            },
+            8 => lambda {
+                BOAST::pr  kernels[3].procedure.call(3,idim,nn, bc, u, du, a)
+            },
+            16 => lambda {
+                BOAST::pr  kernels[4].procedure.call(3,idim,nn, bc, u, du, a)
+            }
+        )
     }
 
     BOAST::pr p
@@ -2000,17 +2006,23 @@ def Poisson_broker(optims,n1,n2,n3)
     c = lambda { |*args| 3 }
 
 #BOAST::Procedure(function_name, [nord,*args]){
-#        BOAST::pr BOAST::Case( nord, 2, lambda {
-#          kernels[0].cost(*args)
-#        },4,lambda {
-#          kernels[1].cost(*args)
-#        },6,lambda {
-#          kernels[2].cost(*args)
-#        },8,lambda {
-#          kernels[3].cost(*args)
-#        },16,lambda {
-#          kernels[4].cost(*args)
-#        })
+#        BOAST::pr BOAST::Case( nord,
+#            2 => lambda {
+#                kernels[0].cost(*args)
+#            },
+#            4 => lambda {
+#                kernels[1].cost(*args)
+#            },
+#            6 => lambda {
+#                kernels[2].cost(*args)
+#            },
+#            8 => lambda {
+#                kernels[3].cost(*args)
+#            },
+#            16 => lambda {
+#                kernels[4].cost(*args)
+#            }
+#        )
 #    }
 
     kernel.cost_function = c
