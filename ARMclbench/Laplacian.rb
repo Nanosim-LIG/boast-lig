@@ -272,13 +272,24 @@ sizes.each { |width, height|
 
 set_lang(CL)
 
+# opt_space = OptimizationSpace::new( :x_component_number => [1,2,4,8,16],
+#                                     :vector_length      => [1,2,4,8,16],
+#                                     :y_component_number => 1..4,
+#                                     :temporary_size     => [2,4],
+#                                     :vector_recompute   => [true, false],
+#                                     :load_overlap       => [true, false] )
+
 opt_space = OptimizationSpace::new( :x_component_number => [1,2,4,8,16],
                                     :vector_length      => [1,2,4,8,16],
                                     :y_component_number => 1..4,
                                     :temporary_size     => [2,4],
-                                    :vector_recompute   => [true, false],
-                                    :load_overlap       => [true, false] )
-check = false
+                                    :vector_recompute   => [true],
+                                    :load_overlap       => [true],
+                                    :local_work_size => [[32,1,1], [32,2,1], [32,4,1], [32,8,1], [64,1,1], [64,2,1], [64,4,1], [128,1,1], [128,2,1], [256,1,1]]
+                                    )
+
+# check = false
+check = true
 
 optimizer = BruteForceOptimizer::new(opt_space, :randomize => true)
 
@@ -294,13 +305,14 @@ puts optimizer.optimize { |opt|
     output = NArray.byte(width*3,height).random!(256)
     time_per_pixel=[]
     (0..3).each {
-      stats = k.run(inputs[indx], output, width, height, :global_work_size => [rndup((width*3/opt[:x_component_number].to_f).ceil,32), (height/opt[:y_component_number].to_f).ceil, 1], :local_work_size => [32, 1, 1])
+      # stats = k.run(inputs[indx], output, width, height, :global_work_size => [rndup((width*3/opt[:x_component_number].to_f).ceil,32), (height/opt[:y_component_number].to_f).ceil, 1], :local_work_size => [32, 1, 1])
+      stats = k.run(inputs[indx], output, width, height, :global_work_size => [rndup((width*3/opt[:x_component_number].to_f).ceil,opt[:local_work_size][0]), rndup((height/opt[:y_component_number].to_f).ceil, opt[:local_work_size][1]), opt[:local_work_size][2]], :local_work_size => opt[:local_work_size])
       time_per_pixel.push( stats[:duration]/((width-2) * (height-2) ) )
     }
     #Fix for ARM counter looping every few minutes
     time_per_pixel.reject!{ |d| d < 0 }
     puts "#{time_per_pixel.min} s"
-
+    
     if check then 
       diff = ( refs[indx] - output[3..-4,1..-2] ).abs
       i = 0
