@@ -969,7 +969,7 @@ class ConvolutionOperator1d
           pr out_odd  === FMA(Load(@x[*(i_in[1])], out_odd ), Set(@filter.high_reverse_even.fil[l], out_odd ), out_odd )
         end
       else
-        pr out === FMA(Load(@x[*i_in], out), @filter_val, out) # + @x[*i_in]*@filter.fil[l]
+        pr out === FMA(Load(@x[*i_in].set_align(out.type.total_size), out), @filter_val, out) # + @x[*i_in]*@filter.fil[l]
       end
     }
   end
@@ -1011,7 +1011,7 @@ class ConvolutionOperator1d
       else
         pr out === out * Set(@a, out) if @a
         finish_block = lambda {
-          pr @dot_in_tmp === FMA(Load(@x[*i_in], out), out, @dot_in_tmp) if @dot_in_tmp #reduction !!!!!!!!!!!!!!!!!!!!!!!
+          pr @dot_in_tmp === FMA(Load(@x[*i_in].set_align(out.type.total_size), out), out, @dot_in_tmp) if @dot_in_tmp #reduction !!!!!!!!!!!!!!!!!!!!!!!
           pr out === FMA(Load(@x[*i_in], out), Set(@a_x, out), out) if @a_x
         }
         if @bc.grow and (@dot_in or @a_x) and side != :center then
@@ -1027,13 +1027,11 @@ class ConvolutionOperator1d
         #to be controlled in the case of non-orthorhombic cells for kinetic operations
         pr out === out + Load(@x2[*i_in], out) if @x2
         if @accumulate or (@kinetic == :inplace and not @options[:zero_out])  then
-          pr out === out + Load(@y[*i_out], out)
+          pr out === out + Load(@y[*i_out].set_align(out.type.total_size), out)
         elsif @a_y then
-          pr out === FMA(Set(@a_y, out), Load(@y[*i_out], out), out)
+          pr out === FMA(Set(@a_y, out), Load(@y[*i_out].set_align(out.type.total_size), out), out)
         end
-        y_index = @y[*i_out]
-        y_index.alignment = out.type.total_size
-        pr y_index === out
+        pr @y[*i_out].set_align(out.type.total_size) === out
         pr @y2[*i_out] === Load(@x[*i_in], out) if @kinetic and @transpose != 0
       end
     }
