@@ -35,15 +35,15 @@ conv_filter = ConvolutionFilter::new('kin',FILTER,14)
 n1 = 124
 n2 = 132
 n3 = 130
-input = NArray.float(n1,n2,n3).random
-input_y = NArray.float(n1,n2,n3)
+input = ANArray.float(32,n1,n2,n3).random!
+input_y = ANArray.float(32,n1,n2,n3)
 input_y = 0.5*input
-output_y = NArray.float(n1,n2,n3)
-output_x = NArray.float(n1,n2,n3)
-work1 = NArray.float(n1,n2,n3)
-work2 = NArray.float(n1,n2,n3)
-output_ref = NArray.float(n1,n2,n3)
-output = NArray.float(n1,n2,n3)
+output_y = ANArray.float(32,n1,n2,n3)
+output_x = ANArray.float(32,n1,n2,n3)
+work1 = ANArray.float(32,n1,n2,n3)
+work2 = ANArray.float(32,n1,n2,n3)
+output_ref = ANArray.float(32,n1,n2,n3)
+output = ANArray.float(32,n1,n2,n3)
 hgrid = NArray.float(3)
 hgrid[0] = 0.5
 hgrid[1] = 0.6
@@ -67,13 +67,13 @@ diff = (output_ref - output).abs
 diff.each { |elem|
   raise "Warning: residue too big: #{elem}" if elem > epsilon
 }
-output = NArray.float(n1,n2,n3).random
+output = ANArray.float(32,n1,n2,n3).random!
 n = NArray.int(3)
 n[0] = n1
 n[1] = n2
 n[2] = n3
 
-optims = GenericOptimization::new(:unroll_range => [2,6,2], :mod_arr_test => true, :tt_arr_test => true, :unrolled_dim_index_test => true)
+optims = GenericOptimization::new(:unroll_range => [2,6,2], :mod_arr_test => true, :tt_arr_test => true, :unrolled_dim_index_test => true,:vector_length => [1,2,4])
 k = Kinetic(conv_filter, optims)
 k.print
 k.build(:openmp => true)
