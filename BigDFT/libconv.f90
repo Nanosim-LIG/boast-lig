@@ -42,6 +42,16 @@ module libconw
     subroutine get_s0s1_work_size(d,fil_id,bc,n)
     end subroutine get_s0s1_work_size
 
+!two types of convolutions are described by this library:
+
+!Normal convolution  schematic [.................(------x------).............] ...lda] = [ xxxxxxxx] ... ldb]
+! (s0s0)
+
+!Wavelet transform  
+!  Direct:  [....(--x/y--)..........]  =  [ xxxxxxxxxx][yyyyyyyyyy]  (s0s1)
+!  Inverse:  [....(--x--)..........][....(//x//)..........]  =[ xxxxxxxxxx] (s1s0)
+
+
 !-----------wavelet transforms
     !> normal wavelet transform in only one direction
     !! y := a * dwt_fil |X_i| x(x_1,...,x_i,...,x_d,j)  + a_y * y
@@ -149,7 +159,6 @@ module libconw
       integer, intent(in) :: fil_id
       integer, intent(in) :: tp
       integer, intent(in) :: d
-      integer, intent(in) :: idim
       integer, dimension(d), intent(in) :: n
       integer, dimension(d), intent(in) :: bc
       integer, dimension(d), intent(in) :: nx
@@ -168,7 +177,6 @@ module libconw
       integer, intent(in) :: fil_id
       integer, intent(in) :: tp
       integer, intent(in) :: d
-      integer, intent(in) :: idim
       integer, dimension(d), intent(in) :: n
       integer, dimension(d), intent(in) :: bc
       integer, dimension(d), intent(in) :: nx
@@ -195,7 +203,6 @@ module libconw
       integer, intent(in) :: fil_id
       integer, intent(in) :: tp
       integer, intent(in) :: d
-      integer, intent(in) :: idim
       integer, dimension(d), intent(in) :: n
       integer, dimension(d), intent(in) :: bc
       integer, dimension(d), intent(in) :: nx
@@ -387,7 +394,6 @@ end subroutine s0s0_1d_sym8_mi_d
 subroutine s0s0_1ds_sym8_d2_d(d,n,bc,nx,ny,narr,a,a_x,a_y,x,y,work)
   implicit none
   integer, intent(in) :: d
-  integer, intent(in) :: idim
   integer, dimension(d), intent(in) :: n
   integer, dimension(d), intent(in) :: bc
   integer, dimension(d), intent(in) :: nx
@@ -407,7 +413,6 @@ end subroutine s0s0_1ds_sym8_d1_d
 subroutine s0s0_1ds_dot_sym8_d2_d(d,n,bc,nx,ny,narr,a,a_x,a_y,x,y,dot_in,work)
   implicit none
   integer, intent(in) :: d
-  integer, intent(in) :: idim
   integer, dimension(d), intent(in) :: n
   integer, dimension(d), intent(in) :: bc
   integer, dimension(d), intent(in) :: nx
@@ -434,7 +439,6 @@ subroutine s0s0_sym8_md_d(d,n,bc,nx,ny,narr,a,a_x,a_y,x,y,work)
   integer, intent(in) :: fil_id
   integer, intent(in) :: tp
   integer, intent(in) :: d
-  integer, intent(in) :: idim
   integer, dimension(d), intent(in) :: n
   integer, dimension(d), intent(in) :: bc
   integer, dimension(d), intent(in) :: nx
