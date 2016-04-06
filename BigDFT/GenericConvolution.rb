@@ -2064,7 +2064,8 @@ end
 
 def print_header(macro = false)
   if get_lang == C then
-    get_output.puts "#include <immintrin.h>"
+    get_output.puts "#include <immintrin.h>" if get_architecture == X86
+    get_output.puts "#include <arm_neon.h>" if get_architecture == ARM
     if macro then
       get_output.print "#define modulo(a, b) ((a+b)%(b))\n"
       get_output.print "#define min( a, b) ((a) < (b) ? a : b)\n"
