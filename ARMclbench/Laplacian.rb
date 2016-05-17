@@ -287,21 +287,26 @@ puts optimizer.optimize { |opt|
   puts id
   k = laplacian(opt)
   puts k
+  k.build
   results = []
   sizes.each_index { |indx|
+    GC.start
     width, height = sizes[indx]
     puts "#{width} x #{height} :"
-    output = NArray.byte(width*3,height).random!(256)
+    input_buff = k.context.create_buffer(width*height*3, :host_ptr => inputs[indx], :flags => [OpenCL::Mem::READ_ONLY,OpenCL::Mem::COPY_HOST_PTR])
+    output_buff = k.context.create_buffer(width*height*3, :flags => [OpenCL::Mem::WRITE_ONLY])
     time_per_pixel=[]
     (0..3).each {
-      stats = k.run(inputs[indx], output, width, height, :global_work_size => [rndup((width*3/opt[:x_component_number].to_f).ceil,32), (height/opt[:y_component_number].to_f).ceil, 1], :local_work_size => [32, 1, 1])
+      stats = k.run(input_buff, output_buff, width, height, :global_work_size => [rndup((width*3/opt[:x_component_number].to_f).ceil,32), (height/opt[:y_component_number].to_f).ceil, 1], :local_work_size => [32, 1, 1])
       time_per_pixel.push( stats[:duration]/((width-2) * (height-2) ) )
     }
     #Fix for ARM counter looping every few minutes
     time_per_pixel.reject!{ |d| d < 0 }
     puts "#{time_per_pixel.min} s"
 
-    if check then 
+    if check then
+      output = NArray.byte(width*3,height).random!(256)
+      k.queue.enqueue_read_buffer( output_buff, output, :blocking => true)
       diff = ( refs[indx] - output[3..-4,1..-2] ).abs
       i = 0
       diff.each { |elem|
