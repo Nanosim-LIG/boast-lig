@@ -293,7 +293,7 @@ puts optimizer.optimize { |opt|
     GC.start
     width, height = sizes[indx]
     puts "#{width} x #{height} :"
-    input_buff = k.context.create_buffer(width*height*3, :host_ptr => inputs[indx], :flags => [OpenCL::Mem::READ_ONLY,OpenCL::Mem::COPY_HOST_PTR])
+    input_buff = k.context.create_buffer(width*(height+1)*3, :host_ptr => inputs[indx], :flags => [OpenCL::Mem::READ_ONLY,OpenCL::Mem::COPY_HOST_PTR])
     output_buff = k.context.create_buffer(width*height*3, :flags => [OpenCL::Mem::WRITE_ONLY])
     time_per_pixel=[]
     (0..3).each {
