@@ -826,7 +826,7 @@ class ConvolutionOperator1d
     mods = get_mods(mod_arr)
     constants = get_constants
 
-    return Procedure(function_name, vars, constants ){
+    return Procedure(function_name, vars, :constants => constants ){
       decl_filters
       decl *iters
       decl l

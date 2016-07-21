@@ -16,7 +16,7 @@ module BOAST
 
     ngll3 = Int("NGLL3", :const => n_gll3)
 
-    p = Procedure(function_name, v, [], :local => true) {
+    p = Procedure(function_name, v, :local => true) {
       decl two_omega_deltat = Real("two_omega_deltat")
       decl cos_two_omega_t  = Real("cos_two_omega_t")
       decl sin_two_omega_t  = Real("sin_two_omega_t")
@@ -121,7 +121,7 @@ module BOAST
       #v.push(d_hprime_xx_oc_tex)
     end
 
-    p = Procedure(function_name, v, constants)
+    p = Procedure(function_name, v, :constants => constants)
     if(get_lang == CUDA and ref) then
       output.print File::read("references/#{function_name}.cu".gsub("_forward","").gsub("_adjoint",""))
     elsif(get_lang == CL or get_lang == CUDA) then

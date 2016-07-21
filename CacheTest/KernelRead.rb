@@ -39,7 +39,7 @@ module BOAST
     j = Variable::new("j",Int)
     @@output.print "#include <#{header}>\n"
     @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
-    p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum , :headers => [header]}) {
+    p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], :return => sum , :headers => [header]) {
       i.decl
       j.decl
       resultV.decl
@@ -106,7 +106,7 @@ module BOAST
     i = Variable::new("i",Int)
     j = Variable::new("j",Int)
     @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
-    p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum } ) {
+    p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], :return => sum ) {
       i.decl
       j.decl
       sum.decl

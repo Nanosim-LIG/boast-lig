@@ -32,7 +32,7 @@ def comp_tile_n1( n1 = 1, n2 = 1, vector_length = 1, real_size = 8 )
   input =  Real( "input", :dir => :in, :align => vector_length * real_size, :dim => Dim() )
   output = Real( "output", :dir => :out, :align => vector_length * real_size, :dim => Dim() )
   return (1..n1).collect { |n|
-    Procedure( "comp_n1_#{n}_#{n2}_#{vector_length}_#{real_size}", [n1_stride_input, n1_stride_output, input, output], [filter], :inline => true, :local => true ) {
+    Procedure( "comp_n1_#{n}_#{n2}_#{vector_length}_#{real_size}", [n1_stride_input, n1_stride_output, input, output], :constants => [filter], :inline => true, :local => true ) {
       f = Real( "f", :vector_length => vector_length )
       decl f
       tt = ((n+vector_length-1)/vector_length).times.collect { |i|

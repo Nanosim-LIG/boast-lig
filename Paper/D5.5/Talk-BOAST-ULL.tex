@@ -386,7 +386,7 @@ The following declaration:
 \tiny
 \lstset{style=BOAST}
 \begin{lstlisting}
-p = Procedure("magic_filter", [n,ndat,x,y], [lowfil,upfil])
+p = Procedure("magic_filter", [n,ndat,x,y], :constants => [lowfil,upfil])
 opn p
 close p
 \end{lstlisting}

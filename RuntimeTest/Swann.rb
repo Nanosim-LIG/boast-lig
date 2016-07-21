@@ -17,7 +17,7 @@ module BOAST
     j = Variable::new("j",Int)
     sum = Variable::new("sum",Real)
     vars = [colidx,a,p]
-    sw = Procedure::new(function_name, [colidx,a,p],[ncolidx,np]) {
+    sw = Procedure::new(function_name, [colidx,a,p], :constants => [ncolidx,np]) {
       i.decl
       j.decl
       sum.decl

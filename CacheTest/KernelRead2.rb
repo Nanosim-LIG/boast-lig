@@ -20,7 +20,7 @@ module BOAST
     @@output.print "inline #{Int::new.decl} modulo( #{Int::new.decl} a, #{Int::new.decl} b) { return (a+b)%b;}\n"
     register_funccall("modulo")
     sum = Int("sum")
-    print p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], [], {:return => sum , :headers => [header]}) {
+    print p = Procedure::new(function_name, [m_start, m_cycles, m_stride, buffer_size, buffer], :return => sum, :headers => [header]) {
 
       resultV = Int("resultV", {:size => elem_size, :dimension => [Dim(length)], :local => true})
       sumV = Int("sumV", {:size => elem_size, :vector_length => length})
