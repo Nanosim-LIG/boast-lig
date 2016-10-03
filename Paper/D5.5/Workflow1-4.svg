@@ -13,7 +13,7 @@
    height="107.55"
    id="svg2"
    version="1.1"
-   inkscape:version="0.48.3.1 r9886"
+   inkscape:version="0.91 r13725"
    sodipodi:docname="Workflow1-4.svg">
   <defs
      id="defs4">
@@ -40,17 +40,17 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="3.959798"
-     inkscape:cx="94.677828"
+     inkscape:cx="50.736193"
      inkscape:cy="47.31555"
      inkscape:document-units="mm"
-     inkscape:current-layer="g3765"
+     inkscape:current-layer="layer1"
      showgrid="true"
      inkscape:snap-global="true"
      units="mm"
-     inkscape:window-width="1600"
-     inkscape:window-height="876"
-     inkscape:window-x="1280"
-     inkscape:window-y="148"
+     inkscape:window-width="1920"
+     inkscape:window-height="1176"
+     inkscape:window-x="0"
+     inkscape:window-y="24"
      inkscape:window-maximized="1"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -77,7 +77,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -230,18 +230,18 @@
        transform="translate(0,2.5390623e-6)" />
     <text
        xml:space="preserve"
-       style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Times New Roman;-inkscape-font-specification:'Times New Roman,'"
-       x="134.64568"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;line-height:125%;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman,';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none"
+       x="132.64568"
        y="269.29132"
        id="text4674"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan4676"
-         x="134.64568"
+         x="132.64568"
          y="269.29132"
-         style="font-size:10px">Perfomance</tspan><tspan
+         style="font-size:10px">Performance</tspan><tspan
          sodipodi:role="line"
-         x="134.64568"
+         x="132.64568"
          y="281.79132"
          id="tspan4678"
          style="font-size:10px">Analysis</tspan></text>
