@@ -14,10 +14,6 @@
 \usepackage{algorithmic}
 \usepackage{multirow}
 
-\graphicspath{{fig/}{campagne/fig}}
-\newcommand{\talk}[2]{{#1} dit : {#2}}
-\newcommand{\erik}[1]{\talk{Erik}{#1}}
-\newcommand{\brice}[1]{\talk{Brice}{#1}}
 \beamertemplatetransparentcovereddynamic
 
 %\setbeamertemplate{background canvas}[vertical shading][bottom=red!10,top=blue!10]
@@ -28,16 +24,8 @@
 \useoutertheme{progressbar}
 \useinnertheme{progressbar}
 
-\newcommand{\bordereau}{Bordereau\xspace}
-\newcommand{\genepi}{Genepi\xspace}
-\newcommand{\minelement}{{\em min\_element}\xspace}
-\newcommand{\stablesort}{{\em stable\_sort}\xspace}
-\newcommand{\merge}{{\em merge}\xspace}
-\newcommand{\sort}{{\em sort}\xspace}
-\newcommand{\find}{{\em find}\xspace}
 \setbeamertemplate{navigation symbols}{}
 \beamertemplatetransparentcovereddynamic
-\newcommand{\pastel}{PaSTeL\xspace}
 
 \definecolor{javared}{rgb}{0.6,0,0} % for strings
 \definecolor{javagreen}{rgb}{0.30,0.55,0.40} % comments
@@ -53,6 +41,7 @@
 
 \date{\textbf{Workshop CCDSC}\\October 6, 2016}
 
+\bibliographystyle{plain}
 \begin{document}
 
 \frame{\titlepage}
@@ -128,6 +117,33 @@
   \vspace{1cm}
   How to write kernels that could adapt to those architectures?\\
   (well maybe not quantum computing...)
+
+\end{frame}
+
+\subsection{Related Work}
+
+\begin{frame}
+  \frametitle{Related Work}
+
+  \begin{itemize}
+    \item Ad hoc autotuners (usually for libraries):
+    \begin{itemize}
+      \item Atlas~\cite{whaley04} (C macro processing)
+      \item SPIRAL~\cite{puschel2004spiral} (DSL)
+      \item ...
+    \end{itemize}
+    \item Generic frameworks using annotation systems:
+    \begin{itemize}
+      \item POET~\cite{yi2007poet} (external annotation file)
+      \item Orio~\cite{Hart2009:Orio} (source annotation)
+      \item BEAST~\cite{CPE:CPE3516} (Python preprocessor based, embedded DSL for optimization space definition/pruning)
+    \end{itemize}
+    \item Generic frameworks using embedded DSL:
+    \begin{itemize}
+      \item Halide~\cite{ragan2013halide} (C++, not very generic, 2D stencil targeted)
+      \item Heterogeneous Programming Library~\cite{F.Fabeiro:2016:WPM:2894387.2894576} (C++)
+    \end{itemize}
+  \end{itemize}
 
 \end{frame}
 
@@ -578,6 +594,14 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
       \item Gather feedback.
     \end{itemize}
   \end{itemize}
+\end{frame}
+
+
+\section{Bibliography}
+
+\begin{frame}[shrink=50]
+  \frametitle{Bibliography}
+  \bibliography{D5.5}
 \end{frame}
 
 \end{document}
