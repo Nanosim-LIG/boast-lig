@@ -37,7 +37,7 @@
 \subtitle{Performance Portability Using Meta-Programming and Auto-Tuning}
 \author[B. V.]{\textbf{\textbf{Fr\'ed\'eric~Desprez}}~\inst{1}, Brice~Videau~\inst{1,3}, Kevin~Pouget~\inst{1}, Luigi~Genovese~\inst{2},
                     Thierry~Deutsch~\inst{2}, Dimitri~Komatitsch~\inst{3}, Jean-François~Méhaut~\inst{1}}
-\institute[INRIA]{\inst{1} INRIA - Corse, \inst{2} CEA - L\_Sim, \inst{3} CNRS}
+\institute[INRIA]{\inst{1} INRIA/LIG - CORSE, \inst{2} CEA - L\_Sim, \inst{3} CNRS}
 
 \date{\textbf{Workshop CCDSC}\\October 6, 2016}
 
@@ -57,7 +57,7 @@
     \begin{itemize}
       \item \scriptsize Huge codes (more than 100 000 lines), Written in FORTRAN or C++
       \item \scriptsize Collaborative efforts
-      \item \scriptsize Use many different programing paradigms
+      \item \scriptsize Use many different programming paradigms (OpenMP, OpenCL, CUDA, ...)
     \end{itemize}
   \end{block}
 
@@ -126,22 +126,22 @@
   \frametitle{Related Work}
 
   \begin{itemize}
-    \item Ad hoc autotuners (usually for libraries):
+    \item \textbf{Ad hoc autotuners (usually for libraries):}
     \begin{itemize}
-      \item Atlas~\cite{whaley04} (C macro processing)
-      \item SPIRAL~\cite{puschel2004spiral} (DSL)
+      \item \textbf{Atlas}~\cite{whaley04} (C macro processing)
+      \item \textbf{SPIRAL}~\cite{puschel2004spiral} (DSL)
       \item ...
     \end{itemize}
-    \item Generic frameworks using annotation systems:
+    \item \textbf{Generic frameworks using annotation systems:}
     \begin{itemize}
-      \item POET~\cite{yi2007poet} (external annotation file)
-      \item Orio~\cite{Hart2009:Orio} (source annotation)
-      \item BEAST~\cite{CPE:CPE3516} (Python preprocessor based, embedded DSL for optimization space definition/pruning)
+      \item \textbf{POET}~\cite{yi2007poet} (external annotation file)
+      \item \textbf{Orio}~\cite{Hart2009:Orio} (source annotation)
+      \item \textbf{BEAST}~\cite{CPE:CPE3516} (Python preprocessor based, embedded DSL for optimization space definition/pruning)
     \end{itemize}
-    \item Generic frameworks using embedded DSL:
+    \item \textbf{Generic frameworks using embedded DSL:}
     \begin{itemize}
-      \item Halide~\cite{ragan2013halide} (C++, not very generic, 2D stencil targeted)
-      \item Heterogeneous Programming Library~\cite{F.Fabeiro:2016:WPM:2894387.2894576} (C++)
+      \item \textbf{Halide}~\cite{ragan2013halide} (C++, not very generic, 2D stencil targeted)
+      \item \textbf{Heterogeneous Programming Library}~\cite{F.Fabeiro:2016:WPM:2894387.2894576} (C++)
     \end{itemize}
   \end{itemize}
 
@@ -166,7 +166,7 @@
 \only<2>{    \item Architecture specific or generic optimizations}%
 \only<3>{    \item Performance data hint at source transformations}%
 \only<3>{    \item Architecture specific or generic hints}%
-\only<4>{    \item Multiplication of kernel versions or loss of versions}%
+\only<4>{    \item Multiplication of kernel versions and/or loss of versions}%
 \only<4>{    \item Difficulty to benchmark versions against each-other}%
   \end{itemize}%
 
@@ -230,6 +230,7 @@ void laplace(const int width,
 \begin{itemize}
 \item C reference implementation
 \item Many opportunities for improvement
+\item ARM GPU Mali 604 within the Montblanc project
 \end{itemize}
 \end{frame}
 
@@ -270,6 +271,7 @@ kernel laplace(const int width,
 \begin{itemize}
 \item OpenCL reference implementation
 \item Outer loops mapped to threads
+\item 1 pixel per thread
 \end{itemize}
 \end{frame}
 
@@ -322,7 +324,7 @@ kernel laplace(const int width,
 \end{lstlisting}
 \begin{itemize}
 \item Vectorized OpenCL implementation
-\item 5 pixels (15 compoenets)
+\item 5 pixels instead of one (15 components)
 \end{itemize}
 \end{frame}
 
@@ -365,6 +367,7 @@ uchar16 v33_ = vload16( 0, src + 3*width*(j+1) + 3*5*i + 3 );
 uchar16 v32_ = uchar16( v31_.s3456789a, v33_.s56789abc );
 \end{lstlisting}
 \begin{itemize}
+\item Reducing the number of loads since the vector are overlapping
 \item Synthesizing loads should save bandwidth
 \item Could be pushed further
 \end{itemize}
@@ -420,7 +423,7 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
 \begin{frame}
   \frametitle{Example: Optimization Summary}
   \begin{itemize}
-    \item Very complex process
+    \item Very complex process (several other optimizations could be applied)
     \item Intimate knowledge of the architecture required
     \item Numerous versions to be benchmarked
     \item Difficult to test combination of optimizations:
@@ -496,7 +499,7 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
   \begin{columns}
   \column{0.5\textwidth}
   \begin{itemize}
-    \item \footnotesize Optimal parameter values Intel:
+    \item \footnotesize Optimal parameter values (Intel I7 2760, 2.4 GHz):
     \begin{itemize}
       \item \scriptsize x\_component\_number: 16
       \item \scriptsize y\_component\_number: 4..2
@@ -507,7 +510,7 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
   \end{itemize}
   \column{0.5\textwidth}
   \begin{itemize}
-    \item \footnotesize Optimal parameter values nVidia:
+    \item \footnotesize Optimal parameter values nVidia (GTX 680):
     \begin{itemize}
       \item \scriptsize x\_component\_number: 4
       \item \scriptsize y\_component\_number: 4
@@ -526,12 +529,14 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
 \begin{frame}
   \frametitle{Real Applications: BigDFT}
   \begin{center}
-    \includegraphics[scale=0.40]{Res_synthesis}
+    \includegraphics[scale=0.35]{Res_synthesis}
   \end{center}
 
-  \begin{itemize}
-    \item Reference is hand tuned code on target architecture
-    \item Toward a BLAS-like library fo wavelets
+ \begin{itemize}
+  \item Novel approach for DFT computation based on Daubechies wavelets
+  \item Fortran and C code, MPI, OpenMP, supports CUDA and OpenCL
+   \item Reference is hand tuned code on target architecture (Nehalem)
+    \item Toward a BLAS-like library for wavelets
   \end{itemize}
 \end{frame}
 
@@ -539,6 +544,7 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
   \frametitle{Real Applications: SPECFEM3D}
 
   \begin{itemize}
+   \item Seismic wave propagation simulator
     \item SPECFEM3D ported to OpenCL using BOAST
     \begin{itemize}
       \item Unified code base (CUDA/OpenCL)
@@ -579,11 +585,11 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
 \begin{frame}
   \frametitle{Perspectives}
   \begin{itemize}
-    \item Find and port new kernels to BOAST
+    \item Find and port new kernels to BOAST (GYSELA)
     \item Couple BOAST with other tools:
     \begin{itemize}
       \item Parametric space pruners (speed up optimization),
-      \item Binary analysis (guide optimization),
+      \item Binary analysis (guide optimization, MAQAO),
       \item Source to source transformation (improve optimization),
       \item Binary transformation (improve optimization).
     \end{itemize}
