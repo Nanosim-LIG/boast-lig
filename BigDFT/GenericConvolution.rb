@@ -648,7 +648,7 @@ class ConvolutionOperator1d
     nscal+=1 if @a_x
     nscal+=1 if @a_y
     nscal.times{vars.push(0.5)}
-    vars.push(NArray::new(type, 1).random!) if @dot_in
+    vars.push(0.0) if @dot_in
     return vars
   end
 
@@ -846,7 +846,7 @@ class ConvolutionOperator1d
         @dot_in_tmp = @dot_in
       end
       pr @dot_in.set(0.0) if @options[:dot_in]
-      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => dot_in} : nil ), private: iters + [l] + [tt] + ( @filter_val ? [@filter_val] : [] )) { 
+      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => @dot_in} : nil ), private: iters + [l] + [tt] + ( @filter_val ? [@filter_val] : [] )) { 
         convolution1d(iters, l, tt, mods, unrolled_dim, unroll, unroll_inner)
       }
     }
@@ -1315,7 +1315,7 @@ class GenericConvolutionOperator1d
       function_name += "s0s0_1d_"
     end
     function_name += @filter.name
-    function_name += "dotin" if @dot_in
+    function_name += "_dotin" if @dot_in
     function_name += "_" + util.to_s if util
 
     vv = @vars
