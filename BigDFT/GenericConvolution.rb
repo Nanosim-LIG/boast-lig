@@ -779,6 +779,14 @@ class ConvolutionOperator1d
     end
   end
 
+  def stos(bool)
+   if bool then
+    return 't'
+   else
+    return 'f'
+   end	
+  end	
+
   def procedure(options={})
     #(unroll, unrolled_dim, use_mod, tt_arr)
     #default values
@@ -801,8 +809,10 @@ class ConvolutionOperator1d
     mod_arr = false if @bc.free
     util = options[:util]
 
-    function_name = @base_name + 
-      "_u#{unroll}_v#{vec_len}_#{unrolled_dim}_#{mod_arr}_#{tt_arr}_#{unroll_inner}"
+    function_name = @base_name   + 
+      "_u#{unroll}_v#{vec_len}_#{unrolled_dim}" ###_#{mod_arr}_#{tt_arr}_#{unroll_inner}"
+    function_name += '_'+stos(mod_arr)+'_'+stos(tt_arr)+'_'+stos(unroll_inner)
+
     function_name += "_" + util.to_s if util
 
     if util == :cost then
