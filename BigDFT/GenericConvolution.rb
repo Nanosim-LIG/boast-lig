@@ -47,59 +47,111 @@ class WaveletFilter
   attr_reader :center
   attr_reader :fil_array
   attr_reader :length
-  def initialize(name, filt1)
+  attr_reader :convolution
+  def initialize(name, filt1, opts = {})
+    @convolution = opts[:convolution_filter]
     @fil_array = filt1.dup
-    @center = @fil_array.length/2
-    @center -= @center%2
-    @low = ConvolutionFilter::new(name+"_l", @fil_array, @center)
-    filt2 = []
-    @fil_array.each_with_index { |e,i|
-      if i % 2 == 0 then
-        filt2.push(e)
-      else
-        if e.is_a?(String) then
-          if e[0] == '-' then
-            filt2.push(e[1..-1])
-          else
-            filt2.push("-"+e)
-          end
+    if @convolution then
+      require 'bigdecimal'
+      lp = @fil_array.collect { |e| BigDecimal.new(e) }
+      hp = lp.each_with_index.collect { |e,i| i % 2 == 0 ? e : -e }.reverse
+      cv = @convolution.fil_array.collect { |e| BigDecimal.new(e) }
+
+      lp_length = lp.length
+      hp_length = hp.length
+      cv_length = @convolution.length
+
+      lp_center = lp_length / 2
+      hp_center = hp_length / 2
+      cv_center = @convolution.center
+
+      cv_bounds = [ -cv_center, cv_length - cv_center - 1 ]
+      lp_bounds = [ -lp_center, lp_length - lp_center - 1 ]
+      hp_bounds = [ -hp_center, hp_length - hp_center - 1 ]
+
+      lp_cv_bounds = [ cv_bounds[0] - lp_bounds[1], cv_bounds[1] - lp_bounds[0] ]
+      hp_cv_bounds = [ cv_bounds[0] - hp_bounds[1], cv_bounds[1] - hp_bounds[0] ]
+
+      lp_cv_bounds[0] -= 1 if lp_cv_bounds[0] % 2 != 0
+      hp_cv_bounds[0] -= 1 if hp_cv_bounds[0] % 2 != 0
+      lp_cv_bounds[1] += 1 if lp_cv_bounds[1] % 2 == 0
+      hp_cv_bounds[1] += 1 if hp_cv_bounds[1] % 2 == 0
+
+      lp_cv_center = - lp_cv_bounds[0]
+      hp_cv_center = - hp_cv_bounds[0]
+
+      lp_cv = (lp_cv_bounds[0]..lp_cv_bounds[1]).collect { |i|
+        sum = BigDecimal.new(0)
+        (lp_bounds[0]..lp_bounds[1]).each { |j|
+          sum += lp[j+lp_center] * cv[i-j-1+cv_center] if (0...cv_length).include?(i-j-1+cv_center)
+        }
+        sum
+      }
+
+      hp_cv = (hp_cv_bounds[0]..hp_cv_bounds[1]).collect { |i|
+        sum = BigDecimal.new(0)
+        (hp_bounds[0]..hp_bounds[1]).each { |j|
+          sum += hp[j+hp_center] * cv[i-j-1+cv_center] if (0...cv_length).include?(i-j-1+cv_center)
+        }
+        sum
+      }
+      @center = lp_cv_center
+      @low = ConvolutionFilter::new(name+"_l", lp_cv.collect { |e| e.truncate(30).to_s }, lp_cv_center)
+      @high = ConvolutionFilter::new(name+"_h", hp_cv.collect { |e| e.truncate(30).to_s }, hp_cv_center)
+    else
+      @center = @fil_array.length/2
+      @center -= @center%2
+      @low = ConvolutionFilter::new(name+"_l", @fil_array, @center)
+      filt2 = []
+      @fil_array.each_with_index { |e,i|
+        if i % 2 == 0 then
+          filt2.push(e)
         else
-          filt2.push(-e)
+          if e.is_a?(String) then
+            if e[0] == '-' then
+              filt2.push(e[1..-1])
+            else
+              filt2.push("-"+e)
+            end
+          else
+            filt2.push(-e)
+          end
         end
-      end
-    }
-    filt2.reverse!
-    @high = ConvolutionFilter::new(name+"_h", filt2, @center)
+      }
+      filt2.reverse!
+      @high = ConvolutionFilter::new(name+"_h", filt2, @center)
+
+    end
 
     center_half = @center / 2
 
-    filt_3 = @fil_array.values_at(*(0..(@fil_array.length-1)).step(2).collect)
+    filt_3 = @low.fil_array.values_at(*(0..(@low.fil_array.length-1)).step(2).collect)
     @low_even = ConvolutionFilter::new(name+"_le", filt_3, center_half)
 
-    filt_4 = @fil_array.values_at(*(1..(@fil_array.length-1)).step(2).collect)
+    filt_4 = @low.fil_array.values_at(*(1..(@low.fil_array.length-1)).step(2).collect)
     @low_odd = ConvolutionFilter::new(name+"_lo", filt_4, center_half)
 
-    filt_5 = filt2.values_at(*(0..(filt2.length-1)).step(2).collect)
+    filt_5 = @high.fil_array.values_at(*(0..(@high.fil_array.length-1)).step(2).collect)
     @high_even = ConvolutionFilter::new(name+"_he", filt_5, center_half)
 
-    filt_6 = filt2.values_at(*(1..(filt2.length-1)).step(2).collect)
+    filt_6 = @high.fil_array.values_at(*(1..(@high.fil_array.length-1)).step(2).collect)
     @high_odd = ConvolutionFilter::new(name+"_ho", filt_6, center_half)
 
-    center_half = (filt1.length - @center - 1)/2
+    center_half = (@low.fil_array.length - @center - 1)/2
 
-    filt_r_3 = @fil_array.reverse.values_at(*(0..(@fil_array.length-1)).step(2).collect)
+    filt_r_3 = @low.fil_array.reverse.values_at(*(0..(@low.fil_array.length-1)).step(2).collect)
     @low_reverse_even = ConvolutionFilter::new(name+"_lre", filt_r_3, center_half)
 
-    filt_r_4 = @fil_array.reverse.values_at(*(1..(@fil_array.length-1)).step(2).collect)
+    filt_r_4 = @low.fil_array.reverse.values_at(*(1..(@low.fil_array.length-1)).step(2).collect)
     @low_reverse_odd = ConvolutionFilter::new(name+"_lro", filt_r_4, center_half)
 
-    filt_r_5 = filt2.reverse.values_at(*(0..(filt2.length-1)).step(2).collect)
+    filt_r_5 = @high.fil_array.reverse.values_at(*(0..(@high.fil_array.length-1)).step(2).collect)
     @high_reverse_even = ConvolutionFilter::new(name+"_hre", filt_r_5, center_half)
 
-    filt_r_6 = filt2.reverse.values_at(*(1..(filt2.length-1)).step(2).collect)
+    filt_r_6 = @high.fil_array.reverse.values_at(*(1..(@high.fil_array.length-1)).step(2).collect)
     @high_reverse_odd = ConvolutionFilter::new(name+"_hro", filt_r_6, center_half)
 
-    @length = @fil_array.length
+    @length = @low.fil_array.length
     @name = name
     @default_wavelet=:decompose
   end
@@ -804,7 +856,7 @@ class ConvolutionOperator1d
     unrolled_dim=@dim_indexes[0]
     unrolled_dim=@dim_indexes[options[:unrolled_dim_index]] if @dim_indexes.length > 2 and options[:unrolled_dim_index]
 
-    vec_len = options[:vector_length] if get_lang == C and not @dot_in and unrolled_dim == 0 and options[:vector_length] and options[:vector_length] <= @filter.length and unroll % options[:vector_length] == 0
+    vec_len = options[:vector_length] if not @dot_in and unrolled_dim == 0 and options[:vector_length] and options[:vector_length] <= @filter.length and unroll % options[:vector_length] == 0
 
     mod_arr = false if @bc.free
     util = options[:util]

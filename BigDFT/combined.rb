@@ -14,23 +14,28 @@ sym8_hp_lr = [ -sym8_hp_center, sym8_hp.length - sym8_hp_center - 1 ]
 sym8_mf_lp_lr = [ sym8_mf_lr[0] - sym8_lp_lr[1], sym8_mf_lr[1] - sym8_lp_lr[0] ]
 sym8_mf_hp_lr = [ sym8_mf_lr[0] - sym8_hp_lr[1], sym8_mf_lr[1] - sym8_hp_lr[0] ]
 
+sym8_mf_lp_lr[0] -= 1 if sym8_mf_lp_lr[0] % 2 != 0
+sym8_mf_hp_lr[0] -= 1 if sym8_mf_hp_lr[0] % 2 != 0
+sym8_mf_lp_lr[1] += 1 if sym8_mf_lp_lr[0] % 2 == 0
+sym8_mf_hp_lr[1] += 1 if sym8_mf_hp_lr[0] % 2 == 0
+
 sym8_mf_lp = (sym8_mf_lp_lr[0]..sym8_mf_lp_lr[1]).collect { |i|
-  sum = 0
+  sum = BigDecimal.new(0)
   (sym8_lp_lr[0]..sym8_lp_lr[1]).each { |j|
     sum += sym8_lp[j+sym8_lp_center] * sym8_mf[i-j-1+sym8_mf_center] if (0...sym8_mf.length).include?(i-j-1+sym8_mf_center)
   }
   sum
 }
-sym8_mf_lp.each { | e| puts e }
+sym8_mf_lp.each { | e| puts e.truncate(30) }
 
 puts "------------------------------------------------"
 
 sym8_mf_hp = (sym8_mf_hp_lr[0]..sym8_mf_hp_lr[1]).collect { |i|
-  sum = 0
+  sum = BigDecimal.new(0)
   (sym8_hp_lr[0]..sym8_hp_lr[1]).each { |j|
     sum += sym8_hp[j+sym8_hp_center] * sym8_mf[i-j-1+sym8_mf_center] if (0...sym8_mf.length).include?(i-j-1+sym8_mf_center)
   }
   sum
 }
-sym8_mf_hp.each { | e| puts e }
+sym8_mf_hp.each { | e| puts e.truncate(30) }
 
