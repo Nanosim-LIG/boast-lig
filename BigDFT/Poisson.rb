@@ -2184,7 +2184,7 @@ BOAST::pr tmp.alloc([BOAST::Dim(0,n01-1),BOAST::Dim(0,n02-1),BOAST::Dim(0,n03-1)
           }
         }
       }
-
+    BOAST::pr tmp.dealloc
     })
     }
     BOAST::pr p

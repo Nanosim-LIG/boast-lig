@@ -1,6 +1,8 @@
+require 'BOAST'
 require'./KernelRead.rb'
 require'./KernelRead2.rb'
-#puts k.print
+include BOAST
+
 
 m_start = 0
 m_cycle = 1024*5
@@ -9,32 +11,33 @@ page_size = 4096
 
 output = NArray.int(1024*12).random(1000)
 
-BOAST::set_architecture(BOAST::ARM)
-k = BOAST::kernel_read_vectorized2(8,4,4)
+set_architecture(ARM)
+k = kernel_read_vectorized2(8,4,4)
 puts k.print
 
-BOAST::set_architecture(BOAST::X86)
-k = BOAST::kernel_read_vectorized2(8)
+set_architecture(X86)
+k = kernel_read_vectorized2(8)
 puts k.print
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 (1..10).each { |page|
   stats = k.run(m_start, m_cycle, m_stride, page_size*page, output)
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{page_size*page*m_cycle/(stats[:duration]*1.0e9)}"
 }
-k = BOAST::kernel_read_vectorized2
+k = kernel_read_vectorized2
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 puts k.print
 (1..10).each { |page|
   stats = k.run(m_start, m_cycle, m_stride, page_size*page, output)
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{page_size*page*m_cycle/(stats[:duration]*1.0e9)}"
 }
-#k = BOAST::kernel_read_vectorized(4,8,4)
+#k = kernel_read_vectorized(4,8,4)
+#puts k.print
 #k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 #(1..10).each { |page|
-#  stats = k.run(m_start, m_cycle, m_stride, buffer_size*page, output)
-#  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{4*buffer_size*page*m_cycle/(stats[:duration]*1.0e9)}"
+#  stats = k.run(m_start, m_cycle, m_stride, page_size*page, output)
+#  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{4*page_size*page*m_cycle/(stats[:duration]*1.0e9)}"
 #}
-k = BOAST::kernel_read_vectorized2(8,4,4)
+k = kernel_read_vectorized2(8,4,4)
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 puts k.print
 (1..10).each { |page|
@@ -42,7 +45,7 @@ puts k.print
   puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{page_size*page*m_cycle/(stats[:duration]*1.0e9)}"
 }
 
-k = BOAST::kernel_read_vectorized2(8,4,2)
+k = kernel_read_vectorized2(8,4,2)
 k.build({:CC => 'gcc',:FCFLAGS => "-O3"})
 puts k.print
 (1..10).each { |page|
