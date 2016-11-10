@@ -14,15 +14,16 @@
 \usepackage{algorithmic}
 \usepackage{multirow}
 
+
 \beamertemplatetransparentcovereddynamic
 
 %\setbeamertemplate{background canvas}[vertical shading][bottom=red!10,top=blue!10]
 %\usetheme{Warsaw}
 
-\usecolortheme{progressbar}
-\usefonttheme{progressbar}
-\useoutertheme{progressbar}
-\useinnertheme{progressbar}
+\usepackage{../style/beamercolorthemeprogressbar}
+\usepackage{../style/beamerfontthemeprogressbar}
+\usepackage{../style/beamerouterthemeprogressbar}
+\usepackage{../style/beamerinnerthemeprogressbar}
 
 \setbeamertemplate{navigation symbols}{}
 \beamertemplatetransparentcovereddynamic
@@ -32,6 +33,7 @@
 \definecolor{javapurple}{rgb}{0.5,0,0.35} % keywords
 \definecolor{javadocblue}{rgb}{0.25,0.35,0.75} % java
 
+\graphicspath{{../figures/}}
 
 \title{BOAST}
 \subtitle{Performance Portability Using Meta-Programming and Auto-Tuning}
@@ -629,7 +631,7 @@ short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
 
 \begin{frame}[shrink=50]
   \frametitle{Bibliography}
-  \bibliography{D5.5}
+  \bibliography{../biblio/BOAST}
 \end{frame}
 
 \end{document}
