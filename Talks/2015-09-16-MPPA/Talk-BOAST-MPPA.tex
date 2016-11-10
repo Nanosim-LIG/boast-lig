@@ -23,10 +23,10 @@
 %\setbeamertemplate{background canvas}[vertical shading][bottom=red!10,top=blue!10]
 %\usetheme{Warsaw}
 
-\usecolortheme{progressbar}
-\usefonttheme{progressbar}
-\useoutertheme{progressbar}
-\useinnertheme{progressbar}
+\usepackage{../style/beamercolorthemeprogressbar}
+\usepackage{../style/beamerfontthemeprogressbar}
+\usepackage{../style/beamerouterthemeprogressbar}
+\usepackage{../style/beamerinnerthemeprogressbar}
 
 \newcommand{\bordereau}{Bordereau\xspace}
 \newcommand{\genepi}{Genepi\xspace}
@@ -44,6 +44,7 @@
 \definecolor{javapurple}{rgb}{0.5,0,0.35} % keywords
 \definecolor{javadocblue}{rgb}{0.25,0.35,0.75} % java
 
+\graphicspath{{../figures/}}
 
 \title{BOAST}
 \subtitle{Performance Portability Using Meta-Programming and Auto-Tuning}

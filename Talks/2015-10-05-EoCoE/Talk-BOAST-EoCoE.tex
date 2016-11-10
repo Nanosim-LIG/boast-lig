@@ -24,10 +24,10 @@
 %\setbeamertemplate{background canvas}[vertical shading][bottom=red!10,top=blue!10]
 %\usetheme{Warsaw}
 
-\usecolortheme{progressbar}
-\usefonttheme{progressbar}
-\useoutertheme{progressbar}
-\useinnertheme{progressbar}
+\usepackage{../style/beamercolorthemeprogressbar}
+\usepackage{../style/beamerfontthemeprogressbar}
+\usepackage{../style/beamerouterthemeprogressbar}
+\usepackage{../style/beamerinnerthemeprogressbar}
 
 \newcommand{\bordereau}{Bordereau\xspace}
 \newcommand{\genepi}{Genepi\xspace}
@@ -98,6 +98,8 @@ numbers=left,
 tabsize=4,
 showspaces=false,
 showstringspaces=false}
+
+\graphicspath{{../figures/}}
 
 \title{BOAST}
 \subtitle{Performance Portability Using Meta-Programming and Auto-Tuning}
