@@ -1,3 +1,13 @@
 BOAST.pdf
 journal.pdf
+*.out
+*.bbl
+*.blg
+*.aux
+*.log
+*.nav
+*.pdf.mk
+*.snm
+*.toc
+*.vrb
 
