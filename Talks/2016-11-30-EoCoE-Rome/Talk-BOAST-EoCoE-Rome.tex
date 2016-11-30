@@ -47,6 +47,10 @@
 
 \date{\textbf{EoCoE Rome meeting}\\November 30, 2016}
 
+\logo{
+   \includegraphics[scale=.09]{logo_eocoe}
+   }
+
 \bibliographystyle{plain}
 \begin{document}
 
@@ -205,8 +209,9 @@
 \section{Case Study}
 
 \begin{frame}
-\frametitle{Gysela 2d avection - BOAST implementation}
-
+\frametitle{Gysela 2d Advection}
+Gysela: Gyrokinetic Semi-Lagrangian\\
+Tokamak plasma simulation for fusion (ITER)
 \scalebox{0.9}{
 \begin{minipage}{\textwidth}
 \begin{itemize}
@@ -220,13 +225,11 @@
   test
 \item Integrate the reference/original version into BOAST
 \end{itemize}
-\medskip
 \item Install ruby \& BOAST on 4 parallel machines
 \begin{itemize}
 \item Easiest step
 \item Get a working compilation/execution of the kernel: a bit more difficult
 \end{itemize}
-\medskip
 \item Write a meta-program that \textit{prints} a program
 \begin{enumerate}
 \item Need to learn a little bit of ruby \& BOAST
@@ -240,7 +243,7 @@
 \end{frame}
 
 \begin{frame}
-\frametitle{Gysela 2d avection - BOAST implementation (cont'd)}
+\frametitle{Gysela 2d avection (2)}
 
 \scalebox{1.}{
 \begin{minipage}{\textwidth}
@@ -382,7 +385,7 @@ Speedup: \textcolor{red}{2.0}
 \end{frame}
 
 \begin{frame}
-\frametitle{Auto-tuning on INTEL KNL (Xeon Phi 2016)}
+\frametitle{Auto-tuning on INTEL KNL (Phi 2016)}
 \begin{columns}
 \column{.3\textwidth}
 \scalebox{0.8}{
