@@ -76,6 +76,10 @@ class ConvolutionFilter < Filter
     end
   end
 
+  def set_zero_tt( tt_ind )
+    pr @tt[tt_ind].set( 0.0 )
+  end
+
   def init_filter_val
     return @tt[0].copy("filter_val")
   end
@@ -95,6 +99,10 @@ class ConvolutionFilter < Filter
     #dimensions corresponding to the output of a grow operation
     dim_nsg = Dim(-upfil,  dim - lowfil - 1)
     return [dim_ngs, dim_nsg]
+  end
+
+  def decl_filters
+    decl fil
   end
 
 end #class ConvolutionFilter
@@ -122,6 +130,11 @@ class PoissonFilter < ConvolutionFilter
 
     @fil_array = filts.dup
 
+  end
+
+  def decl_filters
+    decl filters_array
+    decl fil
   end
 
 end
@@ -231,6 +244,18 @@ class WaveletFilter < Filter
     pr out_odd  === FMA(Load(data[*(i_in0)], out_odd ), @filter_val[1], out_odd )
     pr out_even === FMA(Load(data[*(i_in1)], out_even), @filter_val[2], out_even)
     pr out_odd  === FMA(Load(data[*(i_in1)], out_odd ), @filter_val[3], out_odd )
+  end
+
+  def set_zero_tt( tt_ind )
+    pr @tt[0][tt_ind].set( 0.0 )
+    pr @tt[1][tt_ind].set( 0.0 )
+  end
+
+  def decl_filters
+    decl low_even.fil
+    decl low_odd.fil
+    decl high_even.fil
+    decl high_odd.fil
   end
 
 end
@@ -684,10 +709,7 @@ class ConvolutionOperator1d
         Dim(0, dim - 1)
       end
     }
-    if @transpose !=0  then
-      dimy = dimy.rotate(@transpose)
-    end
-    dimy.flatten!
+    dimy.rotate!(@transpose).flatten!
     return [dimx, dimy]
   end
 
@@ -866,20 +888,6 @@ class ConvolutionOperator1d
     return [@filter.lowfil, @filter.upfil]
   end
 
-  def decl_filters
-    if @wavelet then
-      decl @filter.low_even.fil
-      decl @filter.low_odd.fil
-      decl @filter.high_even.fil
-      decl @filter.high_odd.fil
-    elsif @poisson and @bc.nper  then
-      decl @filter.filters_array
-      decl @filter.fil
-    else
-      decl @filter.fil
-    end
-  end
-
   def stos(bool)
    if bool then
     return 't'
@@ -939,7 +947,7 @@ class ConvolutionOperator1d
     constants = get_constants
 
     return Procedure(function_name, vars, :constants => constants ){
-      decl_filters
+      @filter.decl_filters
       decl *iters
       decl l
       decl *([tt].flatten)
@@ -1038,12 +1046,7 @@ class ConvolutionOperator1d
     vec_len = [t].flatten[0].type.vector_length
     (0...tlen).step(vec_len).each_with_index{ |_,tt_ind|
       #WARNING: the eks conditional here can be relaxed
-      if @wavelet then
-        pr t[0][tt_ind].set( 0.0 )
-        pr t[1][tt_ind].set( 0.0 )
-      else
-        pr t[tt_ind].set( 0.0 )
-      end
+      @filter.set_zero_tt(tt_ind)
     }
   end
 
