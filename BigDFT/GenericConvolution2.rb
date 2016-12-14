@@ -93,12 +93,26 @@ class ConvolutionFilter < Filter
     pr out === FMA(Load(data[*indexes].set_align(out.type.total_size), out), @filter_val, out) # + @x[*i_in]*@filter.fil[l]
   end
 
-  def get_dims_grow_shrink( dim )
-    #growed dimension, to be used either for extremes or for mod_arr
-    dim_ngs = Dim( lowfil, dim + upfil  - 1)
-    #dimensions corresponding to the output of a grow operation
-    dim_nsg = Dim(-upfil,  dim - lowfil - 1)
-    return [dim_ngs, dim_nsg]
+  def get_input_dim( dim )
+    return Dim(0, dim - 1)
+  end
+
+  alias get_output_dim get_input_dim
+
+  def get_input_dim_shrink( dim )
+    return Dim( lowfil, dim + upfil  - 1)
+  end
+
+  def get_output_dim_grow( dim )
+    return Dim(-upfil,  dim - lowfil - 1)
+  end
+
+  def get_input_dim_ld_shrink( dim )
+    return Dim(lowfil, dim + lowfil - 1)
+  end
+
+  def get_output_dim_ld_grow( dim )
+    return Dim( -upfil, dim - upfil - 1)
   end
 
   def decl_filters
@@ -301,10 +315,28 @@ class WaveletFilterDecompose < WaveletFilter
     pr @filter_val[3] === Set(@high_odd.fil[index], @tt[0][0])
   end
 
-  def get_dims_grow_shrink( dim )
-    dim_ngs = [ Dim(0, 1), Dim( lowfil, dim + upfil - 1 ) ]
-    dim_nsg = [ Dim( -upfil, dim - lowfil - 1 ), Dim(0, 1) ]
-    return [dim_ngs, dim_nsg]
+  def get_input_dim( dim )
+    return [ Dim(0, 1), Dim( 0, dim - 1 ) ]
+  end
+
+  def get_input_dim_shrink( dim )
+    return [ Dim(0, 1), Dim( lowfil, dim + upfil - 1 ) ]
+  end
+
+  def get_input_dim_ld_shrink( dim )
+    return [ Dim(0, 1), Dim( lowfil, dim + lowfil - 1 ) ]
+  end
+
+  def get_output_dim( dim )
+    return [ Dim( 0, dim - 1 ), Dim(0, 1) ]
+  end
+
+  def get_output_dim_grow( dim )
+    return [ Dim( -upfil, dim - lowfil - 1 ), Dim(0, 1) ]
+  end
+
+  def get_output_dim_ld_grow( dim )
+    return [ Dim( -upfil, dim - upfil - 1 ), Dim(0, 1) ]
   end
 
 end
@@ -350,10 +382,28 @@ class WaveletFilterRecompose < WaveletFilter
     pr @filter_val[3] === Set(@high_even.fil[index], @tt[0][0])
   end
 
-  def get_dims_grow_shrink( dim )
-    dim_ngs = [ Dim( lowfil, dim + upfil - 1 ), Dim(0, 1) ]
-    dim_nsg = [ Dim(0, 1), Dim( -upfil, dim - lowfil - 1 ) ]
-    return [dim_ngs, dim_nsg]
+  def get_input_dim( dim )
+    return [ Dim( 0, dim - 1 ), Dim(0, 1) ]
+  end
+
+  def get_input_dim_shrink( dim )
+    return [ Dim( lowfil, dim + upfil - 1 ), Dim(0, 1) ]
+  end
+
+  def get_input_dim_ld_shrink( dim )
+    return [ Dim( lowfil, dim + lowfil - 1 ), Dim(0, 1) ]
+  end
+
+  def get_output_dim( dim )
+    return [ Dim(0, 1), Dim( 0, dim - 1 ) ]
+  end
+
+  def get_output_dim_grow( dim )
+    return [ Dim(0, 1), Dim( -upfil, dim - lowfil - 1 ) ]
+  end
+
+  def get_output_dim_ld_grow( dim )
+    return [ Dim(0, 1), Dim( -upfil, dim - upfil - 1 ) ]
   end
 
 end
@@ -649,34 +699,19 @@ class ConvolutionOperator1d
       @dims_out = [ndat] + @dims_out
     end
 
-    @dim_ngs, @dim_nsg = @filter.get_dims_grow_shrink( @dim_n )
+    @dim_ngs = @filter.get_input_dim_shrink( @dim_n )
+    @dim_nsg = @filter.get_output_dim_grow( @dim_n )
 
   end
 
   def compute_dimx_dimy
     dimx = @dims_in.collect{ |dim|
       if not dim.name.match("ndat") and @bc.shrink and not @ld then
-        @dim_ngs
+        @filter.get_input_dim_shrink( dim )
       elsif not dim.name.match("ndat") and @bc.shrink
-        if @wavelet then
-          if @wavelet == :decompose then
-            [ Dim(0, 1), Dim( @filter.lowfil, dim + @filter.lowfil - 1 ) ]
-          else
-            [ Dim( @filter.lowfil, dim + @filter.lowfil - 1 ), Dim(0, 1) ]
-          end
-        else
-          Dim(@filter.lowfil, dim + @filter.lowfil - 1)
-        end
+        @filter.get_input_dim_ld_shrink( dim )
       elsif not dim.name.match("ndat")
-        if @wavelet then
-          if @wavelet == :decompose then
-            [ Dim(0, 1), Dim(0, dim - 1) ]
-          else
-            [ Dim(0, dim - 1), Dim(0, 1) ]
-          end
-        else
-          Dim(0, dim - 1)
-        end
+        @filter.get_input_dim( dim )
       else
         Dim(0, dim - 1)
       end
@@ -684,27 +719,11 @@ class ConvolutionOperator1d
     dimx.flatten!
     dimy = @dims_out.collect{ |dim|
       if not dim.name.match("ndat") and @bc.grow and not @ld then
-        @dim_nsg
+        @filter.get_output_dim_grow( dim )
       elsif not dim.name.match("ndat") and @bc.grow then
-        if @wavelet then
-          if @wavelet == :decompose then
-            [ Dim( -@filter.upfil, dim - @filter.upfil - 1 ), Dim(0, 1) ]
-          else
-            [ Dim(0, 1), Dim( -@filter.upfil, dim - @filter.upfil - 1 ) ]
-          end
-        else
-          Dim( -@filter.upfil, dim - @filter.upfil - 1)
-        end
+        @filter.get_output_dim_ld_grow( dim )
       elsif not dim.name.match("ndat")
-        if @wavelet then
-          if @wavelet == :decompose then
-            [ Dim(0, dim - 1), Dim(0, 1) ]
-          else
-            [ Dim(0, 1), Dim(0, dim - 1) ]
-          end
-        else
-          Dim(0, dim - 1)
-        end
+        @filter.get_output_dim( dim )
       else
         Dim(0, dim - 1)
       end
