@@ -84,6 +84,19 @@ class ConvolutionFilter < Filter
     pr @filter_val === Set(@fil[index], @tt[0])
   end
 
+  def compute_values( tt_ind, indexes, data)
+    out = @tt[tt_ind]
+    pr out === FMA(Load(data[*indexes].set_align(out.type.total_size), out), @filter_val, out) # + @x[*i_in]*@filter.fil[l]
+  end
+
+  def get_dims_grow_shrink( dim )
+    #growed dimension, to be used either for extremes or for mod_arr
+    dim_ngs = Dim( lowfil, dim + upfil  - 1)
+    #dimensions corresponding to the output of a grow operation
+    dim_nsg = Dim(-upfil,  dim - lowfil - 1)
+    return [dim_ngs, dim_nsg]
+  end
+
 end #class ConvolutionFilter
 
 class PoissonFilter < ConvolutionFilter
@@ -209,6 +222,17 @@ class WaveletFilter < Filter
     return (0..3).collect { |index| @tt[0][0].copy("filter_val#{index}") }
   end
 
+  def compute_values( tt_ind, indexes, data)
+    out_even = @tt[0][tt_ind]
+    out_odd  = @tt[1][tt_ind]
+    i_in0 = indexes[0].flatten
+    i_in1 = indexes[1].flatten
+    pr out_even === FMA(Load(data[*(i_in0)], out_even), @filter_val[0], out_even)
+    pr out_odd  === FMA(Load(data[*(i_in0)], out_odd ), @filter_val[1], out_odd )
+    pr out_even === FMA(Load(data[*(i_in1)], out_even), @filter_val[2], out_even)
+    pr out_odd  === FMA(Load(data[*(i_in1)], out_odd ), @filter_val[3], out_odd )
+  end
+
 end
 
 class WaveletFilterDecompose < WaveletFilter
@@ -252,6 +276,12 @@ class WaveletFilterDecompose < WaveletFilter
     pr @filter_val[3] === Set(@high_odd.fil[index], @tt[0][0])
   end
 
+  def get_dims_grow_shrink( dim )
+    dim_ngs = [ Dim(0, 1), Dim( lowfil, dim + upfil - 1 ) ]
+    dim_nsg = [ Dim( -upfil, dim - lowfil - 1 ), Dim(0, 1) ]
+    return [dim_ngs, dim_nsg]
+  end
+
 end
 
 class WaveletFilterRecompose < WaveletFilter
@@ -293,6 +323,12 @@ class WaveletFilterRecompose < WaveletFilter
     pr @filter_val[1] === Set(@low_even.fil[index], @tt[0][0])
     pr @filter_val[2] === Set(@high_odd.fil[index], @tt[0][0])
     pr @filter_val[3] === Set(@high_even.fil[index], @tt[0][0])
+  end
+
+  def get_dims_grow_shrink( dim )
+    dim_ngs = [ Dim( lowfil, dim + upfil - 1 ), Dim(0, 1) ]
+    dim_nsg = [ Dim(0, 1), Dim( -upfil, dim - lowfil - 1 ) ]
+    return [dim_ngs, dim_nsg]
   end
 
 end
@@ -588,20 +624,7 @@ class ConvolutionOperator1d
       @dims_out = [ndat] + @dims_out
     end
 
-    if @wavelet then
-      if @wavelet == :decompose then
-        @dim_ngs = [ Dim(0, 1), Dim( @filter.lowfil, @dim_n + @filter.upfil - 1 ) ]
-        @dim_nsg = [ Dim( -@filter.upfil, @dim_n - @filter.lowfil - 1 ), Dim(0, 1) ] 
-      else
-        @dim_ngs = [ Dim( @filter.lowfil, @dim_n + @filter.upfil - 1 ), Dim(0, 1) ]
-        @dim_nsg = [ Dim(0, 1), Dim( -@filter.upfil, @dim_n - @filter.lowfil - 1 ) ]
-      end
-    else
-      #growed dimension, to be used either for extremes or for mod_arr
-      @dim_ngs = Dim( @filter.lowfil, @dim_n + @filter.upfil  - 1)
-      #dimensions corresponding to the output of a grow operation
-      @dim_nsg = Dim(-@filter.upfil,  @dim_n - @filter.lowfil - 1)
-    end
+    @dim_ngs, @dim_nsg = @filter.get_dims_grow_shrink( @dim_n )
 
   end
 
@@ -1013,9 +1036,8 @@ class ConvolutionOperator1d
 
   def init_values(side, iters, l, t, tlen, unro, mods)
     vec_len = [t].flatten[0].type.vector_length
-    (0...tlen).step(vec_len).each{ |ind|
+    (0...tlen).step(vec_len).each_with_index{ |_,tt_ind|
       #WARNING: the eks conditional here can be relaxed
-      tt_ind = ind/vec_len
       if @wavelet then
         pr t[0][tt_ind].set( 0.0 )
         pr t[1][tt_ind].set( 0.0 )
@@ -1029,7 +1051,7 @@ class ConvolutionOperator1d
     processed_dim = @dim_indexes[-1]
     vec_len = [t].flatten[0].type.vector_length
 
-    (0...tlen).step(vec_len).each{ |ind|
+    (0...tlen).step(vec_len).each_with_index{ |ind,tt_ind|
 
       if @bc.free or (side == :center) then
         i_in = input_index(unro, iters, ind, processed_dim, l, nil, nil, side)
@@ -1039,39 +1061,7 @@ class ConvolutionOperator1d
         i_in = input_index(unro, iters, ind, processed_dim, l, @dims[processed_dim],nil, side)
       end
 
-
-      tt_ind = ind/vec_len
-      if @wavelet then
-        out_even = t[0][tt_ind]
-        out_odd  = t[1][tt_ind]
-        i_in[0].flatten!
-        i_in[1].flatten!
-#        if @wavelet == :decompose then
-#          pr out_even === FMA(Load(@x[*(i_in[0])], out_even), Set(@filter.low_even.fil[l] , out_even), out_even)
-#          pr out_odd  === FMA(Load(@x[*(i_in[0])], out_odd ), Set(@filter.high_even.fil[l], out_odd ), out_odd )
-#          pr out_even === FMA(Load(@x[*(i_in[1])], out_even), Set(@filter.low_odd.fil[l]  , out_even), out_even)
-#          pr out_odd  === FMA(Load(@x[*(i_in[1])], out_odd ), Set(@filter.high_odd.fil[l] , out_odd ), out_odd )
-#        else
-#          pr out_even === FMA(Load(@x[*(i_in[0])], out_even), Set(@filter.low_odd.fil[l]  , out_even), out_even)
-#          pr out_odd  === FMA(Load(@x[*(i_in[0])], out_odd ), Set(@filter.low_even.fil[l] , out_odd ), out_odd )
-#          pr out_even === FMA(Load(@x[*(i_in[1])], out_even), Set(@filter.high_odd.fil[l] , out_even), out_even)
-#          pr out_odd  === FMA(Load(@x[*(i_in[1])], out_odd ), Set(@filter.high_even.fil[l], out_odd ), out_odd )
-#        end
-        if @wavelet == :decompose then
-          pr out_even === FMA(Load(@x[*(i_in[0])], out_even), @filter.get_filter_val[0], out_even)
-          pr out_odd  === FMA(Load(@x[*(i_in[0])], out_odd ), @filter.get_filter_val[1], out_odd )
-          pr out_even === FMA(Load(@x[*(i_in[1])], out_even), @filter.get_filter_val[2], out_even)
-          pr out_odd  === FMA(Load(@x[*(i_in[1])], out_odd ), @filter.get_filter_val[3], out_odd )
-        else
-          pr out_even === FMA(Load(@x[*(i_in[0])], out_even), @filter.get_filter_val[0], out_even)
-          pr out_odd  === FMA(Load(@x[*(i_in[0])], out_odd ), @filter.get_filter_val[1], out_odd )
-          pr out_even === FMA(Load(@x[*(i_in[1])], out_even), @filter.get_filter_val[2], out_even)
-          pr out_odd  === FMA(Load(@x[*(i_in[1])], out_odd ), @filter.get_filter_val[3], out_odd )
-        end
-      else
-        out = t[tt_ind]
-        pr out === FMA(Load(@x[*i_in].set_align(out.type.total_size), out), @filter.get_filter_val, out) # + @x[*i_in]*@filter.fil[l]
-      end
+      @filter.compute_values(tt_ind, i_in, @x)
     }
   end
 
@@ -1079,7 +1069,7 @@ class ConvolutionOperator1d
   def post_process_and_store_values(side, iters, l, t, tlen, unro, mods)
     processed_dim = @dim_indexes[-1]
     vec_len = [t].flatten[0].type.vector_length
-    (0...tlen).step(vec_len).each{ |ind|
+    (0...tlen).step(vec_len).each_with_index{ |ind,tt_ind|
       i_out = output_index(unro, iters, ind)
       i_in = input_index(unro, iters, ind)
       if @wavelet then
@@ -1090,14 +1080,9 @@ class ConvolutionOperator1d
       else
         i_out.rotate!(@transpose)
       end
-      tt_ind = ind/vec_len
       if @wavelet then
         out_even = t[0][tt_ind]
         out_odd  = t[1][tt_ind]
-      else
-        out = t[tt_ind]
-      end
-      if @wavelet then
         pr out_even === out_even * Set(@a, out_even) if @a
         pr out_odd  === out_odd  * Set(@a, out_odd ) if @a
         if @accumulate then #and not @init then
@@ -1110,6 +1095,7 @@ class ConvolutionOperator1d
         pr @y[*i_out[0]] === out_even
         pr @y[*i_out[1]] === out_odd
       else
+        out = t[tt_ind]
         pr out === out * Set(@a, out) if @a
         finish_block = lambda {
           pr @dot_in_tmp === FMA(Load(@x[*i_in].set_align(out.type.total_size), out), out, @dot_in_tmp) if @dot_in_tmp #reduction !!!!!!!!!!!!!!!!!!!!!!!
