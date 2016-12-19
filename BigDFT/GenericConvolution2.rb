@@ -84,7 +84,7 @@ class ConvolutionFilter < Filter
     return @tt[0].copy("filter_val")
   end
 
-  def set_filter_val( index )
+  def set_filter_val( index, options = {} )
     pr @filter_val === Set(@fil[index], @tt[0])
   end
 
@@ -115,8 +115,12 @@ class ConvolutionFilter < Filter
     return Dim( -upfil, dim - upfil - 1)
   end
 
-  def decl_filters
+  def decl_filters( options = {} )
     decl fil
+  end
+
+  def cost
+    return @length * 2
   end
 
 end #class ConvolutionFilter
@@ -140,15 +144,30 @@ class PoissonFilter < ConvolutionFilter
     arr = ConstArray::new(tmp_array,Real)
     @filters_array = Real("#{name}_fil",:constant => arr,:dim => [ Dim(0,(2*@center+1)*(2*@center+1)-1) ])
 
-    super(name, @filters[@center].fil, @center)
+    super(filters[@center].name, @filters[@center].fil_array, @center)
+    @name = name
 
     @fil_array = filts.dup
 
   end
 
-  def decl_filters
-    decl filters_array
-    decl fil
+  def decl_filters( options = {} )
+    decl filters_array if options[:bc].nper
+    decl @filters[@center].fil
+  end
+
+  def set_filter_val( index, options = {} )
+    if options[:bc].nper then
+      if options[:side] == :center then
+        super
+      elsif options[:side] == :begin then
+        pr @filter_val === Set(@filters_array[((options[:position] - (upfil)                       )*(2*@center+1)) + (@center)*(2*@center+1) + index + @center], @tt[0])
+      elsif options[:side] == :end then
+        pr @filter_val === Set(@filters_array[((options[:position] + (@center) - options[:dim] + 1 )*(2*@center+1)) + (@center)*(2*@center+1) + index + @center], @tt[0])
+      end
+    else
+      super
+    end
   end
 
 end
@@ -265,11 +284,15 @@ class WaveletFilter < Filter
     pr @tt[1][tt_ind].set( 0.0 )
   end
 
-  def decl_filters
+  def decl_filters( options = {} )
     decl low_even.fil
     decl low_odd.fil
     decl high_even.fil
     decl high_odd.fil
+  end
+
+  def cost
+    return @length * 2 * 2
   end
 
 end
@@ -308,7 +331,7 @@ class WaveletFilterDecompose < WaveletFilter
     end
   end
 
-  def set_filter_val( index )
+  def set_filter_val( index, options = {} )
     pr @filter_val[0] === Set(@low_even.fil[index], @tt[0][0])
     pr @filter_val[1] === Set(@high_even.fil[index], @tt[0][0])
     pr @filter_val[2] === Set(@low_odd.fil[index], @tt[0][0])
@@ -375,7 +398,7 @@ class WaveletFilterRecompose < WaveletFilter
     end
   end
 
-  def set_filter_val( index )
+  def set_filter_val( index, options = {} )
     pr @filter_val[0] === Set(@low_odd.fil[index], @tt[0][0])
     pr @filter_val[1] === Set(@low_even.fil[index], @tt[0][0])
     pr @filter_val[2] === Set(@high_odd.fil[index], @tt[0][0])
@@ -883,11 +906,7 @@ class ConvolutionOperator1d
     @dim_indexes[0...-1].each { |indx|
       ndat *= dimens[indx]
     }
-    if @wavelet then
-      return 2 * n * ( 2 * @filter.low.length ) * ndat
-    else
-      return n * ( 2 * @filter.length ) * ndat
-    end
+    return n * @filter.cost * ndat
   end
 
   def get_mods(mod_arr)
@@ -896,7 +915,7 @@ class ConvolutionOperator1d
       #mods=Int("mod_arr", :allocate => true, :dim => [@dim_ngs])
       mods=Int("mod_arr", :allocate => true, 
                       :dim => [Dim(@filter.lowfil - @filter.upfil,
-                                          @filter.upfil - @filter.lowfil - 1)])
+                                   @filter.upfil - @filter.lowfil - 1)])
     else
       mods=nil
     end
@@ -950,11 +969,7 @@ class ConvolutionOperator1d
         @dim_indexes[0...-1].each { |indx|
           pr ndat_t === ndat_t * @dims[indx]
         }
-        if @wavelet then
-          pr @cost === @dims[@dim_indexes.last] * 2 * 2 * @filter.low.length * ndat_t
-        else
-          pr @cost === @dims[@dim_indexes.last] * 2 * @filter.length * ndat_t
-        end
+        pr @cost === @dims[@dim_indexes.last] * @filter.cost * ndat_t
       }
     end
 
@@ -966,7 +981,7 @@ class ConvolutionOperator1d
     constants = get_constants
 
     return Procedure(function_name, vars, :constants => constants ){
-      @filter.decl_filters
+      @filter.decl_filters( :bc => @bc )
       decl *iters
       decl l
       decl *([tt].flatten)
@@ -1069,9 +1084,9 @@ class ConvolutionOperator1d
     }
   end
 
-  def compute_values(side, iters, l, t, tlen, unro, mods)
+  def compute_values(side, iters, l, tlen, unro, mods)
     processed_dim = @dim_indexes[-1]
-    vec_len = [t].flatten[0].type.vector_length
+    vec_len = [@filter.get_tt].flatten[0].type.vector_length
 
     (0...tlen).step(vec_len).each_with_index{ |ind,tt_ind|
 
@@ -1099,10 +1114,6 @@ class ConvolutionOperator1d
         i_out[1].rotate!(@transpose)
         i_out[0].flatten!
         i_out[1].flatten!
-      else
-        i_out.rotate!(@transpose)
-      end
-      if @wavelet then
         out_even = t[0][tt_ind]
         out_odd  = t[1][tt_ind]
         pr out_even === out_even * Set(@a, out_even) if @a
@@ -1117,6 +1128,7 @@ class ConvolutionOperator1d
         pr @y[*i_out[0]] === out_even
         pr @y[*i_out[1]] === out_odd
       else
+        i_out.rotate!(@transpose)
         out = t[tt_ind]
         pr out === out * Set(@a, out) if @a
         finish_block = lambda {
@@ -1152,24 +1164,10 @@ class ConvolutionOperator1d
 
     loop_start, loop_end = get_loop_start_end( side, iters)
 
-    f = For( l, loop_start, loop_end) {
-      if not (@poisson and @bc.nper and (side != :center))
-        @filter.set_filter_val(l)
-      else 
-        processed_dim = @dim_indexes[-1]
-        if side == :begin then
-          pr @filter.get_filter_val === Set(@filter.filters_array[((iters[processed_dim] - (@filter.upfil))*(2*@filter.center+1)) + (@filter.center)*(2*@filter.center+1) + (l) + (@filter.center) ], @filter.get_tt[0])
-        elsif side == :end then
-          pr @filter.get_filter_val === Set(@filter.filters_array[((iters[processed_dim] + (@filter.center) - @dims[processed_dim] +1)*(2*@filter.center+1)) + (@filter.center)*(2*@filter.center+1) + (l) + @filter.center], @filter.get_tt[0])
-        end
-      end
-      compute_values(side, iters, l, t, tlen, unro, mods)
+    pr For( l, loop_start, loop_end, :unroll => unroll_inner ) {
+      @filter.set_filter_val(l, :side => side, :position => iters[@dim_indexes[-1]], :dim => @dims[@dim_indexes[-1]], :bc => @bc)
+      compute_values(side, iters, l, tlen, unro, mods)
     }
-    if unroll_inner then
-      pr f.unroll
-    else
-      pr f
-    end
 
     post_process_and_store_values(side, iters, l, t, tlen, unro, mods)
 
