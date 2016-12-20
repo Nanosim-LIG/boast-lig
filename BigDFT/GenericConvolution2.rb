@@ -88,9 +88,41 @@ class ConvolutionFilter < Filter
     pr @filter_val === Set(@fil[index], @tt[0])
   end
 
-  def compute_values( tt_ind, indexes, data)
+  def compute_values( tt_ind, indexes, data_in)
     out = @tt[tt_ind]
-    pr out === FMA(Load(data[*indexes].set_align(out.type.total_size), out), @filter_val, out) # + @x[*i_in]*@filter.fil[l]
+    pr out === FMA(Load(data_in[*indexes].set_align(out.type.total_size), out), @filter_val, out) # + @x[*i_in]*@filter.fil[l]
+  end
+
+  def post_process_and_store_values( tt_ind, indexes, data_out, transpose, options = {} )
+    i_out = indexes.rotate(transpose)
+    i_in = options[:indexes_in]
+    out = @tt[tt_ind]
+    pr out === out * Set(options[:a], out) if options[:a]
+
+    finish_block = lambda {
+      pr options[:dot_in_tmp] === FMA(Load(options[:data_in][*i_in].set_align(out.type.total_size), out), out, options[:dot_in_tmp]) if options[:dot_in_tmp] #reduction !
+      pr out === FMA(Load(options[:data_in][*i_in], out), Set(options[:a_x], out), out) if options[:a_x]
+    }
+    if options[:bc].grow and (options[:dot_in_tmp] or options[:a_x]) and options[:side] != :center then
+      if options[:side] == :begin then
+        pr If(options[:position] >= 0, &finish_block)
+      elsif options[:side] == :end then
+        pr If(options[:position] < options[:dim], &finish_block)
+      end
+    else
+      finish_block.call
+    end
+
+    #to be controlled in the case of non-orthorhombic cells for kinetic operations
+    pr out === out + Load(options[:data_in2][*i_in], out) if options[:data_in2]
+
+    if options[:accumulate] or (options[:kinetic] == :inplace and not options[:zero_out])  then
+      pr out === out + Load(data_out[*i_out].set_align(out.type.total_size), out)
+    elsif options[:a_y] then
+      pr out === FMA(Set(options[:a_y], out), Load(data_out[*i_out].set_align(out.type.total_size), out), out)
+    end
+    pr data_out[*i_out].set_align(out.type.total_size) === out
+    pr options[:data_out2][*i_out] === Load(options[:data_in][*i_in], out) if options[:data_out2]
   end
 
   def get_input_dim( dim )
@@ -273,10 +305,32 @@ class WaveletFilter < Filter
     out_odd  = @tt[1][tt_ind]
     i_in0 = indexes[0].flatten
     i_in1 = indexes[1].flatten
-    pr out_even === FMA(Load(data[*(i_in0)], out_even), @filter_val[0], out_even)
-    pr out_odd  === FMA(Load(data[*(i_in0)], out_odd ), @filter_val[1], out_odd )
-    pr out_even === FMA(Load(data[*(i_in1)], out_even), @filter_val[2], out_even)
-    pr out_odd  === FMA(Load(data[*(i_in1)], out_odd ), @filter_val[3], out_odd )
+    pr out_even === FMA(Load(data[*i_in0], out_even), @filter_val[0], out_even)
+    pr out_odd  === FMA(Load(data[*i_in0], out_odd ), @filter_val[1], out_odd )
+    pr out_even === FMA(Load(data[*i_in1], out_even), @filter_val[2], out_even)
+    pr out_odd  === FMA(Load(data[*i_in1], out_odd ), @filter_val[3], out_odd )
+  end
+
+  def post_process_and_store_values( tt_ind, indexes, data, transpose, options = {} )
+    out_even = @tt[0][tt_ind]
+    out_odd  = @tt[1][tt_ind]
+    i_out0 = indexes[0].rotate(transpose).flatten
+    i_out1 = indexes[1].rotate(transpose).flatten
+    if options[:a] then
+      pr out_even === out_even * Set( options[:a], out_even)
+      pr out_odd  === out_odd  * Set( options[:a], out_odd )
+    end
+
+    if options[:accumulate] then
+      pr out_even === Load(data[*i_out0], out_even) + out_even
+      pr out_odd  === Load(data[*i_out1], out_odd ) + out_odd
+    elsif options[:a_y] then
+      pr out_even === FMA(Load(data[*i_out0], out_even), Set(options[:a_y], out_even), out_even)
+      pr out_odd  === FMA(Load(data[*i_out1], out_odd ), Set(options[:a_y], out_odd ), out_odd )
+    end
+
+    pr data[*i_out0] === out_even
+    pr data[*i_out1] === out_odd
   end
 
   def set_zero_tt( tt_ind )
@@ -1109,52 +1163,25 @@ class ConvolutionOperator1d
     (0...tlen).step(vec_len).each_with_index{ |ind,tt_ind|
       i_out = output_index(unro, iters, ind)
       i_in = input_index(unro, iters, ind)
-      if @wavelet then
-        i_out[0].rotate!(@transpose)
-        i_out[1].rotate!(@transpose)
-        i_out[0].flatten!
-        i_out[1].flatten!
-        out_even = t[0][tt_ind]
-        out_odd  = t[1][tt_ind]
-        pr out_even === out_even * Set(@a, out_even) if @a
-        pr out_odd  === out_odd  * Set(@a, out_odd ) if @a
-        if @accumulate then #and not @init then
-          pr out_even === Load(@y[*i_out[0]], out_even) + out_even
-          pr out_odd  === Load(@y[*i_out[1]], out_odd)  + out_odd
-        elsif @a_y then #and not @init then
-          pr out_even === FMA(Load(@y[*i_out[0]], out_even), Set(@a_y, out_even), out_even)
-          pr out_odd  === FMA(Load(@y[*i_out[1]], out_odd ), Set(@a_y, out_odd ), out_odd )
-        end
-        pr @y[*i_out[0]] === out_even
-        pr @y[*i_out[1]] === out_odd
-      else
-        i_out.rotate!(@transpose)
-        out = t[tt_ind]
-        pr out === out * Set(@a, out) if @a
-        finish_block = lambda {
-          pr @dot_in_tmp === FMA(Load(@x[*i_in].set_align(out.type.total_size), out), out, @dot_in_tmp) if @dot_in_tmp #reduction !!!!!!!!!!!!!!!!!!!!!!!
-          pr out === FMA(Load(@x[*i_in], out), Set(@a_x, out), out) if @a_x
-        }
-        if @bc.grow and (@dot_in or @a_x) and side != :center then
-          if side == :begin then
-            pr If(iters[processed_dim] >= 0, &finish_block)
-          elsif side == :end then
-            pr If(iters[processed_dim] < @dims[processed_dim], &finish_block)
-          end
-        else
-          finish_block.call
-        end
-
-        #to be controlled in the case of non-orthorhombic cells for kinetic operations
-        pr out === out + Load(@x2[*i_in], out) if @x2
-        if @accumulate or (@kinetic == :inplace and not @options[:zero_out])  then
-          pr out === out + Load(@y[*i_out].set_align(out.type.total_size), out)
-        elsif @a_y then
-          pr out === FMA(Set(@a_y, out), Load(@y[*i_out].set_align(out.type.total_size), out), out)
-        end
-        pr @y[*i_out].set_align(out.type.total_size) === out
-        pr @y2[*i_out] === Load(@x[*i_in], out) if @kinetic and @transpose != 0
-      end
+      @filter.post_process_and_store_values( tt_ind,
+                                             i_out,
+                                             @y,
+                                             @transpose,
+                                             :bc => @bc,
+                                             :side => side,
+                                             :position => iters[processed_dim],
+                                             :dim => @dims[processed_dim],
+                                             :accumulate => @accumulate,
+                                             :a => @a,
+                                             :a_y => @a_y,
+                                             :a_x => @a_x,
+                                             :dot_in_tmp => @dot_in_tmp,
+                                             :kinetic => @kinetic,
+                                             :zero_out => @options[:zero_out],
+                                             :data_in => @x,
+                                             :data_in2 => @x2,
+                                             :indexes_in => i_in,
+                                             :data_out2 => @y2 )
     }
   end
 
