@@ -42,6 +42,30 @@ class Filter
     decl *([@filter_val].flatten)
   end
 
+  def get_input_dim( dim, options = {} )
+    if options[:bc].shrink then
+      if options[:ld] then
+        get_input_dim_ld_shrink( dim )
+      else
+        get_input_dim_shrink( dim )
+      end
+    else
+      get_input_dim_std( dim )
+    end
+  end
+
+  def get_output_dim( dim, options = {} )
+    if options[:bc].grow then
+      if options[:ld] then
+        get_output_dim_ld_grow( dim )
+      else
+        get_output_dim_grow( dim )
+      end
+    else
+      get_output_dim_std( dim )
+    end
+  end
+
 end
 
 class ConvolutionFilter < Filter
@@ -125,11 +149,11 @@ class ConvolutionFilter < Filter
     pr options[:data_out2][*i_out] === Load(options[:data_in][*i_in], out) if options[:data_out2]
   end
 
-  def get_input_dim( dim )
+  def get_input_dim_std( dim )
     return Dim(0, dim - 1)
   end
 
-  alias get_output_dim get_input_dim
+  alias get_output_dim_std get_input_dim_std
 
   def get_input_dim_shrink( dim )
     return Dim( lowfil, dim + upfil  - 1)
@@ -392,7 +416,7 @@ class WaveletFilterDecompose < WaveletFilter
     pr @filter_val[3] === Set(@high_odd.fil[index], @tt[0][0])
   end
 
-  def get_input_dim( dim )
+  def get_input_dim_std( dim )
     return [ Dim(0, 1), Dim( 0, dim - 1 ) ]
   end
 
@@ -404,7 +428,7 @@ class WaveletFilterDecompose < WaveletFilter
     return [ Dim(0, 1), Dim( lowfil, dim + lowfil - 1 ) ]
   end
 
-  def get_output_dim( dim )
+  def get_output_dim_std( dim )
     return [ Dim( 0, dim - 1 ), Dim(0, 1) ]
   end
 
@@ -459,7 +483,7 @@ class WaveletFilterRecompose < WaveletFilter
     pr @filter_val[3] === Set(@high_even.fil[index], @tt[0][0])
   end
 
-  def get_input_dim( dim )
+  def get_input_dim_std( dim )
     return [ Dim( 0, dim - 1 ), Dim(0, 1) ]
   end
 
@@ -471,7 +495,7 @@ class WaveletFilterRecompose < WaveletFilter
     return [ Dim( lowfil, dim + lowfil - 1 ), Dim(0, 1) ]
   end
 
-  def get_output_dim( dim )
+  def get_output_dim_std( dim )
     return [ Dim(0, 1), Dim( 0, dim - 1 ) ]
   end
 
@@ -644,6 +668,113 @@ class GenericOptimization
 
 end
 
+class Convolution1dShape
+
+  attr_reader :dim_indexes
+  attr_reader :bc
+  attr_reader :transpose
+  attr_reader :filter
+  attr_reader :ld
+
+  attr_reader :processed_dim_index
+  attr_reader :processed_dim
+  attr_reader :non_processed_dim_indexes
+  attr_reader :non_processed_dims
+
+  attr_reader :dim_n
+  attr_reader :dims, :dims_in, :dims_out
+
+  attr_reader :dimx, :dimy
+
+  attr_reader :line_start, :line_end
+  attr_reader :border_low, :border_high
+
+  def initialize(dim_indexes, bc, transpose, filter, ld)
+    @dim_indexes = dim_indexes
+    @bc = bc
+    @transpose = transpose
+    @filter = filter
+    @ld = ld
+
+    @processed_dim_index = @dim_indexes[-1]
+    @non_processed_dim_indexes = @dim_indexes[0..-2]
+
+    generate_dims
+    compute_dimx_dimy
+    compute_inner_loop_boundaries
+  end
+
+  def length
+    return @dim_indexes.length
+  end
+
+  def to_s
+    return @dim_indexes.join('')
+  end
+
+  def vars
+    vars = @dims.dup
+    if @ld then
+      vars.push( @dims_in[processed_dim_index], @dims_out[processed_dim_index] )
+    end
+    return vars
+  end
+
+  private
+
+  def generate_dims
+    @dims = [nil]*length
+    @dim_n = Int(:n, :dir => :in)
+    @dims[processed_dim_index] = @dim_n
+    non_processed_dim_indexes.each { |dim|
+      @dims[dim] = Int( "ndat#{dim}", :dir => :in)
+    }
+    @dims_in  = @dims.dup
+    @dims_out = @dims.dup
+    if @ld then
+      @dims_in[processed_dim_index] = Int(:nx, :dir => :in)
+      @dims_out[processed_dim_index] = Int(:ny, :dir => :in)
+    end
+
+    @processed_dim = @dims[@processed_dim_index]
+    @non_processed_dims = @non_processed_dim_indexes.collect { |indx|
+      @dims[indx]
+    }
+  end
+
+  def compute_dimx_dimy
+    @dimx = @dims_in.collect{ |dim|
+      if dim.name.match("ndat") then
+        Dim(0, dim - 1)
+      else
+        @filter.get_input_dim( dim, :bc => @bc, :ld => @ld )
+      end
+    }
+    @dimx.flatten!
+    @dimy = @dims_out.collect{ |dim|
+      if dim.name.match("ndat") then
+        Dim(0, dim - 1)
+      else
+        @filter.get_output_dim( dim, :bc => @bc, :ld => @ld )
+      end
+    }
+    @dimy.rotate!(@transpose).flatten!
+  end
+
+  def compute_inner_loop_boundaries
+    if @bc.grow then
+      @line_start = -@filter.upfil
+      @line_end = @dim_n - @filter.lowfil - 1
+    else
+      @line_start = 0
+      @line_end = @dim_n - 1
+    end
+    @border_low = -@filter.lowfil
+    @border_high = @dim_n - @filter.upfil
+  end
+
+end
+
 class ConvolutionOperator1d
   # Convolution filter
   attr_reader :filter
@@ -652,8 +783,8 @@ class ConvolutionOperator1d
   # input array, unchanged on exit
   attr_reader :in
   # output array
-  # wavelet:     y <- a wt_fil (x) in + [ a_y * y ]
-  # convolution: y <- a    fil (x) in + [ a_y * y ] + [ a_x * in ]
+  # wavelet:     y <- [a] wt_fil (x) in + [ a_y * y ]
+  # convolution: y <- [a]    fil (x) in + [ a_y * y ] + [ a_x * in ]
   attr_reader :y
   # reduce the array or not
   attr_reader :reduce
@@ -666,7 +797,7 @@ class ConvolutionOperator1d
   # variables of the procedure
   attr_reader :vars
   # options
-  attr_reader :option
+  attr_reader :options
   attr_reader :base_name
   # Creates new 1d convolution
   # 
@@ -694,30 +825,22 @@ class ConvolutionOperator1d
     @wavelet = options[:wavelet]
     @poisson = options[:poisson]
 
-    self.compute_dims
+    @shape = Convolution1dShape::new(dim_indexes, bc, @transpose, @filter, @ld)
 
-    @vars = @dims.dup
-    if @ld then
-      @vars.push( @nx )
-      @vars.push( @ny )
-    end
+    @vars = @shape.vars
 
-    self.compute_inner_loop_boundaries
 
-    dimx, dimy = self.compute_dimx_dimy
-    #@init = init
-
-    @vars.push @x = Real("x",:dir => :in, :dim => dimx, :restrict => true)
+    @vars.push @x = Real("x",:dir => :in, :dim => @shape.dimx, :restrict => true)
     if @kinetic and @kinetic != :inplace and not options[:zero_out_work] then
       if @bc.grow then
-        @vars.push @x2 = Real("x2",:dir => :in, :dim => dimy, :restrict => true)
+        @vars.push @x2 = Real("x2",:dir => :in, :dim => @shape.dimy, :restrict => true)
       else
-        @vars.push @x2 = Real("x2",:dir => :in, :dim => dimx, :restrict => true)
+        @vars.push @x2 = Real("x2",:dir => :in, :dim => @shape.dimx, :restrict => true)
       end
     end
-    @vars.push @y = Real("y",:dir => options[:a_y] ? :inout : :out, :dim => dimy, :restrict => true)
+    @vars.push @y = Real("y",:dir => options[:a_y] ? :inout : :out, :dim => @shape.dimy, :restrict => true)
     if @kinetic and @transpose != 0 then
-      @vars.push @y2 =  Real("y2", :dir => :out, :dim => dimy, :restrict => true)
+      @vars.push @y2 =  Real("y2", :dir => :out, :dim => @shape.dimy, :restrict => true)
     end
     @vars.push @a = Real("a",:dir => :in) if options[:a]
     @vars.push @a_x = Real("a_x",:dir => :in) if options[:a_x] #and init
@@ -736,7 +859,7 @@ class ConvolutionOperator1d
     @base_name += "s_" if default_real_size == 4
     @base_name += "d_" if default_real_size == 8
     @base_name += @filter.base_name + "_"
-    @base_name += @filter.name + "_" + @bc.name + "_#{@dim_indexes.join('')}"
+    @base_name += @filter.name + "_" + @bc.name + "_#{@shape}"
     @base_name += "_a" if @a
     @base_name += "_ain" if @a_x
     @base_name += "_ay" if @a_y
@@ -746,122 +869,51 @@ class ConvolutionOperator1d
     @base_name += "_x2" if @x2
   end
 
-  def compute_dims
-    @dim_n = Int("n",:dir =>:in)
-    if @ld then
-      @nx = Int("nx",:dir =>:in)
-      @ny = Int("ny",:dir =>:in)
-    else
-      @nx = @dim_n
-      @ny = @dim_n
-    end
-    @dims = [@dim_n]
-    @dims_in = [@nx]
-    @dims_out = [@ny]
-    if (dim_indexes.length == 3) then
-      ndat1 = Int("ndat1",:dir =>:in)
-      ndat2 = Int("ndat2",:dir =>:in)
-      @dims     = [ndat1] + @dims     + [ndat2]
-      @dims_in  = [ndat1] + @dims_in  + [ndat2]
-      @dims_out = [ndat1] + @dims_out + [ndat2]
-    elsif dim_indexes.last == 0
-      ndat = Int("ndat",:dir =>:in)
-      @dims     = @dims     + [ndat]
-      @dims_in  = @dims_in  + [ndat]
-      @dims_out = @dims_out + [ndat]
-    else
-      ndat = Int("ndat",:dir =>:in)
-      @dims     = [ndat] + @dims
-      @dims_in  = [ndat] + @dims_in
-      @dims_out = [ndat] + @dims_out
-    end
-
-    @dim_ngs = @filter.get_input_dim_shrink( @dim_n )
-    @dim_nsg = @filter.get_output_dim_grow( @dim_n )
-
-  end
-
-  def compute_dimx_dimy
-    dimx = @dims_in.collect{ |dim|
-      if not dim.name.match("ndat") and @bc.shrink and not @ld then
-        @filter.get_input_dim_shrink( dim )
-      elsif not dim.name.match("ndat") and @bc.shrink
-        @filter.get_input_dim_ld_shrink( dim )
-      elsif not dim.name.match("ndat")
-        @filter.get_input_dim( dim )
-      else
-        Dim(0, dim - 1)
-      end
-    }
-    dimx.flatten!
-    dimy = @dims_out.collect{ |dim|
-      if not dim.name.match("ndat") and @bc.grow and not @ld then
-        @filter.get_output_dim_grow( dim )
-      elsif not dim.name.match("ndat") and @bc.grow then
-        @filter.get_output_dim_ld_grow( dim )
-      elsif not dim.name.match("ndat")
-        @filter.get_output_dim( dim )
-      else
-        Dim(0, dim - 1)
-      end
-    }
-    dimy.rotate!(@transpose).flatten!
-    return [dimx, dimy]
-  end
-
-  def compute_inner_loop_boundaries
-    if @bc.grow then
-      @line_start = -@filter.upfil
-      @line_end = @dim_n - @filter.lowfil - 1
-    else
-      @line_start = 0
-      @line_end = @dim_n - 1
-    end
-    @border_low = -@filter.lowfil
-    @border_high = @dim_n - @filter.upfil
-  end
-
-  def params(dim, index=0)
+  def params(dim, index=@shape.processed_dim_index)
     if @wavelet then
       dim[index] /= 2
     end
     vars=[]
     varsin=[]
     varsout=[]
-    nd = { "n" => dim[index], "ndat" => 1, "ndat1" => 1, "ndat2" => 1 }
-    if @dims.length == 2 then
+    nd = { @shape.processed_dim.name => dim[index] } #, "ndat" => 1, "ndat1" => 1, "ndat2" => 1 }
+    if @shape.length == 2 then
+      nd[@shape.non_processed_dims.first.name] = 1
       dim.each_index { |indx|
-        nd["ndat"] *= dim[indx] if indx != index
+        nd[@shape.non_processed_dims.first.name] *= dim[indx] if indx != index
       }
     else
+      nd[@shape.non_processed_dims[0].name] = 1
+      nd[@shape.non_processed_dims[1].name] = 1
       dim.each_index { |indx|
-        nd["ndat1"] *= dim[indx] if indx < index
-        nd["ndat2"] *= dim[indx] if indx > index
+        nd[@shape.non_processed_dims[0].name] *= dim[indx] if indx < index
+        nd[@shape.non_processed_dims[0].name] *= dim[indx] if indx > index
       }
     end
     n_push = lambda { |varsi, varso|
+      s_n = nd[@shape.processed_dim.name]
       if @bc.grow then
-        varsi.push(nd["n"])
+        varsi.push(s_n)
         if @wavelet then
-          varso.push(nd["n"] + @filter.low.length - 1)
+          varso.push(s_n + @filter.low.length - 1)
         else
-          varso.push(nd["n"] + @filter.length - 1)
+          varso.push(s_n + @filter.length - 1)
         end
       elsif @bc.shrink
         if @wavelet then
-          varsi.push(nd["n"] + @filter.low.length - 1)
+          varsi.push(s_n + @filter.low.length - 1)
         else
-          varsi.push(nd["n"] + @filter.length - 1)
+          varsi.push(s_n + @filter.length - 1)
         end
-        varso.push(nd["n"])
+        varso.push(s_n)
       else
-        varsi.push(nd["n"])
-        varso.push(nd["n"])
+        varsi.push(s_n)
+        varso.push(s_n)
       end
     }
-    @dims.each { |dim|
+    @shape.dims.each { |dim|
       vars.push(nd[dim.name])
-      if dim.name == "n" then
+      if dim.name == @shape.processed_dim.name then
         n_push.call(varsin, varsout)
       else
         varsin.push(nd[dim.name])
@@ -914,7 +966,7 @@ class ConvolutionOperator1d
     p_best_optim = nil
     already_tested = {}
     opt_space.each{ |optim|
-      next if optim[:unrolled_dim_index] == 1 and @dims.length < 3
+      next if optim[:unrolled_dim_index] == 1 and @shape.length < 3
       #next if optim[:mod_arr] and @bc.free
       #puts optim
       kernel = CKernel::new
@@ -927,11 +979,11 @@ class ConvolutionOperator1d
       kernel.build(:openmp => opt_space.openmp)
       dimensions = opt_space.dimensions
       par = nil
-      if dimensions.length < @dims.length then
-        dimensions += [dimensions[0]]*(@dims.length-dimensions.length)
+      if dimensions.length < @shape.length then
+        dimensions += [dimensions[0]]*(@shape.length-dimensions.length)
       end
       stats_a = []
-      par = self.params(dimensions.dup,@dim_indexes.last)
+      par = self.params(dimensions.dup)
       #puts par.inspect
       opt_space.repeat.times {
         stats_a.push kernel.run(*par)
@@ -940,11 +992,11 @@ class ConvolutionOperator1d
       stats = stats_a.first
       #puts *par[0...@dims.length]
       if get_verbose then
-        puts "#{optim} - [#{par[0...@dims.length].join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} ms #{self.cost(*par[0...@dims.length]) / (stats[:duration]*1.0e9)} GFlops"
+        puts "#{optim} - [#{par[0...@shape.length].join(", ")}] - #{kernel.procedure.name}: #{stats[:duration]*1.0e3} ms #{self.cost(*par[0...@shape.length]) / (stats[:duration]*1.0e9)} GFlops"
         puts optim
       end
       t_min = stats[:duration]
-      puts "#{kernel.procedure.name}: #{t_min*1.0e3} ms #{self.cost(*par[0...@dims.length]) / (t_min*1.0e9)} GFlops"
+      puts "#{kernel.procedure.name}: #{t_min*1.0e3} ms #{self.cost(*par[0...@shape.length]) / (t_min*1.0e9)} GFlops"
       already_tested[p.name] = true
       if t_best > t_min then
         t_best = t_min
@@ -955,9 +1007,9 @@ class ConvolutionOperator1d
   end
 
   def cost(*dimens)
-    n = dimens[@dim_indexes.last]
+    n = dimens[@shape.processed_dim_index]
     ndat = 1
-    @dim_indexes[0...-1].each { |indx|
+    @shape.non_processed_dim_indexes.each { |indx|
       ndat *= dimens[indx]
     }
     return n * @filter.cost * ndat
@@ -1002,8 +1054,8 @@ class ConvolutionOperator1d
     tt_arr = options[:tt_arr] if not options[:tt_arr].nil?
     unroll_inner = options[:unroll_inner] if not options[:unroll_inner].nil?
 
-    unrolled_dim=@dim_indexes[0]
-    unrolled_dim=@dim_indexes[options[:unrolled_dim_index]] if @dim_indexes.length > 2 and options[:unrolled_dim_index]
+    unrolled_dim=@shape.non_processed_dim_indexes[0]
+    unrolled_dim=@shape.non_processed_dim_indexes[options[:unrolled_dim_index]] if @shape.length > 2 and options[:unrolled_dim_index]
 
     vec_len = options[:vector_length] if not @dot_in and unrolled_dim == 0 and options[:vector_length] and options[:vector_length] <= @filter.length and unroll % options[:vector_length] == 0
 
@@ -1017,20 +1069,15 @@ class ConvolutionOperator1d
     function_name += "_" + util.to_s if util
 
     if util == :cost then
-      return Procedure(function_name, @dims + [@cost] ){
-        decl ndat_t = Int("ndat_t")
-        pr ndat_t === 1
-        @dim_indexes[0...-1].each { |indx|
-          pr ndat_t === ndat_t * @dims[indx]
-        }
-        pr @cost === @dims[@dim_indexes.last] * @filter.cost * ndat_t
+      return Procedure(function_name, @shape.dims + [@cost] ){
+        pr @cost === @shape.processed_dim * @filter.cost * @shape.non_processed_dims.inject(&:*)
       }
     end
 
     l = Int("l")
     @filter.init_optims(tt_arr, unroll, vec_len)
     tt = @filter.get_tt
-    iters =  (1..@dims.length).collect{ |index| Int("i#{index}")}
+    iters =  (1..@shape.length).collect{ |index| Int("i#{index}")}
     mods = get_mods(mod_arr)
     constants = get_constants
 
@@ -1044,7 +1091,7 @@ class ConvolutionOperator1d
         decl mods 
         #pr For(l, @filter.lowfil, @dim_n -1 + @filter.upfil) {
         pr For(l, mods.dimension.first.val1, mods.dimension.first.val2) {
-          pr mods[l] === modulo(l, @dim_n)
+          pr mods[l] === modulo(l, @shape.dim_n)
         }
       end
       vec_len = [tt].flatten[0].type.vector_length
@@ -1064,11 +1111,11 @@ class ConvolutionOperator1d
   def convolution1d(iters, l, t, mods, unro, unrolling_length, unroll_inner)
     vec_len = [t].flatten[0].type.vector_length
     convgen= lambda { |t,tlen,reliq|
-      ises0 = startendpoints(@dims[@dim_indexes[0]], unro == @dim_indexes[0], unrolling_length, reliq, vec_len)
-      pr For(iters[@dim_indexes[0]], ises0[0], ises0[1], step: ises0[2], openmp: true ) {
-        if @dim_indexes.length == 3 then
-          ises1 = startendpoints(@dims[@dim_indexes[1]], unro == @dim_indexes[1], unrolling_length, reliq, vec_len)
-          pr For(iters[@dim_indexes[1]], ises1[0], ises1[1], step: ises1[2]) {
+      ises0 = startendpoints(@shape.non_processed_dims[0], unro == @shape.dim_indexes[0], unrolling_length, reliq, vec_len)
+      pr For(iters[@shape.non_processed_dim_indexes[0]], ises0[0], ises0[1], step: ises0[2], openmp: true ) {
+        if @shape.length == 3 then
+          ises1 = startendpoints(@shape.non_processed_dims[1], unro == @shape.dim_indexes[1], unrolling_length, reliq, vec_len)
+          pr For(iters[@shape.non_processed_dim_indexes[1]], ises1[0], ises1[1], step: ises1[2]) {
             conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
           }
         else
@@ -1097,17 +1144,17 @@ class ConvolutionOperator1d
     # the shrink operation contains the central part only
     iter = iters[@dim_indexes[-1]]
     if @bc.shrink then
-      pr For(iter, @line_start, @line_end) {
+      pr For(iter, @shape.line_start, @shape.line_end) {
         for_conv(:center, iters, l, t, tlen, unro, mods, unroll_inner)
       }
     else
-      pr For(iter, @line_start, @border_low - 1) {
+      pr For(iter, @shape.line_start, @shape.border_low - 1) {
         for_conv(:begin, iters, l, t, tlen, unro, mods, unroll_inner)
       }
-      pr For(iter, @border_low, @border_high - 1) {
+      pr For(iter, @shape.border_low, @shape.border_high - 1) {
         for_conv(:center, iters, l, t, tlen, unro, mods, unroll_inner)
       }
-      pr For(iter, @border_high, @line_end) {
+      pr For(iter, @shape.border_high, @shape.line_end) {
         for_conv(:end, iters, l, t, tlen, unro, mods, unroll_inner)
       }
     end
@@ -1116,13 +1163,12 @@ class ConvolutionOperator1d
   def get_loop_start_end( side, iters )
     register_funccall("min")
     register_funccall("max")
-    processed_dim = @dim_indexes[-1]
     if ( @bc.free and side == :begin) then
-      loop_start = max(-iters[processed_dim], @filter.lowfil)
+      loop_start = max(-iters[@shape.processed_dim_index], @filter.lowfil)
       loop_end   = @filter.upfil
     elsif ( @bc.free and side == :end) then
       loop_start = @filter.lowfil
-      loop_end   = min(@filter.upfil, @dims[processed_dim] - 1 - iters[processed_dim])
+      loop_end   = min(@filter.upfil, @shape.processed_dim - 1 - iters[@shape.processed_dim_index])
     else
       loop_start=@filter.lowfil
       loop_end=@filter.upfil
@@ -1145,11 +1191,11 @@ class ConvolutionOperator1d
     (0...tlen).step(vec_len).each_with_index{ |ind,tt_ind|
 
       if @bc.free or (side == :center) then
-        i_in = input_index(unro, iters, ind, processed_dim, l, nil, nil, side)
+        i_in = input_index(unro, iters, ind, @shape.processed_dim_index, l, nil, nil, side)
       elsif mods then
-        i_in = input_index(unro, iters, ind, processed_dim, l, nil, mods, side) 
+        i_in = input_index(unro, iters, ind, @shape.processed_dim_index, l, nil, mods, side) 
       else
-        i_in = input_index(unro, iters, ind, processed_dim, l, @dims[processed_dim],nil, side)
+        i_in = input_index(unro, iters, ind, @shape.processed_dim_index, l, @shape.processed_dim, nil, side)
       end
 
       @filter.compute_values(tt_ind, i_in, @x)
@@ -1158,7 +1204,6 @@ class ConvolutionOperator1d
 
   
   def post_process_and_store_values(side, iters, l, t, tlen, unro, mods)
-    processed_dim = @dim_indexes[-1]
     vec_len = [t].flatten[0].type.vector_length
     (0...tlen).step(vec_len).each_with_index{ |ind,tt_ind|
       i_out = output_index(unro, iters, ind)
@@ -1169,8 +1214,8 @@ class ConvolutionOperator1d
                                              @transpose,
                                              :bc => @bc,
                                              :side => side,
-                                             :position => iters[processed_dim],
-                                             :dim => @dims[processed_dim],
+                                             :position => iters[@shape.processed_dim_index],
+                                             :dim => @shape.processed_dim,
                                              :accumulate => @accumulate,
                                              :a => @a,
                                              :a_y => @a_y,
@@ -1192,7 +1237,7 @@ class ConvolutionOperator1d
     loop_start, loop_end = get_loop_start_end( side, iters)
 
     pr For( l, loop_start, loop_end, :unroll => unroll_inner ) {
-      @filter.set_filter_val(l, :side => side, :position => iters[@dim_indexes[-1]], :dim => @dims[@dim_indexes[-1]], :bc => @bc)
+      @filter.set_filter_val(l, :side => side, :position => iters[@shape.processed_dim_index], :dim => @shape.processed_dim, :bc => @bc)
       compute_values(side, iters, l, tlen, unro, mods)
     }
 
@@ -1219,7 +1264,7 @@ class ConvolutionOperator1d
     if @wavelet then
       tmp = [[], []]
       (0...iters.length).each { |indx|
-        if indx == @dim_indexes[-1] then
+        if indx == @shape.processed_dim_index then
           if @wavelet == :decompose then
             tmp[0][indx] = [0, i_in[indx]]
             tmp[1][indx] = [1, i_in[indx]]
@@ -1257,7 +1302,7 @@ class ConvolutionOperator1d
     if @wavelet then
       tmp = [[], []]
       (0...iters.length).each { |indx|
-        if indx == @dim_indexes[-1] then
+        if indx == @shape.processed_dim_index then
           if @wavelet == :decompose then
             tmp[0][indx] = [i_out[indx], 0]
             tmp[1][indx] = [i_out[indx], 1]
@@ -1294,7 +1339,7 @@ class ConvolutionOperator1d
     i_out=output_index_unroll(unrolling_dim, iters,unroll_index)
     if (side == :end) then
       return (0...iters.length).collect { |indx| 
-        processed_dim == indx ? wrapping_array[lconv_index +iters[processed_dim] - @dims[processed_dim]] : i_out[indx]}
+        processed_dim == indx ? wrapping_array[lconv_index +iters[processed_dim] - @shape.dims[processed_dim]] : i_out[indx]}
     else
       return (0...iters.length).collect { |indx| processed_dim == indx ? wrapping_array[lconv_index +iters[processed_dim]] : i_out[indx]}
     end
@@ -1306,7 +1351,7 @@ class ConvolutionOperator1d
     i_out=output_index_unroll(unrolling_dim, iters,unroll_index)
     if (side == :end) then
       return (0...iters.length).collect { |indx| 
-        processed_dim == indx ? (lconv_index) + (@filter.lowfil) + @dims[processed_dim] -1 : i_out[indx]}
+        processed_dim == indx ? (lconv_index) + (@filter.lowfil) + @shape.dims[processed_dim] -1 : i_out[indx]}
     else
       return (0...iters.length).collect { |indx| processed_dim == indx ? lconv_index + (@filter.upfil) : i_out[indx]}
     end
