@@ -16,18 +16,39 @@ class Filter
   attr_reader :name
   attr_reader :base_name
 
+  attr_reader :unroll_inner
+
   def elem_number
     n = (@unroll + @vec_len - 1)/@vec_len
     return n <= 0 ? 1 : n
   end
 
-  def init_optims(tt_arr, unroll, vec_len)
+  def init_optims(tt_arr, mod_arr, unroll_inner, unroll, vec_len)
     @tt_arr = tt_arr
+    @unroll_inner = unroll_inner
     @unroll = unroll
     @vec_len = vec_len
     @tt_n = elem_number
     @tt = init_tt
     @filter_val = init_filter_val
+    if mod_arr then
+      @mods = Int("mod_arr", :allocate => true,
+                      :dim => [Dim(get_mods_lower, get_mods_upper)])
+    else
+      @mods = nil
+    end
+  end
+
+  def get_mods_lower
+    return lowfil - upfil
+  end
+
+  def get_mods_upper
+    return upfil - lowfil - 1
+  end
+
+  def get_mods
+    return @mods
   end
 
   def get_tt
@@ -675,6 +696,7 @@ class Convolution1dShape
   attr_reader :transpose
   attr_reader :filter
   attr_reader :ld
+  attr_reader :length
 
   attr_reader :processed_dim_index
   attr_reader :processed_dim
@@ -689,8 +711,15 @@ class Convolution1dShape
   attr_reader :line_start, :line_end
   attr_reader :border_low, :border_high
 
+  attr_reader :iterators
+
+  attr_reader :vector_length
+  attr_reader :unroll_length
+  attr_reader :unrolled_dim_index
+
   def initialize(dim_indexes, bc, transpose, filter, ld)
     @dim_indexes = dim_indexes
+    @length = @dim_indexes.length
     @bc = bc
     @transpose = transpose
     @filter = filter
@@ -702,10 +731,8 @@ class Convolution1dShape
     generate_dims
     compute_dimx_dimy
     compute_inner_loop_boundaries
-  end
 
-  def length
-    return @dim_indexes.length
+    @iterators =  (1..@length).collect{ |index| Int("i#{index}")}
   end
 
   def to_s
@@ -720,10 +747,59 @@ class Convolution1dShape
     return vars
   end
 
+  def set_exploration( unrolled_dim_index, unroll_length, vector_length, dot_in )
+    @unroll_length = 1
+    @unroll_length = unroll_length if unroll_length
+
+    @unrolled_dim_index = @non_processed_dim_indexes[0]
+    @unrolled_dim_index = non_processed_dim_indexes[unrolled_dim_index] if @length > 2 and unrolled_dim_index
+
+    @vector_length = 1
+    @vector_length = vector_length if not dot_in and @unrolled_dim_index == 0 and vector_length and vector_length <= @filter.length and @unroll_length % vector_length == 0
+  end
+
+  def for_parameters( dim_index, in_reliq, options = {} )
+    if in_reliq then
+      first, last, step = for_parameters_reliq( dim_index )
+    else
+      first, last, step = for_parameters_main( dim_index )
+    end
+    options[:step] = step
+    return [ @iterators[dim_index], first, last, options ]
+  end
+
+  def iterator( dim_index )
+    return @iterators[dim_index]
+  end
+
+  def reliq?( dim_index )
+    return ( @unrolled_dim_index == dim_index and @vector_length < @unroll_length )
+  end
+
   private
 
+  def for_parameters_main( dim_index )
+    first_index = 0
+    if @unrolled_dim_index == dim_index then
+      last_index = @dims[dim_index] - @unroll_length
+      step = @unroll_length
+    else
+      last_index = @dims[dim_index] - 1
+      step = 1
+    end
+    return [ first_index, last_index, step ]
+  end
+
+  def for_parameters_reliq( dim_index )
+    return nil unless @unrolled_dim_index == dim_index
+    first_index = (@dims[dim_index]/@unroll_length)*@unroll_length
+    last_index = @dims[dim_index] - 1
+    step = @vector_length
+    return [ first_index, last_index, step ]
+  end
+
   def generate_dims
-    @dims = [nil]*length
+    @dims = [nil]*@length
     @dim_n = Int(:n, :dir => :in)
     @dims[processed_dim_index] = @dim_n
     non_processed_dim_indexes.each { |dim|
@@ -854,6 +930,7 @@ class ConvolutionOperator1d
     @vars.push @dot_in = Real("dot_in",:dir => :out) if options[:dot_in]
     @dot_in_tmp = nil
     @cost = Int("cost", :dir => :out)
+    @l = Int :l
     @options = options
     @base_name = ""
     @base_name += "s_" if default_real_size == 4
@@ -887,7 +964,7 @@ class ConvolutionOperator1d
       nd[@shape.non_processed_dims[1].name] = 1
       dim.each_index { |indx|
         nd[@shape.non_processed_dims[0].name] *= dim[indx] if indx < index
-        nd[@shape.non_processed_dims[0].name] *= dim[indx] if indx > index
+        nd[@shape.non_processed_dims[1].name] *= dim[indx] if indx > index
       }
     end
     n_push = lambda { |varsi, varso|
@@ -1015,19 +1092,6 @@ class ConvolutionOperator1d
     return n * @filter.cost * ndat
   end
 
-  def get_mods(mod_arr)
-    if mod_arr then
-      # the mod_arr behaves as a shrink operation
-      #mods=Int("mod_arr", :allocate => true, :dim => [@dim_ngs])
-      mods=Int("mod_arr", :allocate => true, 
-                      :dim => [Dim(@filter.lowfil - @filter.upfil,
-                                   @filter.upfil - @filter.lowfil - 1)])
-    else
-      mods=nil
-    end
-    return mods
-  end
-
   def get_constants
     return [@filter.lowfil, @filter.upfil]
   end
@@ -1044,26 +1108,20 @@ class ConvolutionOperator1d
     #(unroll, unrolled_dim, use_mod, tt_arr)
     #default values
     register_funccall("modulo")
-    unroll = 1
-    vec_len = 1
     mod_arr = true
     tt_arr = false
     unroll_inner = true
-    unroll = options[:unroll] if options[:unroll]
     mod_arr = options[:mod_arr] if not options[:mod_arr].nil?
     tt_arr = options[:tt_arr] if not options[:tt_arr].nil?
     unroll_inner = options[:unroll_inner] if not options[:unroll_inner].nil?
 
-    unrolled_dim=@shape.non_processed_dim_indexes[0]
-    unrolled_dim=@shape.non_processed_dim_indexes[options[:unrolled_dim_index]] if @shape.length > 2 and options[:unrolled_dim_index]
-
-    vec_len = options[:vector_length] if not @dot_in and unrolled_dim == 0 and options[:vector_length] and options[:vector_length] <= @filter.length and unroll % options[:vector_length] == 0
+    @shape.set_exploration( options[:unrolled_dim_index], options[:unroll], options[:vector_length], @dot_in )
 
     mod_arr = false if @bc.free
     util = options[:util]
 
-    function_name = @base_name   + 
-      "_u#{unroll}_v#{vec_len}_#{unrolled_dim}" ###_#{mod_arr}_#{tt_arr}_#{unroll_inner}"
+    function_name = @base_name
+    function_name += "_#{@shape.unrolled_dim_index}u#{@shape.unroll_length}_v#{@shape.vector_length}"
     function_name += '_'+stos(mod_arr)+'_'+stos(tt_arr)+'_'+stos(unroll_inner)
 
     function_name += "_" + util.to_s if util
@@ -1074,70 +1132,60 @@ class ConvolutionOperator1d
       }
     end
 
-    l = Int("l")
-    @filter.init_optims(tt_arr, unroll, vec_len)
-    tt = @filter.get_tt
-    iters =  (1..@shape.length).collect{ |index| Int("i#{index}")}
-    mods = get_mods(mod_arr)
-    constants = get_constants
+    @filter.init_optims(tt_arr, mod_arr, unroll_inner, @shape.unroll_length, @shape.vector_length)
 
-    return Procedure(function_name, vars, :constants => constants ){
+    return Procedure(function_name, vars, :constants => get_constants ){
       @filter.decl_filters( :bc => @bc )
-      decl *iters
-      decl l
-      decl *([tt].flatten)
+      decl *@shape.iterators
+      decl @l
+      decl *([@filter.get_tt].flatten)
       @filter.decl_filter_val
-      if mod_arr then
-        decl mods 
-        #pr For(l, @filter.lowfil, @dim_n -1 + @filter.upfil) {
-        pr For(l, mods.dimension.first.val1, mods.dimension.first.val2) {
-          pr mods[l] === modulo(l, @shape.dim_n)
+      if @filter.get_mods then
+        decl @filter.get_mods
+        pr For(@l, @filter.get_mods_lower, @filter.get_mods_upper) {
+          pr @filter.get_mods[@l] === modulo(@l, @shape.dim_n)
         }
       end
-      vec_len = [tt].flatten[0].type.vector_length
-      if @options[:dot_in] and vec_len > 1 then
-        decl @dot_in_tmp = @dot_in.copy("dot_in_tmp", :vector_length => vec_len, :dir => nil, :direction => nil)
+      if @options[:dot_in] and @shape.vector_length > 1 then
+        decl @dot_in_tmp = @dot_in.copy("dot_in_tmp", :vector_length => @shape.vector_length, :dir => nil, :direction => nil)
       else
         @dot_in_tmp = @dot_in
       end
       pr @dot_in.set(0.0) if @options[:dot_in]
-      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => @dot_in} : nil ), private: iters + [l] + [tt] + ( @filter.get_filter_val ? [@filter.get_filter_val].flatten : [] )) { 
-        convolution1d(iters, l, tt, mods, unrolled_dim, unroll, unroll_inner)
+      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => @dot_in} : nil ), private: @shape.iterators + [@l] + [@filter.get_tt] + ( @filter.get_filter_val ? [@filter.get_filter_val].flatten : [] )) { 
+        convolution1d(@shape.iterators, @l, @filter.get_tt, @filter.get_mods, @shape.unrolled_dim_index, @shape.unroll_length, @filter.unroll_inner)
       }
     }
   end
 
   #here follows the internal operations for the convolution 1d
   def convolution1d(iters, l, t, mods, unro, unrolling_length, unroll_inner)
-    vec_len = [t].flatten[0].type.vector_length
-    convgen= lambda { |t,tlen,reliq|
-      ises0 = startendpoints(@shape.non_processed_dims[0], unro == @shape.dim_indexes[0], unrolling_length, reliq, vec_len)
-      pr For(iters[@shape.non_processed_dim_indexes[0]], ises0[0], ises0[1], step: ises0[2], openmp: true ) {
-        if @shape.length == 3 then
-          ises1 = startendpoints(@shape.non_processed_dims[1], unro == @shape.dim_indexes[1], unrolling_length, reliq, vec_len)
-          pr For(iters[@shape.non_processed_dim_indexes[1]], ises1[0], ises1[1], step: ises1[2]) {
-            conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
-          }
-        else
-          conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
-        end
-        if @options[:dot_in] and vec_len > 1 then
-          Reduce(@dot_in_tmp, @dot_in)
-        end
-      }
-    }
-    #first without the reliq
-    convgen.call(t,unrolling_length,false)
-    #then with the reliq but only if the unrolling patterns need it
-    convgen.call(t,vec_len,true) if (unrolling_length > vec_len)
-  end
 
-  #returns the starting and ending points of the convolutions according to unrolling and unrolled dimension
-  def startendpoints(dim,unroll,unrolling_length,in_reliq,vec_len)
-    istart= (in_reliq and unroll) ? (dim/unrolling_length)*unrolling_length : 0
-    iend  = (unroll and not in_reliq) ? dim-unrolling_length : dim-1
-    istep = (unroll and not in_reliq) ? unrolling_length : ( unroll ? vec_len : 1 )
-    return [istart,iend,istep]
+    inner_block = lambda { |tlen|
+      if @shape.length == 3 then
+        pr For( * @shape.for_parameters( @shape.non_processed_dim_indexes[1], false ) ) {
+          conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
+        }
+        if @shape.reliq?( @shape.non_processed_dim_indexes[1] ) then
+          pr For( * @shape.for_parameters( @shape.non_processed_dim_indexes[1], true ) ) {
+            conv_lines(iters, l, t, @shape.vector_length, unro, mods, unroll_inner)
+          }
+        end
+      else
+        conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
+      end
+    }
+
+    pr For( * @shape.for_parameters( @shape.non_processed_dim_indexes[0], false, openmp: true ) ) {
+      inner_block.call(@shape.unroll_length)
+    }
+
+    if @shape.reliq?( @shape.non_processed_dim_indexes[0] ) then
+      pr For( * @shape.for_parameters( @shape.non_processed_dim_indexes[0], true,  openmp: true ) ) {
+        inner_block.call(@shape.vector_length)
+      }
+    end
+
   end
 
   def conv_lines(iters, l, t, tlen, unro, mods, unroll_inner)
