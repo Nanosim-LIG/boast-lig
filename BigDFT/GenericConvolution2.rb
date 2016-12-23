@@ -87,6 +87,21 @@ class Filter
     end
   end
 
+  def get_loop_start_end( side, bc, dim, iterator )
+    register_funccall("min")
+    register_funccall("max")
+    loop_start = lowfil
+    loop_end   = upfil
+    if bc.free then
+      if side == :begin then
+        loop_start = max(-iterator, lowfil)
+      elsif side == :end then
+        loop_end   = min(upfil, dim - 1 - iterator)
+      end
+    end
+    return [loop_start, loop_end]
+  end
+
 end
 
 class ConvolutionFilter < Filter
@@ -361,6 +376,7 @@ class WaveletFilter < Filter
     out_odd  = @tt[1][tt_ind]
     i_out0 = indexes[0].rotate(transpose).flatten
     i_out1 = indexes[1].rotate(transpose).flatten
+
     if options[:a] then
       pr out_even === out_even * Set( options[:a], out_even)
       pr out_odd  === out_odd  * Set( options[:a], out_odd )
@@ -461,6 +477,34 @@ class WaveletFilterDecompose < WaveletFilter
     return [ Dim( -upfil, dim - upfil - 1 ), Dim(0, 1) ]
   end
 
+  def convert_output_indexes(indexes, processed_index)
+    tmp = [[], []]
+    indexes.each_with_index{ |indx, i|
+      if i == processed_index then
+        tmp[0][i] = [indx, 0]
+        tmp[1][i] = [indx, 1]
+      else
+        tmp[0][i] = indx
+        tmp[1][i] = indx
+      end
+    }
+    return tmp
+  end
+
+  def convert_input_indexes(indexes, processed_index)
+    tmp = [[], []]
+    indexes.each_with_index{ |indx, i|
+      if i == processed_index then
+        tmp[0][i] = [0, indx]
+        tmp[1][i] = [1, indx]
+      else
+        tmp[0][i] = indx
+        tmp[1][i] = indx
+      end
+    }
+    return tmp
+  end
+
 end
 
 class WaveletFilterRecompose < WaveletFilter
@@ -526,6 +570,34 @@ class WaveletFilterRecompose < WaveletFilter
 
   def get_output_dim_ld_grow( dim )
     return [ Dim(0, 1), Dim( -upfil, dim - upfil - 1 ) ]
+  end
+
+  def convert_output_indexes(indexes, processed_index)
+    tmp = [[], []]
+    indexes.each_with_index{ |indx, i|
+      if i == processed_index then
+        tmp[0][i] = [0, indx]
+        tmp[1][i] = [1, indx]
+      else
+        tmp[0][i] = indx
+        tmp[1][i] = indx
+      end
+    }
+    return tmp
+  end
+
+  def convert_input_indexes(indexes, processed_index)
+    tmp = [[], []]
+    indexes.each_with_index{ |indx, i|
+      if i == processed_index then
+        tmp[0][i] = [indx, 0]
+        tmp[1][i] = [indx, 1]
+      else
+        tmp[0][i] = indx
+        tmp[1][i] = indx
+      end
+    }
+    return tmp
   end
 
 end
@@ -774,6 +846,12 @@ class Convolution1dShape
 
   def reliq?( dim_index )
     return ( @unrolled_dim_index == dim_index and @vector_length < @unroll_length )
+  end
+
+  def output_index_unroll( index )
+    i_out = @iterators.dup
+    i_out[@unrolled_dim_index] += index
+    return i_out
   end
 
   private
@@ -1208,42 +1286,22 @@ class ConvolutionOperator1d
     end
   end
 
-  def get_loop_start_end( side, iters )
-    register_funccall("min")
-    register_funccall("max")
-    if ( @bc.free and side == :begin) then
-      loop_start = max(-iters[@shape.processed_dim_index], @filter.lowfil)
-      loop_end   = @filter.upfil
-    elsif ( @bc.free and side == :end) then
-      loop_start = @filter.lowfil
-      loop_end   = min(@filter.upfil, @shape.processed_dim - 1 - iters[@shape.processed_dim_index])
-    else
-      loop_start=@filter.lowfil
-      loop_end=@filter.upfil
-    end
-    return [loop_start, loop_end]
-  end
-
-  def init_values(side, iters, t, tlen, unro, mods)
-    vec_len = [t].flatten[0].type.vector_length
-    (0...tlen).step(vec_len).each_with_index{ |_,tt_ind|
+  def init_values(tlen)
+    (0...tlen).step(@shape.vector_length).each_with_index{ |_,tt_ind|
       #WARNING: the eks conditional here can be relaxed
       @filter.set_zero_tt(tt_ind)
     }
   end
 
-  def compute_values(side, iters, tlen, unro, mods)
-    processed_dim = @dim_indexes[-1]
-    vec_len = [@filter.get_tt].flatten[0].type.vector_length
-
-    (0...tlen).step(vec_len).each_with_index{ |ind,tt_ind|
+  def compute_values(side, tlen)
+    (0...tlen).step(@shape.vector_length).each_with_index{ |ind,tt_ind|
 
       if @bc.free or (side == :center) then
-        i_in = input_index(unro, iters, ind, @shape.processed_dim_index, nil, nil, side)
-      elsif mods then
-        i_in = input_index(unro, iters, ind, @shape.processed_dim_index, nil, mods, side) 
+        i_in = input_index(@shape.unrolled_dim_index, @shape.iterators, ind, @shape.processed_dim_index, nil, nil, side)
+      elsif @filter.get_mods then
+        i_in = input_index(@shape.unrolled_dim_index, @shape.iterators, ind, @shape.processed_dim_index, nil, @filter.get_mods, side) 
       else
-        i_in = input_index(unro, iters, ind, @shape.processed_dim_index, @shape.processed_dim, nil, side)
+        i_in = input_index(@shape.unrolled_dim_index, @shape.iterators, ind, @shape.processed_dim_index, @shape.processed_dim, nil, side)
       end
 
       @filter.compute_values(tt_ind, i_in, @x)
@@ -1251,18 +1309,17 @@ class ConvolutionOperator1d
   end
 
   
-  def post_process_and_store_values(side, iters, t, tlen, unro, mods)
-    vec_len = [t].flatten[0].type.vector_length
-    (0...tlen).step(vec_len).each_with_index{ |ind,tt_ind|
-      i_out = output_index(unro, iters, ind)
-      i_in = input_index(unro, iters, ind)
+  def post_process_and_store_values(side, tlen)
+    (0...tlen).step(@shape.vector_length).each_with_index{ |ind,tt_ind|
+      i_out = output_index(@shape.unrolled_dim_index, @shape.iterators, ind)
+      i_in = input_index(@shape.unrolled_dim_index, @shape.iterators, ind)
       @filter.post_process_and_store_values( tt_ind,
                                              i_out,
                                              @y,
                                              @transpose,
                                              :bc => @bc,
                                              :side => side,
-                                             :position => iters[@shape.processed_dim_index],
+                                             :position => @shape.iterators[@shape.processed_dim_index],
                                              :dim => @shape.processed_dim,
                                              :accumulate => @accumulate,
                                              :a => @a,
@@ -1282,16 +1339,16 @@ class ConvolutionOperator1d
 
     iters = @shape.iterators
 
-    init_values(side, iters, @filter.get_tt, tlen, @shape.unrolled_dim_index, @filter.get_mods)
+    init_values(tlen)
 
-    loop_start, loop_end = get_loop_start_end( side, iters )
+    loop_start, loop_end = @filter.get_loop_start_end( side, @bc, @shape.processed_dim, @shape.iterators[@shape.processed_dim_index] )
 
     pr For( @l, loop_start, loop_end, :unroll => @filter.unroll_inner ) {
       @filter.set_filter_val(@l, :side => side, :position => iters[@shape.processed_dim_index], :dim => @shape.processed_dim, :bc => @bc)
-      compute_values(side, iters, tlen, @shape.unrolled_dim_index, @filter.get_mods)
+      compute_values(side, tlen)
     }
 
-    post_process_and_store_values(side, iters, @filter.get_tt, tlen, @shape.unrolled_dim_index, @filter.get_mods)
+    post_process_and_store_values(side, tlen)
 
   end
 
@@ -1309,25 +1366,10 @@ class ConvolutionOperator1d
     elsif processed_dim then
       i_in = output_index_k(unrolling_dim, iters,unroll_index,processed_dim)
     else
-      i_in = output_index_unroll(unrolling_dim, iters,unroll_index)
+      i_in = @shape.output_index_unroll(unroll_index)
     end
     if @wavelet then
-      tmp = [[], []]
-      (0...iters.length).each { |indx|
-        if indx == @shape.processed_dim_index then
-          if @wavelet == :decompose then
-            tmp[0][indx] = [0, i_in[indx]]
-            tmp[1][indx] = [1, i_in[indx]]
-          else
-            tmp[0][indx] = [i_in[indx], 0]
-            tmp[1][indx] = [i_in[indx], 1]
-          end
-        else
-          tmp[0][indx] = i_in[indx]
-          tmp[1][indx] = i_in[indx]
-        end
-      }
-      return tmp
+      return @filter.convert_input_indexes(i_in, @shape.processed_dim_index)
     else
       return i_in
     end
@@ -1347,38 +1389,18 @@ class ConvolutionOperator1d
     elsif processed_dim then
       i_out = output_index_k(unrolling_dim, iters,unroll_index,processed_dim)
     else
-      i_out = output_index_unroll(unrolling_dim, iters,unroll_index)
+      i_out = @shape.output_index_unroll(unroll_index)
     end
     if @wavelet then
-      tmp = [[], []]
-      (0...iters.length).each { |indx|
-        if indx == @shape.processed_dim_index then
-          if @wavelet == :decompose then
-            tmp[0][indx] = [i_out[indx], 0]
-            tmp[1][indx] = [i_out[indx], 1]
-          else
-            tmp[0][indx] = [0, i_out[indx]]
-            tmp[1][indx] = [1, i_out[indx]]
-          end
-        else
-          tmp[0][indx] = i_out[indx]
-          tmp[1][indx] = i_out[indx]
-        end
-      }
-      return tmp
+      return @filter.convert_output_indexes(i_out, @shape.processed_dim_index)
     else
       return i_out
     end
   end
 
-  #returns the indices of the output according to which of the directions is unrolled
-  def output_index_unroll(unrolling_dim, iters, unroll_index)
-    i_out=(0...iters.length).collect { |indx| unrolling_dim == indx ? iters[unrolling_dim] + (unroll_index) : iters[indx]}
-    return i_out
-  end
   # index of the convolution in the internal region, k=i+l, otherwise the index in the unrolling dimension
   def output_index_k(unrolling_dim, iters, unroll_index, processed_dim)
-    i_out=output_index_unroll(unrolling_dim, iters, unroll_index)
+    i_out = @shape.output_index_unroll( unroll_index )
     return (0...iters.length).collect { |indx| processed_dim == indx ? @l +iters[processed_dim] : i_out[indx]}
   end
   # index in the external region wrapped around (periodic BC), thanks to the presence of the wrapping_array
@@ -1386,7 +1408,7 @@ class ConvolutionOperator1d
   # the the value of the processed dim. In this way the size of mod_arr is only dependent by the size of the 
   # filter which makes life easier for the compiler
   def output_index_k_mod_arr(unrolling_dim, iters, unroll_index, processed_dim, wrapping_array, side)
-    i_out=output_index_unroll(unrolling_dim, iters, unroll_index)
+    i_out = @shape.output_index_unroll( unroll_index )
     if (side == :end) then
       return (0...iters.length).collect { |indx| 
         processed_dim == indx ? wrapping_array[@l +iters[processed_dim] - @shape.dims[processed_dim]] : i_out[indx]}
@@ -1398,7 +1420,7 @@ class ConvolutionOperator1d
   # index in the external region wrapped around (non periodic BC), 
   # all the indexes close to the bound are the same, (filter will differ)
   def output_index_k_nper(unrolling_dim, iters, unroll_index, processed_dim, wrapping_array, side)
-    i_out=output_index_unroll(unrolling_dim, iters, unroll_index)
+    i_out = @shape.output_index_unroll( unroll_index )
     if (side == :end) then
       return (0...iters.length).collect { |indx| 
         processed_dim == indx ? (@l) + (@filter.lowfil) + @shape.dims[processed_dim] -1 : i_out[indx]}
@@ -1409,7 +1431,7 @@ class ConvolutionOperator1d
 
   # index in the external region wrapped around (periodic BC), where the wrapping is given by the integer division
   def output_index_k_mod(unrolling_dim, iters, unroll_index, processed_dim, ndim_processed)
-    i_out=output_index_unroll(unrolling_dim, iters, unroll_index)
+    i_out = @shape.output_index_unroll( unroll_index )
     return (0...iters.length).collect { |indx| processed_dim == indx ?  @l + iters[processed_dim] - ((iters[processed_dim] + @l +  ndim_processed * 2 )/ndim_processed - 2) *ndim_processed  : i_out[indx]}
   end
 end
