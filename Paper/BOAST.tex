@@ -126,84 +126,60 @@ uchar, uchar16, int16, short16}
 \address[ujf]{Université Joseph Fourier}
 \address[inria]{Inria}
 \begin{abstract}
-The portability of real HPC applications on new platforms is an open and very
-delicate problem.  Especially the performance portability of the underlying
-computing kernels is problematic as they need to be tuned for each and every
-platform the application encounters. This paper presents BOAST, a
-metaprogramming framework dedicated to computing kernels.  BOAST allows the
-description of a kernel and its possible optimizations using a DSL. BOAST
-runtime will then compare the different versions' performance as well as verify
-their exactness. BOAST is applied to three use cases: a Laplace kernel in
-OpenCL and two HPC applications BigDFT (electronic density computation) and
-SPECFEM3D (seismic and wave propagation).
+  The portability of real HPC applications on new platforms is an open and very delicate problem.  Especially the performance portability of the
+  underlying computing kernels is problematic as they need to be tuned for each and every platform the application encounters. This paper presents
+  BOAST, a metaprogramming framework dedicated to computing kernels.  BOAST allows the description of a kernel and its possible optimizations using a
+  DSL. BOAST runtime will then compare the different versions' performance as well as verify their exactness. BOAST is applied to three use cases: a
+  Laplace kernel in OpenCL and two HPC applications BigDFT (electronic density computation) and SPECFEM3D (seismic and wave propagation).
 \end{abstract}
 
 \begin{keyword}
-Code Generation \sep Portability \sep Genericity \sep Autotuning \sep Non
-Regression Testing \sep Productivity and Software Design \sep High Performance
-Computing
+  Code Generation \sep Portability \sep Genericity \sep Autotuning \sep Non Regression Testing \sep Productivity and Software Design \sep High
+  Performance Computing
 \end{keyword}
 
 \end{frontmatter}
 
+%%% INTRODUCTION %%%
 \section{Introduction}
 
-Porting and tuning HPC applications to new platforms is tedious and costly in
-term of human resources.  Many developer teams are more concentrated on solving
-the physical problems faster and better with new algorithms and simulating new
-physics. This is why optimization, while important, is a task which is
-sometimes neglected or hidden for many developers.  In the same way, Domain
-Specific Language (DSLs) have exactly this goal, the complete separation of the
-high-level code dedicated to simulate new physics and the low-level one which
-is more dependent on the HPC architecture. Nevertheless, decoupling the high
-and low levels don't avoid the need of optimization which becomes more and more
-unavoidable with new architectures based on many cores and accelerators.
+Porting and tuning HPC applications to new platforms is tedious and costly in term of human resources.  Many developer teams are more concentrated on
+solving the physical problems faster and better with new algorithms and simulating new physics. This is why optimization, while important, is a task
+which is sometimes neglected or hidden for many developers.  In the same way, Domain Specific Language (DSLs) have exactly this goal, the complete
+separation of the high-level code dedicated to simulate new physics and the low-level one which is more dependent on the HPC
+architecture. Nevertheless, decoupling the high and low levels does not avoid the need of optimizations which become more and more unavoidable with
+new architectures based on many cores and accelerators.
 
-Unfortunately, portability efforts of the low level i.e. computing kernels are
-often lost when migrating to a new architecture. Worse, code may lose
-maintainability because several versions of some functionalities coexist,
-usually with a lot of duplication.  Thus productivity of porting and tuning
-efforts is low as a huge fraction of those developments are never used after
-the platform they were intended for is decommissioned.
+Unfortunately, portability efforts of the low level codes (i.e. computing kernels) are often lost when migrating to a new architecture. Worse, code
+may lose maintainability because several versions of some functionalities coexist, usually with a lot of duplication.  Thus productivity of porting
+and tuning efforts is low as a huge fraction of those developments are never used after the platform they were intended for is decommissioned.
 
-The primary goal of the BOAST metaprogramming framework is to simplify the
-optimization of computing kernels for HPC applications. The main idea is to use
-a high level language to define an API of computing kernels i.e.  subroutines
-and their related arguments, but also describe the way to optimize it
-(unrolling, vectorization, parametrization, templating, tiling).  BOAST will
-test automatically the many possibilities of optimizations and choose the best
-one after validation from a reference version.  Then BOAST can generate pieces
-of Fortran, C, OpenCL, or CUDA codes, test it for a specific target
-architecture.
+The primary goal of the BOAST metaprogramming framework is to simplify the optimization of computing kernels for HPC applications. The main idea is to
+use a high level language to define an API of computing kernels i.e. subroutines and their related arguments, but also describe the way to optimize
+it (unrolling, vectorization, parametrization, templating, tiling). BOAST will then test automatically the many possibilities of optimizations and
+choose the best one after validation from a reference version. Then BOAST can generate pieces of Fortran, C, OpenCL, or CUDA codes, test them for a
+specific target architecture.
 
-With the definition of an API, BOAST can hide the implementation details at
-high level but also is a way to factorize different kernels depending only on
-parameters such as data types, length of filters or boundary conditions.  The
-maintainability and genericity of HPC codes is often limited. One of the reason
-is that producing generic code in Fortran 90/95 is difficult as the language
-does not really fit for it. Sometimes, adding genericity or functionalities can
-be quite costly and degrades performance as optimization opportunities that
-come from over-specification are lost. BOAST can provide a solution to handle
-genericity and add new functionalities at low levels.
+With the definition of an API, BOAST can hide the implementation details at high level but also is a way to factorize different kernels depending only
+on parameters such as data types, length of filters, or boundary conditions. The maintainability and genericity of HPC codes is often limited. One of
+the reason is that producing generic code in Fortran 90/95 is difficult as the language does not really fit for it. Sometimes, adding genericity or
+functionalities can be quite costly and may degrade performance as optimization opportunities that come from over-specification are lost. BOAST can
+provide a solution to handle genericity and add new functionalities at low levels.
 
 %For instance, the optimization of short convolutions depends strongly on the
 %length of the filters. This is why HPC codes using finite differences handle
 %only one order. BOAST allows handling any order and even more generalizing to
 %another numerical scheme.
 
-The paper is organized as follows. First we further motivate the need for
-metaprogramming frameworks.  Secondly we illustrate the optimization problems
-related to scientific computing with the Laplace equation. Thirdly we present
-our solution, called BOAST, its architecture and its functionalities. Fourthly
-we apply BOAST to three use cases: the Laplace equation motivating example;
-short multi-dimensional convolutions from the BigDFT quantum chemistry
-application; and the seismic wave propagation simulator SPECFEM3D where 80 GPU
-computing kernels have been ported improving, considerably the maintainability
-and providing a single code base for OpenCL and CUDA kernel versions. Finally
-we compare BOAST with other related works.
+The paper is organized as follows. First in Section~\ref{sec:backg} we further motivate the need for metaprogramming frameworks.  Secondly in
+Section~\ref{sec:laplace} we illustrate the optimization problems related to scientific computing with the Laplace equation. Thirdly we present our
+solution, called BOAST, its architecture and its functionalities in Section~\ref{sec:boast}. Fourthly we apply BOAST to three use cases: the Laplace
+equation motivating example, short multi-dimensional convolutions from the BigDFT quantum chemistry application, and the seismic wave propagation
+simulator SPECFEM3D where 80 GPU computing kernels have been ported improving considerably the maintainability and providing a single code base for
+OpenCL and CUDA kernel versions. Finally, before a conclusion and future works, we compare BOAST with other related works.
 
-
-\section{Background and Motivation}
+%%% BACKGROUND AND MOTIVATION %%%
+\section{Background and Motivation\label{sec:backg}}
 
 The motivation of the BOAST project comes from the need of the HPC communities
 which have full and large applications.  These applications are difficult to
@@ -211,8 +187,8 @@ port and maintain for emerging architectures. Especially since new
 architectures are based on accelerators, longer vector units, or low power
 processors.
 
-
-  \subsection{Evolution of HPC Architectures}
+%%%
+\subsection{Evolution of HPC Architectures}
 
 Evolution of HPC Architectures is rapid and also diverse: in the last 7 years
 no less than 6 architectures have been number one in the
@@ -241,7 +217,7 @@ porting and optimizing Scientific applications on those new architectures. In
 the DEEP project six applications were selected for porting and optimizing,
 eleven were selected in the Mont-Blanc project.
 
-  \subsection{Scientific Computing Applications}
+\subsection{Scientific Computing Applications}
 
 Scientific Computing Applications are usually developed by other science
 researchers such as physicists, chemists or meteorologists. Those codes are
@@ -266,7 +242,7 @@ In Section~\ref{use_cases} we will present two HPC applications that we used
 as use cases: SPECFEM3D and BigDFT. They are both based on computing
 kernels and were selected as candidate applications in the Mont-Blanc project.
 
-  \subsection{How Should Computing Kernels be Written?}
+\subsection{How Should Computing Kernels be Written?}
 
 The problematic here is to obtain computing kernels that present good
 performance on the architectures encountered by the application while staying
@@ -287,8 +263,8 @@ What we want is computing kernels that are written in a \emph{portable} manner,
 in a way that raises developer \emph{productivity}, and they must present good
 \emph{performance}.
 
-\section{Basic Example: OpenCL Laplace}
-\label{sec:laplace}
+%%%
+\section{Basic Example: OpenCL Laplace\label{sec:laplace}}
 
 During one of the Mont-Blanc face to face meeting a talk on OpenCL optimization
 on the Mali GPU was given. One of the case study was a Laplace filter~\cite{opencl_arm_training}.
@@ -489,7 +465,7 @@ In the next Section we will present our answer to these issues: BOAST.  BOAST is
 a framework dedicated to kernel description, optimization, regression testing
 and autotuning.
 
-\section{BOAST: Using Code Generation in Application Autotuning}
+\section{BOAST: Using Code Generation in Application Autotuning\label{sec:boast}}
 
 \begin{figure}
 \begin{center}
