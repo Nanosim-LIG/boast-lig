@@ -176,22 +176,20 @@ Section~\ref{sec:laplace} we illustrate the optimization problems related to sci
 solution, called BOAST, its architecture and its functionalities in Section~\ref{sec:boast}. Fourthly we apply BOAST to three use cases: the Laplace
 equation motivating example, short multi-dimensional convolutions from the BigDFT quantum chemistry application, and the seismic wave propagation
 simulator SPECFEM3D where 80 GPU computing kernels have been ported improving considerably the maintainability and providing a single code base for
-OpenCL and CUDA kernel versions. Finally, before a conclusion and future works, we compare BOAST with other related works.
-
+OpenCL and CUDA kernel versions. Finally, before a conclusion and future works, we compare BOAST with other related works in
+Section~\ref{sec:related}.
+ 
 %%% BACKGROUND AND MOTIVATION %%%
 \section{Background and Motivation\label{sec:backg}}
 
-The motivation of the BOAST project comes from the need of the HPC communities
-which have full and large applications.  These applications are difficult to
-port and maintain for emerging architectures. Especially since new
-architectures are based on accelerators, longer vector units, or low power
-processors.
+The motivation of the BOAST project comes from the need of the HPC communities which have full and large applications.  These applications are
+difficult to port and maintain for emerging architectures especially since new architectures are based on accelerators, longer vector units, or low
+power processors.
 
-%%%
+%%% EVOLUTION OF HPC ARCHITECTURES %%%
 \subsection{Evolution of HPC Architectures}
 
-Evolution of HPC Architectures is rapid and also diverse: in the last 7 years
-no less than 6 architectures have been number one in the
+Evolution of HPC Architectures is rapid and also diverse. In the last seven years no less than 6 architectures have been number one in the
 Top500~\cite{webtop500}:
 \begin{itemize}
 \item Intel Processor + Xeon Phi (Tianhe-2, 2013)
@@ -201,83 +199,62 @@ Top500~\cite{webtop500}:
 \item Intel Processor + NVIDIA GPU (Tianhe-1, 2010)
 \item AMD Processor (Jaguar, 2009)
 \end{itemize}
-Being able to efficiently use those architectures on such a small period is
-challenging for scientists and application developers.
 
-The race to exascale is not going to simplify the environment. All of the above
-machine architectures can be considered to build these supercomputers and other
-will appear soon. For instance European FP7 project DEEP considers using
-Accelerators (XEON Phi) while the European FP7 project Mont-Blanc considers
-using low-power embedded processor with integrated GPU.
+Being able to efficiently use those architectures on such a small period is challenging for scientists and application developers.
 
-Running existing applications on these new architectures is an open research
-subject as well as an ongoing porting effort.  Thus, those projects have work
-packages dedicated to applications. Those work packages are dedicated to
-porting and optimizing Scientific applications on those new architectures. In
-the DEEP project six applications were selected for porting and optimizing,
-eleven were selected in the Mont-Blanc project.
+The race to exascale is not going to simplify the environment. All of the above machine architectures can be considered to build these supercomputers
+and other will appear soon. For instance European FP7 project DEEP considers using Accelerators (XEON Phi) while the European FP7 project Mont-Blanc
+considers using low-power embedded processor with integrated GPU.
 
+Running existing applications on these new architectures is an open research subject as well as an ongoing porting effort.  Thus, those projects have
+work packages dedicated to applications. Those work packages are dedicated to porting and optimizing Scientific applications on those new
+architectures. In the DEEP project six applications were selected for porting and optimizing, eleven were selected in the Mont-Blanc project.
+
+%%% SCIENTIFIC COMPUTING APPLICATIONS %%%
 \subsection{Scientific Computing Applications}
 
-Scientific Computing Applications are usually developed by other science
-researchers such as physicists, chemists or meteorologists. Those codes are
-usually written in Fortran for historical and performance reasons. Codes can be
-quite huge (several thousands lines of code [LOC]) with lots of
-functionalities. Nonetheless, they are usually based on computing kernels.
-Computing kernels are resource intensive and well-defined parts of a program
-that usually work on precisely defined data. Those kernels represent the most
-time-consuming part of an HPC application, and consequently, they are the prime
-target for optimization.
+Scientific Computing Applications are usually developed by other science researchers such as physicists, chemists or meteorologists. Those codes are
+usually written in Fortran for historical and performance reasons. Codes can be quite huge (several thousands Lines of Code, LoC) with lots of
+functionalities. Nonetheless, they are usually based on computing kernels.  Computing kernels are resource intensive and well-defined parts of a
+program that usually work on precisely defined data. Those kernels represent the most time-consuming part of an HPC application, and consequently,
+they are the prime target for optimizations.
 
-Those applications are often developed by several individuals. Sometimes, some
-of those developers only work a few months on the application. Maintaining
-optimized code written by someone else is quite a challenge. Several languages
-and programming paradigms can also be used in a project and thus the maintainer
-must be knowledgeable in several areas of expertise. Portability problems can
-also be caused by the availability of an optimizing compiler for a specific
-language and architecture. C compilers are usually the first available while
-Fortran may sometimes come later.
+Those applications are often developed by several individuals. Sometimes, some of those developers only work a few months on the
+application. Maintaining optimized code written by someone else is quite a challenge. Several languages and programming paradigms can also be used in
+a project and thus the maintainer must be knowledgeable in several areas of expertise. Portability problems can also be caused by the availability of
+an optimizing compiler for a specific language and architecture. C compilers are usually first available while Fortran may sometimes come later.
 
-In Section~\ref{use_cases} we will present two HPC applications that we used
-as use cases: SPECFEM3D and BigDFT. They are both based on computing
+In Section~\ref{use_cases} we will present two HPC applications that we used as use cases: SPECFEM3D and BigDFT. They are both based on computing
 kernels and were selected as candidate applications in the Mont-Blanc project.
 
+%%% HOW SHOULD COMPUTING KERNELS BE WRITTEN? %%%
 \subsection{How Should Computing Kernels be Written?}
 
-The problematic here is to obtain computing kernels that present good
-performance on the architectures encountered by the application while staying
-portable after the optimization process took place. Indeed the application
-might encounter one of the many architectures that can be found in HPC.
-Investing manpower to optimize the application for a new architecture is
-reasonable, suffering hindrance from previous optimization work is not. Thus
-optimizations have to be as orthogonal as possible from one another so as to be
-easily activated and deactivated.
+The problematic here is to obtain computing kernels that present good performance on the architectures encountered by the application while staying
+portable after the optimization process took place. Indeed the application might encounter one of the many architectures that can be found in HPC.
+Investing manpower to optimize the application for a new architecture is reasonable, suffering hindrance from previous optimization work is not. Thus
+optimizations have to be as orthogonal as possible from one another so as to be easily activated and deactivated.
 
-If this paradigm is followed by developers then they will rapidly be confronted
-with a huge optimization space to search. They will need to be able to test
-easily the performance impact of the chosen optimizations without running the
-full application. The same reasoning implies that kernels should be tested for
-non regression without running the full application.
+If this paradigm is followed by developers then they will rapidly be confronted with a huge optimization space to search. They will need to be able to
+test easily the performance impact of the chosen optimizations without running the full application. The same reasoning implies that kernels should be
+tested for non regression without running the full application.
 
-What we want is computing kernels that are written in a \emph{portable} manner,
-in a way that raises developer \emph{productivity}, and they must present good
-\emph{performance}.
+What we want is computing kernels that are written in a \emph{portable} manner, in a way that raises developer \emph{productivity}, and they must
+present good \emph{performance}.
 
-%%%
+%%% BASIC EXAMPLE: OPENCL LAPLACE %%%
 \section{Basic Example: OpenCL Laplace\label{sec:laplace}}
 
-During one of the Mont-Blanc face to face meeting a talk on OpenCL optimization
-on the Mali GPU was given. One of the case study was a Laplace filter~\cite{opencl_arm_training}.
+During one of the Mont-Blanc face to face meeting a talk on OpenCL optimization on the Mali GPU was given. One of the case study was a Laplace
+filter~\cite{opencl_arm_training}. This is a good example of an algorithm that is simple in its formulation but can be complex to optimize because
+many different optimizations are available and can be combined together. The correct combination of optimizations will depend on the target
+architecture.
 
-This is a good example of an algorithm that is simple in its formulation but
-can be complex to optimize because many different optimizations are available
-and can be combined together. The correct combination of optimizations will
-depend on the target architecture.
-
+%%% THE LAPLACE FILTER %%%
 \subsection{The Laplace Filter}
 
-Listing~\ref{lst:laplace_c_filter} shows a simple implementation of the Laplace
-filter in C99. For clarity, boundary conditions have been omitted.
+Listing~\ref{lst:laplace_c_filter} shows a simple implementation of the Laplace filter in C99. For sake of clarity, boundary conditions have been
+omitted.
 
 \lstset{style=customc,
         caption={Laplace C99 Filter.},
@@ -302,9 +279,8 @@ void laplace(const int width,
 }
 \end{lstlisting}
 
-A naive implementation in OpenCL is proposed in
-Listing~\ref{lst:laplace_opencl_filter}. Each work item processes one pixel of
-the resulting image.
+      A naive implementation in OpenCL is proposed in Listing~\ref{lst:laplace_opencl_filter}. Each work item processes one pixel of the resulting
+      image.
 
 \lstset{style=customcl,
         caption={Laplace OpenCL Filter.},
@@ -333,20 +309,15 @@ kernel laplace(const int width,
 }
 \end{lstlisting}
 
-
-
+%%% POSSIBLE OPTIMIZATIONS OF THE OPENCL VERSION %%%
 \subsection{Possible Optimizations of the OpenCL Version}
 
-Several optimizations were proposed and successively applied to the previous
-implementation.
+Several optimizations were proposed and successively applied to the previous implementation.
 
-\paragraph{Vectorization}
-The first proposed optimization involves computing five pixels instead of one
-using the vectors available on the Mali architecture. The vectors have to be
-kept in memory to ensure an efficient execution. Using vectors of 16 elements,
-15 useful components are simultaneously loaded and can be used in computation.
-This optimization yields speedups between 1.5 and 6 depending on the image
-size.
+%%%
+\paragraph{Vectorization} The first proposed optimization involves computing five pixels instead of one using the vectors available on the Mali
+architecture. The vectors have to be kept in memory to ensure an efficient execution. Using vectors of 16 elements, 15 useful components are
+simultaneously loaded and can be used in computation.  This optimization yields speedups between 1.5 and 6 depending on the image size.
 
 \lstset{style=customcl,
         caption={Laplace OpenCL Filter Vectorized.},
@@ -392,10 +363,9 @@ kernel laplace(const int width,
 }
 \end{lstlisting}
 
-\paragraph{Synthesizing Loads} It is possible to reduce the number of loads
-since the vectors are overlapping.
-Listing~\ref{lst:laplace_opencl_filter_vector_synth} shows how the vectors are
-loaded in this case. This optimization yields marginal improvements.
+      \paragraph{Synthesizing Loads} It is possible to reduce the number of loads since the vectors are overlapping.
+      Listing~\ref{lst:laplace_opencl_filter_vector_synth} shows how the vectors are loaded in this case. This optimization yields marginal
+      improvements.
 
 \lstset{style=customcl,
         caption={Laplace OpenCL Filter Vectorized with Synthesized Loads.},
@@ -414,10 +384,9 @@ loaded in this case. This optimization yields marginal improvements.
   uchar16 v32_ = uchar16( v31_.s3456789a, v33_.s56789abc );
 \end{lstlisting}
 
-\paragraph{Temporary Variables Size} Using \emph{int} to store intermediary
-results is unnecessary. Listing~\ref{lst:laplace_opencl_filter_short} show how
-the code is modified to use smaller types. This yields a speedup of 1.3 for most
-image sizes.
+      \paragraph{Temporary Variables Size} Using \emph{int} to store intermediary results is
+      unnecessary. Listing~\ref{lst:laplace_opencl_filter_short} show how the code is modified to use smaller types. This yields a speedup of 1.3 for
+      most image sizes.
 
 \lstset{style=customcl,
         caption={Laplace OpenCL Filter Vectorized Using \emph{short}.},
@@ -439,32 +408,26 @@ image sizes.
           res = clamp(res, (short16)0, (short16)255);
 \end{lstlisting}
 
-\paragraph{More Optimizations} Several other optimizations can be attempted at
-this point. For instance reducing or increasing the number of pixels each work
-item is processing. They can yield improved performance in some cases, especially
-when avoiding memory alignment problems. These optimizations will not be shown
-here but can be found in~\cite{opencl_arm_training}. Others consist in tiling
-the problem space or improving the loads synthesis.
+      \paragraph{More Optimizations} Several other optimizations can be attempted at this point. For instance reducing or increasing the number of
+      pixels each work item is processing. They can yield improved performance in some cases, especially when avoiding memory alignment
+      problems. These optimizations will not be shown here but can be found in~\cite{opencl_arm_training}. Others consist in tiling the problem space
+      or improving the loads synthesis.
 
+%%% Improving the Methodology %%%
 \subsection{Improving the Methodology}
 
-The process described in the previous Subsection is quite tedious and requires
-some intimate knowledge of the target architecture. The results are impressive,
-as speedups of almost 10 are observed compared to the naive OpenCL
-implementation.
+The process described in the previous Subsection is quite tedious and requires some intimate knowledge of the target architecture. The results are
+impressive, as speedups of almost 10 are observed compared to the naive OpenCL implementation.
 
-Nonetheless, the process is frustrating. The optimizations are never evaluated
-independently from one another. Some were arbitrarily configured (like the
-number of pixels chosen for instance). Testing the different combinations of
-those optimizations and the different parameters would be very costly in
-developer time and, moreover, like all repetitive and tedious tasks, error
-prone. Thus every created kernel would have to be thoroughly tested to ensure
-no error was done.
+Nonetheless, the process is frustrating. The optimizations are never evaluated independently from one another. Some were arbitrarily configured (like
+the number of pixels chosen for instance). Testing the different combinations of those optimizations and the different parameters would be very costly
+in developer time and, moreover, like all repetitive and tedious tasks, error prone. Thus every created kernel would have to be thoroughly tested to
+ensure no error was done.
 
-In the next Section we will present our answer to these issues: BOAST.  BOAST is
-a framework dedicated to kernel description, optimization, regression testing
-and autotuning.
+In the next Section we will present our answer to these issues: BOAST.  BOAST is a framework dedicated to kernel description, optimization, regression
+testing, and autotuning.
 
+%%% BOAST: USING CODE GENERATION IN APPLICATION AUTOTUNING %%%
 \section{BOAST: Using Code Generation in Application Autotuning\label{sec:boast}}
 
 \begin{figure}
@@ -1479,7 +1442,8 @@ performance evaluation mechanisms. These tests will help developers to
 try new optimizations in kernel code and measure their impact, without
 executing the whole application.
 
-\section{Related Work}
+%%%
+\section{Related Work\label{sec:related}}
 
 Code generation and auto-tuning techniques are not new. Nonetheless, with recent
 developments in hardware, and the HPC landscape being as diverse as it is now,
