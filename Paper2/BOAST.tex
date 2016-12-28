@@ -984,7 +984,7 @@ development, while having robust non regression tests.
 Section~\ref{sec:laplace} presented the Laplace motivating example. From this
 section we know that a number of optimizations can have an impact on the
 performance of the kernel on the Mali architecture. But, what is the impact in
-other architectures? And, are there additional optimizations that can impact
+other architectures? And, are there any additional optimizations that can impact
 the performance?
 
 %%% OPTIMIZATION SPACE %%%
@@ -1016,7 +1016,8 @@ specified size (\emph{vector\_recompute} = \emph{true}).
 This last option mimics the behavior of the ARM implementation, although when
 working at the component level it may not be a valuable thing to try.
 
-    \subsubsection{Performance Results}
+%%% PERFORMANCE RESULTS %%%
+\subsubsection{Performance Results}
 
 Table~\ref{tbl:ARM} show the best results obtained by ARM on different images
 compared to the naive implementation and to the best version version BOAST
@@ -1095,7 +1096,8 @@ meaning.
 \end{tabular}
 \end{table}
 
-    \subsubsection{Laplace Conclusion}
+%%% LAPLACE CONCLUSION %%%
+\subsubsection{Laplace Conclusion}
 
 In this Subsection we have shown the interest of BOAST in optimizing a
 well-known algorithm across different architectures. Chosen optimization
@@ -1104,8 +1106,8 @@ simplifies and speeds up the identification of the correct combination at the
 cost of metaprogramming. In the next Subsections we will show that our
 methodology also applies to real applications.
 
-  \subsection{Creating an Auto-Tuned Convolution Library for BigDFT using
-BOAST}
+%%% CREATING AN AUTO-TUNED CONVOLUTION LIBRARY FOR BIGDFT USING BOAST %%%
+\subsection{Creating an Auto-Tuned Convolution Library for BigDFT using BOAST}
 
 In 2005, the EU FP6-STREP-NEST BigDFT~\cite{genovese2008daubechies} project
 funded a consortium of four European laboratories (L\_Sim - CEA Grenoble, Basel
@@ -1125,8 +1127,8 @@ localized basis set allows to optimize the number of degrees of freedom for a
 required accuracy~\cite{genovese2008daubechies}, which is highly desirable given
 the complexity and inhomogeneity of the systems under investigation nowadays.
 
-Despite that the application is mainly written in Fortran, it currently includes
-360 kLOC and 70 kLOC of Fortran and C languages, respectively, accounting for
+Despite that the application is mainly written in Fortran (360 kLOC of Fortran), it 
+currently also includes 70 kLOC of C languages, accounting for
 more than 50\% of the code base.  It is a parallel application based on the
 standards MPI~\cite{mpi} and OpenMP~\cite{openmp}.  It also supports
 CUDA~\cite{cuda} and OpenCL~\cite{opencl}.  In the recent years this code has
@@ -1140,7 +1142,8 @@ implementation of the hybrid version of BigDFT~\cite{genovese2009density}.
 %have very different architectures, it is of great importance to be able to
 %optimize and run the application according to the specific underlying platform.
 
-    \subsubsection{BigDFT}
+%%% BIGDFT %%%
+\subsubsection{BigDFT}
 
 In the Kohn-Sham (KS) formulation of DFT, the electrons are associated to
 wavefunctions (orbitals), which are represented by arrays of floating point
@@ -1198,7 +1201,8 @@ loop structure, as well as on the size of the data.
 %In this paper we focus on this particular convolution and explore different
 %optimizations whose nature is presented in detail in the next section.
 
-    \subsubsection{A Generic Convolution Library}
+%%% A GENERIC CONVOLUTION LIBRARY %%%
+\subsubsection{A Generic Convolution Library}
 
 The number of convolution kernels needed in BigDFT has been continuously
 growing in the recent years.  Various boundary conditions and functionalities
@@ -1242,7 +1246,8 @@ binary rather than the source code. This experience therefore would be a first
 step toward the release of a tunable optimized convolution library oriented to
 computational physics communities.
 
-    \subsubsection{Performance Report}
+%%% PERFORMANCE REPORT %%%
+\subsubsection{Performance Report}
 
 Several kernels have already been implemented in BOAST for the convolution
 library. Figure~\ref{fig:synthesis} shows the performance of the wavelet
@@ -1290,9 +1295,8 @@ architectures/compilers combinations than that of the hand tuned code.
 %   processing for Physics computing.
  
 
-
-  \subsection{Porting SPECFEM3D to OpenCL using BOAST}
-  \label{subsec:specfem}
+%%% Porting SPECFEM3D to OpenCL using BOAST %%%
+\subsection{Porting SPECFEM3D to OpenCL using BOAST\label{subsec:specfem}}
 
 In this last subsection, we study a free seismic wave propagation simulator,
 SPECFEM3D, in its GLOBE flavor\footnote{Specfem3d Globe --- CIG
@@ -1302,7 +1306,8 @@ spectral-element method (SEM), with very good accuracy and convergence
 properties. It is a reference application for supercomputer benchmarking,
 thanks to its good scaling capabilities.
 
-    \subsubsection{SPECFEM3D}
+%%% SPECFEM3D %%%
+\subsubsection{SPECFEM3D}
 
 When we started to work on the project (version v2.1 of July 2013) it
 supported graphics card GPU acceleration through NVidia CUDA. This
@@ -1328,11 +1333,11 @@ simulations.
 As part of the Mont-Blanc project, we had to port SPECFEM3D to OpenCL, so
 that it could be used to benchmark Mont-Blanc HPC platforms.
 
+%%% PORTING TO OPENCL %%%
 \subsubsection{Porting to OpenCL}
 
-\paragraph{Porting kernels to BOAST} 
-
-Nvidia CUDA and OpenCL are based on the same programming model: a
+%%%
+\paragraph{Porting kernels to BOAST}  Nvidia CUDA and OpenCL are based on the same programming model: a
 massively parallel accelerator running in disjoint, non addressable
 memory environment. Thanks to that proximity, we have been able to carry
 out most of the porting task with only a limited knowledge about
@@ -1357,6 +1362,7 @@ reference-kernels. Running and validating all these binaries enabled
 use to pinpoint the misbehaving kernels. We finished the debugging
 with a side-by-side comparison that highlighted the coding mistakes.
 
+%%%
 \paragraph{Porting run-time to OpenCL} The second part of the port
 consisted in the translation of the CPU-side of the application, from
 CUDA API to OpenCL API. Most of the functions of the interfaces are
@@ -1392,8 +1398,8 @@ that both execution actually did the same thing. As the OpenCL results
 were invalid, we knew the executions would diverge at one or several
 points.
 
+%%%
 \paragraph{Debugging OpenCL Execution: \code{GPUTrace}} 
-
 With the help of \code{GPUTrace} (described in Section~\ref{sec:gputrace}), we
 could confront CUDA and OpenCL execution traces with a graphical \code{diff}
 tool, and spot the different porting mistakes: some parameters reversed,
@@ -1412,6 +1418,7 @@ missing.
 %As it was the same person who coded the OpenCL port and the GPU
 %tracer, this third dimension was forgotten in both codes.
 
+%%%
 \paragraph{Evaluation} Our OpenCL/BOAST port of SPECFEM3D is now
 merged in SPECFEM3D's development tree and under test and extension by
 different research teams. On a platform with two K40x GPUs and N Intel
@@ -1449,12 +1456,13 @@ performance evaluation mechanisms. These tests will help developers to
 try new optimizations in kernel code and measure their impact, without
 executing the whole application.
 
+%%% RELATED WORK %%%
 \section{Related Work\label{sec:related}}
 
 Code generation and auto-tuning techniques are not new. Nonetheless, with recent
 developments in hardware, and the HPC landscape being as diverse as it is now,
-there is a renewed interest in the field. This related work Section is split in
-three parts, focusing first on Auto-tuning frameworks. Tools that provide a DSL
+there is a renewed interest in the field. This related work section is split in
+three parts, focusing first on auto-tuning frameworks. Tools that provide a DSL
 to describe computing kernels will then be presented. Last, optimization space
 pruners and their ties to auto-tuning will be introduced.
 
