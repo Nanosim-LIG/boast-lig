@@ -1466,34 +1466,36 @@ three parts, focusing first on auto-tuning frameworks. Tools that provide a DSL
 to describe computing kernels will then be presented. Last, optimization space
 pruners and their ties to auto-tuning will be introduced.
 
-  \subsection{Application Auto-Tuning} 
+%%% APPLICATION AUTO-TUNING %%%
+\subsection{Application Auto-Tuning} 
 
-  The most convenient way to obtain an application that can be auto-tuned on a
+The most convenient way to obtain an application that can be auto-tuned on a
 given platform is to base this application on a widely used computing library.
 BLAS~\cite{dongarra1990set} and LAPACK~\cite{laug} are such libraries. These
 libraries are either hand tuned for selected platforms or have auto-tuned
 implementations. Atlas~\cite{whaley04} is an auto-tuned implementation of
 BLAS/LAPACK. ATLAS authors defined the \emph{Automated Empirical Optimization of
 Software} methodology that we implemented with BOAST. Their kernel generation is
-done using macro-functions in C.
+performed using macro-functions in C.
 
-  Nonetheless many application formalisms cannot be reduced to standardized
+Nonetheless many application formalisms cannot be reduced to standardized
 library or border on what could be considered edge cases for those libraries and
 not as optimized as more general cases. Orio~\cite{Hart2009:Orio} is an
 auto-tuning framework that has an approach close of that of BOAST but they are
-based on an annotated DSL describing loop transformation rather than a more
+based on an annotated DSL describing loop transformations rather than a more
 generic EDSL. Halide~\cite{ragan2013halide} is an auto-tuning framework
 dedicated to image processing. It can also be used to describe other
 operations on memory buffers. Those two frameworks propose automated search
 space exploration to find the best version of a kernel.
 LGen~\cite{spampinato2014basic} is a compiler that generates linear algebra
-programs for small fixed size problems. Knowing the problem size it fully
+programs for small fixed size problems. Knowing the problem size, it fully
 unrolls and vectorizes loops, yielding better performance than state of the
 art generic implementations.
 
-  \subsection{Kernel Description DSL}
+%%% KERNEL DESCRIPTION DSL %%%
+\subsection{Kernel Description DSL}
 
-  The idea to describe computing kernels using a DSL has been already explored.
+The idea to describe computing kernels using a DSL has been already explored.
 SPIRAL~\cite{puschel2004spiral} is a decade old generation
 framework for signal processing. It uses a proprietary DSL called SPL (Signal
 Processing Language), to describe a DSP algorithm. This DSL is then transformed
@@ -1518,7 +1520,7 @@ BOAST. We speculate that the three-dimensional nature of our convolutions, as
 well as the filter length, can be considered edge cases in Halide and quite far
 from the intended target.
 
-  Heterogeneous Programming Library~\cite{vinas2013exploiting} (HPL) is maybe
+Heterogeneous Programming Library~\cite{vinas2013exploiting} (HPL) is maybe
 the most similar to BOAST. It is an autotuning kernel library in C++ that targets
 OpenCL. It uses an EDSL in C++ to describe generic computing kernels. Like when
 using BOAST, optimization are left to the users and written directly using the
@@ -1527,9 +1529,10 @@ structures having a trailing underscore. But whereas BOAST re-interprets the
 same code while changing the environment, in HPL each expression is stored in a
 tree and the tree is reevaluated in a different environment.
 
-  \subsection{Optimization Space Pruner}
+%%% OPTIMIZATION SPACE PRUNER %%%
+\subsection{Optimization Space Pruners}
 
-  Once auto-tuning techniques are used, the parameter space explodes and the
+Once auto-tuning techniques are used, the parameter space explodes and the
 systematic sampling rapidly becomes impossible to achieve. The cost of finding
 the optimal kernel parameters and environment parameters (compiler flags, used
 language, ...) is rapidly prohibitive. Dedicated frameworks have been developed
@@ -1539,13 +1542,14 @@ the performance and by minimizing the number of samples needed to find the
 parameters of this model. Several models and sampling techniques are
 implemented.
 
-  Collective Mind~\cite{fursin:hal-01054763} proposes similar techniques to
+Collective Mind~\cite{fursin:hal-01054763} proposes similar techniques to
 solve the problem but also stores and the results and complete experimental
 setups in databases for future reference and reproducibility. This database
 approach also enables easy parallelization of the experimental process.
 Collective Mind also proposes collections of flags for many available
 compilers/versions easing the exploration process.
 
+%%% Conclusion and Future Works %%%
 \section{Conclusion and Future Works}
 
 In this paper we presented the BOAST infrastructure as well as its application
