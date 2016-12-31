@@ -1520,6 +1520,12 @@ BOAST. We speculate that the three-dimensional nature of our convolutions, as
 well as the filter length, can be considered edge cases in Halide and quite far
 from the intended target.
 
+BEAST~\cite{CPE:CPE3516} is an autotuning framework that uses macro-processing
+in source files. Inside the macros, BEAST offers a DSL that can be used to
+specify values derived from a set of iterators. Those iterators explore the
+search space and can be constrained. Great care has been used to ensure that
+the iterators enumeration as well as the pruning are as efficient as possible.
+
 Heterogeneous Programming Library~\cite{vinas2013exploiting} (HPL) is maybe
 the most similar to BOAST. It is an autotuning kernel library in C++ that targets
 OpenCL. It uses an EDSL in C++ to describe generic computing kernels. Like when
