@@ -1549,24 +1549,27 @@ approach also enables easy parallelization of the experimental process.
 Collective Mind also proposes collections of flags for many available
 compilers/versions easing the exploration process.
 
-%%% Conclusion and Future Works %%%
+%%% CONCLUSION AND FUTURE WORKS %%%
 \section{Conclusion and Future Works}
 
-In this paper we presented the BOAST infrastructure as well as its application
-to three use cases from the Mont-Blanc project. Results are encouraging as
-BOAST proved to be a powerful and flexible tool that allowed gains in
-performance compared to hand tuned codes. Performance portability of those
-codes is also improved.
+Application portability is an important issue that should be solved efficiently, especially given the large number of different processors now
+available for today's supercomputers. The work needed to get performance portability is a tedious task, even for experienced programmers. The
+availability of semi-automatic tools is therefore mandatory for the development of large simulation applications. Computing kernels' identification
+and optimization has to be carefully performed as they usually consume most of the computing resources. 
 
-Future development will focus on three goals. Interfacing with binary analysis
-tools like MAQAO~\cite{djoudi2005exploring} in order to build a feedback loop
-to guide optimization. Interfacing with search space modellers/pruners in order
-to optimize the search of the optimal version of a kernel. Work should also
-continue on improving the support for vector codes. For instance producing a
-collection of small to medium useful vector patterns (transposition, for
-instance) in BOAST could really help users develop vectorized version of their
-algorithm.
+In this paper we presented the BOAST infrastructure (DLS and runtime) that aims at describing kernels in a high level language and allows the
+comparison of the performance of different versions of the code in a simple and seamless way. We described its application to three use cases from the
+Mont-Blanc project. Results are encouraging as BOAST proved to be a powerful and flexible tool that allowed gains in performance compared to hand
+tuned codes. Performance portability of those codes is also improved.
 
+Future development will focus on three main goals. First we find interesting to interface it with binary analysis tools like
+MAQAO~\cite{djoudi2005exploring} in order to build a feedback loop to guide optimization. On the autotuning side, interfacing with search space
+modellers/pruners in order to optimize the search of the optimal version of a kernel will allow us to gain some time in the optimization
+process. Finally, work should also continue on improving the support for vector codes. For instance producing a collection of small to medium useful
+vector patterns (transposition, for instance) in BOAST could really help users develop vectorized version of their algorithm. Other computing kernels
+and applications will also be ported on various architectures.
+
+%%% ACKNOWLEDGMENTS %%%
 \section*{Acknowledgments}
 
 The research leading to these results has received funding from the European
