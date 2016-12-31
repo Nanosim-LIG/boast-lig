@@ -503,9 +503,7 @@ are often applied manually as compiler may fail to recognise the opportunity.
 There are many different loop optimization techniques~\cite{wolf1991loop}. We
 can cite loop skewing~\cite{wolfe1986loops} (derives nested loops wavefronts)
 or loop interchange~\cite{allen1984automatic} (loop variables change places).
-
-\FD{BV}{Bizarre la suite ici. Ca fait plus ``previous work''}
-The importance of  correct loop imbrication on BLAS~\cite{lawson1979basic}
+The importance of  correct loop imbrication on BLAS~\cite{lawson1979basic} %\FD{BV}{Bizarre la suite ici. Ca fait plus ``previous work''}
 operations is studied in~\cite{soliman2009performance}, and shows performance
 increase of a factor up to 5 when using correct loop imbrication. The
 importance of code transformation is stressed in~\cite{ye2011porting}, where a
@@ -521,7 +519,7 @@ attributes, \ldots).
 \item Functions must be available.
 \item Variables, constants and functions should be able to be composed in
 complex expressions.
-\item Basic control structures (for, while, if/else, , \ldots) have to be abstracted.
+\item Basic control structures (for, while, if/else, \ldots) have to be abstracted.
 \item Powerful array management features (allowing several dimensions, transformations,
 indexing, \ldots).
 \end{itemize}
@@ -822,7 +820,7 @@ Language availability and performance varies between platforms. It is thus
 important to express computing kernels in different languages, based on the
 availability and their respective merits on the target platform. Some languages
 have additional features, such as languages that target GPUs (OpenCL, CUDA), or
-languages that support \FD{BV}{multi-threading?} threading paradigms (OpenMP). The developer should be
+languages that support multi-threading paradigms (OpenMP). The developer should be
 given tools to determine what kind of language is currently used in order to be
 able to use those additional features.
 
