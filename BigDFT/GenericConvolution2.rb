@@ -1294,32 +1294,21 @@ class ConvolutionOperator1d
 
   #here follows the internal operations for the convolution 1d
   def convolution1d
-
-    inner_block = lambda { |tlen|
-      if @shape.length == 3 then
-        pr For( * @shape.for_parameters( @shape.non_processed_dim_indexes[1], false ) ) {
-          conv_lines( tlen )
+    fors = @shape.non_processed_dim_indexes.collect { |index|
+      For( * @shape.for_parameters( index, false ) )
+    }
+    fors.each { |f| opn f }
+    conv_lines( @shape.unroll_length )
+    fors.each_with_index.reverse_each { |f, index|
+      close f
+      if @shape.reliq?( @shape.non_processed_dim_indexes[index] ) then
+        pr For( * @shape.for_parameters( @shape.non_processed_dim_indexes[index], true ) ) {
+          fors[(index+1)..-1].each { |f_reliq| opn f_reliq }
+          conv_lines( @shape.vector_length )
+          fors[(index+1)..-1].reverse.each { |f_reliq| close f_reliq }
         }
-        if @shape.reliq?( @shape.non_processed_dim_indexes[1] ) then
-          pr For( * @shape.for_parameters( @shape.non_processed_dim_indexes[1], true ) ) {
-            conv_lines( @shape.vector_length )
-          }
-        end
-      else
-        conv_lines( tlen )
       end
     }
-
-    pr For( * @shape.for_parameters( @shape.non_processed_dim_indexes[0], false, openmp: true ) ) {
-      inner_block.call(@shape.unroll_length)
-    }
-
-    if @shape.reliq?( @shape.non_processed_dim_indexes[0] ) then
-      pr For( * @shape.for_parameters( @shape.non_processed_dim_indexes[0], true,  openmp: true ) ) {
-        inner_block.call(@shape.vector_length)
-      }
-    end
-
   end
 
   def conv_lines( tlen )
