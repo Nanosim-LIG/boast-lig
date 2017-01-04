@@ -865,6 +865,7 @@ class Convolution1dShape
       first, last, step = for_parameters_main( dim_index )
     end
     options[:step] = step
+    options[:openmp] = true if dim_index == @non_processed_dim_indexes.first
     return [ @iterators[dim_index], first, last, options ]
   end
 
