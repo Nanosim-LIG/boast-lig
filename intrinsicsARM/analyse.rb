@@ -6,5 +6,6 @@ File::open("arm_neon.txt", "r") { |f|
 #p arr
 arr.each { |e|
   splt = e[0].split(" ")
-  puts e[0] if splt.length != 2 or not splt[1].match("_")
+  #puts e[0] if splt.length != 2 or not splt[1].match("_")
+  puts "  #{splt[1].inspect} => #{e[1].gsub("ARMv7","neon").gsub("ARMv8\(AArch64\)","asimd").gsub("ARMv8","asimd").split(", ")}"
 }
