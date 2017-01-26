@@ -118,6 +118,10 @@ class Filter
     end
   end
 
+  def associate_bc(bc)
+    @bc=bc
+  end
+
 end
 
 class ConvolutionFilter < Filter
@@ -301,52 +305,8 @@ class WaveletFilter < Filter
     @convolution = opts[:convolution_filter]
     @fil_array = filt1.dup
     if @convolution then
-      require 'bigdecimal'
-      lp = @fil_array.collect { |e| BigDecimal.new(e) }
-      hp = lp.each_with_index.collect { |e,i| i % 2 == 0 ? e : -e }.reverse
-      cv = @convolution.fil_array.collect { |e| BigDecimal.new(e) }
-
-      lp_length = lp.length
-      hp_length = hp.length
-      cv_length = @convolution.length
-
-      lp_center = lp_length / 2
-      hp_center = hp_length / 2
-      cv_center = @convolution.center
-
-      cv_bounds = [ -cv_center, cv_length - cv_center - 1 ]
-      lp_bounds = [ -lp_center, lp_length - lp_center - 1 ]
-      hp_bounds = [ -hp_center, hp_length - hp_center - 1 ]
-
-      lp_cv_bounds = [ cv_bounds[0] - lp_bounds[1], cv_bounds[1] - lp_bounds[0] ]
-      hp_cv_bounds = [ cv_bounds[0] - hp_bounds[1], cv_bounds[1] - hp_bounds[0] ]
-
-      lp_cv_bounds[0] -= 1 if lp_cv_bounds[0] % 2 != 0
-      hp_cv_bounds[0] -= 1 if hp_cv_bounds[0] % 2 != 0
-      lp_cv_bounds[1] += 1 if lp_cv_bounds[1] % 2 == 0
-      hp_cv_bounds[1] += 1 if hp_cv_bounds[1] % 2 == 0
-
-      lp_cv_center = - lp_cv_bounds[0]
-      hp_cv_center = - hp_cv_bounds[0]
-
-      lp_cv = (lp_cv_bounds[0]..lp_cv_bounds[1]).collect { |i|
-        sum = BigDecimal.new(0)
-        (lp_bounds[0]..lp_bounds[1]).each { |j|
-          sum += lp[j+lp_center] * cv[i-j-1+cv_center] if (0...cv_length).include?(i-j-1+cv_center)
-        }
-        sum
-      }
-
-      hp_cv = (hp_cv_bounds[0]..hp_cv_bounds[1]).collect { |i|
-        sum = BigDecimal.new(0)
-        (hp_bounds[0]..hp_bounds[1]).each { |j|
-          sum += hp[j+hp_center] * cv[i-j-1+cv_center] if (0...cv_length).include?(i-j-1+cv_center)
-        }
-        sum
-      }
-      @center = lp_cv_center
-      @low = ConvolutionFilter::new(name+"_l", lp_cv.collect { |e| e.truncate(30).to_s }, lp_cv_center)
-      @high = ConvolutionFilter::new(name+"_h", hp_cv.collect { |e| e.truncate(30).to_s }, hp_cv_center)
+      #initialize low filter with the nonperiodic BC recipe for evaluating length
+      @center, @low, @high = self.combine_wavelet_filters(name,@fil_array,@convolution,@convolution.center)
     else
       @center = @fil_array.length/2
       @center -= @center%2
@@ -376,11 +336,110 @@ class WaveletFilter < Filter
     @name = name
   end
 
+  def combine_wavelet_filters(name,fil_array,convolution,convcenter)
+    require 'bigdecimal'
+    lp = @fil_array.collect { |e| BigDecimal.new(e) }
+    hp = lp.each_with_index.collect { |e,i| i % 2 == 0 ? e : -e }.reverse
+    cv = @convolution.fil_array.collect { |e| BigDecimal.new(e) }
+
+    lp_length = lp.length
+    hp_length = hp.length
+    cv_length = @convolution.length
+
+    lp_center = lp_length / 2
+    hp_center = hp_length / 2
+    cv_center = convcenter
+
+    cv_bounds = [ -cv_center, cv_length - cv_center - 1 ]
+    lp_bounds = [ -lp_center, lp_length - lp_center - 1 ]
+    hp_bounds = [ -hp_center, hp_length - hp_center - 1 ]
+
+    lp_cv_bounds = [ cv_bounds[0] - lp_bounds[1], cv_bounds[1] - lp_bounds[0] ]
+    hp_cv_bounds = [ cv_bounds[0] - hp_bounds[1], cv_bounds[1] - hp_bounds[0] ]
+
+    lp_cv_bounds[0] -= 1 if lp_cv_bounds[0] % 2 != 0
+    hp_cv_bounds[0] -= 1 if hp_cv_bounds[0] % 2 != 0
+    lp_cv_bounds[1] += 1 if lp_cv_bounds[1] % 2 == 0
+    hp_cv_bounds[1] += 1 if hp_cv_bounds[1] % 2 == 0
+
+    lp_cv_center = - lp_cv_bounds[0]
+    hp_cv_center = - hp_cv_bounds[0]
+
+    lp_cv = (lp_cv_bounds[0]..lp_cv_bounds[1]).collect { |i|
+      sum = BigDecimal.new(0)
+      (lp_bounds[0]..lp_bounds[1]).each { |j|
+        sum += lp[j+lp_center] * cv[i-j-1+cv_center] if (0...cv_length).include?(i-j-1+cv_center)
+      }
+      sum
+    }
+
+    hp_cv = (hp_cv_bounds[0]..hp_cv_bounds[1]).collect { |i|
+      sum = BigDecimal.new(0)
+      (hp_bounds[0]..hp_bounds[1]).each { |j|
+        sum += hp[j+hp_center] * cv[i-j-1+cv_center] if (0...cv_length).include?(i-j-1+cv_center)
+      }
+      sum
+    }
+    center = lp_cv_center
+    low = ConvolutionFilter::new(name+"_l", lp_cv.collect { |e| e.truncate(30).to_s }, lp_cv_center)
+    high = ConvolutionFilter::new(name+"_h", hp_cv.collect { |e| e.truncate(30).to_s }, hp_cv_center)
+    return center,low,high
+  end
+
+  def split_filters(name,lfa,hfa,reverse,center_half)
+
+    if (reverse) then
+      lowin=lfa.reverse
+      higin=hfa.reverse
+      r='r'
+    else
+      lowin=lfa
+      higin=hfa
+      r=''
+    end
+
+    filt_1 = lowin.values_at(*(0..(lfa.length-1)).step(2).collect)
+    low_e = ConvolutionFilter::new(name+"_l"+r+"e", filt_1, center_half)
+
+    filt_2 = lowin.values_at(*(1..(lfa.length-1)).step(2).collect)
+    low_o = ConvolutionFilter::new(name+"_l"+r+"o", filt_2, center_half)
+
+    filt_3 = higin.values_at(*(0..(hfa.length-1)).step(2).collect)
+    high_e = ConvolutionFilter::new(name+"_h"+r+"e", filt_3, center_half)
+
+    filt_4 = higin.values_at(*(1..(hfa.length-1)).step(2).collect)
+    high_o = ConvolutionFilter::new(name+"_h"+r+"o", filt_4, center_half)
+    return low_e,low_o,high_e,high_o
+  end
+
+  def fill_even_and_odd_filters
+    if @low_even then
+      return #just do it the first time
+    end
+    if @convolution then
+      if @bc and (@bc.grow or @bc.shrink) then
+        convcntr=@convolution.center-1
+      else
+        convcntr=@convolution.center
+      end
+      #must rebuild the low and the high with shifted center
+      @center, @low, @high = self.combine_wavelet_filters(@name,@fil_array,@convolution,convcntr)
+    end
+    if @reverse
+      cntr=@low.fil_array.length - @center - 1
+    else
+      cntr=@center
+    end
+    @low_even, @low_odd, @high_even, @high_odd = split_filters(name,@low.fil_array,@high.fil_array,@reverse,cntr/2)
+  end
+
   def lowfil(wavelet=nil)
+    fill_even_and_odd_filters
     return @low_even.lowfil
   end
 
   def upfil(wavelet=nil)
+    fill_even_and_odd_filters
     return @low_even.upfil
   end
 
@@ -428,6 +487,7 @@ class WaveletFilter < Filter
   end
 
   def decl_filters( options = {} )
+    fill_even_and_odd_filters
     decl low_even.fil
     decl low_odd.fil
     decl high_even.fil
@@ -447,19 +507,8 @@ class WaveletFilterDecompose < WaveletFilter
 
     @base_name = "s0s1"
 
-    center_half = @center / 2
-
-    filt_1 = @low.fil_array.values_at(*(0..(@low.fil_array.length-1)).step(2).collect)
-    @low_even = ConvolutionFilter::new(name+"_le", filt_1, center_half)
-
-    filt_2 = @low.fil_array.values_at(*(1..(@low.fil_array.length-1)).step(2).collect)
-    @low_odd = ConvolutionFilter::new(name+"_lo", filt_2, center_half)
-
-    filt_3 = @high.fil_array.values_at(*(0..(@high.fil_array.length-1)).step(2).collect)
-    @high_even = ConvolutionFilter::new(name+"_he", filt_3, center_half)
-
-    filt_4 = @high.fil_array.values_at(*(1..(@high.fil_array.length-1)).step(2).collect)
-    @high_odd = ConvolutionFilter::new(name+"_ho", filt_4, center_half)
+    @reverse=false
+    #@low_even, @low_odd, @high_even, @high_odd = split_filters(name,@low.fil_array,@high.fil_array,false,@center/2)
 
   end
 
@@ -475,6 +524,7 @@ class WaveletFilterDecompose < WaveletFilter
   end
 
   def set_filter_val( index, options = {} )
+    fill_even_and_odd_filters
     pr @filter_val[0] === Set(@low_even.fil[index], @tt[0][0])
     pr @filter_val[1] === Set(@high_even.fil[index], @tt[0][0])
     pr @filter_val[2] === Set(@low_odd.fil[index], @tt[0][0])
@@ -542,19 +592,8 @@ class WaveletFilterRecompose < WaveletFilter
 
     @base_name = "s1s0"
 
-    center_half = (@low.fil_array.length - @center - 1)/2
-
-    filt_1 = @low.fil_array.reverse.values_at(*(0..(@low.fil_array.length-1)).step(2).collect)
-    @low_even = ConvolutionFilter::new(name+"_lre", filt_1, center_half)
-
-    filt_2 = @low.fil_array.reverse.values_at(*(1..(@low.fil_array.length-1)).step(2).collect)
-    @low_odd = ConvolutionFilter::new(name+"_lro", filt_2, center_half)
-
-    filt_3 = @high.fil_array.reverse.values_at(*(0..(@high.fil_array.length-1)).step(2).collect)
-    @high_even = ConvolutionFilter::new(name+"_hre", filt_3, center_half)
-
-    filt_4 = @high.fil_array.reverse.values_at(*(1..(@high.fil_array.length-1)).step(2).collect)
-    @high_odd = ConvolutionFilter::new(name+"_hro", filt_4, center_half)
+    @reverse = true
+    #@low_even, @low_odd, @high_even, @high_odd = split_filters(name,@low.fil_array,@high.fil_array,true,(@low.fil_array.length - @center - 1)/2)
 
   end
 
@@ -570,6 +609,7 @@ class WaveletFilterRecompose < WaveletFilter
   end
 
   def set_filter_val( index, options = {} )
+    fill_even_and_odd_filters
     pr @filter_val[0] === Set(@low_odd.fil[index], @tt[0][0])
     pr @filter_val[1] === Set(@low_even.fil[index], @tt[0][0])
     pr @filter_val[2] === Set(@high_odd.fil[index], @tt[0][0])
@@ -1027,8 +1067,9 @@ class ConvolutionOperator1d
   # * +:ld+ - leading dimensions enable
   # * +:wavelet+ - specify a wavelet operation, :decompose or :recompose
   def initialize(filter, bc, dim_indexes, options={})
-    @filter = filter.dup
     @bc = bc
+    @filter = filter.dup
+    @filter.associate_bc(@bc)
     @transpose = options[:transpose]
     @dim_indexes = dim_indexes
     @ld = options[:ld]
