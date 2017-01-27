@@ -409,6 +409,12 @@ class WaveletFilter < Filter
     return low_e,low_o,high_e,high_o
   end
 
+  def bc=(bc)
+    super
+    fill_even_and_odd_filters
+    return bc
+  end
+
   def fill_even_and_odd_filters
     if @low_even then
       return #just do it the first time
@@ -430,13 +436,13 @@ class WaveletFilter < Filter
     @low_even, @low_odd, @high_even, @high_odd = split_filters(name,@low.fil_array,@high.fil_array,@reverse,cntr/2)
   end
 
+  private :fill_even_and_odd_filters
+
   def lowfil(wavelet=nil)
-    fill_even_and_odd_filters
     return @low_even.lowfil
   end
 
   def upfil(wavelet=nil)
-    fill_even_and_odd_filters
     return @low_even.upfil
   end
 
@@ -483,8 +489,7 @@ class WaveletFilter < Filter
     pr @tt[1][tt_ind].set( 0.0 )
   end
 
-  def decl_filters( options = {} )
-    fill_even_and_odd_filters
+  def decl_filters
     decl low_even.fil
     decl low_odd.fil
     decl high_even.fil
@@ -521,7 +526,6 @@ class WaveletFilterDecompose < WaveletFilter
   end
 
   def set_filter_val( index, options = {} )
-    fill_even_and_odd_filters
     pr @filter_val[0] === Set(@low_even.fil[index], @tt[0][0])
     pr @filter_val[1] === Set(@high_even.fil[index], @tt[0][0])
     pr @filter_val[2] === Set(@low_odd.fil[index], @tt[0][0])
@@ -606,7 +610,6 @@ class WaveletFilterRecompose < WaveletFilter
   end
 
   def set_filter_val( index, options = {} )
-    fill_even_and_odd_filters
     pr @filter_val[0] === Set(@low_odd.fil[index], @tt[0][0])
     pr @filter_val[1] === Set(@low_even.fil[index], @tt[0][0])
     pr @filter_val[2] === Set(@high_odd.fil[index], @tt[0][0])
