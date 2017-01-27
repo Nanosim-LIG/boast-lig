@@ -17,6 +17,7 @@ class Filter
   attr_reader :base_name
 
   attr_reader :unroll_inner
+  attr_accessor :bc
 
   def elem_number
     n = (@unroll + @vec_len - 1)/@vec_len
@@ -64,7 +65,7 @@ class Filter
   end
 
   def get_input_dim( dim, options = {} )
-    if options[:bc].shrink then
+    if @bc.shrink then
       if options[:ld] then
         get_input_dim_ld_shrink( dim )
       else
@@ -76,7 +77,7 @@ class Filter
   end
 
   def get_output_dim( dim, options = {} )
-    if options[:bc].grow then
+    if @bc.grow then
       if options[:ld] then
         get_output_dim_ld_grow( dim )
       else
@@ -87,12 +88,12 @@ class Filter
     end
   end
 
-  def get_loop_start_end( side, bc, dim, iterator )
+  def get_loop_start_end( side, dim, iterator )
     register_funccall("min")
     register_funccall("max")
     loop_start = lowfil
     loop_end   = upfil
-    if bc.free then
+    if @bc.free then
       if side == :begin then
         loop_start = max(-iterator, lowfil)
       elsif side == :end then
@@ -102,8 +103,8 @@ class Filter
     return [loop_start, loop_end]
   end
 
-  def input_filter_index( iterator, filter_index, side, bc, dim )
-    if bc.free or side == :center then
+  def input_filter_index( iterator, filter_index, side, dim )
+    if @bc.free or side == :center then
       return filter_index + iterator
     else
       if @mods then
@@ -116,10 +117,6 @@ class Filter
         return filter_index + iterator - ((filter_index + iterator + dim * 2 )/dim - 2) * dim
       end
     end
-  end
-
-  def associate_bc(bc)
-    @bc=bc
   end
 
 end
@@ -183,7 +180,7 @@ class ConvolutionFilter < Filter
       pr options[:dot_in_tmp] === FMA(Load(options[:data_in][*i_in].set_align(out.type.total_size), out), out, options[:dot_in_tmp]) if options[:dot_in_tmp] #reduction !
       pr out === FMA(Load(options[:data_in][*i_in], out), Set(options[:a_x], out), out) if options[:a_x]
     }
-    if options[:bc].grow and (options[:dot_in_tmp] or options[:a_x]) and options[:side] != :center then
+    if @bc.grow and (options[:dot_in_tmp] or options[:a_x]) and options[:side] != :center then
       if options[:side] == :begin then
         pr If(options[:position] >= 0, &finish_block)
       elsif options[:side] == :end then
@@ -227,7 +224,7 @@ class ConvolutionFilter < Filter
     return Dim( -upfil, dim - upfil - 1)
   end
 
-  def decl_filters( options = {} )
+  def decl_filters
     decl fil
   end
 
@@ -263,13 +260,13 @@ class PoissonFilter < ConvolutionFilter
 
   end
 
-  def decl_filters( options = {} )
-    decl filters_array if options[:bc].nper
+  def decl_filters
+    decl filters_array if @bc.nper
     decl @filters[@center].fil
   end
 
   def set_filter_val( index, options = {} )
-    if options[:bc].nper then
+    if @bc.nper then
       if options[:side] == :center then
         super
       elsif options[:side] == :begin then
@@ -282,8 +279,8 @@ class PoissonFilter < ConvolutionFilter
     end
   end
 
-  def input_filter_index( iterator, filter_index, side, bc, dim )
-    if bc.nper and side != :center then
+  def input_filter_index( iterator, filter_index, side, dim )
+    if @bc.nper and side != :center then
       if side == :end then
         return filter_index + lowfil + dim - 1
       else
@@ -937,7 +934,7 @@ class Convolution1dShape
 
   def input_filter_indexes( unroll_index, filter_index, side )
     i_in = index_unroll( unroll_index )
-    i_in[@processed_dim_index] = @filter.input_filter_index( i_in[@processed_dim_index], filter_index, side, bc, @processed_dim )
+    i_in[@processed_dim_index] = @filter.input_filter_index( i_in[@processed_dim_index], filter_index, side, @processed_dim )
     if @filter.kind_of?( WaveletFilter ) then
       return @filter.convert_input_indexes(i_in, @processed_dim_index) if @filter.kind_of?( WaveletFilter )
     else
@@ -998,7 +995,7 @@ class Convolution1dShape
       if dim.name.match("ndat") then
         Dim(0, dim - 1)
       else
-        @filter.get_input_dim( dim, :bc => @bc, :ld => @ld )
+        @filter.get_input_dim( dim, :ld => @ld )
       end
     }
     @dimx.flatten!
@@ -1006,7 +1003,7 @@ class Convolution1dShape
       if dim.name.match("ndat") then
         Dim(0, dim - 1)
       else
-        @filter.get_output_dim( dim, :bc => @bc, :ld => @ld )
+        @filter.get_output_dim( dim, :ld => @ld )
       end
     }
     @dimy.rotate!(@transpose).flatten!
@@ -1069,7 +1066,7 @@ class ConvolutionOperator1d
   def initialize(filter, bc, dim_indexes, options={})
     @bc = bc
     @filter = filter.dup
-    @filter.associate_bc(@bc)
+    @filter.bc = @bc
     @transpose = options[:transpose]
     @dim_indexes = dim_indexes
     @ld = options[:ld]
@@ -1311,7 +1308,7 @@ class ConvolutionOperator1d
     @filter.init_optims(tt_arr, mod_arr, unroll_inner, @shape.unroll_length, @shape.vector_length)
 
     return Procedure(function_name, vars, :constants => get_constants ){
-      @filter.decl_filters( :bc => @bc )
+      @filter.decl_filters
       decl *@shape.iterators
       decl @l
       decl *([@filter.get_tt].flatten)
@@ -1398,7 +1395,6 @@ class ConvolutionOperator1d
                                              i_out,
                                              @y,
                                              @transpose,
-                                             :bc => @bc,
                                              :side => side,
                                              :position => @shape.iterators[@shape.processed_dim_index],
                                              :dim => @shape.processed_dim,
@@ -1422,10 +1418,10 @@ class ConvolutionOperator1d
 
     init_values(tlen)
 
-    loop_start, loop_end = @filter.get_loop_start_end( side, @bc, @shape.processed_dim, @shape.iterators[@shape.processed_dim_index] )
+    loop_start, loop_end = @filter.get_loop_start_end( side, @shape.processed_dim, @shape.iterators[@shape.processed_dim_index] )
 
     pr For( @l, loop_start, loop_end, :unroll => @filter.unroll_inner ) {
-      @filter.set_filter_val(@l, :side => side, :position => iters[@shape.processed_dim_index], :dim => @shape.processed_dim, :bc => @bc)
+      @filter.set_filter_val(@l, :side => side, :position => iters[@shape.processed_dim_index], :dim => @shape.processed_dim)
       compute_values(side, tlen)
     }
 
