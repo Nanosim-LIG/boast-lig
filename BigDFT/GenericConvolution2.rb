@@ -17,6 +17,7 @@ class Filter
   attr_reader :base_name
 
   attr_reader :unroll_inner
+  attr_accessor :bc
 
   def elem_number
     n = (@unroll + @vec_len - 1)/@vec_len
@@ -64,7 +65,7 @@ class Filter
   end
 
   def get_input_dim( dim, options = {} )
-    if options[:bc].shrink then
+    if @bc.shrink then
       if options[:ld] then
         get_input_dim_ld_shrink( dim )
       else
@@ -76,7 +77,7 @@ class Filter
   end
 
   def get_output_dim( dim, options = {} )
-    if options[:bc].grow then
+    if @bc.grow then
       if options[:ld] then
         get_output_dim_ld_grow( dim )
       else
@@ -87,12 +88,12 @@ class Filter
     end
   end
 
-  def get_loop_start_end( side, bc, dim, iterator )
+  def get_loop_start_end( side, dim, iterator )
     register_funccall("min")
     register_funccall("max")
     loop_start = lowfil
     loop_end   = upfil
-    if bc.free then
+    if @bc.free then
       if side == :begin then
         loop_start = max(-iterator, lowfil)
       elsif side == :end then
@@ -102,8 +103,8 @@ class Filter
     return [loop_start, loop_end]
   end
 
-  def input_filter_index( iterator, filter_index, side, bc, dim )
-    if bc.free or side == :center then
+  def input_filter_index( iterator, filter_index, side, dim )
+    if @bc.free or side == :center then
       return filter_index + iterator
     else
       if @mods then
@@ -179,7 +180,7 @@ class ConvolutionFilter < Filter
       pr options[:dot_in_tmp] === FMA(Load(options[:data_in][*i_in].set_align(out.type.total_size), out), out, options[:dot_in_tmp]) if options[:dot_in_tmp] #reduction !
       pr out === FMA(Load(options[:data_in][*i_in], out), Set(options[:a_x], out), out) if options[:a_x]
     }
-    if options[:bc].grow and (options[:dot_in_tmp] or options[:a_x]) and options[:side] != :center then
+    if @bc.grow and (options[:dot_in_tmp] or options[:a_x]) and options[:side] != :center then
       if options[:side] == :begin then
         pr If(options[:position] >= 0, &finish_block)
       elsif options[:side] == :end then
@@ -223,7 +224,7 @@ class ConvolutionFilter < Filter
     return Dim( -upfil, dim - upfil - 1)
   end
 
-  def decl_filters( options = {} )
+  def decl_filters
     decl fil
   end
 
@@ -259,13 +260,13 @@ class PoissonFilter < ConvolutionFilter
 
   end
 
-  def decl_filters( options = {} )
-    decl filters_array if options[:bc].nper
+  def decl_filters
+    decl filters_array if @bc.nper
     decl @filters[@center].fil
   end
 
   def set_filter_val( index, options = {} )
-    if options[:bc].nper then
+    if @bc.nper then
       if options[:side] == :center then
         super
       elsif options[:side] == :begin then
@@ -278,8 +279,8 @@ class PoissonFilter < ConvolutionFilter
     end
   end
 
-  def input_filter_index( iterator, filter_index, side, bc, dim )
-    if bc.nper and side != :center then
+  def input_filter_index( iterator, filter_index, side, dim )
+    if @bc.nper and side != :center then
       if side == :end then
         return filter_index + lowfil + dim - 1
       else
@@ -301,52 +302,8 @@ class WaveletFilter < Filter
     @convolution = opts[:convolution_filter]
     @fil_array = filt1.dup
     if @convolution then
-      require 'bigdecimal'
-      lp = @fil_array.collect { |e| BigDecimal.new(e) }
-      hp = lp.each_with_index.collect { |e,i| i % 2 == 0 ? e : -e }.reverse
-      cv = @convolution.fil_array.collect { |e| BigDecimal.new(e) }
-
-      lp_length = lp.length
-      hp_length = hp.length
-      cv_length = @convolution.length
-
-      lp_center = lp_length / 2
-      hp_center = hp_length / 2
-      cv_center = @convolution.center
-
-      cv_bounds = [ -cv_center, cv_length - cv_center - 1 ]
-      lp_bounds = [ -lp_center, lp_length - lp_center - 1 ]
-      hp_bounds = [ -hp_center, hp_length - hp_center - 1 ]
-
-      lp_cv_bounds = [ cv_bounds[0] - lp_bounds[1], cv_bounds[1] - lp_bounds[0] ]
-      hp_cv_bounds = [ cv_bounds[0] - hp_bounds[1], cv_bounds[1] - hp_bounds[0] ]
-
-      lp_cv_bounds[0] -= 1 if lp_cv_bounds[0] % 2 != 0
-      hp_cv_bounds[0] -= 1 if hp_cv_bounds[0] % 2 != 0
-      lp_cv_bounds[1] += 1 if lp_cv_bounds[1] % 2 == 0
-      hp_cv_bounds[1] += 1 if hp_cv_bounds[1] % 2 == 0
-
-      lp_cv_center = - lp_cv_bounds[0]
-      hp_cv_center = - hp_cv_bounds[0]
-
-      lp_cv = (lp_cv_bounds[0]..lp_cv_bounds[1]).collect { |i|
-        sum = BigDecimal.new(0)
-        (lp_bounds[0]..lp_bounds[1]).each { |j|
-          sum += lp[j+lp_center] * cv[i-j-1+cv_center] if (0...cv_length).include?(i-j-1+cv_center)
-        }
-        sum
-      }
-
-      hp_cv = (hp_cv_bounds[0]..hp_cv_bounds[1]).collect { |i|
-        sum = BigDecimal.new(0)
-        (hp_bounds[0]..hp_bounds[1]).each { |j|
-          sum += hp[j+hp_center] * cv[i-j-1+cv_center] if (0...cv_length).include?(i-j-1+cv_center)
-        }
-        sum
-      }
-      @center = lp_cv_center
-      @low = ConvolutionFilter::new(name+"_l", lp_cv.collect { |e| e.truncate(30).to_s }, lp_cv_center)
-      @high = ConvolutionFilter::new(name+"_h", hp_cv.collect { |e| e.truncate(30).to_s }, hp_cv_center)
+      #initialize low filter with the nonperiodic BC recipe for evaluating length
+      @center, @low, @high = self.combine_wavelet_filters(name,@fil_array,@convolution,@convolution.center)
     else
       @center = @fil_array.length/2
       @center -= @center%2
@@ -375,6 +332,111 @@ class WaveletFilter < Filter
     @length = @low.fil_array.length
     @name = name
   end
+
+  def combine_wavelet_filters(name,fil_array,convolution,convcenter)
+    require 'bigdecimal'
+    lp = @fil_array.collect { |e| BigDecimal.new(e) }
+    hp = lp.each_with_index.collect { |e,i| i % 2 == 0 ? e : -e }.reverse
+    cv = @convolution.fil_array.collect { |e| BigDecimal.new(e) }
+
+    lp_length = lp.length
+    hp_length = hp.length
+    cv_length = @convolution.length
+
+    lp_center = lp_length / 2
+    hp_center = hp_length / 2
+    cv_center = convcenter
+
+    cv_bounds = [ -cv_center, cv_length - cv_center - 1 ]
+    lp_bounds = [ -lp_center, lp_length - lp_center - 1 ]
+    hp_bounds = [ -hp_center, hp_length - hp_center - 1 ]
+
+    lp_cv_bounds = [ cv_bounds[0] - lp_bounds[1], cv_bounds[1] - lp_bounds[0] ]
+    hp_cv_bounds = [ cv_bounds[0] - hp_bounds[1], cv_bounds[1] - hp_bounds[0] ]
+
+    lp_cv_bounds[0] -= 1 if lp_cv_bounds[0] % 2 != 0
+    hp_cv_bounds[0] -= 1 if hp_cv_bounds[0] % 2 != 0
+    lp_cv_bounds[1] += 1 if lp_cv_bounds[1] % 2 == 0
+    hp_cv_bounds[1] += 1 if hp_cv_bounds[1] % 2 == 0
+
+    lp_cv_center = - lp_cv_bounds[0]
+    hp_cv_center = - hp_cv_bounds[0]
+
+    lp_cv = (lp_cv_bounds[0]..lp_cv_bounds[1]).collect { |i|
+      sum = BigDecimal.new(0)
+      (lp_bounds[0]..lp_bounds[1]).each { |j|
+        sum += lp[j+lp_center] * cv[i-j-1+cv_center] if (0...cv_length).include?(i-j-1+cv_center)
+      }
+      sum
+    }
+
+    hp_cv = (hp_cv_bounds[0]..hp_cv_bounds[1]).collect { |i|
+      sum = BigDecimal.new(0)
+      (hp_bounds[0]..hp_bounds[1]).each { |j|
+        sum += hp[j+hp_center] * cv[i-j-1+cv_center] if (0...cv_length).include?(i-j-1+cv_center)
+      }
+      sum
+    }
+    center = lp_cv_center
+    low = ConvolutionFilter::new(name+"_l", lp_cv.collect { |e| e.truncate(30).to_s }, lp_cv_center)
+    high = ConvolutionFilter::new(name+"_h", hp_cv.collect { |e| e.truncate(30).to_s }, hp_cv_center)
+    return center,low,high
+  end
+
+  def split_filters(name,lfa,hfa,reverse,center_half)
+
+    if (reverse) then
+      lowin=lfa.reverse
+      higin=hfa.reverse
+      r='r'
+    else
+      lowin=lfa
+      higin=hfa
+      r=''
+    end
+
+    filt_1 = lowin.values_at(*(0..(lfa.length-1)).step(2).collect)
+    low_e = ConvolutionFilter::new(name+"_l"+r+"e", filt_1, center_half)
+
+    filt_2 = lowin.values_at(*(1..(lfa.length-1)).step(2).collect)
+    low_o = ConvolutionFilter::new(name+"_l"+r+"o", filt_2, center_half)
+
+    filt_3 = higin.values_at(*(0..(hfa.length-1)).step(2).collect)
+    high_e = ConvolutionFilter::new(name+"_h"+r+"e", filt_3, center_half)
+
+    filt_4 = higin.values_at(*(1..(hfa.length-1)).step(2).collect)
+    high_o = ConvolutionFilter::new(name+"_h"+r+"o", filt_4, center_half)
+    return low_e,low_o,high_e,high_o
+  end
+
+  def bc=(bc)
+    super
+    fill_even_and_odd_filters
+    return bc
+  end
+
+  def fill_even_and_odd_filters
+    if @low_even then
+      return #just do it the first time
+    end
+    if @convolution then
+      if @bc and (@bc.grow or @bc.shrink) then
+        convcntr=@convolution.center-1
+      else
+        convcntr=@convolution.center
+      end
+      #must rebuild the low and the high with shifted center
+      @center, @low, @high = self.combine_wavelet_filters(@name,@fil_array,@convolution,convcntr)
+    end
+    if @reverse
+      cntr=@low.fil_array.length - @center - 1
+    else
+      cntr=@center
+    end
+    @low_even, @low_odd, @high_even, @high_odd = split_filters(name,@low.fil_array,@high.fil_array,@reverse,cntr/2)
+  end
+
+  private :fill_even_and_odd_filters
 
   def lowfil(wavelet=nil)
     return @low_even.lowfil
@@ -427,7 +489,7 @@ class WaveletFilter < Filter
     pr @tt[1][tt_ind].set( 0.0 )
   end
 
-  def decl_filters( options = {} )
+  def decl_filters
     decl low_even.fil
     decl low_odd.fil
     decl high_even.fil
@@ -447,19 +509,8 @@ class WaveletFilterDecompose < WaveletFilter
 
     @base_name = "s0s1"
 
-    center_half = @center / 2
-
-    filt_1 = @low.fil_array.values_at(*(0..(@low.fil_array.length-1)).step(2).collect)
-    @low_even = ConvolutionFilter::new(name+"_le", filt_1, center_half)
-
-    filt_2 = @low.fil_array.values_at(*(1..(@low.fil_array.length-1)).step(2).collect)
-    @low_odd = ConvolutionFilter::new(name+"_lo", filt_2, center_half)
-
-    filt_3 = @high.fil_array.values_at(*(0..(@high.fil_array.length-1)).step(2).collect)
-    @high_even = ConvolutionFilter::new(name+"_he", filt_3, center_half)
-
-    filt_4 = @high.fil_array.values_at(*(1..(@high.fil_array.length-1)).step(2).collect)
-    @high_odd = ConvolutionFilter::new(name+"_ho", filt_4, center_half)
+    @reverse=false
+    #@low_even, @low_odd, @high_even, @high_odd = split_filters(name,@low.fil_array,@high.fil_array,false,@center/2)
 
   end
 
@@ -542,19 +593,8 @@ class WaveletFilterRecompose < WaveletFilter
 
     @base_name = "s1s0"
 
-    center_half = (@low.fil_array.length - @center - 1)/2
-
-    filt_1 = @low.fil_array.reverse.values_at(*(0..(@low.fil_array.length-1)).step(2).collect)
-    @low_even = ConvolutionFilter::new(name+"_lre", filt_1, center_half)
-
-    filt_2 = @low.fil_array.reverse.values_at(*(1..(@low.fil_array.length-1)).step(2).collect)
-    @low_odd = ConvolutionFilter::new(name+"_lro", filt_2, center_half)
-
-    filt_3 = @high.fil_array.reverse.values_at(*(0..(@high.fil_array.length-1)).step(2).collect)
-    @high_even = ConvolutionFilter::new(name+"_hre", filt_3, center_half)
-
-    filt_4 = @high.fil_array.reverse.values_at(*(1..(@high.fil_array.length-1)).step(2).collect)
-    @high_odd = ConvolutionFilter::new(name+"_hro", filt_4, center_half)
+    @reverse = true
+    #@low_even, @low_odd, @high_even, @high_odd = split_filters(name,@low.fil_array,@high.fil_array,true,(@low.fil_array.length - @center - 1)/2)
 
   end
 
@@ -897,7 +937,7 @@ class Convolution1dShape
 
   def input_filter_indexes( unroll_index, filter_index, side )
     i_in = index_unroll( unroll_index )
-    i_in[@processed_dim_index] = @filter.input_filter_index( i_in[@processed_dim_index], filter_index, side, bc, @processed_dim )
+    i_in[@processed_dim_index] = @filter.input_filter_index( i_in[@processed_dim_index], filter_index, side, @processed_dim )
     if @filter.kind_of?( WaveletFilter ) then
       return @filter.convert_input_indexes(i_in, @processed_dim_index) if @filter.kind_of?( WaveletFilter )
     else
@@ -958,7 +998,7 @@ class Convolution1dShape
       if dim.name.match("ndat") then
         Dim(0, dim - 1)
       else
-        @filter.get_input_dim( dim, :bc => @bc, :ld => @ld )
+        @filter.get_input_dim( dim, :ld => @ld )
       end
     }
     @dimx.flatten!
@@ -966,7 +1006,7 @@ class Convolution1dShape
       if dim.name.match("ndat") then
         Dim(0, dim - 1)
       else
-        @filter.get_output_dim( dim, :bc => @bc, :ld => @ld )
+        @filter.get_output_dim( dim, :ld => @ld )
       end
     }
     @dimy.rotate!(@transpose).flatten!
@@ -1027,8 +1067,9 @@ class ConvolutionOperator1d
   # * +:ld+ - leading dimensions enable
   # * +:wavelet+ - specify a wavelet operation, :decompose or :recompose
   def initialize(filter, bc, dim_indexes, options={})
-    @filter = filter.dup
     @bc = bc
+    @filter = filter.dup
+    @filter.bc = @bc
     @transpose = options[:transpose]
     @dim_indexes = dim_indexes
     @ld = options[:ld]
@@ -1270,7 +1311,7 @@ class ConvolutionOperator1d
     @filter.init_optims(tt_arr, mod_arr, unroll_inner, @shape.unroll_length, @shape.vector_length)
 
     return Procedure(function_name, vars, :constants => get_constants ){
-      @filter.decl_filters( :bc => @bc )
+      @filter.decl_filters
       decl *@shape.iterators
       decl @l
       decl *([@filter.get_tt].flatten)
@@ -1357,7 +1398,6 @@ class ConvolutionOperator1d
                                              i_out,
                                              @y,
                                              @transpose,
-                                             :bc => @bc,
                                              :side => side,
                                              :position => @shape.iterators[@shape.processed_dim_index],
                                              :dim => @shape.processed_dim,
@@ -1381,10 +1421,10 @@ class ConvolutionOperator1d
 
     init_values(tlen)
 
-    loop_start, loop_end = @filter.get_loop_start_end( side, @bc, @shape.processed_dim, @shape.iterators[@shape.processed_dim_index] )
+    loop_start, loop_end = @filter.get_loop_start_end( side, @shape.processed_dim, @shape.iterators[@shape.processed_dim_index] )
 
     pr For( @l, loop_start, loop_end, :unroll => @filter.unroll_inner ) {
-      @filter.set_filter_val(@l, :side => side, :position => iters[@shape.processed_dim_index], :dim => @shape.processed_dim, :bc => @bc)
+      @filter.set_filter_val(@l, :side => side, :position => iters[@shape.processed_dim_index], :dim => @shape.processed_dim)
       compute_values(side, tlen)
     }
 

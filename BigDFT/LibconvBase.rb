@@ -214,33 +214,17 @@ def generate_imf(optims=nil)
   return LibConvKernel::new(imf,LibConvOp::new(:imf))
 end
 
-def generate_s1tor(optims=nil,periodic=true)
-  #here the case which works well for periodic BC (corresponds to the combination of twf and mf)
-  #this should be the reference result
-  if periodic then
-    conv_filteritmp = ConvolutionFilter::new('sym8_md',SYM8_MF,8)
-    icomb=WaveletFilterRecompose::new("symicomb#{SYM8_LP.length/2}", SYM8_LP,:convolution_filter=>conv_filteritmp)
-    iwticomb = Wavelet1d( icomb, :recompose, optims )
-    return LibConvKernel::new(iwticomb,LibConvOp::new(:s1tor))
-  else
-    conv_filteri = ConvolutionFilter::new('sym8_md',SYM8_MF,7)
-    comb=WaveletFilterRecompose::new("symcomb#{SYM8_LP.length/2}", SYM8_LP,:convolution_filter=>conv_filteri)
-    iwtcomb = Wavelet1d( comb, :recompose, optims )
-    return LibConvKernel::new(iwtcomb,LibConvOp::new(:s1tor))
-  end
+def generate_s1tor(optims=nil)
+  conv_filteritmp = ConvolutionFilter::new('sym8_md',SYM8_MF,8)
+  icomb=WaveletFilterRecompose::new("symicomb#{SYM8_LP.length/2}", SYM8_LP,:convolution_filter=>conv_filteritmp)
+  iwticomb = Wavelet1d( icomb, :recompose, optims )
+  return LibConvKernel::new(iwticomb,LibConvOp::new(:s1tor))
 end
 
-def generate_rtos1(optims=nil,periodic=true)
-  if periodic then
-    conv_filteritmp = ConvolutionFilter::new('sym8_md',SYM8_MF,8)
-    icombi=WaveletFilterDecompose::new("symicomb#{SYM8_LP.length/2}", SYM8_LP,:convolution_filter=>conv_filteritmp)
-    dwticomb = Wavelet1d( icombi, :decompose, optims )
-    return LibConvKernel::new(dwticomb,LibConvOp::new(:rtos1))
-  else
-    conv_filteri = ConvolutionFilter::new('sym8_md',SYM8_MF,7)
-    combi=WaveletFilterDecompose::new("symcomb#{SYM8_LP.length/2}", SYM8_LP,:convolution_filter=>conv_filteri)
-    dwtcomb = Wavelet1d( combi, :decompose, optims )
-    return LibConvKernel::new(dwtcomb,LibConvOp::new(:rtos1))
-  end
+def generate_rtos1(optims=nil)
+  conv_filteritmp = ConvolutionFilter::new('sym8_md',SYM8_MF,8)
+  icombi=WaveletFilterDecompose::new("symicomb#{SYM8_LP.length/2}", SYM8_LP,:convolution_filter=>conv_filteritmp)
+  dwticomb = Wavelet1d( icombi, :decompose, optims )
+  return LibConvKernel::new(dwticomb,LibConvOp::new(:rtos1))
 end
 
