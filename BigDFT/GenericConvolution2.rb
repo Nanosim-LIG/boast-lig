@@ -65,7 +65,7 @@ class Filter
   end
 
   def get_input_dim( dim, options = {} )
-    if @bc.shrink then
+    if @bc.shrink? then
       if options[:ld] then
         get_input_dim_ld_shrink( dim )
       else
@@ -77,7 +77,7 @@ class Filter
   end
 
   def get_output_dim( dim, options = {} )
-    if @bc.grow then
+    if @bc.grow? then
       if options[:ld] then
         get_output_dim_ld_grow( dim )
       else
@@ -93,7 +93,7 @@ class Filter
     register_funccall("max")
     loop_start = lowfil
     loop_end   = upfil
-    if @bc.free then
+    if @bc.free? then
       if side == :begin then
         loop_start = max(-iterator, lowfil)
       elsif side == :end then
@@ -104,7 +104,7 @@ class Filter
   end
 
   def input_filter_index( iterator, filter_index, side, dim )
-    if @bc.free or side == :center then
+    if @bc.free? or side == :center then
       return filter_index + iterator
     else
       if @mods then
@@ -180,7 +180,7 @@ class ConvolutionFilter < Filter
       pr options[:dot_in_tmp] === FMA(Load(options[:data_in][*i_in].set_align(out.type.total_size), out), out, options[:dot_in_tmp]) if options[:dot_in_tmp] #reduction !
       pr out === FMA(Load(options[:data_in][*i_in], out), Set(options[:a_x], out), out) if options[:a_x]
     }
-    if @bc.grow and (options[:dot_in_tmp] or options[:a_x]) and options[:side] != :center then
+    if @bc.grow? and (options[:dot_in_tmp] or options[:a_x]) and options[:side] != :center then
       if options[:side] == :begin then
         pr If(options[:position] >= 0, &finish_block)
       elsif options[:side] == :end then
@@ -248,7 +248,7 @@ class PoissonFilter < ConvolutionFilter
         e.each{|val|
             tmp_array[index]=val
             index= index+1
-        }    
+        }
     }
     arr = ConstArray::new(tmp_array,Real)
     @filters_array = Real("#{name}_fil",:constant => arr,:dim => [ Dim(0,(2*@center+1)*(2*@center+1)-1) ])
@@ -261,12 +261,12 @@ class PoissonFilter < ConvolutionFilter
   end
 
   def decl_filters
-    decl filters_array if @bc.nper
+    decl filters_array if @bc.nper?
     decl @filters[@center].fil
   end
 
   def set_filter_val( index, options = {} )
-    if @bc.nper then
+    if @bc.nper? then
       if options[:side] == :center then
         super
       elsif options[:side] == :begin then
@@ -280,7 +280,7 @@ class PoissonFilter < ConvolutionFilter
   end
 
   def input_filter_index( iterator, filter_index, side, dim )
-    if @bc.nper and side != :center then
+    if @bc.nper? and side != :center then
       if side == :end then
         return filter_index + lowfil + dim - 1
       else
@@ -420,7 +420,7 @@ class WaveletFilter < Filter
       return #just do it the first time
     end
     if @convolution then
-      if @bc and (@bc.grow or @bc.shrink) then
+      if @bc and (@bc.grow? or @bc.shrink?) then
         convcntr=@convolution.center-1
       else
         convcntr=@convolution.center
@@ -672,7 +672,7 @@ end
 
 # determine the BC of the convolutions
 #        Typical values are 0 : periodic BC, the size of input and output arrays are identical
-#                           1 : Free BC, grow: the size of the output array is equal to the 
+#                           1 : Free BC, grow: the size of the output array is equal to the
 #                                              size of input array plus the one of the filter
 #                          -1 : Free BC, shrink: the size of the input array is equal to the one
 #                                        of output array plus the filter
@@ -688,21 +688,28 @@ class BoundaryConditions
   SHRINK = -1
   NPERIODIC = -2
   FREE = 2
-    
+
   CONDITIONS = [PERIODIC, GROW, SHRINK]
 
-  # determine if the boundary condition is free or not
-  attr_reader :free 
-  # name of the boundary condition, used for the name of the routines
-  attr_reader :name
-  # determine if the convolution is a grow-like type (cannot be true if shrink is true)
-  attr_reader :grow
-  # determine if the convolution is a shrink-like type (cannot be true if grow is true)
-  attr_reader :shrink
-  # determine if the convolution is non periodic
-  attr_reader :nper
   # original id of the boundary conditions
   attr_reader :id
+  # name of the boundary condition, used for the name of the routines
+  attr_reader :name
+  # determine if the boundary condition is free or not
+  attr_reader :free
+  alias free? free
+  # determine if the convolution is a grow-like type (cannot be true if shrink is true)
+  attr_reader :grow
+  alias grow? grow
+  # determine if the convolution is a shrink-like type (cannot be true if grow is true)
+  attr_reader :shrink
+  alias shrink? shrink
+  # determine if the convolution is non periodic
+  attr_reader :nper
+  alias nper? nper
+  # determine if the convolution discards data
+  attr_reader :discard
+  alias discard? discard
 
   def initialize(ibc)
     @id     = ibc
@@ -739,14 +746,14 @@ class GenericOptimization
   attr_reader :repeat
   attr_reader :dimensions
   attr_reader :openmp
-  
+
   class DataRange
     def initialize(start,stop,step)
       @range = start..stop
       @step = step
     end
     def each(&block)
-      return @range.step(@step,&block) 
+      return @range.step(@step,&block)
     end
   end
 
@@ -761,17 +768,17 @@ class GenericOptimization
     def points
       pts=[]
       space2 = @space.dup
-      dimension,value = space2.shift 
+      dimension,value = space2.shift
       space2=ParamSpace::new(space2)
-      value.each{ |val| 
+      value.each{ |val|
         pts.push({dimension.to_s.chomp("_range").to_sym => val})
       }
       if space2.size == 0 then
         return pts
       else
         pts3=[]
-        pts.each{ |p1| 
-          space2.each { |p2| 
+        pts.each{ |p1|
+          space2.each { |p2|
             pts3.push(p1.dup.update(p2))
           }
         }
@@ -822,7 +829,7 @@ class GenericOptimization
     space[:vector_length_range] = [vector_length].flatten
     @space=ParamSpace::new(space)
   end
-  
+
   def each(&block)
     return @space.each(&block)
   end
@@ -1013,7 +1020,7 @@ class Convolution1dShape
   end
 
   def compute_inner_loop_boundaries
-    if @bc.grow then
+    if @bc.grow? then
       @line_start = -@filter.upfil
       @line_end = @dim_n - @filter.lowfil - 1
     else
@@ -1051,12 +1058,12 @@ class ConvolutionOperator1d
   attr_reader :options
   attr_reader :base_name
   # Creates new 1d convolution
-  # 
+  #
   # ==== Attributes
-  # 
+  #
   # * +filter+ - ConvolutionFilter object corresponding to the operations to be applied on data
   # * +bc+ Boundary conditions: control the way in which the convolution has to be applied.
-  #                       
+  #
   # * +options+ - Hash table of allowed options (see options descritpion)
   #
   # ==== Options
@@ -1084,7 +1091,7 @@ class ConvolutionOperator1d
 
     @vars.push @x = Real("x",:dir => :in, :dim => @shape.dimx, :restrict => true)
     if @kinetic and @kinetic != :inplace and not options[:zero_out_work] then
-      if @bc.grow then
+      if @bc.grow? then
         @vars.push @x2 = Real("x2",:dir => :in, :dim => @shape.dimy, :restrict => true)
       else
         @vars.push @x2 = Real("x2",:dir => :in, :dim => @shape.dimx, :restrict => true)
@@ -1145,14 +1152,14 @@ class ConvolutionOperator1d
     end
     n_push = lambda { |varsi, varso|
       s_n = nd[@shape.processed_dim.name]
-      if @bc.grow then
+      if @bc.grow? then
         varsi.push(s_n)
         if @wavelet then
           varso.push(s_n + @filter.low.length - 1)
         else
           varso.push(s_n + @filter.length - 1)
         end
-      elsif @bc.shrink
+      elsif @bc.shrink?
         if @wavelet then
           varsi.push(s_n + @filter.low.length - 1)
         else
@@ -1194,7 +1201,7 @@ class ConvolutionOperator1d
     else
       vars.push(ANArray::new(type, align, *varsin).random!)
       if @x2 then
-        if @bc.grow then
+        if @bc.grow? then
           vars.push(ANArray::new(type, align, *varsout).random!)
         else
           vars.push(ANArray::new(type, align, *varsin).random!)
@@ -1220,7 +1227,7 @@ class ConvolutionOperator1d
     already_tested = {}
     opt_space.each{ |optim|
       next if optim[:unrolled_dim_index] == 1 and @shape.length < 3
-      #next if optim[:mod_arr] and @bc.free
+      #next if optim[:mod_arr] and @bc.free?
       #puts optim
       kernel = CKernel::new
       print_header
@@ -1228,7 +1235,7 @@ class ConvolutionOperator1d
       pr p
       kernel.procedure = p
       next if already_tested[p.name]
-      #kernel.print #if @bc.free
+      #kernel.print #if @bc.free?
       kernel.build(:openmp => opt_space.openmp)
       dimensions = opt_space.dimensions
       par = nil
@@ -1293,7 +1300,7 @@ class ConvolutionOperator1d
 
     @shape.set_exploration( options[:unrolled_dim_index], options[:unroll], options[:vector_length], @dot_in )
 
-    mod_arr = false if @bc.free
+    mod_arr = false if @bc.free?
     util = options[:util]
 
     function_name = @base_name
@@ -1328,7 +1335,7 @@ class ConvolutionOperator1d
         @dot_in_tmp = @dot_in
       end
       pr @dot_in.set(0.0) if @options[:dot_in]
-      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => @dot_in} : nil ), private: @shape.iterators + [@l] + [@filter.get_tt] + ( @filter.get_filter_val ? [@filter.get_filter_val].flatten : [] )) { 
+      pr OpenMP::Parallel(default: :shared, reduction: (@options[:dot_in] ? {"+" => @dot_in} : nil ), private: @shape.iterators + [@l] + [@filter.get_tt] + ( @filter.get_filter_val ? [@filter.get_filter_val].flatten : [] )) {
         convolution1d
       }
     }
@@ -1356,7 +1363,7 @@ class ConvolutionOperator1d
   def conv_lines( tlen )
     # the shrink operation contains the central part only
     iter = @shape.iterators[@shape.processed_dim_index]
-    if @bc.shrink then
+    if @bc.shrink? then
       pr For(iter, @shape.line_start, @shape.line_end) {
         for_conv(:center, tlen)
       }
@@ -1382,14 +1389,14 @@ class ConvolutionOperator1d
 
   def compute_values(side, tlen)
     (0...tlen).step(@shape.vector_length).each_with_index{ |ind,tt_ind|
-      
+
       i_in = @shape.input_filter_indexes( ind, @l, side )
 
       @filter.compute_values(tt_ind, i_in, @x)
     }
   end
 
-  
+
   def post_process_and_store_values(side, tlen)
     (0...tlen).step(@shape.vector_length).each_with_index{ |ind,tt_ind|
       i_out = @shape.output_indexes(ind)
@@ -1489,7 +1496,7 @@ class GenericConvolutionOperator1d
       }
     }
     if @poisson then
-      conditions = BC::CONDITIONS << BC::NPERIODIC 
+      conditions = BC::CONDITIONS << BC::NPERIODIC
     else
       conditions = BC::CONDITIONS
     end
@@ -1562,7 +1569,7 @@ class GenericConvolutionOperator1d
 
     vv = @vars
     vv += [ @cost ] if util == :cost
-    
+
     p = Procedure( function_name, vv ) {
       ndat_left = Int "ndat_left"
       ndat_right = Int "ndat_right"
@@ -2219,7 +2226,7 @@ class GenericConvolutionOperator
         }, else: lambda {
           dims, dim_indexes = compute_ni_ndat.call( i )
           if @transpose == 0 then
-            dims.reverse! 
+            dims.reverse!
             dim_indexes.reverse!
           end
           if @kinetic then
@@ -2253,9 +2260,9 @@ class ConvolutionOptimization
 
     @transpose = 0
     @transpose = options[:transpose] if options[:transpose]
-    
+
     @use_mod =  [ false ] * ndim
-    convolution.bc.each_with_index { |bc,ind| @use_mod[ind] = (not bc.free) } if options[:use_mod]
+    convolution.bc.each_with_index { |bc,ind| @use_mod[ind] = (not bc.free?) } if options[:use_mod]
 
     @tt_arr = convolution.dims.collect { false }
     if options[:tt_arr] then
@@ -2268,11 +2275,11 @@ class ConvolutionOptimization
         raise 'Incoherent dimensions specified in tt_arr options: #{ndim}, #{ttopt.length}'
       end
     end
-      
-    convolution.bc.each_with_index { |bc,ind| @use_mod[ind] = (not bc.free) } 
+
+    convolution.bc.each_with_index { |bc,ind| @use_mod[ind] = (not bc.free?) }
 
     @dim_order=(0...ndim).collect{|i| i}
-    @dim_order.reverse!  if @transpose == -1 
+    @dim_order.reverse!  if @transpose == -1
     @dim_order = options[:dim_order] if options[:dim_order] and @transpose == 0
 
     if @transpose ==1 then
@@ -2282,7 +2289,7 @@ class ConvolutionOptimization
     else
       hdim = ndim / 2
       unrolled_dim = (1..ndim).collect { |i| i < hdim ? 2 : 0 }
-      unrolled_dim = [1] + unrolled_dim 
+      unrolled_dim = [1] + unrolled_dim
       if options[:unrolled_dim] then
         raise 'Incoherent dimensions specified in unrolling options: #{ndim}, #{options[:unrolled_dim].length}' if options[:unrolled_dim].length != ndim
         unrolled_dim = options[:unrolled_dim]
