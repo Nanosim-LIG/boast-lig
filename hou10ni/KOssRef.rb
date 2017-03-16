@@ -26,63 +26,7 @@ class KOssRef
  end
  
  def generate
-  codeF = ""
-  codeF =<<EOF
- subroutine fluid_inner_elt_ref(Nflu_inner, Nflusol_inner, nb_rhs, idx_vec_flu, idx_mat_flu, P_new, P_inter, P_old, A_flu, afluSize,pSize, vecSize_1,vecSize_2,matSize)
- 
- integer,     parameter  :: dp    = 4               ! 4-byte integer
- integer,     parameter  :: dq    = 8               ! Double precision
-
- integer, intent(in) :: Nflu_inner
- integer, intent(in) :: Nflusol_inner
- integer, intent(in) :: nb_rhs
- integer, intent(in) :: afluSize
- integer, intent(in) :: pSize
- integer, intent(in) :: vecSize_1
- integer, intent(in) :: vecSize_2
- integer, intent(in) :: matSize
- integer, intent(in) :: idx_vec_flu(vecSize_1,vecSize_2) 
- integer, intent(in) :: idx_mat_flu(matSize) 
- real(dq), intent(inout) :: P_new(pSize,nb_rhs) 
- real(dq), intent(in) :: P_inter(pSize,nb_rhs) 
- real(dq), intent(in) :: P_old(pSize,nb_rhs) 
- real(dq), intent(in) :: A_flu(afluSize)  
-
- integer(dp) :: I
- integer(dp) :: J
- integer(dp) :: I1
- integer(dp) :: I2
- integer(dp) :: I3
- integer(dp) :: I4
- integer(dp) :: I_tmp1
- integer(dp) :: I_tmp2
- real(dq) :: P_aux(20,nb_rhs)
-
-
-  do I=1,Nflu_inner+Nflusol_inner
-   I_tmp1=1
-   do J=1, idx_vec_flu(1,I)
-    I1=idx_vec_flu(2*J,I)
-    I2=idx_vec_flu(2*J+1,I)
-    I_tmp2=I_tmp1+I2-I1
-    P_aux(I_tmp1:I_tmp2,1:nb_rhs)=P_inter(I1:I2,1:nb_rhs)
-    I_tmp1=I_tmp2+1
-   end do
-   I1=idx_vec_flu(2,I)
-   print *,'I1 = ',I1
-   I2=idx_vec_flu(3,I)
-   print *,'I2 = ',I2
-   I3=idx_mat_flu(I)
-   print *,'I3 = ',I3
-   I4=idx_mat_flu(I+1)-1
-   print *,'I4 = ',I4
-   print *, 'A_flu = ', RESHAPE(A_flu(I3:I4), (/I2-I1+1, I_tmp2/))
-   print *, 'P_aux = ', P_aux(1:I_tmp2,1:nb_rhs)
-   print *, 'P_old = ', P_old(I1:I2,1:nb_rhs) 
-   P_new(I1:I2,1:nb_rhs)=MATMUL(RESHAPE(A_flu(I3:I4), (/I2-I1+1, I_tmp2/)),P_aux(1:I_tmp2,1:nb_rhs))-P_old(I1:I2,1:nb_rhs)
-  end do
-end subroutine fluid_inner_elt_ref
-EOF
+  codeF = File::read("./kernel.f90")
 
    push_env(:lang => FORTRAN) {
      @kernel = CKernel:: new()
