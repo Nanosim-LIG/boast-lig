@@ -186,7 +186,40 @@ class LibConvKernel
       ld_dest=ndims
       ld_src=get_ld(idim,ndims,BC::GROW,@op.inverse)
     end
-    @kernel.run(3,idim,ndims,bc,ld_src,ld_dest,1,src,dest,*as)
+    @kernel.run(ndims.length,idim,ndims,bc,ld_src,ld_dest,1,src,dest,*as)
+  end
+  def in_lds(ndim,lds,shrink)
+    ld_tmp=lds.dup
+    if shrink then
+      ld_tmp[idim]=outdim(BC::GROW,ndim,@op.inverse)
+    else
+      ld_tmp[idim]=ld
+    end
+    return ld_tmp
+  end
+  def out_lds(ndim,lds,shrink)
+    ld_tmp=lds.dup
+    if shrink then
+      return ld_tmp[idim]=ld
+    else
+      return ld_tmp[idim]=outdim(bc,ndim,@op)
+    end
+    return ld_tmp
+  end
+  def dump_to_file(directory="src/")
+    filename=@kernel.procedure.name
+    case BOAST::get_lang
+    when BOAST::C
+      suffix = ".c"
+    when BOAST::FORTRAN
+      suffix = ".f90"
+    end
+    filedump="#{filename}#{suffix}"
+    Dir.mkdir(directory) if not Dir.exist?(directory)
+    File::open(directory+filedump,"w") {|f|
+      f.puts @kernel
+    }
+    return filedump
   end
 end
 
@@ -209,7 +242,7 @@ def generate_mf(optims=nil)
 end
 
 def generate_imf(optims=nil)
-  conv_filteri = ConvolutionFilter::new('sym8_md',SYM8_MF,7)
+  conv_filteri = ConvolutionFilter::new('sym8_imd',SYM8_MF,7)
   imf = MagicFilter1d( conv_filteri, optims )
   return LibConvKernel::new(imf,LibConvOp::new(:imf))
 end
