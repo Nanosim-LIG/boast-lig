@@ -1,4 +1,4 @@
-class KOssRef
+class KRef
  attr_reader :kernel
 
  def initialize(options)
@@ -16,12 +16,12 @@ class KOssRef
   @vecSize_2          = Int("vecSize_2", :dir => :in )
   @matSize            = Int("matSize", :dir => :in )
 
- @idx_vec_flu        = Int("idx_vec_flu", :dir => :in, :dim => [@vecSize_1,@vecSize_2] )
- @idx_mat_flu        = Int("idx_mat_flu", :dir => :in, :dim => [@matSize] )
- @P_new              = Real("P_new",:dir => :inout, :dim => [@pSize,@nb_rhs])
- @P_inter            = Real("P_inter",:dir => :in, :dim => [@pSize,@nb_rhs])
- @P_old              = Real("P_old",:dir => :in, :dim => [@pSize,@nb_rhs])
- @A_flu              = Real("A_flu",:dir => :in, :dim => [@afluSize])
+ @idx_vec_flu        = Int("idx_vec_flu", :dir => :in, :dim => [Dim(@vecSize_1),Dim(@vecSize_2)] )
+ @idx_mat_flu        = Int("idx_mat_flu", :dir => :in, :dim => [Dim(@matSize)] )
+ @P_new              = Real("P_new",:dir => :inout, :dim => [Dim(@pSize),Dim(@nb_rhs)])
+ @P_inter            = Real("P_inter",:dir => :in, :dim => [Dim(@pSize),Dim(@nb_rhs)])
+ @P_old              = Real("P_old",:dir => :in, :dim => [Dim(@pSize),Dim(@nb_rhs)])
+ @A_flu              = Real("A_flu",:dir => :in, :dim => [Dim(@afluSize)])
 
  end
  
@@ -31,6 +31,7 @@ class KOssRef
    push_env(:lang => FORTRAN) {
      @kernel = CKernel:: new()
      @kernel.procedure = Procedure("fluid_inner_elt_ref",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize] ,:functions => nil)
+		 #puts "Parameters = ", @kernel.procedure.parameters
      get_output.print codeF
    }
    return @kernel

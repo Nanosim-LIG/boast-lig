@@ -1,48 +1,50 @@
 require 'BOAST'
-include BOAST
-require './KOssRef.rb'
+require './KRef.rb'
 require 'narray_ffi'
+
+include BOAST
 
 class Experiment
 
  def self.run()
-  k_ref_params = {:kernel => :ref, :preprocessor => false, :LDFLAGS => "-lgfortran"}  
+  k_ref_params = {:kernel => :ref, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check"}  
 
   set_lang(FORTRAN)
   kernels={}
 
   # Creating ref kernel
-  kernels[k_ref_params] = KOssRef::new(k_ref_params)
+  kernels[k_ref_params] = KRef::new(k_ref_params)
   kernels[k_ref_params].generate
+	puts "*********** Building kernel ***********\n"
   puts kernels[k_ref_params].kernel
-  kernels[k_ref_params].kernel.build(:LDFLAGS => k_ref_params[:LDFLAGS])
+  kernels[k_ref_params].kernel.build(:LDFLAGS => k_ref_params[:LDFLAGS], :FCFLAGS => k_ref_params[:FCFLAGS] )
  
-  # Setting the values of arguments
-  seed = 10
-  ANArray.srand(seed) unless seed.nil?
-  ## Ces valeurs different selon le processus MPI
-  ## P0 AfluSize=16952560  Size=879732  Nflu_inner=210025  idx_vec_flu(12,214811) idx_mat_flu(214812)
-  ## P1 AfluSize=16955792  Size=881612  Nflu_inner=209629  idx_vec_flu(12,214805) idx_mat_flu(214806)
-  ## P2 AfluSize=16950864  Size=880460  Nflu_inner=209830  idx_vec_flu(12,214820) idx_mat_flu(214821)
-  ## P3 AfluSize=16953312  Size=880240  Nflu_inner=209986  idx_vec_flu(12,214811) idx_mat_flu(214812)
-  #@@Nflu_inner=210025
-  @@Nflu_inner=2
-  @@Nflusol_inner=0
-  @@nb_rhs=1
-  @@afluSize=16952560
-  @@pSize=879732
-  @@vecSize_2=214811
-  @@vecSize_1=12
-  @@matSize=214812
-  @@idx_vec_flu=ANArray.int(64,@@vecSize_1,@@vecSize_2).random!
-  @@idx_mat_flu=ANArray.int(64,@@matSize).random!
-  @@P_new=ANArray.float(64,@@pSize,@@nb_rhs).random!
-  @@P_old=ANArray.float(64,@@pSize,@@nb_rhs).random!
-  @@P_inter=ANArray.float(64,@@pSize,@@nb_rhs).random!
-  @@A_flu=ANArray.float(64,@@afluSize).random!
+  #puts "Parameters = ", kernels[k_ref_params].kernel.procedure.parameters
 
-  puts kernels[k_ref_params].kernel.run(@@Nflu_inner, @@Nflusol_inner, @@nb_rhs, @@idx_vec_flu, @@idx_mat_flu, @@P_new, @@P_inter, @@P_old, @@A_flu, @@afluSize, @@pSize,  @@vecSize_1, @@vecSize_2, @@matSize)
+	# Parameters for loop iteration 1 and MPI Process 0
+  puts "** inputs from the application ="
+  puts "{ ./fluid_inner_elt_ref/sub_time_loop_1 =>[210025, 0, 1, NArray.int(2577732): "
+  puts "[ 5, 1, 4, 538597, 538600, 319233, ...], NArray.int(214812):"
+  puts "[ 1, 81, 161, 209, 289, 369, ...],  NArray.float(879732):"
+  puts "[ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, ... ], NArray.float(879732):" 
+  puts "[ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, ... ], NArray.float(879732):" 
+  puts "[ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, ... ], NArray.float(16952560):"
+  puts "[1.877937, 1.1007047E-02, 1.0670856E-02, 1.9009672E-02, 1.1590085E-02, ...], 16952560, 879732, 12, 214811, 214812]} " 
 
+	puts "\n*********** Testing ref kernel with fluid_inner_elt_ref/sub_time_loop_1/ inputs parameters ***********\n"
+  inputs = kernels[k_ref_params].kernel.load_ref_inputs()
+  outputs = kernels[k_ref_params].kernel.load_ref_outputs()
+	puts "** inputs =", inputs
+  puts "** outputs=",outputs
+
+
+  inputs.each_key { |key|
+		puts key
+ 		puts kernels[k_ref_params].kernel.run(*(inputs[key])).inspect 
+		puts kernels[k_ref_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
+	}
+
+	puts "Testing done\n"
   return kernels
  end
 end

@@ -21,11 +21,7 @@ SUBROUTINE fluid_inner_elt_ref(Nflu_inner, Nflusol_inner, nb_rhs, idx_vec_flu, i
 
   !! Variables declaration
   INTEGER :: I,J,I_tmp1,I_tmp2, I1, I2, I3, I4
-  !! P_aux allocation
-  !REAL(kind=dp),ALLOCATABLE :: P_aux(:,:)
-  !ALLOCATE(P_aux((Nfacesperelem+1)*Nphi(MAXVAL(degree_tri_loc)),nb_rhs))
-  !! To evaluate P_aux allocation
-  REAL(kind=dp), DIMENSION(20,1) :: P_aux
+  REAL(kind=dp), DIMENSION(20,nb_rhs) :: P_aux
 
   DO I=1,Nflu_inner+Nflusol_inner
     I_tmp1=1
