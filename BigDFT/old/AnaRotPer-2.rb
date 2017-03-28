@@ -464,86 +464,87 @@ EOF
   end
 end
 
-FILTER = ["0.0018899503327676891843",
-          "-0.00030292051472413308126",
-          "-0.014952258337062199118",
-          "0.0038087520138944894631",
-          "0.049137179673730286787",
-          "-0.027219029917103486322",
-          "-0.051945838107881800736",
-          "0.36444189483617893676",
-          "0.77718575169962802862",
-          "0.48135965125905339159",
-          "-0.061273359067811077843",
-          "-0.14329423835127266284",
-          "0.0076074873249766081919",
-          "0.031695087811525991431",
-          "-0.00054213233180001068935",
-          "-0.0033824159510050025955"]
 
-n1 = 124
-n2 = 132
-n3 = 130
-input = NArray.float(n1+14,n2,n3).random
-output_ref = NArray.float(n2,n3,n1)
-output = NArray.float(n2,n3,n1)
-epsilon = 10e-15
-BOAST::set_lang( BOAST::FORTRAN )
-k = BOAST::analysis_free_ref
-stats = k.run(n1/2, n2*n3, input, output_ref)
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-
-(1..12).each{ |unroll|
-  k = BOAST::Analysis(FILTER,7,unroll,true)
-  #k.print
-  #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
-  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
-  stats = k.run(n1/2, n2*n3, input, output)
-  stats = k.run(n1/2, n2*n3, input, output)
-  diff = (output_ref - output).abs
-  diff.each { |elem|
-    puts "Warning: residue too big: #{elem}" if elem > epsilon
-  }
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-}
-BOAST::set_lang( BOAST::C )
-(1..12).each{ |unroll|
-  k = BOAST::Analysis(FILTER,7,unroll,true)
-
-  stats = k.run(n1/2, n2*n3, input, output)
-  stats = k.run(n1/2, n2*n3, input, output)
-  diff = (output_ref - output).abs
-  diff.each { |elem|
-    puts "Warning: residue too big: #{elem}" if elem > epsilon
-  }
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-}
-
-n1 = 124
-n2 = 132
-n3 = 130
-input = NArray.float(n1,n2,n3).random
-output_ref = NArray.float(n1,n2,n3)
-output = NArray.float(n1,n2,n3)
-epsilon = 10e-15
-BOAST::set_lang( BOAST::FORTRAN )
-k = BOAST::analysis_per_ref
-k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp",:LD => "ifort"})
-stats = k.run(n1/2-1, n2*n3, input, output_ref)
-puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-
-(1..14).each{ |unroll|
-  #k = BOAST::analysis_per_ref
-  k = BOAST::Analysis(FILTER,7,unroll,false)
-  #k.print
-  #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
-  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp",:LD => "ifort"})
-  #k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -g -C",:LDFLAGS => "",:LD => "ifort"})
-
-  stats = k.run(n1/2, n2*n3, input, output)
-  diff = (output_ref - output).abs
-  diff.each { |elem|
-    puts "Warning: residue too big: #{elem}" if elem > epsilon
-  }
-  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
-}
+##FILTER = ["0.0018899503327676891843",
+##          "-0.00030292051472413308126",
+##          "-0.014952258337062199118",
+##          "0.0038087520138944894631",
+##          "0.049137179673730286787",
+##          "-0.027219029917103486322",
+##          "-0.051945838107881800736",
+##          "0.36444189483617893676",
+##          "0.77718575169962802862",
+##          "0.48135965125905339159",
+##          "-0.061273359067811077843",
+##          "-0.14329423835127266284",
+##          "0.0076074873249766081919",
+##          "0.031695087811525991431",
+##          "-0.00054213233180001068935",
+##          "-0.0033824159510050025955"]
+##
+##n1 = 124
+##n2 = 132
+##n3 = 130
+##input = NArray.float(n1+14,n2,n3).random
+##output_ref = NArray.float(n2,n3,n1)
+##output = NArray.float(n2,n3,n1)
+##epsilon = 10e-15
+##BOAST::set_lang( BOAST::FORTRAN )
+##k = BOAST::analysis_free_ref
+##stats = k.run(n1/2, n2*n3, input, output_ref)
+##puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+##
+##(1..12).each{ |unroll|
+##  k = BOAST::Analysis(FILTER,7,unroll,true)
+##  #k.print
+##  #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
+##  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp"})
+##  stats = k.run(n1/2, n2*n3, input, output)
+##  stats = k.run(n1/2, n2*n3, input, output)
+##  diff = (output_ref - output).abs
+##  diff.each { |elem|
+##    puts "Warning: residue too big: #{elem}" if elem > epsilon
+##  }
+##  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+##}
+##BOAST::set_lang( BOAST::C )
+##(1..12).each{ |unroll|
+##  k = BOAST::Analysis(FILTER,7,unroll,true)
+##
+##  stats = k.run(n1/2, n2*n3, input, output)
+##  stats = k.run(n1/2, n2*n3, input, output)
+##  diff = (output_ref - output).abs
+##  diff.each { |elem|
+##    puts "Warning: residue too big: #{elem}" if elem > epsilon
+##  }
+##  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+##}
+##
+##n1 = 124
+##n2 = 132
+##n3 = 130
+##input = NArray.float(n1,n2,n3).random
+##output_ref = NArray.float(n1,n2,n3)
+##output = NArray.float(n1,n2,n3)
+##epsilon = 10e-15
+##BOAST::set_lang( BOAST::FORTRAN )
+##k = BOAST::analysis_per_ref
+##k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp",:LD => "ifort"})
+##stats = k.run(n1/2-1, n2*n3, input, output_ref)
+##puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+##
+##(1..14).each{ |unroll|
+##  #k = BOAST::analysis_per_ref
+##  k = BOAST::Analysis(FILTER,7,unroll,false)
+##  #k.print
+##  #k.build({:FC => 'gfortran',:CC => 'gcc',:FCFLAGS => "-O2 -fbounds-check",:LDFLAGS => "-lgfortran"})
+##  k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -openmp",:LDFLAGS => "-openmp",:LD => "ifort"})
+##  #k.build({:FC => 'ifort',:CC => 'icc',:FCFLAGS => "-O2 -g -C",:LDFLAGS => "",:LD => "ifort"})
+##
+##  stats = k.run(n1/2, n2*n3, input, output)
+##  diff = (output_ref - output).abs
+##  diff.each { |elem|
+##    puts "Warning: residue too big: #{elem}" if elem > epsilon
+##  }
+##  puts "#{k.procedure.name}: #{stats[:duration]*1.0e3} #{32*n1*n2*n3 / (stats[:duration]*1.0e9)} GFlops"
+##}
