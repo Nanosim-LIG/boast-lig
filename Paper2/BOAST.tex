@@ -336,10 +336,28 @@ implementation.
 
 \paragraph{Vectorization} The first proposed optimization involves computing
 five pixels instead of one using the vectors available on the Mali
-architecture. The vectors have to be kept in memory to ensure an efficient
-execution. Using vectors of 16 elements, 15 useful components are
-simultaneously loaded and can be used in computation.  This optimization yields
-speedups between 1.5 and 6 depending on the image size.
+architecture. This is done using the native OpenCL support for vectorization.
+For instance \emph{vload16} load 16 consecutive elements from memory and stores
+it a vector.  Here the loaded vector is of type \emph{uchar16} meaning that it
+is a vector of 16 consecutive bytes. In order to do computations without
+overflowing, those vectors have to be converted (using \emph{convert\_int16}) to
+a signed and bigger integer type.  Here they are converted to signed 4 bytes
+integers, leading to a vector size of 64 bytes.
+
+Once those vector are loaded they can be used in Single Instruction Multiple
+Data (SIMD) paradigm. Operations are done component-wise on the vector. For
+instance, \emph{v22 * (int16)9} multiplies each component of the vector by 9.
+The same thing goes for the difference operator. Once computed, the result is
+clamped and converted back to bytes using \emph{convert\_uchar16}.
+
+Using vectors of 16 elements, 5 pixels (15 components) can be simultaneously
+loaded and can be used in computation. Here the developer chose a pixel based
+approach and thus decided to only save the 15 relevant components. These
+components are saved in a vector manner using the power of two decomposition
+of 15. The first 8 components (0-7) are saved using \emph{vstore8} then the
+next 4 (8,9,a,b) using \emph{vstore4} and so on.
+
+This optimization yields speedups between 1.5 and 6 depending on the image size.
 
 \lstset{style=customcl,
         caption={Laplace OpenCL Filter Vectorized.},
@@ -373,13 +391,13 @@ kernel laplace(const int width, const int height,
   int16 v32 = convert_int16(v32_);
   int16 v33 = convert_int16(v33_);
 
-  int16 res = v22 * (int)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
+  int16 res = v22 * (int16)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
         res = clamp(res, (int16)0, (int16)255);
   uchar res_ = convert_uchar16(res);
 
   vstore8(res_.s01234567, 0, dst + 3*width*j + 3*5*i);
-  vstore8(res_.s89ab,     0, dst + 3*width*j + 3*5*i + 8);
-  vstore8(res_.scd,       0, dst + 3*width*j + 3*5*i + 12);
+  vstore4(res_.s89ab,     0, dst + 3*width*j + 3*5*i + 8);
+  vstore2(res_.scd,       0, dst + 3*width*j + 3*5*i + 12);
   dst[3*width*j + 3*5*i + 14] = res_.se;
 }
 \end{lstlisting}
