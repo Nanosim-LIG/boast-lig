@@ -1094,9 +1094,9 @@ Indeed, the Intel CPU favors kernels that have the parameters,
 \emph{temporary\_size} = 2 and \emph{synthesize\_loads} = false. Once again
 \emph{vector\_recompute} does not apply. \emph{y\_component\_number} varies
 from 4 to 2 when image size increase, thus decreasing task granularity as the
-global work size increase. This result is unexpected and understanding why this
-happen could be interesting. The NVIDIA GPU favors processing square tiles:
-\emph{x\_component\_number} = 4, \emph{y\_component\_number} = 4,
+global work size increase. This result is interesting because its unexpected
+nature strongly backs the use of autotuning. The NVIDIA GPU favors processing
+square tiles: \emph{x\_component\_number} = 4, \emph{y\_component\_number} = 4,
 \emph{vector\_length} = 4, \emph{temporary\_size} = 2 and
 \emph{synthesize\_loads} = false. Once more, \emph{vector\_recompute} has no
 meaning.
