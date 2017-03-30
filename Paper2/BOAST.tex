@@ -1327,12 +1327,12 @@ OpenCL using BOAST\label{subsec:specfem}}
 
 In this last subsection, we present an alternative use-case of the BOAST
 framework, focused on portability. As part of the Mont-Blanc project,
-we had to port a scientific application so that it could be used to
+we ported a scientific application so that it could be use to
 benchmark the Mont-Blanc HPC cluster. It was composed of 40 complex
-and hand-tuned CUDA kernels, and we had to port them to OpenCL. This
+and hand-tuned CUDA kernels, that we ported to OpenCL framework. This
 scenario also highlights the factorization and maintainability
 improvements of the BOAST framework, as we obtained a single BOAST
-implementation of the kernels (instead of CUDA plus OpenCL) and this
+implementation of the kernels (instead of two, CUDA and OpenCL). This
 version of the code is still used and updated in the upstream project.
 
 The challenges we faced in this case-study were more related to the
@@ -1361,23 +1361,22 @@ massively parallel scale), while at the other side of the spectrum,
 some complex kernels took more than 80 parameters and performed very
 specific physical transformations.
 
-Because of the complexity of wave propagation (and of the application
-architecture), it is hard to impossible to define unit tests. Hence,
-the application is validated by the accuracy of the results it
-produces, that is, the accuracy of seismograms of the simulated
-earthquakes, in comparison with the actual ones. Non-regression
-testing (after new developments) is also based on these seismograms,
-with measurements of the relative error between two identical
-simulations.
-
-As part of the Mont-Blanc project, we had to port SPECFEM3D to OpenCL, so
-that it could be used to benchmark Mont-Blanc HPC platforms.
+Because of the complexity of the wave propagation kernels, it was
+impossible for us to understand the kernel source kernel. Hence, we
+treated them as black-boxes, and aimed at obtaining identical
+performances. Furthermore, the kernels' complexity prevents the
+specification of unit tests, thus the application is validated by the
+accuracy of the results it produces (the seismograms of the simulated
+earthquakes), against the actual ones. Non-regression testing (after
+new developments) is also based on these seismograms, with
+measurements of the relative error between two identical simulations.
 
 %%% PORTING TO OPENCL %%%
 \subsubsection{Porting to OpenCL}
 
 %%%
-\paragraph{Porting kernels to BOAST}  NVidia CUDA and OpenCL are based on the same programming model: a
+\paragraph{Porting kernels to BOAST} 
+NVidia CUDA and OpenCL are based on the same programming model: a
 massively parallel accelerator running in disjoint, non addressable
 memory environment. Thanks to that proximity, we have been able to carry
 out most of the porting task with only a limited knowledge about
@@ -1405,8 +1404,8 @@ with a side-by-side comparison that highlighted the coding mistakes.
 %%%
 \paragraph{Porting run-time to OpenCL} The second part of the port
 consisted in the translation of the CPU-side of the application, from
-CUDA API to OpenCL API. Most of the functions of the interfaces are
-very similar, with only naming-convention and data-structure
+CUDA API to OpenCL'. Most of the functions of the interfaces are very
+similar, with only naming-convention and data-structure
 distinctions. Hence, it was clear that automatic rewriting tools
 (namely \code{sed} regexp and \code{emacs-lisp} functions) could be
 useful. To give an idea of the cost of a \emph{manual} rewriting, we
@@ -1464,28 +1463,30 @@ merged in SPECFEM3D's development tree and under test and extension by
 different research teams. On a platform with two K40x GPUs and 24 Intel
 Xeon processors, we measured identical performance between the original
 CUDA version and our BOAST-CUDA version. This result was expected, as
-the BOAST-generated version is identical to the original, apart from
+the BOAST-generated version is identical to the original, except from
 naming differences.
 
-With the same set of
-optimization flags, BOAST CUDA and OpenCL versions reported similar
-execution time spans. The best execution speed was achieved with CUDA
-version though (25\% higher than OpenCL), as one optimization parameter
-(\code{CUDA\_LAUNCH\_BOUND}) cannot be passed to the OpenCL run-time, as of version
-1.1. This parameter, in addition to specifying the work group size (which can
-be done in OpenCL), also constrains the number of work group that must run in
-parallel on a multiprocessor. This value is set to 7 in CUDA. This means that
-the compiler must be very conservative on register usage in order to allow this
-parallelism which allows better overlapping of communications end computations.
-This functionality is not supported in OpenCL.
+With the same set of optimization flags, BOAST CUDA and OpenCL
+versions reported similar execution time spans. The best execution
+speed was achieved with CUDA version though (25\% higher than OpenCL),
+as one optimization parameter (\code{CUDA\_LAUNCH\_BOUND}) cannot be
+passed to the OpenCL run-time, as of version 1.1. This parameter, in
+addition to specifying the work group size (which can be done in
+OpenCL), also constrains the number of work group that must run in
+parallel on a multiprocessor. This value is set to 7 in CUDA. This
+means that the compiler must be very conservative on register usage in
+order to allow this parallelism which allows better overlapping of
+communications end computations.  This functionality is not supported
+in OpenCL.
 
-By refactoring GPU kernels' code in BOAST EDSL, the size of the kernels' source code
-shrank by a factor of 1.8 (from 7500 to less than 4000 LOC, mainly
-because of the removal of code duplication and manually unrolled
-loops). This is beneficial for SPECFEM3D as it improves the readability
-and maintainability of its source code. This gain was confirmed by the
-SPECFEM3D community as the subsequent developments have been carried out
-on the BOAST version of the kernels, and not on the CUDA or OpenCL generated code.
+Thanks to the porting of the SPECFEM3D GPU kernels to BOAST EDSL, the size of the
+kernels' source code shrank by a factor of 1.8 (from 7500 to less than
+4000 LOC, mainly because of the removal of code duplication and
+manually unrolled loops). This is beneficial for SPECFEM3D as it
+improves the readability and maintainability of its source code. This
+gain was confirmed by the SPECFEM3D community as the subsequent
+developments have been carried out on the BOAST version of the
+kernels, and not on the CUDA or OpenCL generated code. 
 
 We have also been able to enhance SPECFEM3D's non-regression test-suite
 by adding per-kernel non-regression tests. This was done with the help
