@@ -1322,18 +1322,32 @@ architectures/compilers combinations than that of the hand tuned code.
  
 
 %%% Porting SPECFEM3D to OpenCL using BOAST %%%
-\subsection{Porting SPECFEM3D to OpenCL using BOAST\label{subsec:specfem}}
+\subsection{Porting Application Kernels: Porting SPECFEM3D from CUDA to
+OpenCL using BOAST\label{subsec:specfem}}
 
-In this last subsection, we study a free seismic wave propagation simulator,
-SPECFEM3D, in its GLOBE flavor\footnote{Specfem3d Globe --- CIG
-\url{http://www.geodynamics.org/cig/software/specfem3d-globe}}. SPECFEM3D
-simulates seismic wave propagation at the local or regional scale based upon
-spectral-element method (SEM), with very good accuracy and convergence
-properties. It is a reference application for supercomputer benchmarking,
-thanks to its good scaling capabilities.
+In this last subsection, we present an alternative use-case of the BOAST
+framework, focused on portability. As part of the Mont-Blanc project,
+we had to port a scientific application so that it could be used to
+benchmark the Mont-Blanc HPC cluster. It was composed of 40 complex
+and hand-tuned CUDA kernels, and we had to port them to OpenCL. This
+scenario also highlights the factorization and maintainability
+improvements of the BOAST framework, as we obtained a single BOAST
+implementation of the kernels (instead of CUDA plus OpenCL) and this
+version of the code is still used and updated in the upstream project.
 
+The challenges we faced in this case-study were more related to the
+complexity of the scientific application and its kernels than to the
+BOAST framework.
 %%% SPECFEM3D %%%
 \subsubsection{SPECFEM3D}
+
+SPECFEM3D GLOBE\footnote{SPECFEM3D GLOBE --- CIG
+  \url{http://www.geodynamics.org/cig/software/specfem3d-globe}} is a
+free seismic wave propagation simulator. It simulates seismic wave
+propagation at the local or regional scale based upon spectral-element
+method (SEM), with very good accuracy and convergence properties. It
+is a reference application for supercomputer benchmarking, thanks to
+its good scaling capabilities.
 
 When we started to work on the project (version v2.1 of July 2013) it
 supported graphics card GPU acceleration through NVidia CUDA. This
@@ -1344,7 +1358,7 @@ C.  The split between CPU and GPU code was done at a rather fine
 grain, as the application counted more than 40 GPU kernels. Some of
 them were quite simple (\eg performing a few vector operations, but at
 massively parallel scale), while at the other side of the spectrum,
-some complex kernels took more than 80 parameters and perform very
+some complex kernels took more than 80 parameters and performed very
 specific physical transformations.
 
 Because of the complexity of wave propagation (and of the application
@@ -1363,7 +1377,7 @@ that it could be used to benchmark Mont-Blanc HPC platforms.
 \subsubsection{Porting to OpenCL}
 
 %%%
-\paragraph{Porting kernels to BOAST}  Nvidia CUDA and OpenCL are based on the same programming model: a
+\paragraph{Porting kernels to BOAST}  NVidia CUDA and OpenCL are based on the same programming model: a
 massively parallel accelerator running in disjoint, non addressable
 memory environment. Thanks to that proximity, we have been able to carry
 out most of the porting task with only a limited knowledge about
@@ -1447,13 +1461,17 @@ missing.
 %%%
 \paragraph{Evaluation} Our OpenCL/BOAST port of SPECFEM3D is now
 merged in SPECFEM3D's development tree and under test and extension by
-different research teams. On a platform with two K40x GPUs and N Intel
-Xeon processors, we measured similar results between the original
-CUDA version and our BOAST-CUDA version. With the same set of
-optimization flags, BOAST CUDA and OpenCL version reported similar
+different research teams. On a platform with two K40x GPUs and 24 Intel
+Xeon processors, we measured identical performance between the original
+CUDA version and our BOAST-CUDA version. This result was expected, as
+the BOAST-generated version is identical to the original, apart from
+naming differences.
+
+With the same set of
+optimization flags, BOAST CUDA and OpenCL versions reported similar
 execution time spans. The best execution speed was achieved with CUDA
 version though (25\% higher than OpenCL), as one optimization parameter
-(\code{CUDA\_LAUNCH\_BOUND}) cannot be passed to OpenCL run-time, as of version
+(\code{CUDA\_LAUNCH\_BOUND}) cannot be passed to the OpenCL run-time, as of version
 1.1. This parameter, in addition to specifying the work group size (which can
 be done in OpenCL), also constrains the number of work group that must run in
 parallel on a multiprocessor. This value is set to 7 in CUDA. This means that
@@ -1461,11 +1479,13 @@ the compiler must be very conservative on register usage in order to allow this
 parallelism which allows better overlapping of communications end computations.
 This functionality is not supported in OpenCL.
 
-By refactoring GPU kernel code in BOAST EDSL, the size of kernel code
-shrank by a factor of 1.8 (from 7500 to less than 4000 LOC, partly
-because of code duplication, also removing manually unrolled
+By refactoring GPU kernels' code in BOAST EDSL, the size of the kernels' source code
+shrank by a factor of 1.8 (from 7500 to less than 4000 LOC, mainly
+because of the removal of code duplication and manually unrolled
 loops). This is beneficial for SPECFEM3D as it improves the readability
-and maintainability of its source code.
+and maintainability of its source code. This gain was confirmed by the
+SPECFEM3D community as the subsequent developments have been carried out
+on the BOAST version of the kernels, and not on the CUDA or OpenCL generated code.
 
 We have also been able to enhance SPECFEM3D's non-regression test-suite
 by adding per-kernel non-regression tests. This was done with the help
@@ -1479,8 +1499,8 @@ validates the non-regression.
 
 In the same mindset, we provided SPECFEM3D test-suite with kernel
 performance evaluation mechanisms. These tests will help developers to
-try new optimizations in kernel code and measure their impact, without
-executing the whole application.
+try new optimizations in kernels' code and measure their impact,
+without executing the whole application.
 
 %%% RELATED WORK %%%
 \section{Related Work\label{sec:related}}
