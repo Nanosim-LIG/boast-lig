@@ -18,33 +18,32 @@ We thank the  reviewers for their interest in our work and for their helpful com
   optimisations or to give feedback on what is working, what is not working, etc. The authors mention MAQAO in the conclusion... Overall, this part is
   really fuzzy.}\\
 
+The workflow has been better described (see diff file attached).\\
+
 \noindent
 {\em 2) Listing 3 should be explained in details or removed. Not every reader is a specialist of vectorisation}\\
 
+Listing 3 and vectorization have been described carefully in Section B.a.\\
+
 \noindent
-{\em 3) section V.A page 8. You state that you have an unexpected results that should be investigate. A journal paper is not a conference paper. I think you should investigate and publish what you have found in ***this*** paper.} \\
+{\em 3) section V.A page 8. You state that you have an unexpected results that should be investigate. A journal paper is not a conference paper. I
+  think you should investigate and publish what you have found in ***this*** paper.} \\
+
+Autotuning is useful because it can challenge our assumptions. We modified a sentence accordingly. \\
 
 \noindent
 {\em 4) Section V.C. is not easy to follow. It is hard to understand where the problems you faced came from : from the kernels, from the design of BOAST, from a bug in the implementation, etc. What kind of conclusion should be taken from your experience in the usage of BOAST? Such discussion should help the reader in doing better science. The writing of this section does not go in that direction. What can be generalised from your experience? what are your advices?}\\
 
+Our approach's objectives have been better described at the beginning of the section. Then several paragraphs of this section have been modified to
+better emphasize the results and expectations of this part of our work.\\
+
 \noindent
 {\em 5) in Section V.C why did you not generate the CUDA version as well and compare it with the hand-tuned existing version? For the revised version, I need to see that experiment added to paper!}\\ 
 
+Indeed this experience was already performed. We rewrote this section to better mention our results around CUDA. 
 
 \end{document}
 %%%
-
-Reviewer: 1
-
-Comments to the Author
-
-This paper present a framework, called BOAST,  for developing computational kernels in a portable efficient and productive way. It provides a DSL and a set of tools to generate different source code with different optimisations and to autotune the code in order to produce  an optimised version for the target architecture.
-
-I think this is a good work with several examples showing how the framework works and how it yields to interesting results.
-
-I have several remarks in order to make this paper better.
-
-
 
 
 
