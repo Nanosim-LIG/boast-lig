@@ -462,11 +462,11 @@ The results presented in the previous section have been obtained with the follow
 
 
 
-To show the impact of input parameters, we can change the elements order in HPC4E.txt (\textit{Ordre des elements}) or refine the mesh (\texttt{tail MAILLAGES/florian3D.1.ele} will show the command). Beware of the total time, it takes into account the time spent to write in a file (time in function \texttt{sub\_time\_loop}).
+To show the impact of input parameters, we can change the elements order in HPC4E.txt (\textit{Ordre des elements}) or refine the mesh (\texttt{tail MAILLAGES/florian3D.1.ele} will show the command). Beware of the total execution time, it takes into account the time spent to write in a file (time in function \texttt{sub\_time\_loop}).
 
 \begin{table}[ht!]
 \centering
-\caption{Averaged of execution-Time (5 to 10 runs). {\underline{Input parameters}}: elements order =1, 859247 elements, {\bf{Simulation time=0.001}} (Time Step=0.001) - {\bf{Sans l'ecriture des instantannees}} - Beware!! I wasn't alone on idchire}
+\caption{Averaged of execution-Time (5 to 10 runs). {\underline{Input parameters}}: elements order =1, 859247 elements, {\bf{Simulation time=0.001}} (Time Step=0.001) - {\bf{without writting in sub\_time\_loop}}}
 {\small
 \begin{tabular}{|c|c|c|c|c|c|c|} \hline 
 \multirow{2}{*}{ {{\bf{Number of MPI processes}}} }	& \multicolumn{3}{c|}{ {{\bf{Time spent in \texttt{sub\_time\_loop}  }}} }	& \multicolumn{3}{c|}{  {{\bf{Total execution time}}} }\\ 
@@ -484,7 +484,7 @@ To show the impact of input parameters, we can change the elements order in HPC4
 
 \begin{table}[ht!]
 \centering
-\caption{Averaged of execution-Time (5 to 10 runs). {\underline{Input parameters}}: elements order =1, 859247 elements,  {\bf{Simulation time=0.01}} (Time Step=0.01)  - {\bf{Sans l'ecriture des instantannees}}}
+\caption{Averaged of execution-Time (5 to 10 runs). {\underline{Input parameters}}: elements order =1, 859247 elements,  {\bf{Simulation time=0.01}} (Time Step=0.01)  - {\bf{without writting in sub\_time\_loop}}}
 {\small
 \begin{tabular}{|c|c|c|c|c|c|c|} \hline 
 \multirow{2}{*}{ {{\bf{Number of MPI processes}}} }	& \multicolumn{3}{c|}{ {{\bf{Time spent in \texttt{sub\_time\_loop}  }}} }	& \multicolumn{3}{c|}{  {{\bf{Total execution time}}} }\\ 
@@ -502,7 +502,7 @@ To show the impact of input parameters, we can change the elements order in HPC4
 
 \begin{table}[ht!]
 \centering
-\caption{Averaged of execution-Time (5 to 10 runs). {\underline{Input parameters}}: elements order =1, 859247 elements,    {\bf{Simulation time=0.1}} (Time Step=0.1) - {\bf{Sans l'ecriture des instantannees}}}
+\caption{Averaged of execution-Time (5 to 10 runs). {\underline{Input parameters}}: elements order =1, 859247 elements,    {\bf{Simulation time=0.1}} (Time Step=0.1) - {\bf{without writting in sub\_time\_loop}}}
 {\small
 \begin{tabular}{|c|c|c|c|c|c|c|} \hline 
 \multirow{2}{*}{ {{\bf{Number of MPI processes}}} }	& \multicolumn{3}{c|}{ {{\bf{Time spent in \texttt{sub\_time\_loop}  }}} }	& \multicolumn{3}{c|}{  {{\bf{Total execution time}}} }\\ 
@@ -527,7 +527,7 @@ Table \ref{tab:5} shows the total time and the time spent in function \texttt{su
 
 \begin{table}[ht!]
 \centering
-\caption{Averaged of execution-Time (5 to 10 runs). {\underline{Input parameters}}: 859247 elements,  Simulation time=0.001 (Time Step=0.001) - {\bf{Sans l'ecriture des instantannees}}}
+\caption{Averaged of execution-Time (5 to 10 runs). {\underline{Input parameters}}: 859247 elements,  Simulation time=0.001 (Time Step=0.001) - {\bf{without writting in sub\_time\_loop}}}
 {\small
 \begin{tabular}{|c|c|c|c|c|c|c|} \hline 
 \multirow{2}{*}{ {{\bf{Elements order}}} }	& \multicolumn{3}{c|}{ {{\bf{Time spent in \texttt{sub\_time\_loop}  }}} }	& \multicolumn{3}{c|}{  {{\bf{Total execution time}}} }\\ 
@@ -552,27 +552,27 @@ To refine the mesh, we launch the following command
 ./tetgen -kna10000A florian3D.poly
 \end{cverbatim} 
 
-\noindent and change the number in the option "-kna10000A".
+\noindent and change the number in the option "-kna10000A".\\
 
 Table \ref{tab:6} shows the total time and the time spent in function \texttt{sub\_loop\_time} for different mesh refinement, with 8 MPI processes.
 
 \begin{table}[ht!]
 \centering
-\caption{TODO: Averaged of execution-Time (5 to 10 runs). {\underline{Input parameters}}: elements order=1, Simulation time=..}
+\caption{Averaged of execution-Time (5 to 10 runs). {\underline{Input parameters}}: elements order=1, Simulation time=0.001 (Time Step=0.001)}
 {\small
 \begin{tabular}{|c|c|c|c|c|c|c|} \hline 
 \multirow{2}{*}{ {{\bf{Mesh refinement}}} }	& \multicolumn{3}{c|}{ {{\bf{Time spent in \texttt{sub\_time\_loop}  }}} }	& \multicolumn{3}{c|}{  {{\bf{Total execution time}}} }\\ 
 										&   		min & max & avg							& 	min & max & avg			\\ \hline \hline
- 		10\ 000		                 				& 29.832	& 31.821 & 								&  	 & 	&  173.77	\\ \hline
- 		5\ 000		                 				& 62.568	&  66.309  &	 							&  	 & 	 & 351.35	\\ \hline
- 		2\ 500		                 				&  141.110 &  147.306	&							&  	& &  735.548	\\ \hline
+ 		10\ 000 (859\ 247 elt)		           	& .285 & .2973 &  .2917						&  175.0226 & 175.0522 & 175.041	\\ \hline
+ 		5\ 000 (1\ 704\ 052 elt)		                	& .8287 &  .8860 & .8590						&  348.888 & 379.0077 & 366.995	\\ \hline
+ 		2\ 500 (3\ 385\ 940 elt)	                		&  1.9168 &  1.9248	& 1.9214					&  708.008 & 707.994 &  707.993 \\ \hline
 \end{tabular}
 }
 \label{tab:6}
 \end{table}
 
 
-
+%% Lancer avec 4 processus?? pour mieux comparer avec le reste
 
 
 \section{Port hou10ni's kernel with BOAST}
@@ -655,7 +655,7 @@ To have an idea of the time spent in the kernel, table \ref{tab:7} shows the tim
 \caption{Time spent in the kernel (loop over fluid elements in {\tt sub\_time\_loop}), only one run - with an allocation at each step - {\bf{Avec l'ecriture des instantannees}}}
 {\small
 \begin{tabular}{|c|c|c|} \hline 
- {{\bf{Process ID}}} 	& {{\bf{Time spent in \texttt{sub\_time\_loop} }}}	& {{\bf{Time spent in \texttt{fluid\_inner\_elt()} }}}\\ \hline \hline
+ {{\bf{Process ID}}} 	& {{\bf{Time in \texttt{sub\_time\_loop} }}}	& {{\bf{Time in \texttt{fluid\_inner\_elt} }}}\\ \hline \hline
 		0		&   5.388336							&  5.1683220	(95,9\%)		\\ \hline 
  		1		&  5.352341							&  5.108320	(95,4\%)		\\ \hline
  		2		 &  5.360336							&  5.1203189	(95,5\%)		\\ \hline
@@ -670,7 +670,7 @@ To have an idea of the time spent in the kernel, table \ref{tab:7} shows the tim
 \caption{Time spent in the kernel (loop over fluid elements in {\tt sub\_time\_loop}), only one run - without allocation at each step - {\bf{Avec l'ecriture des instantannees}}}
 {\small
 \begin{tabular}{|c|c|c|} \hline 
- {{\bf{Process ID}}} 	& {{\bf{Time spent in \texttt{sub\_time\_loop} }}}	& {{\bf{Time spent in \texttt{fluid\_inner\_elt()} }}}\\ \hline \hline
+ {{\bf{Process ID}}} 	& {{\bf{Time in \texttt{sub\_time\_loop} }}}	& {{\bf{Time in \texttt{fluid\_inner\_elt} }}}\\ \hline \hline
 		0		&   4.776291							&  4.54828700	(95,2\%)		\\ \hline 
  		1		&  4.74029							&  4.5162959	(95,3\%)		\\ \hline
  		2		 &  4.744293							&  4.5242530	(95,4\%)		\\ \hline
