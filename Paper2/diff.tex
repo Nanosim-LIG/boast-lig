@@ -1,4 +1,7 @@
 \documentclass{IEEEtran}
+%DIF LATEXDIFF DIFFERENCE FILE
+%DIF DEL BOAST-old.tex   Fri Apr 28 10:34:16 2017
+%DIF ADD BOAST.tex       Fri Apr 28 10:34:25 2017
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
 \usepackage{hyperref}
@@ -76,6 +79,69 @@ uchar, uchar16, int16, short16}
 \usepackage{url}
 
 \bibliographystyle{IEEEtran}
+%DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF
+%DIF UNDERLINE PREAMBLE %DIF PREAMBLE
+\RequirePackage[normalem]{ulem} %DIF PREAMBLE
+\RequirePackage{color}\definecolor{RED}{rgb}{1,0,0}\definecolor{BLUE}{rgb}{0,0,1} %DIF PREAMBLE
+\providecommand{\DIFaddtex}[1]{{\protect\color{blue}\uwave{#1}}} %DIF PREAMBLE
+\providecommand{\DIFdeltex}[1]{{\protect\color{red}\sout{#1}}}                      %DIF PREAMBLE
+%DIF SAFE PREAMBLE %DIF PREAMBLE
+\providecommand{\DIFaddbegin}{} %DIF PREAMBLE
+\providecommand{\DIFaddend}{} %DIF PREAMBLE
+\providecommand{\DIFdelbegin}{} %DIF PREAMBLE
+\providecommand{\DIFdelend}{} %DIF PREAMBLE
+%DIF FLOATSAFE PREAMBLE %DIF PREAMBLE
+\providecommand{\DIFaddFL}[1]{\DIFadd{#1}} %DIF PREAMBLE
+\providecommand{\DIFdelFL}[1]{\DIFdel{#1}} %DIF PREAMBLE
+\providecommand{\DIFaddbeginFL}{} %DIF PREAMBLE
+\providecommand{\DIFaddendFL}{} %DIF PREAMBLE
+\providecommand{\DIFdelbeginFL}{} %DIF PREAMBLE
+\providecommand{\DIFdelendFL}{} %DIF PREAMBLE
+%DIF HYPERREF PREAMBLE %DIF PREAMBLE
+\providecommand{\DIFadd}[1]{\texorpdfstring{\DIFaddtex{#1}}{#1}} %DIF PREAMBLE
+\providecommand{\DIFdel}[1]{\texorpdfstring{\DIFdeltex{#1}}{}} %DIF PREAMBLE
+\newcommand{\DIFscaledelfig}{0.5}
+%DIF HIGHLIGHTGRAPHICS PREAMBLE %DIF PREAMBLE
+\RequirePackage{settobox} %DIF PREAMBLE
+\RequirePackage{letltxmacro} %DIF PREAMBLE
+\newsavebox{\DIFdelgraphicsbox} %DIF PREAMBLE
+\newlength{\DIFdelgraphicswidth} %DIF PREAMBLE
+\newlength{\DIFdelgraphicsheight} %DIF PREAMBLE
+% store original definition of \includegraphics %DIF PREAMBLE
+\LetLtxMacro{\DIFOincludegraphics}{\includegraphics} %DIF PREAMBLE
+\newcommand{\DIFaddincludegraphics}[2][]{{\color{blue}\fbox{\DIFOincludegraphics[#1]{#2}}}} %DIF PREAMBLE
+\newcommand{\DIFdelincludegraphics}[2][]{% %DIF PREAMBLE
+\sbox{\DIFdelgraphicsbox}{\DIFOincludegraphics[#1]{#2}}% %DIF PREAMBLE
+\settoboxwidth{\DIFdelgraphicswidth}{\DIFdelgraphicsbox} %DIF PREAMBLE
+\settoboxtotalheight{\DIFdelgraphicsheight}{\DIFdelgraphicsbox} %DIF PREAMBLE
+\scalebox{\DIFscaledelfig}{% %DIF PREAMBLE
+\parbox[b]{\DIFdelgraphicswidth}{\usebox{\DIFdelgraphicsbox}\\[-\baselineskip] \rule{\DIFdelgraphicswidth}{0em}}\llap{\resizebox{\DIFdelgraphicswidth}{\DIFdelgraphicsheight}{% %DIF PREAMBLE
+\setlength{\unitlength}{\DIFdelgraphicswidth}% %DIF PREAMBLE
+\begin{picture}(1,1)% %DIF PREAMBLE
+\thicklines\linethickness{2pt} %DIF PREAMBLE
+{\color[rgb]{1,0,0}\put(0,0){\framebox(1,1){}}}% %DIF PREAMBLE
+{\color[rgb]{1,0,0}\put(0,0){\line( 1,1){1}}}% %DIF PREAMBLE
+{\color[rgb]{1,0,0}\put(0,1){\line(1,-1){1}}}% %DIF PREAMBLE
+\end{picture}% %DIF PREAMBLE
+}\hspace*{3pt}}} %DIF PREAMBLE
+} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddbegin}{\DIFaddbegin} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddend}{\DIFaddend} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelbegin}{\DIFdelbegin} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelend}{\DIFdelend} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddbegin}{\DIFOaddbegin \let\includegraphics\DIFaddincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddend}{\DIFOaddend \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelbegin}{\DIFOdelbegin \let\includegraphics\DIFdelincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelend}{\DIFOaddend \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddbeginFL}{\DIFaddbeginFL} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddendFL}{\DIFaddendFL} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelbeginFL}{\DIFdelbeginFL} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelendFL}{\DIFdelendFL} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddbeginFL}{\DIFOaddbeginFL \let\includegraphics\DIFaddincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddendFL}{\DIFOaddendFL \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelbeginFL}{\DIFOdelbeginFL \let\includegraphics\DIFdelincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelendFL}{\DIFOaddendFL \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+%DIF END PREAMBLE EXTENSION ADDED BY LATEXDIFF
 
 \begin{document}
 
@@ -84,7 +150,8 @@ uchar, uchar16, int16, short16}
 
 %% or include affiliations in footnotes:
 \author{
-   \IEEEauthorblockN{Brice Videau\IEEEauthorrefmark{1}\IEEEauthorrefmark{2}, Kevin Pouget\IEEEauthorrefmark{1}\IEEEauthorrefmark{3}, Luigi Genovese\IEEEauthorrefmark{4}\IEEEauthorrefmark{3}, Thierry Deutsch\IEEEauthorrefmark{4}\IEEEauthorrefmark{3}, Dimitri Komatitsch\IEEEauthorrefmark{6}, Frédéric Desprez\IEEEauthorrefmark{1}\IEEEauthorrefmark{5}, Jean-François Méhaut\IEEEauthorrefmark{1}\IEEEauthorrefmark{3}}\\
+   \DIFdelbegin %DIFDELCMD < \IEEEauthorblockN{Brice Videau\IEEEauthorrefmark{1}\IEEEauthorrefmark{2}, Kevin Pouget\IEEEauthorrefmark{1}\IEEEauthorrefmark{3}, Luigi Genovese\IEEEauthorrefmark{4}, Thierry Deutsch\IEEEauthorrefmark{4}, Dimitri Komatitsch\IEEEauthorrefmark{6}, Frédéric Desprez\IEEEauthorrefmark{1}\IEEEauthorrefmark{5}, Jean-François Méhaut\IEEEauthorrefmark{1}\IEEEauthorrefmark{3}}%%%
+\DIFdelend \DIFaddbegin \IEEEauthorblockN{Brice Videau\IEEEauthorrefmark{1}\IEEEauthorrefmark{2}, Kevin Pouget\IEEEauthorrefmark{1}\IEEEauthorrefmark{3}, Luigi Genovese\IEEEauthorrefmark{4}\IEEEauthorrefmark{3}, Thierry Deutsch\IEEEauthorrefmark{4}\IEEEauthorrefmark{3}, Dimitri Komatitsch\IEEEauthorrefmark{6}, Frédéric Desprez\IEEEauthorrefmark{1}\IEEEauthorrefmark{5}, Jean-François Méhaut\IEEEauthorrefmark{1}\IEEEauthorrefmark{3}}\DIFaddend \\
    \IEEEauthorblockA{\IEEEauthorrefmark{1}Laboratoire d'Informatique de Grenoble}\\
    \IEEEauthorblockA{\IEEEauthorrefmark{2}Centre National de la Recherche Scientifique}\\
    \IEEEauthorblockA{\IEEEauthorrefmark{3}Université Grenoble Alpes}\\
@@ -170,7 +237,7 @@ simulator SPECFEM3D where 80 GPU computing kernels have been ported improving
 considerably the maintainability and providing a single code base for OpenCL
 and CUDA kernel versions. Finally, before a conclusion and future works, we
 compare BOAST with other related works in Section~\ref{sec:related}.
- 
+
 %%% BACKGROUND AND MOTIVATION %%%
 \section{Background and Motivation\label{sec:backg}}
 
@@ -336,28 +403,34 @@ implementation.
 
 \paragraph{Vectorization} The first proposed optimization involves computing
 five pixels instead of one using the vectors available on the Mali
-architecture. This is done using the native OpenCL support for vectorization.
-For instance \emph{vload16} loads 16 consecutive elements from memory and stores
-it in a vector.  Here the loaded vector is of type \emph{uchar16} meaning that it
+architecture. \DIFdelbegin \DIFdel{The }\DIFdelend \DIFaddbegin \DIFadd{This is done using the native OpenCL support for vectorization.
+For instance }\emph{\DIFadd{vload16}} \DIFadd{loads 16 consecutive elements from memory and stores
+it in a vector.  Here the loaded vector is of type }\emph{\DIFadd{uchar16}} \DIFadd{meaning that it
 is a vector of 16 consecutive bytes. In order to do computations without
-overflowing, those vectors have to be converted (using \emph{convert\_int16}) to
+overflowing, those }\DIFaddend vectors have to be \DIFdelbegin \DIFdel{kept in memory to ensure an efficient
+execution.
+}\DIFdelend \DIFaddbegin \DIFadd{converted (using }\emph{\DIFadd{convert\_int16}}\DIFadd{) to
 a signed and bigger integer type.  Here they are converted to signed 4 bytes
 integers, leading to a vector size of 64 bytes.
+}
 
-Once those vector are loaded they can be used in Single Instruction Multiple
+\DIFadd{Once those vector are loaded they can be used in Single Instruction Multiple
 Data (SIMD) paradigm. Operations are done component-wise on the vector. For
-instance, \emph{v22 * (int16)9} multiplies each component of the vector by 9.
+instance, }\emph{\DIFadd{v22 * (int16)9}} \DIFadd{multiplies each component of the vector by 9.
 The same thing goes for the difference operator. Once computed, the result is
-clamped and converted back to bytes using \emph{convert\_uchar16}.
+clamped and converted back to bytes using }\emph{\DIFadd{convert\_uchar16}}\DIFadd{.
+}
 
-Using vectors of 16 elements, 5 pixels (15 components) can be simultaneously
-loaded and can be used in computation. Here the developer chose a pixel based
+\DIFaddend Using vectors of 16 elements, \DIFaddbegin \DIFadd{5 pixels (}\DIFaddend 15 \DIFdelbegin \DIFdel{useful componentsare
+}\DIFdelend \DIFaddbegin \DIFadd{components) can be }\DIFaddend simultaneously
+loaded and can be used in computation. \DIFaddbegin \DIFadd{Here the developer chose a pixel based
 approach and thus decided to only save the 15 relevant components. These
 components are saved in a vector manner using the power of two decomposition
-of 15. The first 8 components (0-7) are saved using \emph{vstore8} then the
-next 4 (8,9,a,b) using \emph{vstore4} and so on.
+of 15. The first 8 components (0-7) are saved using }\emph{\DIFadd{vstore8}} \DIFadd{then the
+next 4 (8,9,a,b) using }\emph{\DIFadd{vstore4}} \DIFadd{and so on.
+}
 
-This optimization yields speedups between 1.5 and 6 depending on the image size.
+\DIFaddend This optimization yields speedups between 1.5 and 6 depending on the image size.
 
 \lstset{style=customcl,
         caption={Laplace OpenCL Filter Vectorized.},
@@ -391,13 +464,13 @@ kernel laplace(const int width, const int height,
   int16 v32 = convert_int16(v32_);
   int16 v33 = convert_int16(v33_);
 
-  int16 res = v22 * (int16)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
+  int16 res = v22 * (\DIFdelbegin \DIFdel{int}\DIFdelend \DIFaddbegin \DIFadd{int16}\DIFaddend )9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
         res = clamp(res, (int16)0, (int16)255);
   uchar res_ = convert_uchar16(res);
 
   vstore8(res_.s01234567, 0, dst + 3*width*j + 3*5*i);
-  vstore4(res_.s89ab,     0, dst + 3*width*j + 3*5*i + 8);
-  vstore2(res_.scd,       0, dst + 3*width*j + 3*5*i + 12);
+  \DIFdelbegin \DIFdel{vstore8}\DIFdelend \DIFaddbegin \DIFadd{vstore4}\DIFaddend (res_.s89ab,     0, dst + 3*width*j + 3*5*i + 8);
+  \DIFdelbegin \DIFdel{vstore8}\DIFdelend \DIFaddbegin \DIFadd{vstore2}\DIFaddend (res_.scd,       0, dst + 3*width*j + 3*5*i + 12);
   dst[3*width*j + 3*5*i + 14] = res_.se;
 }
 \end{lstlisting}
@@ -490,33 +563,42 @@ testing, and autotuning.
 BOAST provides scientific application developers with a framework to develop and
 test application computing kernels~\cite{videau2013boast}.
 
-Figure~\ref{fig:boast_workflow} illustrates the workflow and program structure.
+Figure~\ref{fig:boast_workflow} illustrates the \DIFdelbegin \DIFdel{envisioned }\DIFdelend workflow and program structure.
 The user starts from an application kernel (either designed or implemented),
 and writes it in a dedicated language (Step 1). The language provides enough
 flexibility for the kernel to be meta-programmed with several orthogonal
-optimizations. From this set of optimizations, possible languages targets, and
+optimizations. \DIFdelbegin \DIFdel{Then the developer selects a kernel configuration and a target language. Those }\DIFdelend \DIFaddbegin \DIFadd{From this set of optimizations, possible languages targets, and
 compilation options the user can design an optimization space to explore. This
 optimization space can contains rules to remove infeasible candidates. BOAST
 provides the mechanisms to specify those optimization spaces and enforce the
 users rules.
+}
 
-Once this optimization space is designed, the user selects an optimization
+\DIFadd{Once this optimization space is designed, the user selects an optimization
 strategy, brute force and genetic algorithms are provided by BOAST, or can
 design his own. BOAST will then evaluate the different candidates generated by
-the optimization program. The candidate's parameters define the output source
+the optimization program. The candidate's }\DIFaddend parameters define the output source
 code that will be generated by BOAST (Step 2). The resulting code source is
-then built according to the specified compiler and options (Step 3). The kernel
+then built according to the \DIFdelbegin \DIFdel{user }\DIFdelend specified compiler and options (Step 3). \DIFdelbegin \DIFdel{If input data are available
+then the }\DIFdelend \DIFaddbegin \DIFadd{The }\DIFaddend kernel
 can be benchmarked and tested for non regression. Based on the results, other
-optimizations can be selected (Step 4).The process can be repeated until a good
+optimizations can be selected (Step 4)\DIFdelbegin \DIFdel{or new optimizations can
+be added to the BOAST sources}\DIFdelend .The process can be repeated until a good
 candidate is found on the target platform. The resulting kernel is then added
 to the program (Step 5).
 
-Of course, this workflow if not the only possible use of BOAST.  Especially,
+\DIFdelbegin \DIFdel{Several steps in the workflow can be automated: optimization and compiler flags
+exploration,
+non regression testing, benchmarking, \ldots This automation can be
+scripted by the user or by interfacing other dedicated tools.
+In order
+to achieve those goals }\DIFdelend \DIFaddbegin \DIFadd{Of course, this workflow if not the only possible use of BOAST.  Especially,
 during the kernel description phase the user can use the BOAST framework to
 test his existing optimizations and analyse the results in order to design new
 optimizations. He can possibly do it using external tools.
+}
 
-In order too achieve those results three aspects should be considered: code
+\DIFadd{In order too achieve those results }\DIFaddend three aspects should be considered: code
 description, code generation, and kernel execution run-time.
 
 %%% KERNEL DESCRIPTION LANGUAGE %%%
@@ -774,7 +856,7 @@ Ruby keyword.
 \lstset{style=BOAST,
         caption={BOAST code.}, 
         label={lst:BOAST_procedure},
-        numbers=left }
+        numbers=right }
 \begin{lstlisting}
 n = Int("n", :dir=>:in)
 ndat = Int("ndat", :dir=>:in)
@@ -823,7 +905,7 @@ BOAST namespace.
 The generated outputs in Fortran (Listing~\ref{lst:BOAST_procedure_FORTRAN})
 and C (Listing~\ref{lst:BOAST_procedure_C}) show the difference in
 meta-information that is kept between both versions.
-  
+
 %%% BOAST RUN-TIME %%%
 \subsection{BOAST Run-time}
 
@@ -921,6 +1003,33 @@ different implementations using the same programming model. A case-study of the
 port of a CUDA application to OpenCL is presented in
 Section~\ref{subsec:specfem}.
 
+The idea behind this tool is based on the assumption that the different GPU
+ports of the code should perform the very same operations, at least at the
+logical level (the APIs will have \emph{implementation} differences, but they
+should offer nonetheless same functionalities). The usage of BOAST framework
+sustains this assumption, as both sets of kernels should be generated from the
+same source code.
+
+Hence, the verification and validation of the new port can be narrowed down to
+asserting that both codes apply the same operations on the GPU. And the
+debugging part will consist in understanding what diverges. To that purpose, we
+developed \code{GPUTrace}, inspired by \code{strace} and \code{ltrace} tools:
+\code{GPUTrace} dynamically preloads a library between the application and the
+GPU library, and collects the function name, execution range and argument
+values (input \emph{and} output) of the relevant function calls. These
+information are traced in a unified format for all the APIs. This is a custom
+trace format. Listing~\ref{lst:GPUTrace} presents a sample output generated
+during SPECFEM3D tracing.
+
+However, in contrast with \code{strace} and \code{ltrace}, \code{GPUTrace} has
+to be \emph{state-full}. Indeed, most of API parameters are handles to opaque
+types. So, in order to generate meaningful traces, \code{GPUTrace} gathers
+information about these objects at creation time (handle value, buffer creation
+size and attributes, kernel name and prototype, \etc{}) and re-injects this
+information when the objects used. A state-less implementation of
+\code{GPUTrace} would highly rely on the GPU libraries introspection
+capabilities, which seem not possible at the moment.
+
 \lstset{style=customgputrace,
         caption={GPUTrace sample trace}, 
         label={lst:GPUTrace},
@@ -950,33 +1059,6 @@ update_disp_veloc_kernel<128,1><4522,1>(
      <out> float *accel=<buffer #96 0.000e+00, 0.00e+00, 0.00e+00, 0.00e+00, ...>
 );
 \end{lstlisting}
-
-The idea behind this tool is based on the assumption that the different GPU
-ports of the code should perform the very same operations, at least at the
-logical level (the APIs will have \emph{implementation} differences, but they
-should offer nonetheless same functionalities). The usage of BOAST framework
-sustains this assumption, as both sets of kernels should be generated from the
-same source code.
-
-Hence, the verification and validation of the new port can be narrowed down to
-asserting that both codes apply the same operations on the GPU. And the
-debugging part will consist in understanding what diverges. To that purpose, we
-developed \code{GPUTrace}, inspired by \code{strace} and \code{ltrace} tools:
-\code{GPUTrace} dynamically preloads a library between the application and the
-GPU library, and collects the function name, execution range and argument
-values (input \emph{and} output) of the relevant function calls. These
-information are traced in a unified format for all the APIs. This is a custom
-trace format. Listing~\ref{lst:GPUTrace} presents a sample output generated
-during SPECFEM3D tracing.
-
-However, in contrast with \code{strace} and \code{ltrace}, \code{GPUTrace} has
-to be \emph{state-full}. Indeed, most of API parameters are handles to opaque
-types. So, in order to generate meaningful traces, \code{GPUTrace} gathers
-information about these objects at creation time (handle value, buffer creation
-size and attributes, kernel name and prototype, \etc{}) and re-injects this
-information when the objects used. A state-less implementation of
-\code{GPUTrace} would highly rely on the GPU libraries introspection
-capabilities, which seem not possible at the moment.
 
 Once two call traces have been generated by \code{GPUTrace}, the user can
 compare them with a graphical \code{diff} tool, and spot the different porting
@@ -1094,8 +1176,9 @@ Indeed, the Intel CPU favors kernels that have the parameters,
 \emph{temporary\_size} = 2 and \emph{synthesize\_loads} = false. Once again
 \emph{vector\_recompute} does not apply. \emph{y\_component\_number} varies
 from 4 to 2 when image size increase, thus decreasing task granularity as the
-global work size increase. This result is interesting because its unexpected
-nature strongly backs the use of autotuning. The NVIDIA GPU favors processing
+global work size increase. This result is \DIFdelbegin \DIFdel{unexpected and understanding why this
+happen could be interesting }\DIFdelend \DIFaddbegin \DIFadd{interesting because its unexpected
+nature strongly backs the use of autotuning}\DIFaddend . The NVIDIA GPU favors processing
 square tiles: \emph{x\_component\_number} = 4, \emph{y\_component\_number} = 4,
 \emph{vector\_length} = 4, \emph{temporary\_size} = 2 and
 \emph{synthesize\_loads} = false. Once more, \emph{vector\_recompute} has no
@@ -1201,8 +1284,8 @@ transposition~\cite{Goedecker1993}.
   captionpos=b,
   caption={MagicFilter.}, 
   label={lst:conv_example},
-  numbers=left}
-		
+  numbers=right}
+
 \begin{lstlisting}
 double filt[16] = {F0, F1, ... , F15};
 void magicfilter(int n, int ndat, double* in, double* out){
@@ -1319,13 +1402,18 @@ architectures/compilers combinations than that of the hand tuned code.
 % 
 %   Convolution Library: first step toward a dsl dedicated to wavelet
 %   processing for Physics computing.
- 
+
 
 %%% Porting SPECFEM3D to OpenCL using BOAST %%%
-\subsection{Porting SPECFEM3D Application Kernels: from CUDA to OpenCL
+\subsection{Porting SPECFEM3D \DIFaddbegin \DIFadd{Application Kernels: from CUDA }\DIFaddend to OpenCL
 using BOAST\label{subsec:specfem}}
 
-In this last subsection, we present an alternative use-case of the BOAST
+In this last subsection, we \DIFdelbegin \DIFdel{study a free seismic wave propagation simulator, SPECFEM3D, in its GLOBE flavor}\footnote{\DIFdel{Specfem3d Globe --- CIG
+}%DIFDELCMD < \url{http://www.geodynamics.org/cig/software/specfem3d-globe}%%%
+}%DIFAUXCMD
+\addtocounter{footnote}{-1}%DIFAUXCMD
+\DIFdel{.
+}\DIFdelend \DIFaddbegin \DIFadd{present an alternative use-case of the BOAST
 framework, focused on portability. As part of the Mont-Blanc project,
 we ported a scientific application so that it could be use to
 benchmark the Mont-Blanc HPC cluster. It was composed of 40 complex
@@ -1334,22 +1422,30 @@ scenario also highlights the factorization and maintainability
 improvements of the BOAST framework, as we obtained a single BOAST
 implementation of the kernels (instead of two, CUDA and OpenCL). This
 version of the code is still used and updated in the upstream project.
+}
 
-The challenges we faced in this case-study were more related to the
+\DIFadd{The challenges we faced in this case-study were more related to the
 complexity of the scientific application and its kernels than to the
 BOAST framework.
-%%% SPECFEM3D %%%
-\subsubsection{SPECFEM3D}
+%DIF > %% SPECFEM3D %%%
+}\subsubsection{\DIFadd{SPECFEM3D}}
 
-SPECFEM3D GLOBE\footnote{SPECFEM3D GLOBE --- CIG
-  \url{http://www.geodynamics.org/cig/software/specfem3d-globe}} is a
-free seismic wave propagation simulator. It simulates seismic wave
+\DIFaddend SPECFEM3D \DIFaddbegin \DIFadd{GLOBE}\footnote{\DIFadd{SPECFEM3D GLOBE --- CIG
+  }\url{http://www.geodynamics.org/cig/software/specfem3d-globe}} \DIFadd{is a
+free seismic wave propagation simulator. It }\DIFaddend simulates seismic wave
 propagation at the local or regional scale based upon spectral-element
 method (SEM), with very good accuracy and convergence properties. It
 is a reference application for supercomputer benchmarking, thanks to
 its good scaling capabilities.
 
-When we started to work on the project (version v2.1 of July 2013) it
+%DIF < %% SPECFEM3D %%%
+\DIFdelbegin \subsubsection{\DIFdel{SPECFEM3D}}
+%DIFAUXCMD
+\addtocounter{subsubsection}{-1}%DIFAUXCMD
+%DIFDELCMD < 
+
+%DIFDELCMD < %%%
+\DIFdelend When we started to work on the project (version v2.1 of July 2013) it
 supported graphics card GPU acceleration through NVidia CUDA. This
 GPU support came in addition to the MPI support implemented to enable
 multi-CPU parallel computing. Most of SPECFEM3D code-base is written in
@@ -1358,25 +1454,31 @@ C.  The split between CPU and GPU code was done at a rather fine
 grain, as the application counted more than 40 GPU kernels. Some of
 them were quite simple (\eg performing a few vector operations, but at
 massively parallel scale), while at the other side of the spectrum,
-some complex kernels took more than 80 parameters and performed very
+some complex kernels took more than 80 parameters and \DIFdelbegin \DIFdel{perform }\DIFdelend \DIFaddbegin \DIFadd{performed }\DIFaddend very
 specific physical transformations.
 
-Because of the complexity of the wave propagation kernels, it was
-impossible for us to understand the kernel source kernel. Hence, we
+Because of the complexity of \DIFdelbegin \DIFdel{wave propagation (and of the application
+architecture), it is hard to impossible to define unit tests}\DIFdelend \DIFaddbegin \DIFadd{the wave propagation kernels, it was
+impossible for us to understand the kernel source kernel}\DIFaddend . Hence, \DIFdelbegin \DIFdel{the }\DIFdelend \DIFaddbegin \DIFadd{we
 treated them as black-boxes, and aimed at obtaining identical
 performances. Furthermore, the kernels' complexity prevents the
-specification of unit tests, thus the application is validated by the
-accuracy of the results it produces (the seismograms of the simulated
-earthquakes), against the actual ones. Non-regression testing (after
+specification of unit tests, thus the }\DIFaddend application is validated by the
+accuracy of the results it produces \DIFdelbegin \DIFdel{, that is, the accuracy of }\DIFdelend \DIFaddbegin \DIFadd{(the }\DIFaddend seismograms of the simulated
+earthquakes\DIFdelbegin \DIFdel{, in comparison with }\DIFdelend \DIFaddbegin \DIFadd{), against }\DIFaddend the actual ones. Non-regression testing (after
 new developments) is also based on these seismograms, with
 measurements of the relative error between two identical simulations.
 
-%%% PORTING TO OPENCL %%%
+\DIFdelbegin \DIFdel{As part of the Mont-Blanc project, we had to port SPECFEM3D to OpenCL, so
+that it could be used to benchmark Mont-Blanc HPC platforms.
+}%DIFDELCMD < 
+
+%DIFDELCMD < %%%
+\DIFdelend %%% PORTING TO OPENCL %%%
 \subsubsection{Porting to OpenCL}
 
 %%%
 \paragraph{Porting kernels to BOAST} 
-NVidia CUDA and OpenCL are based on the same programming model: a
+\DIFdelbegin \DIFdel{Nvidia }\DIFdelend \DIFaddbegin \DIFadd{NVidia }\DIFaddend CUDA and OpenCL are based on the same programming model: a
 massively parallel accelerator running in disjoint, non addressable
 memory environment. Thanks to that proximity, we have been able to carry
 out most of the porting task with only a limited knowledge about
@@ -1404,7 +1506,7 @@ with a side-by-side comparison that highlighted the coding mistakes.
 %%%
 \paragraph{Porting run-time to OpenCL} The second part of the port
 consisted in the translation of the CPU-side of the application, from
-CUDA API to OpenCL'. Most of the functions of the interfaces are very
+CUDA API to OpenCL\DIFdelbegin \DIFdel{API}\DIFdelend \DIFaddbegin \DIFadd{'}\DIFaddend . Most of the functions of the interfaces are very
 similar, with only naming-convention and data-structure
 distinctions. Hence, it was clear that automatic rewriting tools
 (namely \code{sed} regexp and \code{emacs-lisp} functions) could be
@@ -1460,17 +1562,18 @@ missing.
 %%%
 \paragraph{Evaluation} Our OpenCL/BOAST port of SPECFEM3D is now
 merged in SPECFEM3D's development tree and under test and extension by
-different research teams. On a platform with two K40x GPUs and 24 Intel
-Xeon processors, we measured identical performance between the original
-CUDA version and our BOAST-CUDA version. This result was expected, as
+different research teams. On a platform with two K40x GPUs and \DIFdelbegin \DIFdel{N }\DIFdelend \DIFaddbegin \DIFadd{24 }\DIFaddend Intel
+Xeon processors, we measured \DIFdelbegin \DIFdel{similar results }\DIFdelend \DIFaddbegin \DIFadd{identical performance }\DIFaddend between the original
+CUDA version and our BOAST-CUDA version. \DIFaddbegin \DIFadd{This result was expected, as
 the BOAST-generated version is identical to the original, except from
 naming differences.
+}
 
-With the same set of optimization flags, BOAST CUDA and OpenCL
-versions reported similar execution time spans. The best execution
+\DIFaddend With the same set of optimization flags, BOAST CUDA and OpenCL
+\DIFdelbegin \DIFdel{version }\DIFdelend \DIFaddbegin \DIFadd{versions }\DIFaddend reported similar execution time spans. The best execution
 speed was achieved with CUDA version though (25\% higher than OpenCL),
 as one optimization parameter (\code{CUDA\_LAUNCH\_BOUND}) cannot be
-passed to the OpenCL run-time, as of version 1.1. This parameter, in
+passed to \DIFaddbegin \DIFadd{the }\DIFaddend OpenCL run-time, as of version 1.1. This parameter, in
 addition to specifying the work group size (which can be done in
 OpenCL), also constrains the number of work group that must run in
 parallel on a multiprocessor. This value is set to 7 in CUDA. This
@@ -1479,14 +1582,16 @@ order to allow this parallelism which allows better overlapping of
 communications end computations.  This functionality is not supported
 in OpenCL.
 
-Thanks to the porting of the SPECFEM3D GPU kernels to BOAST EDSL, the size of the
-kernels' source code shrank by a factor of 1.8 (from 7500 to less than
-4000 LOC, mainly because of the removal of code duplication and
-manually unrolled loops). This is beneficial for SPECFEM3D as it
-improves the readability and maintainability of its source code. This
+\DIFdelbegin \DIFdel{By refactoring GPU kernel code in }\DIFdelend \DIFaddbegin \DIFadd{Thanks to the porting of the SPECFEM3D GPU kernels to }\DIFaddend BOAST EDSL, the size of \DIFdelbegin \DIFdel{kernel }\DIFdelend \DIFaddbegin \DIFadd{the
+kernels' source }\DIFaddend code shrank by a factor of 1.8 (from 7500 to less than
+4000 LOC, \DIFdelbegin \DIFdel{partly
+because of code duplication, also removing }\DIFdelend \DIFaddbegin \DIFadd{mainly because of the removal of code duplication and
+}\DIFaddend manually unrolled loops). This is beneficial for SPECFEM3D as it
+improves the readability and maintainability of its source code. \DIFaddbegin \DIFadd{This
 gain was confirmed by the SPECFEM3D community as the subsequent
 developments have been carried out on the BOAST version of the
 kernels, and not on the CUDA or OpenCL generated code. 
+}\DIFaddend 
 
 We have also been able to enhance SPECFEM3D's non-regression test-suite
 by adding per-kernel non-regression tests. This was done with the help
@@ -1500,7 +1605,7 @@ validates the non-regression.
 
 In the same mindset, we provided SPECFEM3D test-suite with kernel
 performance evaluation mechanisms. These tests will help developers to
-try new optimizations in kernels' code and measure their impact,
+try new optimizations in \DIFdelbegin \DIFdel{kernel }\DIFdelend \DIFaddbegin \DIFadd{kernels' }\DIFaddend code and measure their impact,
 without executing the whole application.
 
 %%% RELATED WORK %%%

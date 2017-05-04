@@ -1,0 +1,53 @@
+\documentclass[10pt]{article}
+
+\usepackage{fullpage}
+\usepackage{url}
+
+\begin{document}
+
+\noindent
+{\Large\bf ANSWERS TO THE REVIEWERS}\\~\\
+
+We thank the  reviewers for their interest in our work and for their helpful comments that will greatly improve  the manuscript. We have  tried  to do  our  best to  respond to  the  points  raised. The reviewers have brought  up  some  good  points  and  we  appreciate  the  opportunity  to  clarify  our research objectives and results. As  indicated  below,  we  have  checked  all  the  general  and  specific  comments  provided  by  the reviewers and have made necessary changes accordingly to their indications.\\
+
+\noindent{\large\bf Anonymous reviewers \#1}\\
+
+\noindent
+{\em 1) The usage workflow is not that clear. For instance how optimisations can be selected ? Is there a list of such optimisations or is it the user
+  to design the optimisation sets. In Section V.A how different values are selected? Is there any way for the framework to guide the user towards
+  optimisations or to give feedback on what is working, what is not working, etc. The authors mention MAQAO in the conclusion... Overall, this part is
+  really fuzzy.}\\
+
+The workflow has been better described (see diff file attached).\\
+
+\noindent
+{\em 2) Listing 3 should be explained in details or removed. Not every reader is a specialist of vectorisation}\\
+
+Listing 3 and vectorization have been described carefully in Section B.a.\\
+
+\noindent
+{\em 3) section V.A page 8. You state that you have an unexpected results that should be investigate. A journal paper is not a conference paper. I
+  think you should investigate and publish what you have found in ***this*** paper.} \\
+
+Autotuning is useful because it can challenge our assumptions. We modified a sentence accordingly. \\
+
+\noindent
+{\em 4) Section V.C. is not easy to follow. It is hard to understand where the problems you faced came from : from the kernels, from the design of BOAST, from a bug in the implementation, etc. What kind of conclusion should be taken from your experience in the usage of BOAST? Such discussion should help the reader in doing better science. The writing of this section does not go in that direction. What can be generalised from your experience? what are your advices?}\\
+
+Our approach's objectives have been better described at the beginning of the section. Then several paragraphs of this section have been modified to
+better emphasize the results and expectations of this part of our work.\\
+
+\noindent
+{\em 5) in Section V.C why did you not generate the CUDA version as well and compare it with the hand-tuned existing version? For the revised version, I need to see that experiment added to paper!}\\ 
+
+Indeed this experience was already performed. We rewrote this section to better mention our results around CUDA. 
+
+\end{document}
+%%%
+
+
+
+
+
+
+
