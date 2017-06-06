@@ -24,13 +24,13 @@ class Experiment
  
 	puts "\n*********** Testing boast kernel with fluid_inner_elt_boast/sub_time_loop_1/ inputs parameters ***********\n"
   inputs = kernels[k_boast_params].kernel.load_ref_inputs()
-#  outputs = kernels[k_boast_params].kernel.load_ref_outputs()
+  outputs = kernels[k_boast_params].kernel.load_ref_outputs()
 
 
   inputs.each_key { |key|
 		puts key
-# 		puts kernels[k_boast_params].kernel.run(*(inputs[key])).inspect 
-#		puts kernels[k_boast_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
+ 		puts kernels[k_boast_params].kernel.run(*(inputs[key])).inspect 
+		puts kernels[k_boast_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
 	}
 
 	puts "Testing done\n"

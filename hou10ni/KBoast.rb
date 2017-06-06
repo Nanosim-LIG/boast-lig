@@ -54,7 +54,7 @@ class KBoast
 				pr i1 === @idx_vec_flu[2*j,i]
 				pr i2 === @idx_vec_flu[2*j+1,i]
 				pr i_tmp2 === i_tmp1 + i2 - i1
-				# manque P_aux ici
+        pr p_aux.slice(i_tmp1..i_tmp2,1..@nb_rhs) === @P_inter.slice(i1..i2,1..@nb_rhs) 
 				pr i_tmp1 === i_tmp2 +1
 			}
 			pr i1 === @idx_vec_flu[2,i]	
@@ -62,7 +62,19 @@ class KBoast
 			pr i3 === @idx_mat_flu[i]	
 			pr i4 === @idx_mat_flu[i+1] - 1	
 
-			# P_new ici
+			# P_new ici - reecrire matmul pour le C @matmul = Procedure("matmul",[..,..], :return => ..){ ... }
+			register_funccall("matmul") if get_lang == FORTRAN
+
+			call_matmul = lambda{|x,y|
+				#if get_lang == FORTRAN
+					return matmul(x,y)
+	      #else
+				#	return @functions[:matmul].call(x,y)
+ 			  #end
+		  }
+			
+      reshape_code ="RESHAPE(A_flu(I3:I4), (/I2-I1+1, I_tmp2/))"
+			pr @P_new.slice(i1..i2,1..@nb_rhs) === call_matmul.call(reshape_code , p_aux.slice(1..i_tmp2,1..@nb_rhs) ) - @P_old.slice(i1..i2,1..@nb_rhs) 
 		}
 
 		close @kernel.procedure
