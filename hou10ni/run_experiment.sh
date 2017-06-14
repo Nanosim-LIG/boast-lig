@@ -47,5 +47,8 @@ mkdir -p $DATA_FOLD_DAY
 mkdir -p $DATA_FOLD_HOST
 mkdir -p $DATA_FOLD_TIME
 
-echo "EXECUTING ruby $SRC_DIR/run.rb --data=$DATA_FILE --kernel=$KERNEL_FILE"
-ruby $SRC_DIR/run.rb --data=$DATA_FILE --kernel=$KERNEL_FILE
+#echo "EXECUTING ruby $SRC_DIR/run.rb --data=$DATA_FILE --kernel=$KERNEL_FILE"
+#ruby $SRC_DIR/run.rb --data=$DATA_FILE --kernel=$KERNEL_FILE
+
+echo "EXECUTING ruby $SRC_DIR/optim_run_boast.rb --data=$DATA_FILE --kernel=$KERNEL_FILE"
+ruby $SRC_DIR/optim_run_boast.rb --data=$DATA_FILE --kernel=$KERNEL_FILE

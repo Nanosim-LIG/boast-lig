@@ -8,17 +8,21 @@ class Experiment
 
  def self.run()
 
- # set_default_int_size(8)
+	optim_nested = 3
+	optim_main = 7
+ 
+  #set_default_int_size(8)
   set_default_real_size(4)
-  k_boast_params = {:kernel => :boast, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -fimplicit-none"}  
+
+	# Parameters - optim = number of unroll of the nested loop per iteration
+  k_boast_params = {:kernel => :boast, :optim_nested => optim_nested, :optim_main => optim_main, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -fimplicit-none"}  
 
   set_lang(FORTRAN)
   kernels = {}
-  stats_svg = {}
 	stats = []
-  repeat = 3
+  repeat = 5
 
-  # Creating ref kernel
+  # Creating boast kernel
   kernels[k_boast_params] = KBoast::new(k_boast_params)
   kernels[k_boast_params].generate
 	puts "*********** Building kernel ***********\n"
@@ -41,8 +45,7 @@ class Experiment
 	stats = stats.first
 
 
-
-  puts "#{kernels[k_boast_params].kernel.procedure.name}: #{stats[:duration]} s ->  #{stats[:duration]*1.0e3} ms"
+  puts "#{kernels[k_boast_params].kernel.procedure.name}: optim_nested = #{k_boast_params[:optim_nested]}  #{stats[:duration]} s ->  #{stats[:duration]*1.0e3} ms"
   return kernels
  end
 end
