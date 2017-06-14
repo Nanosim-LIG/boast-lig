@@ -17,7 +17,7 @@ class Experiment
   set_default_real_size(4)
 
   k_ref_params = {:kernel => :ref, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check"}
-  k_boast_params = {:kernel => :boast, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -fimplicit-none"}  
+  k_boast_params = {:kernel => :boast, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -fimplicit-none -O3"}  
 
   set_lang(FORTRAN)
   kernels={}
@@ -41,8 +41,8 @@ class Experiment
 
   # Run (inputs are the same for ref and boast kernels) 
 	puts "\n* Testing boast and ref versions of the kernel with fluid_inner_elt_boast/sub_time_loop_1/ inputs parameters ...\n"
-  inputs = kernels[k_ref_params].kernel.load_ref_inputs()
-
+  inputs = kernels[k_boast_params].kernel.load_ref_inputs()
+  outputs = kernels[k_boast_params].kernel.load_ref_outputs()
 
 10.times{|i|
   inputs.each_key { |key|
@@ -50,7 +50,7 @@ class Experiment
  		#puts kernels[k_ref_params].kernel.run(*(inputs[key])).inspect 
  		stats[k_ref_params][:time][i] = kernels[k_ref_params].kernel.run(*(inputs[key]))[:duration]
  		stats[k_boast_params][:time][i] = kernels[k_boast_params].kernel.run(*(inputs[key]))[:duration]
-#		puts kernels[k_boast_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
+		puts kernels[k_boast_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
 	}
 }
 
