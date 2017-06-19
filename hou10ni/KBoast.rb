@@ -4,7 +4,7 @@ class KBoast
 
  def initialize(options)
 
-  @opts = {:optim_nested => 1, :optim_main => 1, :preprocessor => false, :unroll => false, :inline => :included}
+  @opts = {:optim_nested => 1, :optim_main => 1}
   @opts.update(options)
 
   # Parameters 
@@ -95,7 +95,6 @@ class KBoast
 
      @kernel = CKernel:: new()
      @kernel.procedure = Procedure("fluid_inner_elt_boast",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize] ,:functions => nil)
-		 #puts "Parameters = ", @kernel.procedure.parameters
 
 
 		#..  FUNCTIONS ..#
@@ -137,18 +136,6 @@ class KBoast
 
 		##.. Nested loop optimization
 
-		#  Option 0 :
-		no_optim_nested = For(j,1,@idx_vec_flu[1,i]){
-        pr i1 === @idx_vec_flu[2*j,i]
-        pr i2 === @idx_vec_flu[2*j+1,i]
-        pr i_tmp2 === i_tmp1 + i2 - i1
-        pr p_aux.slice(i_tmp1..i_tmp2,1..@nb_rhs) === @P_inter.slice(i1..i2,1..@nb_rhs) 
-        pr i_tmp1 === i_tmp2 +1
-		}
-
-		#  Option 1 : Unroll 'unroll' iterations
-
-
    	optim_1 = lambda { |unroll,i|
 			loop_1 = lambda { |indice|
 				pr i1 === @idx_vec_flu[2*indice,i]
@@ -177,19 +164,6 @@ class KBoast
 
 		##.. Main loop optimization
 
-		#  Option 0 : No optimization
-		no_optim_main = For(i,1,@Nflu_inner+@Nflusol_inner){
-			pr i_tmp1 === 1
-			pr no_optim_nested
-			pr i1 === @idx_vec_flu[2,i]
-      pr i2 === @idx_vec_flu[3,i]
-      pr i3 === @idx_mat_flu[i]
-      pr i4 === @idx_mat_flu[i+1] - 1
-			reshape_code ="RESHAPE(#{@A_flu.slice(i3..i4)}, (/#{i2}-#{i1}+1, #{i_tmp2}/))"
-      pr @P_new.slice(i1..i2,1..@nb_rhs) === call_matmul.call(reshape_code , p_aux.slice(1..i_tmp2,1..@nb_rhs) ) - @P_old.slice(i1..i2,1..@nb_rhs)
-    }
-		
-		#  Option 1 : Unroll 'unroll' iterations 
 		optim_2 = lambda { |unroll|
 			loop_2 = lambda { |indice|
 				pr i_tmp1 === 1
@@ -202,7 +176,7 @@ class KBoast
       	pr i3 === @idx_mat_flu[indice]
       	pr i4 === @idx_mat_flu[indice+1] - 1
 				reshape_code ="RESHAPE(#{@A_flu.slice(i3..i4)}, (/#{i2}-#{i1}+1, #{i_tmp2}/))"
-      	#pr @P_new.slice(i1..i2,1..@nb_rhs) === call_matmul.call(reshape_code , p_aux.slice(1..i_tmp2,1..@nb_rhs) ) - @P_old.slice(i1..i2,1..@nb_rhs)
+      	pr @P_new.slice(i1..i2,1..@nb_rhs) === call_matmul.call(reshape_code , p_aux.slice(1..i_tmp2,1..@nb_rhs) ) - @P_old.slice(i1..i2,1..@nb_rhs)
 			}
 			
 			pr imax === @Nflu_inner+@Nflusol_inner-(unroll-1)
@@ -224,7 +198,6 @@ class KBoast
 
 
 		## Procedure
-		#pr no_optim_main
 		optim_2[@opts[:optim_main]].each { |f_main|
         pr f_main
     }

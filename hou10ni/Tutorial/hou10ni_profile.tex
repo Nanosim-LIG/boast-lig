@@ -770,36 +770,26 @@ require 'narray_ffi'
 
 include BOAST
 
-class Experiment
+ set_lang(FORTRAN)
 
- def self.run()
-  k_ref_params = {:kernel => :ref, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check"}
+# Creating ref kernel
+k_ref_params = {:kernel => :ref, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -O2"}
+k = KRef::new(k_ref_params)
+k.generate
+puts k.kernel
+k.kernel.build(:LDFLAGS => k_ref_params[:LDFLAGS], :FCFLAGS => k_ref_params[:FCFLAGS] )
 
-  set_lang(FORTRAN)
-  kernels={}
+# Parameters for loop iteration 1 and MPI Process 0 
+# in the directory fluid_inner_elt_ref/sub_time_loop_1/
+inputs = k.kernel.load_ref_inputs()
+puts "** inputs =", inputs
 
-  # Creating ref kernel
-  kernels[k_ref_params] = KRef::new(k_ref_params)
-  kernels[k_ref_params].generate
- # Building ref kernel
-  puts kernels[k_ref_params].kernel
-  kernels[k_ref_params].kernel.build(:LDFLAGS => k_ref_params[:LDFLAGS], :FCFLAGS => k_ref_params[:FCFLAGS] )
+inputs.each_key { |key|
+  puts k.kernel.run(*(inputs[key]))
+  puts k.kernel.compare_ref(outputs[key], inputs[key]).inspect
+}
 
-  # Parameters for loop iteration 1 and MPI Process 0 (in the directory fluid_inner_elt_ref/sub_time_loop_1/)
-  inputs = kernels[k_ref_params].kernel.load_ref_inputs()
-  puts "** inputs =", inputs
-
-  inputs.each_key { |key|
-    puts key
-    puts kernels[k_ref_params].kernel.run(*(inputs[key])).inspect
-    puts kernels[k_ref_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
-  }
-
-  return kernels
- end
-end
-
-Experiment.run
+puts "Testing done\n"
 \end{lstlisting}
 
 
@@ -874,9 +864,6 @@ class KBoast
 
  def initialize(options)
 
-  @opts = {:preprocessor => false, :unroll => false, :inline => :included}
-  @opts.update(options)
-
   # Parameters 
   @Nflu_inner         = Int("Nflu_inner", :dir => :in )
   @Nflusol_inner      = Int("Nflusol_inner", :dir => :in )
@@ -886,7 +873,6 @@ class KBoast
   @vecSize_1          = Int("vecSize_1", :dir => :in )
   @vecSize_2          = Int("vecSize_2", :dir => :in )
   @matSize            = Int("matSize", :dir => :in )
-
   @idx_vec_flu        = Int("idx_vec_flu", :dir => :in, :dim => [Dim(@vecSize_1),Dim(@vecSize_2)] )
   @idx_mat_flu        = Int("idx_mat_flu", :dir => :in, :dim => [Dim(@matSize)] )
   @P_new              = Real("P_new",:dir => :inout, :dim => [Dim(@pSize),Dim(@nb_rhs)])
@@ -903,15 +889,11 @@ class KBoast
     @kernel = CKernel:: new()
     @kernel.procedure = Procedure("fluid_inner_elt_boast",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize] ,:functions => nil)
 
-
     #..  FUNCTIONS ..#
     register_funccall("matmul") if get_lang == FORTRAN
     call_matmul = lambda{|x,y|
-      if get_lang == FORTRAN
         return matmul(x,y)
-      end
     }
-
 
     #.. KERNEL ..#
 
@@ -964,49 +946,35 @@ require 'narray_ffi'
 
 include BOAST
 
-class Experiment
+set_default_real_size(4)
 
- def self.run()
+k_boast_params = {:kernel => :boast, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -fimplicit-none -O2"}  
 
- # set_default_int_size(8)
-  set_default_real_size(4)
-  k_boast_params = {:kernel => :boast, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -fimplicit-none"}
+set_lang(FORTRAN)
+stats = []
+repeat = 5
 
-  set_lang(FORTRAN)
-  kernels = {}
-  stats_svg = {}
-  stats = []
-  repeat = 3
+# Creating boast kernel
+k = KBoast::new(k_boast_params)
+k.generate
+puts k.kernel
+k.kernel.build(:LDFLAGS => k_boast_params[:LDFLAGS], :FCFLAGS => k_boast_params[:FCFLAGS] )
+ 
+inputs = k.kernel.load_ref_inputs()
+outputs = k.kernel.load_ref_outputs()
 
-  # Creating ref kernel
-  kernels[k_boast_params] = KBoast::new(k_boast_params)
-  kernels[k_boast_params].generate
-  puts "*********** Building kernel ***********\n"
-  puts kernels[k_boast_params].kernel
-  kernels[k_boast_params].kernel.build(:LDFLAGS => k_boast_params[:LDFLAGS], :FCFLAGS => k_boast_params[:FCFLAGS] )
-
-  puts "\n*********** Testing boast kernel with inputs parameters ***********\n"
-  inputs = kernels[k_boast_params].kernel.load_ref_inputs()
-  outputs = kernels[k_boast_params].kernel.load_ref_outputs()
-
+inputs.each_key { |key|
   repeat.times {
-    inputs.each_key { |key|
-      puts key
-      stats.push kernels[k_boast_params].kernel.run(*(inputs[key]))
-      puts kernels[k_boast_params].kernel.run(*(inputs[key])).inspect
-      puts kernels[k_boast_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
-    }
+    stats.push k.kernel.run(*(inputs[key]))
   }
-  stats.sort_by! { |a| a[:duration] }
-  stats = stats.first
+  puts k.kernel.compare_ref(outputs[key], inputs[key]).inspect
+}
 
+stats.sort_by! { |a| a[:duration] }
+p stats
+stats = stats.first
 
-  puts "#{kernels[k_boast_params].kernel.procedure.name}: #{stats[:duration]} s ->  #{stats[:duration]*1.0e3} ms"
-  return kernels
- end
-end
-
-Experiment.run
+puts "#{k.kernel.procedure.name}: optim_nested = #{k_boast_params[:optim_nested]}  #{stats[:duration]} s ->  #{stats[:duration]*1.0e3} ms"
 \end{lstlisting}
 
 
@@ -1023,21 +991,164 @@ SUBROUTINE fluid_inner_elt_boast(Nflu_inner, Nflusol_inner, nb_rhs, idx_&
   
 END SUBROUTINE fluid_inner_elt_boast
 
-*********** Testing boast kernel with inputs parameters ***********
-./fluid_inner_elt_boast/sub_time_loop_1
-{:duration=>0.13263683, :start=>-4004705691753970176, :end=>-3872068861753970176}
 {"P_new"=>0.0}
-./fluid_inner_elt_boast/sub_time_loop_1
-{:duration=>0.140625219, :start=>-3642235174753970176, :end=>-3501609955753970176}
-{"P_new"=>0.0}
-./fluid_inner_elt_boast/sub_time_loop_1
-{:duration=>0.147113606, :start=>-3274643277753970176, :end=>-3127529671753970176}
-{"P_new"=>0.0}
-fluid_inner_elt_boast: 0.15179012 s ->  151.79012 ms  
+[{:duration=>0.011553553000000001, :start=>-8096482666880853504, :end=>-8084929113880853504}, {:duration=>0.011923121, :start=>-8122491033880853504, :end=>-8110567912880853504}, {:duration=>0.013262399000000001, :start=>-8135791916880853504, :end=>-8122529517880853504}, {:duration=>0.013991319, :start=>-8110525936880853504, :end=>-8096534617880853504}, {:duration=>0.014984313, :start=>-8150824959880853504, :end=>-8135840646880853504}]
+fluid_inner_elt_boast: optim_nested = 3  0.011553553000000001 s ->  11.553553 ms
 \end{lstlisting}
 
 
-\subsubsection*{Optimisations}
+\subsection{Optimisations}
+
+
+Unroll both loops.
+
+
+
+\lstset{language=RUBY}
+\begin{lstlisting}[caption=KBoast.rb]
+class KBoast
+ attr_reader :kernel
+
+
+ def initialize(options)
+
+  @opts = {:optim_nested => 1, :optim_main => 1}
+  @opts.update(options)
+
+  # Parameters 
+  @Nflu_inner         = Int("Nflu_inner", :dir => :in )
+  @Nflusol_inner      = Int("Nflusol_inner", :dir => :in )
+  @nb_rhs             = Int("nb_rhs", :dir => :in )
+  @afluSize           = Int("afluSize", :dir => :in )
+  @pSize              = Int("pSize", :dir => :in )
+  @vecSize_1          = Int("vecSize_1", :dir => :in )
+  @vecSize_2          = Int("vecSize_2", :dir => :in )
+  @matSize            = Int("matSize", :dir => :in )
+  @idx_vec_flu        = Int("idx_vec_flu", :dir => :in, :dim => [Dim(@vecSize_1),Dim(@vecSize_2)] )
+  @idx_mat_flu        = Int("idx_mat_flu", :dir => :in, :dim => [Dim(@matSize)] )
+  @P_new              = Real("P_new",:dir => :inout, :dim => [Dim(@pSize),Dim(@nb_rhs)])
+  @P_inter            = Real("P_inter",:dir => :in, :dim => [Dim(@pSize),Dim(@nb_rhs)])
+  @P_old              = Real("P_old",:dir => :in, :dim => [Dim(@pSize),Dim(@nb_rhs)])
+  @A_flu              = Real("A_flu",:dir => :in, :dim => [Dim(@afluSize)])
+
+ end
+ 
+  def generate
+
+   push_env(:lang => FORTRAN) {
+
+   @kernel = CKernel:: new()
+   @kernel.procedure = Procedure("fluid_inner_elt_boast",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize] ,:functions => nil)
+
+
+    #..  FUNCTIONS ..#
+
+    register_funccall("matmul") if get_lang == FORTRAN
+    call_matmul = lambda{|x,y|
+        return matmul(x,y)
+    }
+
+    register_funccall(:modulo) if get_lang == FORTRAN
+
+
+    #.. KERNEL ..#
+
+    opn @kernel.procedure
+
+    # local variables
+    i = Variable::new('I', Int)
+    j = Variable::new('J', Int)
+    i_tmp1 = Variable::new('I_tmp1', Int)
+    i_tmp2 = Variable::new('I_tmp2', Int)
+    i1 = Variable::new('I1', Int)
+    i2 = Variable::new('I2', Int)
+    i3 = Variable::new('I3', Int)
+    i4 = Variable::new('I4', Int)
+    p_aux = Variable::new("P_aux",Real, :dimension => [Dim(20),Dim(@nb_rhs)])
+
+    jmax = Variable::new('jmax', Int)
+    imax = Variable::new('imax', Int)
+
+    decl i,j,i_tmp1,i_tmp2, i1,i2,i3,i4,p_aux
+    decl jmax,imax
+
+
+    ##.. Nested loop optimization
+    optim_1 = lambda { |unroll,i|
+      loop_1 = lambda { |indice|
+        pr i1 === @idx_vec_flu[2*indice,i]
+        pr i2 === @idx_vec_flu[2*indice+1,i]
+        pr i_tmp2 === i_tmp1 + i2 - i1
+        pr p_aux.slice(i_tmp1..i_tmp2,1..@nb_rhs) === @P_inter.slice(i1..i2,1..@nb_rhs)
+        pr i_tmp1 === i_tmp2 + 1.to_var
+      }
+
+      pr jmax === @idx_vec_flu[1,i]-(unroll-1)
+      f_nested = For(j,1,jmax, step: unroll){
+        unroll.times { |k|
+          loop_1[j+k]
+        }
+      }
+      f_arr_nested = [f_nested]
+      if unroll > 1 then
+          f2_nested = For(j,(@idx_vec_flu[1,i]-modulo(@idx_vec_flu[1,i],unroll))+1, @idx_vec_flu[1,i]){
+            loop_1[j]
+          }
+          f_arr_nested.push f2_nested
+      end
+      f_arr_nested
+   }
+
+
+    ##.. Main loop optimization
+    optim_2 = lambda { |unroll|
+      loop_2 = lambda { |indice|
+        pr i_tmp1 === 1
+        # Nested loop optimized - No optimization -> = optim_1[1,indice].each{ |f|  pr f }
+        optim_1[@opts[:optim_nested],indice].each { |f_nested|
+          pr f_nested
+        }
+        pr i1 === @idx_vec_flu[2,indice]
+        pr i2 === @idx_vec_flu[3,indice]
+        pr i3 === @idx_mat_flu[indice]
+        pr i4 === @idx_mat_flu[indice+1] - 1
+        reshape_code ="RESHAPE(#{@A_flu.slice(i3..i4)}, (/#{i2}-#{i1}+1, #{i_tmp2}/))"
+        pr @P_new.slice(i1..i2,1..@nb_rhs) === call_matmul.call(reshape_code , p_aux.slice(1..i_tmp2,1..@nb_rhs) ) - @P_old.slice(i1..i2,1..@nb_rhs)
+      }
+
+      pr imax === @Nflu_inner+@Nflusol_inner-(unroll-1)
+      f_main = For(i,1,imax, step: unroll){
+        unroll.times { |k|
+          loop_2[i+k]
+        }
+      }
+      f_arr_main = [f_main]
+      if unroll > 1 then
+        f2_main = For(i,(@Nflu_inner+@Nflusol_inner-modulo(@Nflu_inner+@Nflusol_inner,unroll))+1, @Nflu_inner+@Nflusol_inner){
+          loop_2[i]
+        }
+        f_arr_main.push f2_main
+      end
+      f_arr_main
+    }
+
+
+
+    ## Procedure
+    optim_2[@opts[:optim_main]].each { |f_main|
+        pr f_main
+    }
+
+    close @kernel.procedure
+   }
+
+   return @kernel
+ end    
+end 
+\end{lstlisting}
+
+
+
 
 
 
