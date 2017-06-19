@@ -9,13 +9,13 @@ class Experiment
  def self.run()
 
 	optim_nested = 3
-	optim_main = 7
+	optim_main = 1
  
   #set_default_int_size(8)
   set_default_real_size(4)
 
 	# Parameters - optim = number of unroll of the nested loop per iteration
-  k_boast_params = {:kernel => :boast, :optim_nested => optim_nested, :optim_main => optim_main, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -fimplicit-none"}  
+  k_boast_params = {:kernel => :boast, optim_nested: optim_nested, optim_main: optim_main, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -fimplicit-none -O2"}  
 
   set_lang(FORTRAN)
   kernels = {}
@@ -33,17 +33,16 @@ class Experiment
   inputs = kernels[k_boast_params].kernel.load_ref_inputs()
   outputs = kernels[k_boast_params].kernel.load_ref_outputs()
 
-	repeat.times {
-  	inputs.each_key { |key|
-			puts key
+  inputs.each_key { |key|
+		repeat.times {
  			stats.push kernels[k_boast_params].kernel.run(*(inputs[key])) 
- 			puts kernels[k_boast_params].kernel.run(*(inputs[key])).inspect 
-			puts kernels[k_boast_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
 		}
+		puts kernels[k_boast_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
 	}
-  stats.sort_by! { |a| a[:duration] }
-	stats = stats.first
 
+  stats.sort_by! { |a| a[:duration] }
+	p stats
+	stats = stats.first
 
   puts "#{kernels[k_boast_params].kernel.procedure.name}: optim_nested = #{k_boast_params[:optim_nested]}  #{stats[:duration]} s ->  #{stats[:duration]*1.0e3} ms"
   return kernels

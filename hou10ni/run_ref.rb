@@ -7,7 +7,7 @@ include BOAST
 class Experiment
 
  def self.run()
-  k_ref_params = {:kernel => :ref, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check"}  
+  k_ref_params = {:kernel => :ref, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -O2"}  
 
   set_lang(FORTRAN)
   kernels={}

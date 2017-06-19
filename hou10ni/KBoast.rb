@@ -128,8 +128,11 @@ class KBoast
  		i4 = Variable::new('I4', Int)
  		p_aux = Variable::new("P_aux",Real, :dimension => [Dim(20),Dim(@nb_rhs)])
 
-		decl i,j,i_tmp1,i_tmp2, i1,i2,i3,i4,p_aux
+ 		jmax = Variable::new('jmax', Int)
+ 		imax = Variable::new('imax', Int)
 
+		decl i,j,i_tmp1,i_tmp2, i1,i2,i3,i4,p_aux
+		decl jmax,imax
 
 
 		##.. Nested loop optimization
@@ -144,6 +147,8 @@ class KBoast
 		}
 
 		#  Option 1 : Unroll 'unroll' iterations
+
+
    	optim_1 = lambda { |unroll,i|
 			loop_1 = lambda { |indice|
 				pr i1 === @idx_vec_flu[2*indice,i]
@@ -153,7 +158,8 @@ class KBoast
 				pr i_tmp1 === i_tmp2 + 1.to_var
 			}
 		
-			f_nested = For(j,1,@idx_vec_flu[1,i]-modulo(@idx_vec_flu[1,i],unroll), step: unroll){
+			pr jmax === @idx_vec_flu[1,i]-(unroll-1)
+			f_nested = For(j,1,jmax, step: unroll){
 				unroll.times { |k|
 					loop_1[j+k]
       	}
@@ -196,10 +202,11 @@ class KBoast
       	pr i3 === @idx_mat_flu[indice]
       	pr i4 === @idx_mat_flu[indice+1] - 1
 				reshape_code ="RESHAPE(#{@A_flu.slice(i3..i4)}, (/#{i2}-#{i1}+1, #{i_tmp2}/))"
-      	pr @P_new.slice(i1..i2,1..@nb_rhs) === call_matmul.call(reshape_code , p_aux.slice(1..i_tmp2,1..@nb_rhs) ) - @P_old.slice(i1..i2,1..@nb_rhs)
+      	#pr @P_new.slice(i1..i2,1..@nb_rhs) === call_matmul.call(reshape_code , p_aux.slice(1..i_tmp2,1..@nb_rhs) ) - @P_old.slice(i1..i2,1..@nb_rhs)
 			}
 			
-			f_main = For(i,1,@Nflu_inner+@Nflusol_inner-modulo(@Nflu_inner+@Nflusol_inner,unroll), step: unroll){
+			pr imax === @Nflu_inner+@Nflusol_inner-(unroll-1)
+			f_main = For(i,1,imax, step: unroll){
 				unroll.times { |k|
 					loop_2[i+k]
 				}
@@ -227,6 +234,10 @@ class KBoast
 
    return @kernel
  end
+
+###
+# TODO: inverser les boucles du kernel pour voir ce que ca donne
+###
 
 
 end

@@ -11,49 +11,67 @@ include BOAST
 
 class Experiment
 
- def self.run()
+	def self.run()
 
- # set_default_int_size(8)
+  # set_default_int_size(8)
   set_default_real_size(4)
 
-  k_ref_params = {:kernel => :ref, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check"}
-  k_boast_params = {:kernel => :boast, :preprocessor => false, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -fimplicit-none -O3"}  
-
+	opt_space = OptimizationSpace::new( optim_nested: 1..10,
+                                    optim_main: 1..10,
+                                    OFLAGS: ["-O2", "-O3"]
+                                    )
   set_lang(FORTRAN)
   kernels={}
   stats={}
+	repeat = 10
 
-  # Creating ref kernel
+  #.. REF KERNEL ..#
+
+  k_ref_params = {:kernel => :ref, :LDFLAGS => "-lgfortran", :FCFLAGS => "-O2"}
   kernels[k_ref_params] = KRef::new(k_ref_params)
   kernels[k_ref_params].generate
-	puts "* Building Ref kernel ...\n"
-  #puts kernels[k_ref_params].kernel
   kernels[k_ref_params].kernel.build(:LDFLAGS => k_ref_params[:LDFLAGS], :FCFLAGS => k_ref_params[:FCFLAGS] ) 
   stats[k_ref_params]={:time => []}
 
-  # Creating boast kernel
-  kernels[k_boast_params] = KBoast::new(k_boast_params)
-  kernels[k_boast_params].generate
-	puts "* Building BOAST kernel ...\n"
-  #puts kernels[k_boast_params].kernel
-  kernels[k_boast_params].kernel.build(:LDFLAGS => k_boast_params[:LDFLAGS], :FCFLAGS => k_boast_params[:FCFLAGS] )
-  stats[k_boast_params]={:time => []}
 
-  # Run (inputs are the same for ref and boast kernels) 
-	puts "\n* Testing boast and ref versions of the kernel with fluid_inner_elt_boast/sub_time_loop_1/ inputs parameters ...\n"
-  inputs = kernels[k_boast_params].kernel.load_ref_inputs()
-  outputs = kernels[k_boast_params].kernel.load_ref_outputs()
+	# input and output parameters to check the kernel
+  inputs = kernels[k_ref_params].kernel.load_ref_inputs()
+  outputs = kernels[k_ref_params].kernel.load_ref_outputs()
 
-10.times{|i|
+
   inputs.each_key { |key|
-		#puts "KEY=  #{inputs[key]}"
- 		#puts kernels[k_ref_params].kernel.run(*(inputs[key])).inspect 
- 		stats[k_ref_params][:time][i] = kernels[k_ref_params].kernel.run(*(inputs[key]))[:duration]
- 		stats[k_boast_params][:time][i] = kernels[k_boast_params].kernel.run(*(inputs[key]))[:duration]
-		puts kernels[k_boast_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
-	}
-}
+		repeat.times{|i|
+ 			stats[k_ref_params][:time][i] = kernels[k_ref_params].kernel.run(*(inputs[key]))[:duration]
+		}
+  }
+	p k_ref_params
+	p stats[k_ref_params][:time].min
 
+
+
+  #.. BOAST KERNEL ..#
+  
+	optimizer = BruteForceOptimizer::new(opt_space, :randomize => true)
+	puts optimizer.optimize { |opt|
+		p opt
+  	k_boast_params = {:kernel => :boast,:optim_nested => opt[:optim_nested] , optim_main: opt[:optim_main], :LDFLAGS => "-lgfortran", :FCFLAGS => "-fimplicit-none #{opt[:OFLAGS]}"}  
+
+  	kernels[k_boast_params] = KBoast::new(k_boast_params)
+  	kernels[k_boast_params].generate
+  	kernels[k_boast_params].kernel.build(:LDFLAGS => k_boast_params[:LDFLAGS], :FCFLAGS => k_boast_params[:FCFLAGS] )
+  	stats[k_boast_params]={:time => []}
+
+  	inputs.each_key { |key|
+			repeat.times{|i|
+ 				stats[k_boast_params][:time][i] = kernels[k_boast_params].kernel.run(*(inputs[key]))[:duration]
+			}
+			puts kernels[k_boast_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
+		}
+
+		min = stats[k_boast_params][:time].min
+		p min
+  	min	
+	}
 
 	puts "Testing done\n"
   return stats,kernels
