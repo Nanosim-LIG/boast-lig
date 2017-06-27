@@ -94,7 +94,7 @@ uchar, uchar16, int16, short16}
    \IEEEauthorblockA{\IEEEauthorrefmark{6}Aix Marseille Univ., CNRS, Centrale Marseille, LMA, Marseille, France.}
 }
 
-\markboth{International Journal of Scientific Computing}
+\markboth{The International Journal of High Performance Computing Applications}
 {Videau \MakeLowercase{\textit{et al.}}: BOAST: a Metaprogramming Framework to Produce Portable and Efficient Computing Kernels for HPC Applications}
 %\address[mymainaddress]{LIG/CNRS}
 
@@ -612,7 +612,7 @@ flow related.
 \lstset{style=BOAST,
         caption={BOAST code.}, 
         label={lst:BOAST_algebra},
-        numbers=left }
+        numbers=right }
 \begin{lstlisting}
 i = BOAST::Int("i") # or BOAST::Variable::new("i", Int)
 k = BOAST::Int("k", :size => 8)
@@ -1176,7 +1176,7 @@ In the Kohn-Sham (KS) formulation of DFT, the electrons are associated to
 wavefunctions (orbitals), which are represented by arrays of floating point
 numbers. In wavelets formalism, the operators are written via convolutions with
 short, separable filters.  The detailed description of how these operations are
-defined is beyond the scope of this paper and can be found in the BigDFT
+defined can be found in the BigDFT
 reference paper~\cite{genovese2008daubechies}. Convolutions are basic operations
 of lots of scientific application codes, like for example finite differences
 approaches, which are universally used in computational physics.
@@ -1270,8 +1270,8 @@ the optimal source code for a given kernel and compiler configuration but one
 could imagine using binary optimizer to the compiled binaries. Those optimizers
 could be coupled to BOAST and the output of the process would be the final
 binary rather than the source code. This experience therefore would be a first
-step toward the release of a tunable optimized convolution library oriented to
-computational physics communities.
+step toward the release of a tunable optimized convolution library oriented toward
+computational physics.
 
 %%% PERFORMANCE REPORT %%%
 \subsubsection{Performance Report}
@@ -1524,7 +1524,7 @@ libraries are either hand tuned for selected platforms or have auto-tuned
 implementations. Atlas~\cite{whaley04} is an auto-tuned implementation of
 BLAS/LAPACK. ATLAS authors defined the \emph{Automated Empirical Optimization of
 Software} methodology that we implemented with BOAST. Their kernel generation is
-performed using macro-functions in C.
+performed using C macro-functions.
 
 Nonetheless many application formalisms cannot be reduced to standardized
 library or border on what could be considered edge cases for those libraries and
