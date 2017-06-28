@@ -16,11 +16,11 @@ class Experiment
   # set_default_int_size(8)
   set_default_real_size(4)
 
-	opt_space = OptimizationSpace::new( optim_nested: 5..10,
+	opt_space = OptimizationSpace::new( optim_nested: 5..10, 
                                     optim_main: 5..10,
                                     #OFLAGS: ["-O2", "-O3"], 
                                     OFLAGS: ["-O2"], 
-																		:omp_num_threads => 1..4
+																		:omp_num_threads => 1..6
                                     )
   set_lang(FORTRAN)
   kernels={}
@@ -29,7 +29,7 @@ class Experiment
 
   #.. REF KERNEL ..#
 
-  k_ref_params = {:kernel => :ref, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fimplicit-none #{opt[:OFLAGS]}"}
+  k_ref_params = {:kernel => :ref, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fimplicit-none -O2"}
   kernels[k_ref_params] = KRef::new(k_ref_params)
   kernels[k_ref_params].generate
   kernels[k_ref_params].kernel.build(:LDFLAGS => k_ref_params[:LDFLAGS], :FCFLAGS => k_ref_params[:FCFLAGS] ) 
@@ -39,7 +39,7 @@ class Experiment
 	# input and output parameters to check the kernel
 	# found in fluid_inner_elt_ref
   inputs = kernels[k_ref_params].kernel.load_ref_inputs()
-  output = kernels[k_ref_params].kernel.load_ref_outputs()
+  outputs = kernels[k_ref_params].kernel.load_ref_outputs()
 
 
 	# As many keys as directories in fluid_inner_elt_ref/

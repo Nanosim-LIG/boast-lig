@@ -6,7 +6,7 @@ include BOAST
 
 optim_nested = 3
 optim_main = 1
-num_threads = 2
+num_threads = 1
 
 #set_default_int_size(8)
 set_default_real_size(4)
