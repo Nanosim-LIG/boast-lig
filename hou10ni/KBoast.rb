@@ -169,7 +169,10 @@ class KBoast
 				pr i_tmp1 === 1
 				# Nested loop optimized - No optimization -> = optim_1[1,indice].each{ |f|  pr f }
 				optim_1[@opts[:optim_nested],indice].each { |f_nested|
+					pr OpenMP::Parallel(:num_threads => @opts[:omp_num_threads]){
+					pr OpenMP::For()
           pr f_nested
+					}
         }
 				pr i1 === @idx_vec_flu[2,indice]
       	pr i2 === @idx_vec_flu[3,indice]
@@ -199,7 +202,10 @@ class KBoast
 
 		## Procedure
 		optim_2[@opts[:optim_main]].each { |f_main|
+				#pr OpenMP::Parallel(:num_threads => @opts[:omp_num_threads]){
+				#pr OpenMP::For()
         pr f_main
+				#}
     }
 
 		close @kernel.procedure

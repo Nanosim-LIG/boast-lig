@@ -103,7 +103,7 @@
 \captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white,singlelinecheck=false,margin=0pt,font={bf}}
 
 
-\title{Hou10ni Profiling with TAU}
+\title{Hou10ni}
 \date{}						
 
 
@@ -111,7 +111,30 @@
 \begin{document}
 \maketitle
 
-This document presents some results obtained with the performance evaluation tool TAU on the application hou10ni.
+This document presents a study of hou10ni's kernel. We present results obtained with the performance evaluation tools TAU and Paje on the application.
+
+
+\tableofcontents
+
+
+\newpage
+
+\section{Build and launch hou10ni}
+
+Compilation:
+\begin{cverbatim}
+mkdir build && cd build
+cmake ..
+ccmake ..
+make
+cd .. 
+\end{cverbatim}
+
+\noindent Execution with 4 MPI processes:
+\begin{cverbatim}
+mpirun -np 4 build/hou10ni.out < HPC4E.dat
+\end{cverbatim}
+
 
 \section{How to use TAU on hou10ni}
 
@@ -312,7 +335,7 @@ To get a comparison window, click right on the text \textit{node 0} for example 
 A complete manual to use TAU and paraprof is available at \url{https://www.cs.uoregon.edu/research/tau/tau-usersguide.pdf}.
 
 
-\section{Trace Analysis with Lucas and Arnaud's tool}
+\section{Trace Analysis with PAJE}
 
 To use the tool, we first need to convert TAU traces to PAJE traces\footnote{For a tutorial on how to install tau2paje: https://github.com/schnorr/akypuera/wiki/TAUWithAkypuera}. After TAU generates tau.trc and tau.edf files, use tau2paje to generate tau.paje with the following command
 
