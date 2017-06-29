@@ -48,7 +48,7 @@ END SUBROUTINE magicfilter_free_ref
 subroutine magicfilter_free_t_ref(n1,ndat,x,y)
   implicit none
   integer, parameter :: wp=kind(1.0d0)
-  integer, parameter :: lowfil=-8,lupfil=7
+  integer, parameter :: lowfil=-7,lupfil=8
   integer, intent(in) :: n1,ndat
   real(wp), dimension(lowfil:n1-1+lupfil,ndat), intent(in) :: x
   real(wp), dimension(ndat,0:n1-1), intent(out) :: y
