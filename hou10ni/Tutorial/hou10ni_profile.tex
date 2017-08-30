@@ -617,7 +617,7 @@ The kernel is the loop over the fluid inner elements in \texttt{lib/libtransient
 
 \lstset{language=FORTRAN}
 \begin{lstlisting}[caption=kernel.f90]
-SUBROUTINE fluid_inner_elt_ref(Nflu_inner, Nflusol_inner, nb_rhs, idx_vec_flu, idx_mat_flu, P_new, P_inter, P_old, A_flu, afluSize, pSize, vecSize_1, vecSize_2, matSize)
+SUBROUTINE fluid_inner_elt_ref(Nflu_inner, Nflusol_inner, nb_rhs, afluSize, pSize, vecSize_1, vecSize_2, matSize, idx_vec_flu, idx_mat_flu, P_new, P_inter, P_old, A_flu)
   implicit none
   INTEGER, PARAMETER :: dq=8 !< quadruple precision
   INTEGER, PARAMETER :: dp=4  !< double precision
@@ -664,7 +664,7 @@ END SUBROUTINE fluid_inner_elt_ref
 \begin{lstlisting}[caption=sub\_time\_loop.f90]
 SUBROUTINE sub_time_loop
 ...
-CALL fluid_inner_elt(Nflu_inner, Nflusol_inner, nb_rhs, idx_vec_flu, idx_mat_flu, P_new, P_inter, P_old, A_flu, afluSize, pSize, vecSize_1, vecSize_2, matSize)
+CALL fluid_inner_elt(Nflu_inner, Nflusol_inner, nb_rhs, afluSize, pSize, vecSize_1, vecSize_2, matSize, idx_vec_flu, idx_mat_flu, P_new, P_inter, P_old, A_flu)
 ...
 END SUBROUTINE 
 \end{lstlisting}
@@ -706,7 +706,7 @@ To have an idea of the time spent in the kernel, table \ref{tab:7} shows the tim
 
 \subsection{Reference version}
 
-We generate the exact same kernel as a reference version and run it with BOAST in order to compare the results in term of correctness and performances. KRef defines the reference version. This version simply needs to keep the Fortran code (referred as \texttt{codeF}) and wrap it with BOAST. To put it in a nutshell, a reference version should follow the template bellow.
+We generate the same kernel as a reference version (KRef ) and run it with BOAST in order to compare the results in term of correctness and performances. This version simply needs to keep the Fortran code (referred as \texttt{codeF}) and wrap it with BOAST. A reference version should follow the template bellow.
 
 \lstset{language=RUBY}
 \begin{lstlisting}[caption=KRef\_template.rb]
@@ -714,18 +714,17 @@ def KRef
   lang = BOAST::get_lang
   BOAST::set_lang(BOAST::FORTRAN)
   kernel = BOAST::CKernel::new
-  function_name = "function_ref"
+  kernel_name = "function_ref"
 
-  VARIABLES HERE
-  FOR EXAMPLE : 
+  # ARGUMENTS OF KERNEL HERE
+  # FOR EXAMPLE : 
   geocode = BOAST::Int("geocode", :dir => :in )
-  n01 = BOAST::Int("n01", :dir => :in)
   u = BOAST::Real("u", :dir => :in, :dim => [ BOAST::Dim(0, n01),  BOAST::Dim(0, n02))] )
-
-   p = BOAST::Procedure::new(function_name, [geocode,n01,u])
+ 
+   p = BOAST::Procedure::new(kernel_name, [geocode,u])
 
    kernel.code.print <<EOF
-  ORIGINAL C or FORTRAN CODE HERE
+  # ORIGINAL C or FORTRAN CODE HERE
 EOF
 
   kernel.procedure = p
@@ -751,8 +750,6 @@ class KRef
  attr_reader :kernel
 
  def initialize(options)
-  @opts = {:preprocessor => false, :unroll => false, :inline => :included}
-  @opts.update(options)
   # Parameters 
   @Nflu_inner    = Int("Nflu_inner", :dir => :in )
   @Nflusol_inner = Int("Nflusol_inner", :dir => :in )
@@ -775,7 +772,7 @@ class KRef
 
   push_env(:lang => FORTRAN) {
      @kernel = CKernel:: new()
-     @kernel.procedure = Procedure("fluid_inner_elt_ref",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize] ,:functions => nil)
+     @kernel.procedure = Procedure("fluid_inner_elt_ref",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu] ,:functions => nil)
      get_output.print codeF
   }
    return @kernel
@@ -796,17 +793,19 @@ include BOAST
  set_lang(FORTRAN)
 
 # Creating ref kernel
-k_ref_params = {:kernel => :ref, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -O2"}
+k_ref_params = {:kernel => :ref, :LDFLAGS => "-lgfortran", :FCFLAGS => "-O2"}
 k = KRef::new(k_ref_params)
 k.generate
 puts k.kernel
 k.kernel.build(:LDFLAGS => k_ref_params[:LDFLAGS], :FCFLAGS => k_ref_params[:FCFLAGS] )
 
-# Parameters for loop iteration 1 and MPI Process 0 
-# in the directory fluid_inner_elt_ref/sub_time_loop_1/
+# Input parameters 
+# found in the directory fluid_inner_elt_ref/sub_time_loop_1/ for example (created by the user)
 inputs = k.kernel.load_ref_inputs()
 puts "** inputs =", inputs
 
+# Launch the kernel fluid_inner_elt_ref
+# As many key as directories in 
 inputs.each_key { |key|
   puts k.kernel.run(*(inputs[key]))
   puts k.kernel.compare_ref(outputs[key], inputs[key]).inspect
@@ -818,9 +817,8 @@ puts "Testing done\n"
 
 
 \begin{lstlisting}[caption=Results (obtained with the command ruby run\_ref.rb)]
-SUBROUTINE fluid_inner_elt_ref(Nflu_inner, Nflusol_inner, nb_rhs, idx_&
-&vec_flu, idx_mat_flu, P_new, P_inter, P_old, A_flu, afluSize, pSize, v&
-&ecSize_1, vecSize_2, matSize)
+SUBROUTINE fluid_inner_elt_ref(Nflu_inner, Nflusol_inner, nb_rhs, afluSize, pSize, vecSize_1, &
+&vecSize_2, matSize, idx_vec_flu, idx_mat_flu, P_new, P_inter, P_old, A_flu)
   implicit none
   INTEGER, PARAMETER :: dq=8 !< quadruple precision
   INTEGER, PARAMETER :: dp=4  !< double precision
@@ -910,7 +908,7 @@ class KBoast
    push_env(:lang => FORTRAN) {
 
     @kernel = CKernel:: new()
-    @kernel.procedure = Procedure("fluid_inner_elt_boast",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize] ,:functions => nil)
+    @kernel.procedure = Procedure("fluid_inner_elt_boast",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu] ,:functions => nil)
 
     #..  FUNCTIONS ..#
     register_funccall("matmul") if get_lang == FORTRAN
@@ -966,13 +964,11 @@ end
 require 'BOAST'
 require './KBoast.rb'
 require 'narray_ffi'
-
 include BOAST
 
+k_boast_params = {:kernel => :boast, :LDFLAGS => "-lgfortran", :FCFLAGS => "-O2"}  
+
 set_default_real_size(4)
-
-k_boast_params = {:kernel => :boast, :LDFLAGS => "-lgfortran", :FCFLAGS => "-fbounds-check -fimplicit-none -O2"}  
-
 set_lang(FORTRAN)
 stats = []
 repeat = 5
@@ -983,9 +979,11 @@ k.generate
 puts k.kernel
 k.kernel.build(:LDFLAGS => k_boast_params[:LDFLAGS], :FCFLAGS => k_boast_params[:FCFLAGS] )
  
+# Get input and output parameters # found in the directory fluid_inner_elt_boast/
 inputs = k.kernel.load_ref_inputs()
 outputs = k.kernel.load_ref_outputs()
 
+# Launch the kernel
 inputs.each_key { |key|
   repeat.times {
     stats.push k.kernel.run(*(inputs[key]))
@@ -997,24 +995,23 @@ stats.sort_by! { |a| a[:duration] }
 p stats
 stats = stats.first
 
+# Output
 puts "#{k.kernel.procedure.name}: optim_nested = #{k_boast_params[:optim_nested]}  #{stats[:duration]} s ->  #{stats[:duration]*1.0e3} ms"
 \end{lstlisting}
 
 
 \begin{lstlisting}[caption=Results (obtained with the command ruby run\_boast.rb)]
-SUBROUTINE fluid_inner_elt_boast(Nflu_inner, Nflusol_inner, nb_rhs, idx_&
-&vec_flu, idx_mat_flu, P_new, P_inter, P_old, A_flu, afluSize, pSize, v&
-&ecSize_1, vecSize_2, matSize)
-
+SUBROUTINE fluid_inner_elt_boast(Nflu_inner, Nflusol_inner, afluSize, pSize, vecSize_1, &
+&vecSize_2, matSize, nb_rhs, idx_vec_flu, idx_mat_flu, P_new, P_inter, P_old, A_flu)
   integer, parameter :: wp=kind(1.0d0)
   integer(kind=4), intent(in) :: Nflu_inner
   integer(kind=4), intent(in) :: Nflusol_inner
   integer(kind=4), intent(in) :: nb_rhs
-  ...
-  
+  ... 
 END SUBROUTINE fluid_inner_elt_boast
 
-{"P_new"=>0.0}
+{"P_new"=>0.0}  # No difference with the output
+
 [{:duration=>0.011553553000000001, :start=>-8096482666880853504, :end=>-8084929113880853504}, {:duration=>0.011923121, :start=>-8122491033880853504, :end=>-8110567912880853504}, {:duration=>0.013262399000000001, :start=>-8135791916880853504, :end=>-8122529517880853504}, {:duration=>0.013991319, :start=>-8110525936880853504, :end=>-8096534617880853504}, {:duration=>0.014984313, :start=>-8150824959880853504, :end=>-8135840646880853504}]
 fluid_inner_elt_boast: optim_nested = 3  0.011553553000000001 s ->  11.553553 ms
 \end{lstlisting}
@@ -1023,7 +1020,7 @@ fluid_inner_elt_boast: optim_nested = 3  0.011553553000000001 s ->  11.553553 ms
 \subsection{Optimisations}
 
 
-Unroll both loops.
+The following code shows how we optimized the kernel with loop unrolling and using OpenMP.
 
 
 
@@ -1061,7 +1058,7 @@ class KBoast
    push_env(:lang => FORTRAN) {
 
    @kernel = CKernel:: new()
-   @kernel.procedure = Procedure("fluid_inner_elt_boast",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize] ,:functions => nil)
+   @kernel.procedure = Procedure("fluid_inner_elt_boast",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu] ,:functions => nil)
 
 
     #..  FUNCTIONS ..#
@@ -1156,10 +1153,12 @@ class KBoast
     }
 
 
-
     ## Procedure
     optim_2[@opts[:optim_main]].each { |f_main|
+        pr OpenMP::Parallel(:num_threads => @opts[:omp_num_threads]){
+        pr OpenMP::For(:schedule => "static")
         pr f_main
+        }
     }
 
     close @kernel.procedure
@@ -1172,10 +1171,147 @@ end
 
 
 
+\subsubsection{Results}
+
+The results were obtained using a Macbook Pro Intel Core i7 and the GNU fortran compiler. Values correspond to the minimum value of 20. Optimization flag: -O2
+When \texttt{unroll main} and \texttt{unroll nested} are equal to 1, this means no unrolling is done.
+
+\begin{table}[ht!]
+\centering
+\caption{Time depending on the number of OpenMP threads used for the main loop. No loop unrollment.}
+{\scriptsize
+\begin{tabular}{|c|c|c|} \hline 
+\multirow{2}{*}{ {{\bf{Kernel vers.}}} }	 	  &  {{\bf{\# Threads}}}    &  \multirow{2}{*}{ {{\bf{Time (ms)}}} }  \\ 
+					 		  & 	 	[1..6]   &  				\\ \hline \hline
+ref  &         -  &  {\bf{83,769018}} \\ \hline
+boast &     1 & 90,608141 \\ \hline
+boast &      2 & 87,766917 \\  \hline
+boast &    3 & 90,69217800 \\ \hline
+boast &     4 & 87,29976 \\  \hline
+boast &    5 & 84,527453 \\  \hline
+boast &   6 & {\bf{81,92376500}} \\ \hline
+\end{tabular}
+}
+\label{tab:1}
+\end{table}
+
+
+\begin{table}[ht!]
+\centering
+\caption{Statistics on time depending on the number of iterations unrolled for the main loop.}
+{\scriptsize
+\begin{tabular}{|c|c|c|c|c|} \hline 
+\multirow{2}{*}{ {{\bf{Kernel vers.}}} }	 &   {{\bf{unroll main}}}   & {{\bf{unroll nested}}}   &    \multirow{2}{*}{ {{\bf{\# Threads}}} }  &  \multirow{2}{*}{ {{\bf{Time (ms)}}} }  \\ 
+							 &    	[1..3]		 	    &   [1..10]	 		 & 							      &  				\\ \hline \hline
+boast &    1 &  &  & 90,608141 \\ \cline{1-2}  \cline{5-5}
+boast &    2 & 1 & 1 & 88,888357 \\  \cline{1-2}  \cline{5-5}
+boast &    3 &  & & 89,98507500 \\ \hline \hline
+
+boast &   1 &  &  & 88,516961 \\ \cline{1-2}  \cline{5-5}
+boast &    2 & 2 & 1 & 87,892416 \\ \cline{1-2}  \cline{5-5}
+boast &    3 &  &  & 86,117465 \\ \hline \hline
+
+boast &    1 &  &  & 86,232686 \\ \cline{1-2}  \cline{5-5}
+boast &    2 & 3 & 1 & 86,40083400 \\ \cline{1-2}  \cline{5-5}
+boast &   3 &  &  & 82,334101 \\ \hline \hline
+
+boast &    1 &  &  & 88,345071000 \\ \cline{1-2}  \cline{5-5}
+boast &    2 & 4 & 1 & 82,89916300 \\ \cline{1-2}  \cline{5-5}
+boast &    3 &  &  & 82,646548 \\ \hline \hline
+
+boast &    1 & &  & 91,76817400 \\ \cline{1-2}  \cline{5-5}
+boast &    2 & 5 & 1 & 89,60873700 \\ \cline{1-2}  \cline{5-5}
+boast &   3 &  &  & 83,658755 \\ \hline \hline
+
+boast &   1 & &  & 92,428135000 \\ \cline{1-2}  \cline{5-5}
+boast &    2 & 6 & 1 & 84,5453400 \\ \cline{1-2}  \cline{5-5}
+boast &  3 &  &  & 87,82848900 \\ \hline \hline
+
+boast &    1 &  &  & 85,81414200 \\ \cline{1-2}  \cline{5-5}
+boast &    2 & 7 & 1 & 89,83438 \\ \cline{1-2}  \cline{5-5}
+boast &   3 &  & & {\bf{81,77698900}}  \\ \hline \hline
+
+boast &    1 &  &  & 85,221406 \\ \cline{1-2}  \cline{5-5}
+boast &    2 & 8 & 1 & 85,728041 \\ \cline{1-2}  \cline{5-5}
+boast &   3 &  &  & 87,331661 \\ \hline \hline
+
+boast &   1 &  &  & 88,48286500 \\ \cline{1-2}  \cline{5-5}
+boast &    2 & 9 & 1 & 87,05563300 \\ \cline{1-2}  \cline{5-5}
+boast &    3 &  &  & 86,669093 \\ \hline \hline
+
+boast &    1 &  &  & 92,284591 \\ \cline{1-2}  \cline{5-5}
+boast &    2 & 10 & 1 & 85,477758 \\ \cline{1-2}  \cline{5-5}
+boast &   3 & &  & 85,488478 \\ \hline
+\end{tabular}
+}
+\label{tab:2}
+\end{table}
 
 
 
-\section{Comparison between MPI and MPI+OpenMP versions of hou10ni}
-TODO
+\begin{table}[ht!]
+\centering
+\caption{Time depending on the number of iterations unrolled for the nested loop.}
+{\scriptsize
+\begin{tabular}{|c|c|c|c|c|} \hline 
+\multirow{2}{*}{ {{\bf{Kernel vers.}}} }	 	 &  \multirow{2}{*}{ {{\bf{unroll main}}} }  &  {{\bf{unroll nested}}}   &  \multirow{2}{*}{ {{\bf{\# Threads}}} }   &  \multirow{2}{*}{ {{\bf{Time (ms)}}} }  \\ 
+						 		 &   		 					    &  	 		[1..10]				           & 	 						      &  				\\ \hline \hline
+boast &     & 1 &  & 90,608141 \\ \cline{1-1}  \cline{3-3}  \cline{5-5}
+boast &     & 2 &  & 88,516961 \\ \cline{1-1}  \cline{3-3}  \cline{5-5}
+boast &    & 3 &  & 86,232686 \\ \cline{1-1}  \cline{3-3}  \cline{5-5} 
+boast &   & 4 &  & 88,345071000 \\ \cline{1-1}  \cline{3-3}  \cline{5-5}
+boast &   1 & 5 & 1 & 91,76817400 \\ \cline{1-1}  \cline{3-3}  \cline{5-5}
+boast &     & 6 &  & 92,42813500 \\ \cline{1-1}  \cline{3-3}  \cline{5-5}
+boast &    & 7 &  & 85,81414200 \\ \cline{1-1}  \cline{3-3}  \cline{5-5}
+boast &     & 8 &  & {\bf{85,221406}} \\ \cline{1-1}  \cline{3-3}  \cline{5-5}
+boast &    & 9 &  & 88,48286500 \\ \cline{1-1}  \cline{3-3}  \cline{5-5}
+boast &     & 10 &  & 92,284591 \\ \hline
+\end{tabular}
+}
+\label{tab:3}
+\end{table}
+
+
+
+\begin{table}[ht!]
+\centering
+\caption{All values under the reference version.}
+{\scriptsize
+\begin{tabular}{|c|c|c|c|c|} \hline 
+\multirow{2}{*}{ {{\bf{Kernel vers.}}} }	 	 &  \multirow{2}{*}{ {{\bf{unroll main}}} }  &  \multirow{2}{*}{ {{\bf{unroll nested}}} }  &  \multirow{2}{*}{ {{\bf{\# Threads}}} }   &  \multirow{2}{*}{ {{\bf{Time}}} }  \\ 
+						 		 &    							    &  	 							  & 	 						      &  				\\ \hline \hline
+ref    &   &   &   &  0.083769018 \\ \hline \hline
+
+boast &    3 & 7 & 1 & {\bf{81,77698900}} \\ \hline
+boast &   2 & 3 & 5 & 82,006891 \\ \hline
+boast &   3 & 4 & 3 & 82,17091900\\ \hline
+boast &   3 & 3 & 1 & 82,334101 \\ \hline
+boast &   3 & 4 & 1 & 82,646548 \\ \hline
+boast &    2 & 4 & 5 & 82,809038 \\ \hline
+boast &    2 & 4 & 4 & 82,81120700 \\ \hline
+boast &    3 & 3 & 2 & 82,818522 \\ \hline
+boast  &    1 & 5 & 4 & 82,866756 \\ \hline
+boast &    2 & 4 & 1 & 82,89916300 \\ \hline
+boast &    3 & 2 & 3 & 82,949804 \\ \hline
+boast  &    1 & 3 & 4 & 82,994519 \\ \hline
+boast &    1 & 2 & 3 & 83,047285 \\ \hline
+boast &    3 & 7 & 2 & 83,08922 \\ \hline
+boast  &    2 & 3 & 6 & 83,09479700 \\ \hline
+boast &    3 & 4 & 6 & 83,137816 \\ \hline
+boast &    3 & 1 & 3 & 83,15446500 \\ \hline
+boast &    3 & 5 & 4 & 83,33983 \\ \hline
+boast &    2 & 7 & 6 & 83,558517 \\ \hline
+boast &    2 & 7 & 2 & 83,57951500 \\ \hline
+\end{tabular}
+}
+\label{tab:4}
+\end{table}
+
+
+
+
+
+%\section{Comparison between MPI and MPI+OpenMP versions of hou10ni}
+%TODO
 
 \end{document}

@@ -1,6 +1,6 @@
 require 'BOAST'
 require './KRef.rb'
-require './KBoastOPT.rb'
+require './KBoast.rb'
 require 'narray_ffi'
 require 'yaml'
 require 'pp'
@@ -16,20 +16,14 @@ class Experiment
   # set_default_int_size(8)
   set_default_real_size(4)
 
-	svg_opt_space = OptimizationSpace::new( optim_nested: 1..10, 
-                                    optim_main: 1..10,
-                                    OFLAGS: ["-O2", "-O3"], 
-																		:omp_num_threads => 1..6
-                                    )
-	opt_space = OptimizationSpace::new( optim_nested: 1..10, 
-                                    optim_main: 1..3,
-                                    OFLAGS: ["-O2"], 
-																		:omp_num_threads => 1..6
-                                    )
+
+  #generer la sortie avec la ref et comparer avec ce qu'a boast
+  # utiliser des numeros pour les inputs
+
   set_lang(FORTRAN)
   kernels={}
   stats={}
-	repeat = 20
+	repeat = 1
 
   #.. REF KERNEL ..#
 
@@ -39,49 +33,34 @@ class Experiment
   kernels[k_ref_params].kernel.build(:LDFLAGS => k_ref_params[:LDFLAGS], :FCFLAGS => k_ref_params[:FCFLAGS] ) 
   stats[k_ref_params]={:time => []}
 
-
-	# input and output parameters to check the kernel
-	# found in fluid_inner_elt_ref
   inputs = kernels[k_ref_params].kernel.load_ref_inputs()
   outputs = kernels[k_ref_params].kernel.load_ref_outputs()
 
-
-	# As many keys as directories in fluid_inner_elt_ref/
   inputs.each_key { |key|
-		repeat.times{|i|
- 			stats[k_ref_params][:time][i] = kernels[k_ref_params].kernel.run(*(inputs[key]))[:duration]
-		}
+ 		stats[k_ref_params].push kernels[k_ref_params].kernel.run(*(inputs[key]))
   }
-	p k_ref_params
-	p stats[k_ref_params][:time].min
-
-
 
   #.. BOAST KERNEL ..#
   
-	optimizer = BruteForceOptimizer::new(opt_space, :randomize => true)
-	puts optimizer.optimize { |opt|
-		p opt
-  	k_boast_params = {:kernel => :boast, :OPENMP => true, :optim_nested => opt[:optim_nested] , optim_main: opt[:optim_main], :omp_num_threads => opt[:omp_num_threads],  :LDFLAGS => "-lgfortran -L/usr/lib/ -lblas", :FCFLAGS => "-fimplicit-none #{opt[:OFLAGS]} -fexternal-blas"}  
+  	k_boast_params = {:kernel => :boast, :OPENMP => true, :optim_nested => 1 , optim_main: 1, :omp_num_threads => 1,  :LDFLAGS => "-lgfortran -L/usr/lib/ -lblas", :FCFLAGS => "-fimplicit-none -O2 -fexternal-blas"}  
 
-  	kernels[k_boast_params] = KBoastOPT::new(k_boast_params)
+  	kernels[k_boast_params] = KBoast::new(k_boast_params)
   	kernels[k_boast_params].generate
   	kernels[k_boast_params].kernel.build(:LDFLAGS => k_boast_params[:LDFLAGS], :FCFLAGS => k_boast_params[:FCFLAGS] )
   	stats[k_boast_params]={:time => []}
 
   	inputs.each_key { |key|
-			repeat.times{|i|
- 				stats[k_boast_params][:time][i] = kernels[k_boast_params].kernel.run(*(inputs[key]))[:duration]
-			}
-			puts kernels[k_boast_params].kernel.compare_ref(outputs[key], inputs[key]).inspect
+			stats[k_boast_params].push kernels[k_boast_params].kernel.run(*(inputs[key]))
 		}
 
-		min = stats[k_boast_params][:time].min
-		p min
-  	min	
-	}
 
 	puts "Testing done\n"
+
+	## TODO: compare ref and boast result (P_new_ref and P_new_boast )
+	#diff = (c_ref - c).abs
+	#diff.each { |elem|
+  	#raise "Warning: residue too big: #{elem}" if elem > epsilon
+	#}
 
   return stats,kernels
  end

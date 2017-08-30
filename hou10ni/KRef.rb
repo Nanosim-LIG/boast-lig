@@ -30,7 +30,7 @@ class KRef
 
    push_env(:lang => FORTRAN) {
      @kernel = CKernel:: new()
-     @kernel.procedure = Procedure("fluid_inner_elt_ref",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize] ,:functions => nil)
+     @kernel.procedure = Procedure("fluid_inner_elt_ref",[@Nflu_inner, @Nflusol_inner, @nb_rhs, @afluSize, @pSize,@vecSize_1,@vecSize_2,@matSize, @idx_vec_flu, @idx_mat_flu, @P_new, @P_inter, @P_old, @A_flu] ,:functions => nil)
 		 #puts "Parameters = ", @kernel.procedure.parameters
      get_output.print codeF
    }

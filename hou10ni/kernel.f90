@@ -1,4 +1,4 @@
-SUBROUTINE fluid_inner_elt_ref(Nflu_inner, Nflusol_inner, nb_rhs, idx_vec_flu, idx_mat_flu, P_new, P_inter, P_old, A_flu, afluSize, pSize, vecSize_1, vecSize_2, matSize)
+SUBROUTINE fluid_inner_elt_ref(Nflu_inner, Nflusol_inner, nb_rhs,afluSize, pSize, vecSize_1, vecSize_2, matSize, idx_vec_flu, idx_mat_flu, P_new, P_inter, P_old, A_flu)
   implicit none
   INTEGER, PARAMETER :: dq=8 !< quadruple precision
   INTEGER, PARAMETER :: dp=4  !< double precision
