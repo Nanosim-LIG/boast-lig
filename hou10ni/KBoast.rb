@@ -4,9 +4,6 @@ class KBoast
 
  def initialize(options)
 
-  #@opts = {:optim_nested => 1, :optim_main => 1}
-  #@opts.update(options)
-
   # Parameters 
   @Nflu_inner         = Int("Nflu_inner", :dir => :in )
   @Nflusol_inner      = Int("Nflusol_inner", :dir => :in )
@@ -22,6 +19,7 @@ class KBoast
   @P_inter            = Real("P_inter",:dir => :in, :dim => [Dim(@pSize),Dim(@nb_rhs)])
   @P_old              = Real("P_old",:dir => :in, :dim => [Dim(@pSize),Dim(@nb_rhs)])
   @A_flu              = Real("A_flu",:dir => :in, :dim => [Dim(@afluSize)])
+#  @cost               = Int("cost", :dir => :out )
 
  end
 
@@ -60,6 +58,8 @@ class KBoast
 
     decl i,j,i_tmp1,i_tmp2, i1,i2,i3,i4,p_aux
 
+	#	pr @cost === 0
+
 		pr For(i,1,@Nflu_inner+@Nflusol_inner){
 			pr i_tmp1 === 1
 			pr For(j,1,@idx_vec_flu[1,i]){
@@ -74,7 +74,8 @@ class KBoast
       pr i3 === @idx_mat_flu[i]
       pr i4 === @idx_mat_flu[i+1] - 1
       reshape_code ="RESHAPE(#{@A_flu.slice(i3..i4)}, (/#{i2}-#{i1}+1, #{i_tmp2}/))"
-      pr @P_new.slice(i1..i2,1..@nb_rhs) === call_matmul.call(reshape_code , p_aux.slice(1..i_tmp2,1..@nb_rhs) ) - @P_old.slice(i1..i2,1..@nb_rhs)		
+      pr @P_new.slice(i1..i2,1..@nb_rhs) === call_matmul.call(reshape_code , p_aux.slice(1..i_tmp2,1..@nb_rhs) ) - @P_old.slice(i1..i2,1..@nb_rhs)	
+	#		pr @cost === @cost + 2*(i2-i1+1)*i_tmp2*@nb_rhs + (i2-i1+1)*@nb_rhs	
 		}
 		close @kernel.procedure
   }

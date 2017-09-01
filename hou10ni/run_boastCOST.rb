@@ -39,8 +39,7 @@ p stats
 stats = stats.first
 
 
-puts "#{k.kernel.procedure.name}: #{stats[:duration]*1.0e3} ms    #{ 68914896 / (stats[:duration]*1.0e9)} GFlops"
+puts "#{k.kernel.procedure.name}: #{stats[:duration]*1.0e3} ms    #{ stats[:reference_return][:cost] / (stats[:duration]*1.0e9)} GFlops"
 
 #  5GFlops * 3,1GHz / 3 = 5,166
 
-#puts "#{k.kernel.procedure.name}: #{stats[:duration]*1.0e3} #{ k.kernel.cost() / (stats[:duration]*1.0e9)} GFlops"
