@@ -139,7 +139,7 @@ mpirun -np 4 build/hou10ni.out < HPC4E.dat
 \section{How to use TAU on hou10ni}
 
 \begin{cverbatim}
-export TAU_MAKEFILE=$TAU_DIR/Makefile.
+export TAU_MAKEFILE=$TAU_DIR/Makefile.tau...  (ex.: Makefile.tau-icpc-mpi-pdt)
 export TAU_OPTIONS='-optPdtF95Opts="-R free" -optVerbose'
 
 cd build
@@ -147,12 +147,13 @@ cmake ..
 ccmake ..
 \end{cverbatim}
 
-\noindent $\rightarrow$ Press "t" to change the compiler and chose \texttt{tau\_f90.sh}. Then you can tape \texttt{make} and launch the application.
+\noindent $\rightarrow$ Press "t" to change the compiler and chose \texttt{tau\_f90.sh} and add TAU lib\\
+ (e.g., \texttt{/home/esaillard/TOOLS/TAU/tau-2.26/build/x86\_64/lib/libTAU\_traceinput-icpc-mpi-pdt.a}) in the linker flag. Then you can tape \texttt{make} and launch the application.
 
 \begin{cverbatim}
 make
 cd .. 
-mpirun -np 4 tau_exec -T mpi  build/hou10ni.out < HPC4E.dat
+mpirun -np 4 tau_exec -T mpi  -io -memory build/hou10ni.out < HPC4E.dat
 \end{cverbatim}
 
 \noindent To visualize the results with paraprof, 

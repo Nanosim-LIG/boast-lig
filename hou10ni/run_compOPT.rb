@@ -22,9 +22,9 @@ class Experiment
 																		:omp_num_threads => 1..6
                                     )
 	opt_space = OptimizationSpace::new( optim_nested: 1..10, 
-                                    optim_main: 1..3,
-                                    OFLAGS: ["-O2"], 
-																		:omp_num_threads => 1..6
+                                    optim_main: 1..10,
+                                    OFLAGS: ["-O2", "-O3"], 
+																		:omp_num_threads => 1..2
                                     )
   set_lang(FORTRAN)
   kernels={}

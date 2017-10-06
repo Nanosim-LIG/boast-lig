@@ -1,0 +1,38 @@
+#!gnuplot
+################# GLOBALS #####################
+set encoding utf8
+set terminal postscript eps color enhanced 17
+set output "Kernel_results.eps"
+#set output "Usage_COMP.eps"
+
+set style line 1 lw 2 lt 1 lc rgb "#323232"
+set style line 2 lw 2 lt 1 lc rgb "#b3b1b1"
+
+set style increment user
+
+set title "Hou10ni's kernel - Compiler: intel - Language: FORTRAN"
+
+################# AXES INFO ###################
+set xlabel ""
+set ylabel "Time"
+set xtics font ",9"
+set xtics rotate by 30 right
+set xrange [0:*]
+
+################# HISTOGRAM MODE ##############
+set bar
+set grid
+set style fill solid 1.00 border -1
+#set style histogram rowstacked
+#set style fill pattern border -1
+set style rectangle back fc lt -3 fillstyle pattern 1.00 border -1
+set key right
+
+set style histogram clustered gap 1 title  offset character 0, -1.5
+set style data histograms
+set boxwidth 0.5
+set bmargin 4.5
+
+# Ref VS BOAST
+plot "res.dat" using ($2):xtic(1) title "kernel,optim main,optim nested,# openmp threads" linecolor "#000000"
+

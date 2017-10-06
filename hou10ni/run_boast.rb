@@ -36,6 +36,7 @@ inputs.each_key { |key|
 	repeat.times {
  		stats.push k.kernel.run(*(inputs[key])) 
 	}
+
 	#puts k.kernel.compare_ref(outputs[key], inputs[key]).inspect
 }
 
