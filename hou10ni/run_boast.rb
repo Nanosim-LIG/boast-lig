@@ -4,9 +4,9 @@ require 'narray_ffi'
 
 include BOAST
 
-optim_nested = 3
-optim_main = 1
-num_threads = 1
+#optim_nested = 3
+#optim_main = 1
+#num_threads = 1
 
 #set_default_int_size(8)
 set_default_real_size(4)
@@ -25,11 +25,11 @@ puts k.kernel
 k.kernel.build(:LDFLAGS => k_boast_params[:LDFLAGS], :FCFLAGS => k_boast_params[:FCFLAGS] )
  
 inputs = k.kernel.load_ref_inputs()
-#outputs = k.kernel.load_ref_outputs()
+outputs = k.kernel.load_ref_outputs()
 #puts "** inputs =", inputs
 #puts "** outputs=",outputs
 
-
+epsilon = 10e-15 
 
 inputs.each_key { |key|
 	k.kernel.run(*(inputs[key]))
@@ -37,7 +37,7 @@ inputs.each_key { |key|
  		stats.push k.kernel.run(*(inputs[key])) 
 	}
 
-	#puts k.kernel.compare_ref(outputs[key], inputs[key]).inspect
+	puts k.kernel.compare_ref(outputs[key], inputs[key], epsilon).inspect
 }
 
 stats.sort_by! { |a| a[:duration] }
