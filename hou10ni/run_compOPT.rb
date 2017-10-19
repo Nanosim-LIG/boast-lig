@@ -21,15 +21,15 @@ class Experiment
                                     OFLAGS: ["-O2", "-O3"], 
 																		:omp_num_threads => 1..6
                                     )
-	opt_space = OptimizationSpace::new( optim_nested: 1..10, 
-                                    optim_main: 1..10,
-                                    OFLAGS: ["-O2", "-O3"], 
-																		:omp_num_threads => 1..2
+	opt_space = OptimizationSpace::new( nested: [1], 
+                                    main: [1],
+                                    OFLAGS: ["-O2"],
+																		:threads => 1..4
                                     )
   set_lang(FORTRAN)
   kernels={}
   stats={}
-	repeat = 20
+	repeat = 50
 
   #.. REF KERNEL ..#
 
@@ -62,12 +62,14 @@ class Experiment
 	optimizer = BruteForceOptimizer::new(opt_space, :randomize => true)
 	puts optimizer.optimize { |opt|
 		p opt
-  	k_boast_params = {:kernel => :boast, :OPENMP => true, :optim_nested => opt[:optim_nested] , optim_main: opt[:optim_main], :omp_num_threads => opt[:omp_num_threads],  :LDFLAGS => "-lgfortran -L/usr/lib/ -lblas", :FCFLAGS => "-fimplicit-none #{opt[:OFLAGS]} -fexternal-blas"}  
+  	#k_boast_params = {:kernel => :boast, :OPENMP => true, :optim_nested => opt[:nested] , optim_main: opt[:main], :omp_num_threads => opt[:threads],  :LDFLAGS => "-lgfortran -L/usr/lib/ -lblas", :FCFLAGS => "-fimplicit-none #{opt[:OFLAGS]} -fexternal-blas"}  
+  	k_boast_params = {:kernel => :boast, :OPENMP => true, :optim_nested => opt[:nested] , optim_main: opt[:main], :omp_num_threads => opt[:threads],  :LDFLAGS => "-lgfortran", :FCFLAGS => "-fimplicit-none #{opt[:OFLAGS]}"}  
 
   	kernels[k_boast_params] = KBoastOPT::new(k_boast_params)
   	kernels[k_boast_params].generate
   	kernels[k_boast_params].kernel.build(:LDFLAGS => k_boast_params[:LDFLAGS], :FCFLAGS => k_boast_params[:FCFLAGS] )
   	stats[k_boast_params]={:time => []}
+
 
   	inputs.each_key { |key|
 			repeat.times{|i|

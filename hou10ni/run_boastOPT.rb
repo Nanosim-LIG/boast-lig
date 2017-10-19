@@ -19,20 +19,22 @@ class Experiment
   set_lang(FORTRAN)
   k={}
   stats={}
-	repeat = 20
+	repeat = 50
 
-  optim_nested = 1
-	optim_main = 1
-	omp_num_threads = 4 
+  nested = 1
+	main = 1
+	threads = 2 
 	flags="-O2"  
 	epsilon = 10E-10
 
-  	k_boast_params = {:kernel => :boast, :OPENMP => true, :optim_nested => optim_nested , optim_main: optim_main, :omp_num_threads => omp_num_threads,  :LDFLAGS => "-lgfortran -L/usr/lib/ -lblas", :FCFLAGS => "-fimplicit-none #{flags} -fexternal-blas"}  
+  	#k_boast_params = {:kernel => :boast, openmp: true, :optim_nested => nested , optim_main: main, :omp_num_threads => threads,  :LDFLAGS => "-lgfortran -L/usr/lib/ -lblas", :FCFLAGS => "-fimplicit-none #{flags} -fexternal-blas"}  
+  	k_boast_params = {:kernel => :boast, openmp: true, :optim_nested => nested , optim_main: main,  :LDFLAGS => "-lgfortran", :FCFLAGS => "-fimplicit-none #{flags}", :omp_num_threads => threads}  
 
   	k = KBoastOPT::new(k_boast_params)
   	k.generate
   	k.kernel.build(:LDFLAGS => k_boast_params[:LDFLAGS], :FCFLAGS => k_boast_params[:FCFLAGS] )
   	stats[k_boast_params]={:time => []}
+		puts k.kernel
 
 	 # input and output parameters to check the kernel
    inputs = k.kernel.load_ref_inputs()
@@ -49,6 +51,7 @@ class Experiment
 		p min
   	min	
 
+	puts stats
 	puts "Testing done\n"
 
   return stats,k

@@ -50,5 +50,10 @@ mkdir -p $DATA_FOLD_TIME
 #echo "EXECUTING ruby $SRC_DIR/run.rb --data=$DATA_FILE --kernel=$KERNEL_FILE"
 #ruby $SRC_DIR/run.rb --data=$DATA_FILE --kernel=$KERNEL_FILE
 
+
 echo "EXECUTING ruby $SRC_DIR/run.rb --data=$DATA_FILE --kernel=$KERNEL_FILE"
 ruby $SRC_DIR/run_compOPT.rb --data=$DATA_FILE --kernel=$KERNEL_FILE
+echo "EXECUTING ruby parse_data_yaml.rb $DATA_FILE test.cvs"
+ruby parse_data_yaml.rb $DATA_FILE test.cvs
+echo "EXECUTING sh parse_cvs.sh"
+sh parse_cvs.sh

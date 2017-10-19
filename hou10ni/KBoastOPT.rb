@@ -4,7 +4,8 @@ class KBoastOPT
 
  def initialize(options)
 
-  @opts = {:optim_nested => 1, :optim_main => 1}
+  #@opts = {optim_nested: 1, optim_main: 1, omp_num_threads: 1}
+  @opts = {optim_nested: 1, optim_main: 1}
   @opts.update(options)
 
   # Parameters 
@@ -140,9 +141,7 @@ class KBoastOPT
 
 		## Procedure
 		optim_2[@opts[:optim_main]].each { |f_main|
-				# :default => none
-				pr OpenMP::Parallel(:num_threads => @opts[:omp_num_threads], :shared => [@Nflu_inner, @Nflusol_inner, @nb_rhs, @idx_vec_flu, @idx_mat_flu, @A_flu, @P_old, @P_new], :private => [i1, i2, i3, i4, i, j, i_tmp1, i_tmp2, @P_aux]){
-				#pr OpenMP::For(:schedule => "static")
+				pr OpenMP::ParallelFor(:num_threads => @opts[:omp_num_threads], shared: [@Nflu_inner, @Nflusol_inner, @nb_rhs, @idx_vec_flu, @idx_mat_flu, @A_flu, @P_old, @P_new], private: [i1, i2, i3, i4, i, j, i_tmp1, i_tmp2, @P_aux]){
         pr f_main
 				}
     }
@@ -152,10 +151,6 @@ class KBoastOPT
 
    return @kernel
  end
-
-###
-# TODO: inverser les boucles du kernel pour voir ce que ca donne
-###
 
 
 end

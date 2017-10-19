@@ -13,8 +13,8 @@ printf "\"\"\t 0.0000000\n" >> $RES_FILE
 while read Line; do
 
 	LINE_NUMBER="$(($LINE_NUMBER + 1))"
-  OPTIONS=`echo $Line | cut -d',' -f1,2,3,4`
-  TIME=$(echo $Line | cut -d',' -f5)
+  OPTIONS=`echo $Line | cut -d',' -f1,2,3,4,5`
+  TIME=$(echo $Line | cut -d',' -f6)
   printf -v TIME "%.7f" "$TIME"
 
 	if [[ $LINE_NUMBER -eq 1 ]]; then

@@ -1,7 +1,7 @@
 #!gnuplot
 ################# GLOBALS #####################
 set encoding utf8
-set terminal postscript eps color enhanced 17
+set terminal postscript eps color enhanced 16
 set output "Kernel_results.eps"
 #set output "Usage_COMP.eps"
 
@@ -34,5 +34,5 @@ set boxwidth 0.5
 set bmargin 4.5
 
 # Ref VS BOAST
-plot "res.dat" using ($2):xtic(1) title "kernel,optim main,optim nested,# openmp threads" linecolor "#000000"
+plot "res.dat" using ($2):xtic(1) title "kernel,optim main,optim nested,# openmp threads, optim flag" linecolor "#000000"
 
