@@ -41,11 +41,11 @@
   stringstyle=\color{javared},
   commentstyle=\color{javagreen},
   backgroundcolor=\color{white},
-  morekeywords={BOAST, pr, decl, opn, close, For, Procedure, Real, Int, If, out, inout}
+  morekeywords={BOAST, pr, decl, opn, close, For, Procedure, Real, Int, If, out, inout, Dim}
 }
 \lstdefinestyle{BFortran}{
   language=Fortran,
-  basicstyle=\ttfamily,
+  basicstyle=\tiny\ttfamily,
   keywordstyle=\color{javapurple}\bfseries,
   stringstyle=\color{javared},
   commentstyle=\color{javagreen},
@@ -56,14 +56,15 @@
 }
 \lstdefinestyle{BC}{
   language=C,
-  basicstyle=\ttfamily,
+  basicstyle=\tiny\ttfamily,
   keywordstyle=\color{javapurple}\bfseries,
   stringstyle=\color{javared},
   commentstyle=\color{javagreen},
   numbers=left,
   tabsize=4,
   showspaces=false,
-  showstringspaces=false
+  showstringspaces=false,
+  morekeywords={kernel, global, uchar, short16, uchar16, int16, int32\_t, int64\_t},
 }
 
 \graphicspath{{../figures/}}
@@ -192,6 +193,9 @@
 \end{frame}
 
 \section{A Parametrized Generator}
+\begin{frame}
+\frametitle{BOAST: a Parametrized Generator}
+\end{frame}
 
 \subsection{Motivation and Principles}
 
@@ -242,7 +246,7 @@
  \end{center}
 \end{frame}
 
-\subsection{BOAST EDSL}
+\subsection{EDSL}
 
 \begin{frame}[fragile]
 \frametitle{Motivating Example: BigDFT's MagicFilter}
@@ -260,7 +264,6 @@ The simplest convolution found in BigDFT, corresponds to the potential operator.
 \end{block}
 \column{6.2cm}
 \begin{block}{Pseudo code}
-\tiny
 \lstset{style=BC}
 \begin{lstlisting}
 double filt[16] = {F0, F1, ... , F15};
@@ -271,7 +274,7 @@ void magicfilter(int n, int ndat,
     for(i = 0; i < n; i++) {
        temp = 0;
        for(k = 0; k < 16; k++) {
-         temp += in[ ((i-7+k)%n) + j*n] 
+         temp += in[ ((i-7+k)\%n) + j*n] 
                   * filt[k];
        }
        out[j + i*ndat] = temp;
@@ -325,7 +328,6 @@ Define several abstractions:
 
 \begin{frame}[fragile]
 \frametitle{Sample Code: Variables and Parameters}
-\tiny
 \lstset{style=BOAST}
 \begin{lstlisting}
   #simple Variable
@@ -346,22 +348,61 @@ Define several abstractions:
   #multidimensional array, an output parameter
   y = Real("y", :dir => :out, :dim => [ Dim(ndat), Dim(0, n-1) ] )
 \end{lstlisting}
-\normalsize
 Variables and Parameters are objects with a name, a type, and a set of named properties.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Sample Code: Keywords}
+We need keywords to translate our expressions into code:
+\begin{itemize}
+\item \emph{pr}: print an expression or a construct
+\item \emph{decl}: declare a variable or procedure
+\item \emph{opn}: open a procedure or construct
+\item \emph{close}: close a procedure or construct
+\end{itemize}
+\begin{columns}
+\column{0.3\textwidth}
+BOAST
+\lstset{style=BOAST}
+\begin{lstlisting}
+i = Int "i"
+k = Int "k", :size => 8
+decl i, k
+pr i === 5
+j = (i + 5) * 2
+pr k === j
+\end{lstlisting}
+\column{0.3\textwidth}
+FORTRAN
+\lstset{style=BFortran}
+\begin{lstlisting}
+integer(kind=4) :: i
+integer(kind=8) :: k
+i = 5
+k = (i + 5) * (2)
+\end{lstlisting}
+\column{0.3\textwidth}
+C
+\lstset{style=BC}
+\begin{lstlisting}
+int32_t i;
+int64_t k;
+i = 5;
+k = (i + 5) * (2);
+\end{lstlisting}
+\end{columns}
 \end{frame}
 
 \begin{frame}[fragile]
 \frametitle{Sample Code: Procedure Declaration}
 The following declaration:
-\tiny
 \lstset{style=BOAST}
 \begin{lstlisting}
 p = Procedure("magicfilter", [n,ndat,x,y], :constants => [lowfil,upfil])
 opn p
+close p
 \end{lstlisting}
-\normalsize 
 Outputs Fortran:
-\tiny
 \lstset{style=BFortran}
 \begin{lstlisting}
 subroutine magicfilter(n, ndat, x, y)
@@ -371,22 +412,21 @@ subroutine magicfilter(n, ndat, x, y)
   integer(kind=4), intent(in) :: ndat
   real(kind=8), intent(in), dimension(0:n-1, ndat) :: x
   real(kind=8), intent(out), dimension(ndat, 0:n-1) :: y
+end procedure magicfilter
 \end{lstlisting}
-\normalsize
 Or C:
-\tiny
 \lstset{style=BC}
 \begin{lstlisting}
 void magicfilter(const int32_t n, const int32_t ndat, const double * x, double * y){
   const int32_t lowfil = -8;
   const int32_t upfil = 7;
+}
 \end{lstlisting}
 \end{frame}
 
 \begin{frame}[fragile]
 \frametitle{Sample Code: Constructs and Arrays}
 The following declaration:
-\tiny
 \lstset{style=BOAST}
 \begin{lstlisting}
   unroll = 5
@@ -401,9 +441,7 @@ The following declaration:
 \end{lstlisting}
 \begin{columns}
 \column{.35\textwidth}
-\normalsize 
 Outputs Fortran:
-\tiny
 \lstset{style=BFortran}
 \begin{lstlisting}
   do j=1, ndat-4, 5
@@ -417,9 +455,7 @@ Outputs Fortran:
   enddo
 \end{lstlisting}
 \column{.65\textwidth}
-\normalsize
 Or C:
-\tiny
 \lstset{style=BC}
 \begin{lstlisting}
   for(j=1; j<=ndat-4; j+=5){
@@ -435,8 +471,383 @@ Or C:
 \end{columns}
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{BOAST is a State Machine}
+  Changing BOAST state changes BOAST's output:
+  \vskip 1em
+\begin{columns}
+\column{0.5\textwidth}
+BOAST:
+\lstset{style=BOAST}
+\begin{lstlisting}
+block = lambda {
+  a = Real "a"
+  b = Real "b", dim: Dim(10)
+  decl a,b
+  pr a === 5.0
+  pr b[3] === a
+}
+push_env( :lang => FORTRAN,
+          :array_start => 0 )
+block.call
+pop_env( :lang, :array_start)
 
-\section{Case Study}
+push_env( :lang => C,
+          :default_real_size => 4) {
+  block.call
+}
+\end{lstlisting}
+\column{0.5\textwidth}
+outputs:
+\lstset{style=BFortran}
+\begin{lstlisting}
+real(kind=8) :: a
+real(kind=8), dimension(0:9) :: b
+a = 5.0_wp
+b(3) = a
+\end{lstlisting}
+\lstset{style=BC}
+\begin{lstlisting}
+float a;
+float * b;
+a = 5.0f;
+b[3 - (1)] = a;
+=> b[3 - (1)] = a
+\end{lstlisting}
+\end{columns}
+\end{frame}
+
+\section{Case Studies}
+
+\begin{frame}
+\frametitle{Case Studies}
+\end{frame}
+
+\subsection{BigDFT}
+
+\begin{frame}
+  \frametitle{BigDFT}
+  \begin{center}
+    \includegraphics[scale=0.35]{Res_synthesis}
+  \end{center}
+
+ \begin{itemize}
+  \item Novel approach for DFT computation based on Daubechies wavelets
+  \item Fortran and C code, MPI, OpenMP, supports CUDA and OpenCL
+   \item Reference is hand tuned code on target architecture (Nehalem)
+    \item Toward a BLAS-like library for wavelets
+  \end{itemize}
+\end{frame}
+
+\subsection{SPECFEM3D}
+
+\begin{frame}
+  \frametitle{SPECFEM3D}
+
+  \begin{itemize}
+   \item Seismic wave propagation simulator
+    \item SPECFEM3D ported to OpenCL using BOAST
+    \begin{itemize}
+      \item Unified code base (CUDA/OpenCL)
+      \item Refactoring: kernel code base reduced by 40\%
+      \item Similar performance on NVIDIA Hardware
+      \item Non regression test for GPU kernels
+    \end{itemize}
+    \item On the Mont-Blanc prototype:
+    \begin{itemize}
+      \item OpenCL+MPI runs
+      \item Speedup of 3 for the GPU version
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\subsection{Laplacian}
+
+\begin{frame}[fragile]
+  \frametitle{Example: Laplace Kernel from ARM}
+\lstset{style=BC}
+\begin{lstlisting}
+void laplace(const int width,
+             const int height,
+             const unsigned char src[height][width][3],
+                   unsigned char dst[height][width][3]){
+  for (int j = 1; j < height-1; j++) {
+    for (int i = 1; i < width-1; i++) {
+      for (int c = 0; c < 3; c++) {
+        int tmp = -src[j-1][i-1][c] -   src[j-1][i][c] - src[j-1][i+1][c]\
+                 - src[j  ][i-1][c] + 9*src[j  ][i][c] - src[j  ][i+1][c]\
+                 - src[j+1][i-1][c] -   src[j+1][i][c] - src[j+1][i+1][c];
+        dst[j][i][c] = (tmp < 0 ? 0 : (tmp > 255 ? 255 : tmp));
+      }
+    }
+  }
+}
+\end{lstlisting}
+\begin{itemize}
+\item C reference implementation
+\item Many opportunities for improvement
+\item ARM GPU Mali 604 within the Montblanc project
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+  \frametitle{Example: Laplace in OpenCL}
+\lstset{style=BC}
+\begin{lstlisting}
+kernel laplace(const int width,
+               const int height,
+               global const uchar *src,
+               global       uchar *dst){
+  int i = get_global_id(0);
+  int j = get_global_id(1);
+  for (int c = 0; c < 3; c++) {
+    int tmp = -src[3*width*(j-1) + 3*(i-1) + c]\
+             - src[3*width*(j-1) + 3*(i  ) + c]\
+             - src[3*width*(j-1) + 3*(i+1) + c]\
+             - src[3*width*(j  ) + 3*(i-1) + c]\
+           + 9*src[3*width*(j  ) + 3*(i  ) + c]\
+             - src[3*width*(j  ) + 3*(i+1) + c]\
+             - src[3*width*(j+1) + 3*(i-1) + c]\
+             - src[3*width*(j+1) + 3*(i  ) + c]\
+             - src[3*width*(j+1) + 3*(i+1) + c];
+    dst[3*width*j + 3*i + c] = clamp(tmp, 0, 255);
+  }
+}
+\end{lstlisting}
+\begin{itemize}
+\item OpenCL reference implementation
+\item Outer loops mapped to threads
+\item 1 pixel per thread
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Example: Vectorizing}
+\lstset{language=C,
+basicstyle=\ttfamily,
+keywordstyle=\color{javapurple}\bfseries,
+morekeywords={kernel, global, uchar, uchar16, int16},
+stringstyle=\color{javared},
+commentstyle=\color{javagreen},
+numbers=left,
+tabsize=4,
+showspaces=false,
+showstringspaces=false}
+\fontsize{3}{3}\selectfont
+\begin{lstlisting}
+kernel laplace(const int width,
+               const int height,
+               global const uchar *src,
+               global       uchar *dst){
+  int i = get_global_id(0);
+  int j = get_global_id(1);
+  uchar16 v11_ = vload16( 0, src + 3*width*(j-1) + 3*5*i - 3 );
+  uchar16 v12_ = vload16( 0, src + 3*width*(j-1) + 3*5*i     );
+  uchar16 v13_ = vload16( 0, src + 3*width*(j-1) + 3*5*i + 3 );
+  uchar16 v21_ = vload16( 0, src + 3*width*(j  ) + 3*5*i - 3 );
+  uchar16 v22_ = vload16( 0, src + 3*width*(j  ) + 3*5*i     );
+  uchar16 v23_ = vload16( 0, src + 3*width*(j  ) + 3*5*i + 3 );
+  uchar16 v31_ = vload16( 0, src + 3*width*(j+1) + 3*5*i - 3 );
+  uchar16 v32_ = vload16( 0, src + 3*width*(j+1) + 3*5*i     );
+  uchar16 v33_ = vload16( 0, src + 3*width*(j+1) + 3*5*i + 3 );
+  int16 v11 = convert_int16(v11_);
+  int16 v12 = convert_int16(v12_);
+  int16 v13 = convert_int16(v13_);
+  int16 v21 = convert_int16(v21_);
+  int16 v22 = convert_int16(v22_);
+  int16 v23 = convert_int16(v23_);
+  int16 v31 = convert_int16(v31_);
+  int16 v32 = convert_int16(v32_);
+  int16 v33 = convert_int16(v33_);
+  int16 res = v22 * (int)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
+        res = clamp(res, (int16)0, (int16)255);
+  uchar16 res_ = convert_uchar16(res);
+  vstore8(res_.s01234567, 0, dst + 3*width*j + 3*5*i);
+  vstore8(res_.s89ab,     0, dst + 3*width*j + 3*5*i + 8);
+  vstore8(res_.scd,       0, dst + 3*width*j + 3*5*i + 12);
+  dst[3*width*j + 3*5*i + 14] = res_.se;
+}
+\end{lstlisting}
+\begin{itemize}
+\item Vectorized OpenCL implementation
+\item 5 pixels instead of one (15 components)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Example: Synthesizing Vectors}
+\lstset{style=BC}
+\begin{lstlisting}
+uchar16 v11_ = vload16( 0, src + 3*width*(j-1) + 3*5*i - 3 );
+uchar16 v12_ = vload16( 0, src + 3*width*(j-1) + 3*5*i     );
+uchar16 v13_ = vload16( 0, src + 3*width*(j-1) + 3*5*i + 3 );
+uchar16 v21_ = vload16( 0, src + 3*width*(j  ) + 3*5*i - 3 );
+uchar16 v22_ = vload16( 0, src + 3*width*(j  ) + 3*5*i     );
+uchar16 v23_ = vload16( 0, src + 3*width*(j  ) + 3*5*i + 3 );
+uchar16 v31_ = vload16( 0, src + 3*width*(j+1) + 3*5*i - 3 );
+uchar16 v32_ = vload16( 0, src + 3*width*(j+1) + 3*5*i     );
+uchar16 v33_ = vload16( 0, src + 3*width*(j+1) + 3*5*i + 3 );
+\end{lstlisting}
+\centering Becomes
+\begin{lstlisting}
+uchar16 v11_ = vload16( 0, src + 3*width*(j-1) + 3*5*i - 3 );
+uchar16 v13_ = vload16( 0, src + 3*width*(j-1) + 3*5*i + 3 );
+uchar16 v12_ = uchar16( v11_.s3456789a, v13_.s56789abc );
+uchar16 v21_ = vload16( 0, src + 3*width*(j  ) + 3*5*i - 3 );
+uchar16 v23_ = vload16( 0, src + 3*width*(j  ) + 3*5*i + 3 );
+uchar16 v22_ = uchar16( v21_.s3456789a, v23_.s56789abc );
+uchar16 v31_ = vload16( 0, src + 3*width*(j+1) + 3*5*i - 3 );
+uchar16 v33_ = vload16( 0, src + 3*width*(j+1) + 3*5*i + 3 );
+uchar16 v32_ = uchar16( v31_.s3456789a, v33_.s56789abc );
+\end{lstlisting}
+\begin{itemize}
+\item Reducing the number of loads since the vector are overlapping
+\item Synthesizing loads should save bandwidth
+\item Could be pushed further
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Example: Reducing Variable Size}
+\lstset{style=BC}
+\begin{lstlisting}
+int16 v11 = convert_int16(v11_);
+int16 v12 = convert_int16(v12_);
+int16 v13 = convert_int16(v13_);
+int16 v21 = convert_int16(v21_);
+int16 v22 = convert_int16(v22_);
+int16 v23 = convert_int16(v23_);
+int16 v31 = convert_int16(v31_);
+int16 v32 = convert_int16(v32_);
+int16 v33 = convert_int16(v33_);
+int16 res = v22 * (int)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
+      res = clamp(res, (int16)0, (int16)255);
+\end{lstlisting}
+\centering Becomes
+\begin{lstlisting}
+short16 v11 = convert_short16(v11_);
+short16 v12 = convert_short16(v12_);
+short16 v13 = convert_short16(v13_);
+short16 v21 = convert_short16(v21_);
+short16 v22 = convert_short16(v22_);
+short16 v23 = convert_short16(v23_);
+short16 v31 = convert_short16(v31_);
+short16 v32 = convert_short16(v32_);
+short16 v33 = convert_short16(v33_);
+short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
+        res = clamp(res, (short16)0, (short16)255);
+\end{lstlisting}
+\begin{itemize}
+\item Using smaller intermediary types could save registers
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Example: Optimization Summary}
+  \begin{itemize}
+    \item Very complex process (several other optimizations could be applied)
+    \item Intimate knowledge of the architecture required
+    \item Numerous versions to be benchmarked
+    \item Difficult to test combination of optimizations:
+    \begin{itemize}
+      \item Vectorization,
+      \item Intermediary data type,
+      \item Number of pixels processed,
+      \item Synthesizing loads.
+    \end{itemize}
+    \item Can we use BOAST to automate the process?
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Example: Laplace Kernel with BOAST}
+  \begin{itemize}
+    \item Based on components instead of pixel
+    \item Use tiles rather than only sequence of elements
+    \item Parameters used in the BOAST version:
+    \begin{itemize}
+      \item \emph{x\_component\_number}: a positive integer
+      \item \emph{y\_component\_number}: a positive integer
+      \item \emph{vector\_length}: 1, 2, 4, 8 or 16
+      \item \emph{temporary\_size}: 2 or 4
+      \item \emph{synthesizing\_loads}: true or false
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Example: ARM results}
+  \begin{center}
+  \scriptsize
+  \begin{tabular}{c|r|r|c|r|c}
+    Image Size  & Naive (s) & Best (s) & Acceleration & BOAST (s) & Acceleration \\
+    \hline&&&&\\
+  768 x 432   & 0.0107    & 0.00669  & x1.6         & 0.000639  & x16.7 \\
+  2560 x 1600 & 0.0850    & 0.0137   & x6.2         & 0.00687   & x12.4 \\
+  2048 x 2048 & 0.0865    & 0.0149   & x5.8         & 0.00715   & x12.1 \\
+  5760 x 3240 & 0.382     & 0.0449   & x8.5         & 0.0325    & x11.8 \\
+  7680 x 4320 & 0.680     & 0.0747   & x9.1         & 0.0581    & x11.7
+  \end{tabular}
+  \end{center}
+
+  \begin{itemize}
+    \item Optimal parameter values:
+    \begin{itemize}
+      \item x\_component\_number: 16
+      \item y\_component\_number: 1
+      \item vector\_length: 16
+      \item temporary\_size: 2
+      \item synthesizing\_loads: false
+    \end{itemize}
+    \item Close to what ARM engineers found
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Example: Performance Portability}
+  \begin{center}
+  \scriptsize
+  \begin{tabular}{c|r|r|c|r|c}
+    Image Size & BOAST ARM (s) & BOAST Intel & Ratio & BOAST NVIDIA & Ratio \\
+    \hline&&&&\\
+  768 x 432   & 0.000639     & 0.000222    & x2.9  & 0.0000715    & x8.9  \\
+  2560 x 1600 & 0.00687      & 0.00222     & x3.1  & 0.000782     & x8.8  \\
+  2048 x 2048 & 0.00715      & 0.00226     & x3.2  & 0.000799     & x8.9  \\
+  5760 x 3240 & 0.0325       & 0.0108      & x3.0  & 0.00351      & x9.3  \\
+  7680 x 4320 & 0.0581       & 0.0192      & x3.0  & 0.00623      & x9.3
+  \end{tabular}
+  \end{center}
+
+  \begin{columns}
+  \column{0.5\textwidth}
+  \begin{itemize}
+    \item \footnotesize Optimal parameter values (Intel I7 2760, 2.4 GHz):
+    \begin{itemize}
+      \item \scriptsize x\_component\_number: 16
+      \item \scriptsize y\_component\_number: 4..2
+      \item \scriptsize vector\_length: 8
+      \item \scriptsize temporary\_size: 2
+      \item \scriptsize synthesizing\_loads: false
+    \end{itemize}
+  \end{itemize}
+  \column{0.5\textwidth}
+  \begin{itemize}
+    \item \footnotesize Optimal parameter values nVidia (GTX 680):
+    \begin{itemize}
+      \item \scriptsize x\_component\_number: 4
+      \item \scriptsize y\_component\_number: 4
+      \item \scriptsize vector\_length: 4
+      \item \scriptsize temporary\_size: 2
+      \item \scriptsize synthesizing\_loads: false
+    \end{itemize}
+  \end{itemize}
+  \end{columns}
+  \vspace{1cm}
+  \centering Performance \emph{portability} among several different architectures.
+\end{frame}
+
+\subsection{Gysela}
 
 \begin{frame}
 \frametitle{Gysela 2d Advection}
@@ -648,371 +1059,14 @@ Speedup: \textcolor{red}{3.6}
 \end{frame}
 
 \begin{comment}
-\begin{frame}[fragile]
-  \frametitle{Example: Laplace Kernel from ARM}
-\tiny
-\lstset{language=C,
-basicstyle=\ttfamily,
-keywordstyle=\color{javagreen}\bfseries,
-stringstyle=\color{javared},
-commentstyle=\color{javapurple},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
-\begin{lstlisting}
-void laplace(const int width,
-             const int height,
-             const unsigned char src[height][width][3],
-                   unsigned char dst[height][width][3]){
-  for (int j = 1; j < height-1; j++) {
-    for (int i = 1; i < width-1; i++) {
-      for (int c = 0; c < 3; c++) {
-        int tmp = -src[j-1][i-1][c] -   src[j-1][i][c] - src[j-1][i+1][c]\
-                 - src[j  ][i-1][c] + 9*src[j  ][i][c] - src[j  ][i+1][c]\
-                 - src[j+1][i-1][c] -   src[j+1][i][c] - src[j+1][i+1][c];
-        dst[j][i][c] = (tmp < 0 ? 0 : (tmp > 255 ? 255 : tmp));
-      }
-    }
-  }
-}
-\end{lstlisting}
-\begin{itemize}
-\item C reference implementation
-\item Many opportunities for improvement
-\item ARM GPU Mali 604 within the Montblanc project
-\end{itemize}
-\end{frame}
-
-
-\begin{frame}[fragile]
-  \frametitle{Example: Laplace in OpenCL}
-\tiny
-\lstset{language=C,
-basicstyle=\ttfamily,
-keywordstyle=\color{javagreen}\bfseries,
-morekeywords={kernel,global,uchar},
-stringstyle=\color{javared},
-commentstyle=\color{javapurple},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
-\begin{lstlisting}
-kernel laplace(const int width,
-               const int height,
-               global const uchar *src,
-               global       uchar *dst){
-  int i = get_global_id(0);
-  int j = get_global_id(1);
-  for (int c = 0; c < 3; c++) {
-    int tmp = -src[3*width*(j-1) + 3*(i-1) + c]\
-             - src[3*width*(j-1) + 3*(i  ) + c]\
-             - src[3*width*(j-1) + 3*(i+1) + c]\
-             - src[3*width*(j  ) + 3*(i-1) + c]\
-           + 9*src[3*width*(j  ) + 3*(i  ) + c]\
-             - src[3*width*(j  ) + 3*(i+1) + c]\
-             - src[3*width*(j+1) + 3*(i-1) + c]\
-             - src[3*width*(j+1) + 3*(i  ) + c]\
-             - src[3*width*(j+1) + 3*(i+1) + c];
-    dst[3*width*j + 3*i + c] = clamp(tmp, 0, 255);
-  }
-}
-\end{lstlisting}
-\begin{itemize}
-\item OpenCL reference implementation
-\item Outer loops mapped to threads
-\item 1 pixel per thread
-\end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
-  \frametitle{Example: Vectorizing}
-\lstset{language=C,
-basicstyle=\ttfamily,
-keywordstyle=\color{javagreen}\bfseries,
-morekeywords={kernel, global, uchar, uchar16, int16},
-stringstyle=\color{javared},
-commentstyle=\color{javapurple},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
-\fontsize{3}{3}\selectfont
-\begin{lstlisting}
-kernel laplace(const int width,
-               const int height,
-               global const uchar *src,
-               global       uchar *dst){
-  int i = get_global_id(0);
-  int j = get_global_id(1);
-  uchar16 v11_ = vload16( 0, src + 3*width*(j-1) + 3*5*i - 3 );
-  uchar16 v12_ = vload16( 0, src + 3*width*(j-1) + 3*5*i     );
-  uchar16 v13_ = vload16( 0, src + 3*width*(j-1) + 3*5*i + 3 );
-  uchar16 v21_ = vload16( 0, src + 3*width*(j  ) + 3*5*i - 3 );
-  uchar16 v22_ = vload16( 0, src + 3*width*(j  ) + 3*5*i     );
-  uchar16 v23_ = vload16( 0, src + 3*width*(j  ) + 3*5*i + 3 );
-  uchar16 v31_ = vload16( 0, src + 3*width*(j+1) + 3*5*i - 3 );
-  uchar16 v32_ = vload16( 0, src + 3*width*(j+1) + 3*5*i     );
-  uchar16 v33_ = vload16( 0, src + 3*width*(j+1) + 3*5*i + 3 );
-  int16 v11 = convert_int16(v11_);
-  int16 v12 = convert_int16(v12_);
-  int16 v13 = convert_int16(v13_);
-  int16 v21 = convert_int16(v21_);
-  int16 v22 = convert_int16(v22_);
-  int16 v23 = convert_int16(v23_);
-  int16 v31 = convert_int16(v31_);
-  int16 v32 = convert_int16(v32_);
-  int16 v33 = convert_int16(v33_);
-  int16 res = v22 * (int)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
-        res = clamp(res, (int16)0, (int16)255);
-  uchar16 res_ = convert_uchar16(res);
-  vstore8(res_.s01234567, 0, dst + 3*width*j + 3*5*i);
-  vstore8(res_.s89ab,     0, dst + 3*width*j + 3*5*i + 8);
-  vstore8(res_.scd,       0, dst + 3*width*j + 3*5*i + 12);
-  dst[3*width*j + 3*5*i + 14] = res_.se;
-}
-\end{lstlisting}
-\begin{itemize}
-\item Vectorized OpenCL implementation
-\item 5 pixels instead of one (15 components)
-\end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
-  \frametitle{Example: Synthesizing Vectors}
-\lstset{language=C,
-basicstyle=\ttfamily,
-keywordstyle=\color{javagreen}\bfseries,
-morekeywords={kernel, global, uchar, uchar16, int16},
-stringstyle=\color{javared},
-commentstyle=\color{javapurple},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
-\tiny
-\begin{lstlisting}
-uchar16 v11_ = vload16( 0, src + 3*width*(j-1) + 3*5*i - 3 );
-uchar16 v12_ = vload16( 0, src + 3*width*(j-1) + 3*5*i     );
-uchar16 v13_ = vload16( 0, src + 3*width*(j-1) + 3*5*i + 3 );
-uchar16 v21_ = vload16( 0, src + 3*width*(j  ) + 3*5*i - 3 );
-uchar16 v22_ = vload16( 0, src + 3*width*(j  ) + 3*5*i     );
-uchar16 v23_ = vload16( 0, src + 3*width*(j  ) + 3*5*i + 3 );
-uchar16 v31_ = vload16( 0, src + 3*width*(j+1) + 3*5*i - 3 );
-uchar16 v32_ = vload16( 0, src + 3*width*(j+1) + 3*5*i     );
-uchar16 v33_ = vload16( 0, src + 3*width*(j+1) + 3*5*i + 3 );
-\end{lstlisting}
-\normalsize
-\centering Becomes
-\tiny
-\begin{lstlisting}
-uchar16 v11_ = vload16( 0, src + 3*width*(j-1) + 3*5*i - 3 );
-uchar16 v13_ = vload16( 0, src + 3*width*(j-1) + 3*5*i + 3 );
-uchar16 v12_ = uchar16( v11_.s3456789a, v13_.s56789abc );
-uchar16 v21_ = vload16( 0, src + 3*width*(j  ) + 3*5*i - 3 );
-uchar16 v23_ = vload16( 0, src + 3*width*(j  ) + 3*5*i + 3 );
-uchar16 v22_ = uchar16( v21_.s3456789a, v23_.s56789abc );
-uchar16 v31_ = vload16( 0, src + 3*width*(j+1) + 3*5*i - 3 );
-uchar16 v33_ = vload16( 0, src + 3*width*(j+1) + 3*5*i + 3 );
-uchar16 v32_ = uchar16( v31_.s3456789a, v33_.s56789abc );
-\end{lstlisting}
-\begin{itemize}
-\item Reducing the number of loads since the vector are overlapping
-\item Synthesizing loads should save bandwidth
-\item Could be pushed further
-\end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
-  \frametitle{Example: Reducing Variable Size}
-\lstset{language=C,
-basicstyle=\ttfamily,
-keywordstyle=\color{javagreen}\bfseries,
-morekeywords={kernel, global, uchar, uchar16, int16, short16},
-stringstyle=\color{javared},
-commentstyle=\color{javapurple},
-numbers=left,
-tabsize=4,
-showspaces=false,
-showstringspaces=false}
-\tiny
-\begin{lstlisting}
-int16 v11 = convert_int16(v11_);
-int16 v12 = convert_int16(v12_);
-int16 v13 = convert_int16(v13_);
-int16 v21 = convert_int16(v21_);
-int16 v22 = convert_int16(v22_);
-int16 v23 = convert_int16(v23_);
-int16 v31 = convert_int16(v31_);
-int16 v32 = convert_int16(v32_);
-int16 v33 = convert_int16(v33_);
-int16 res = v22 * (int)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
-      res = clamp(res, (int16)0, (int16)255);
-\end{lstlisting}
-\normalsize
-\centering Becomes
-\tiny
-\begin{lstlisting}
-short16 v11 = convert_short16(v11_);
-short16 v12 = convert_short16(v12_);
-short16 v13 = convert_short16(v13_);
-short16 v21 = convert_short16(v21_);
-short16 v22 = convert_short16(v22_);
-short16 v23 = convert_short16(v23_);
-short16 v31 = convert_short16(v31_);
-short16 v32 = convert_short16(v32_);
-short16 v33 = convert_short16(v33_);
-short16 res = v22 * (short)9 - v11 - v12 - v13 - v21 - v23 - v31 - v32 - v33;
-        res = clamp(res, (short16)0, (short16)255);
-\end{lstlisting}
-\begin{itemize}
-\item Using smaller intermediary types could save registers
-\end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Example: Optimization Summary}
-  \begin{itemize}
-    \item Very complex process (several other optimizations could be applied)
-    \item Intimate knowledge of the architecture required
-    \item Numerous versions to be benchmarked
-    \item Difficult to test combination of optimizations:
-    \begin{itemize}
-      \item Vectorization,
-      \item Intermediary data type,
-      \item Number of pixels processed,
-      \item Synthesizing loads.
-    \end{itemize}
-    \item Can we use BOAST to automate the process?
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Example: Laplace Kernel with BOAST}
-  \begin{itemize}
-    \item Based on components instead of pixel
-    \item Use tiles rather than only sequence of elements
-    \item Parameters used in the BOAST version:
-    \begin{itemize}
-      \item \emph{x\_component\_number}: a positive integer
-      \item \emph{y\_component\_number}: a positive integer
-      \item \emph{vector\_length}: 1, 2, 4, 8 or 16
-      \item \emph{temporary\_size}: 2 or 4
-      \item \emph{synthesizing\_loads}: true or false
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Example: ARM results}
-  \begin{center}
-  \scriptsize
-  \begin{tabular}{c|r|r|c|r|c}
-    Image Size  & Naive (s) & Best (s) & Acceleration & BOAST (s) & Acceleration \\
-    \hline&&&&\\
-  768 x 432   & 0.0107    & 0.00669  & x1.6         & 0.000639  & x16.7 \\
-  2560 x 1600 & 0.0850    & 0.0137   & x6.2         & 0.00687   & x12.4 \\
-  2048 x 2048 & 0.0865    & 0.0149   & x5.8         & 0.00715   & x12.1 \\
-  5760 x 3240 & 0.382     & 0.0449   & x8.5         & 0.0325    & x11.8 \\
-  7680 x 4320 & 0.680     & 0.0747   & x9.1         & 0.0581    & x11.7
-  \end{tabular}
-  \end{center}
-
-  \begin{itemize}
-    \item Optimal parameter values:
-    \begin{itemize}
-      \item x\_component\_number: 16
-      \item y\_component\_number: 1
-      \item vector\_length: 16
-      \item temporary\_size: 2
-      \item synthesizing\_loads: false
-    \end{itemize}
-    \item Close to what ARM engineers found
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Example: Performance Portability}
-  \begin{center}
-  \scriptsize
-  \begin{tabular}{c|r|r|c|r|c}
-    Image Size & BOAST ARM (s) & BOAST Intel & Ratio & BOAST NVIDIA & Ratio \\
-    \hline&&&&\\
-  768 x 432   & 0.000639     & 0.000222    & x2.9  & 0.0000715    & x8.9  \\
-  2560 x 1600 & 0.00687      & 0.00222     & x3.1  & 0.000782     & x8.8  \\
-  2048 x 2048 & 0.00715      & 0.00226     & x3.2  & 0.000799     & x8.9  \\
-  5760 x 3240 & 0.0325       & 0.0108      & x3.0  & 0.00351      & x9.3  \\
-  7680 x 4320 & 0.0581       & 0.0192      & x3.0  & 0.00623      & x9.3
-  \end{tabular}
-  \end{center}
-
-  \begin{columns}
-  \column{0.5\textwidth}
-  \begin{itemize}
-    \item \footnotesize Optimal parameter values (Intel I7 2760, 2.4 GHz):
-    \begin{itemize}
-      \item \scriptsize x\_component\_number: 16
-      \item \scriptsize y\_component\_number: 4..2
-      \item \scriptsize vector\_length: 8
-      \item \scriptsize temporary\_size: 2
-      \item \scriptsize synthesizing\_loads: false
-    \end{itemize}
-  \end{itemize}
-  \column{0.5\textwidth}
-  \begin{itemize}
-    \item \footnotesize Optimal parameter values nVidia (GTX 680):
-    \begin{itemize}
-      \item \scriptsize x\_component\_number: 4
-      \item \scriptsize y\_component\_number: 4
-      \item \scriptsize vector\_length: 4
-      \item \scriptsize temporary\_size: 2
-      \item \scriptsize synthesizing\_loads: false
-    \end{itemize}
-  \end{itemize}
-  \end{columns}
-  \vspace{1cm}
-  \centering Performance \emph{portability} among several different architectures.
-\end{frame}
-
 \section{Real Applications}
 \end{comment}
 
-\begin{frame}
-  \frametitle{BigDFT}
-  \begin{center}
-    \includegraphics[scale=0.35]{Res_synthesis}
-  \end{center}
-
- \begin{itemize}
-  \item Novel approach for DFT computation based on Daubechies wavelets
-  \item Fortran and C code, MPI, OpenMP, supports CUDA and OpenCL
-   \item Reference is hand tuned code on target architecture (Nehalem)
-    \item Toward a BLAS-like library for wavelets
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{SPECFEM3D}
-
-  \begin{itemize}
-   \item Seismic wave propagation simulator
-    \item SPECFEM3D ported to OpenCL using BOAST
-    \begin{itemize}
-      \item Unified code base (CUDA/OpenCL)
-      \item Refactoring: kernel code base reduced by 40\%
-      \item Similar performance on NVIDIA Hardware
-      \item Non regression test for GPU kernels
-    \end{itemize}
-    \item On the Mont-Blanc prototype:
-    \begin{itemize}
-      \item OpenCL+MPI runs
-      \item Speedup of 3 for the GPU version
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
 \section{Conclusions}
+
+\begin{frame}
+\frametitle{Conclusions and Perspectives}
+\end{frame}
 
 \begin{frame}
   \frametitle{Conclusions}
