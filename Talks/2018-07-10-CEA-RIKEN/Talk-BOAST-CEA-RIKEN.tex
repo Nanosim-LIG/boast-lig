@@ -613,6 +613,74 @@ c = tmp[0] + tmp[1] + tmp[2] + tmp[3];
 \end{lstlisting}
 \end{frame}
 
+\subsection{Runtime}
+
+\begin{frame}
+\frametitle{Runtime}
+BOAST offers a runtime to evaluate generated kernels. Principles:
+\begin{itemize}
+\item Create a computing kernel object containing the generated code,
+\item Compile the computing kernel,
+\item Create a Ruby module in C,
+\item Link them together in a shared library,
+\item Load the module in Ruby,
+\item Call the kernel through the Ruby interface.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Kernel Creation and Compilation}
+\lstset{style=BOAST}
+\begin{lstlisting}
+n = Int("n", :dir => :in)
+a = Real("a", :dir => :in, :dim => [Dim(0, n - 1)])
+b = Real("b", :dir => :inout , :dim => [Dim(0, n - 1)])
+p = Procedure("vector_add", [n, a , b]) {
+  decl( i = Int("i") )
+  pr OpenMP::Parallel(:private => [i], :shared => [a,b]) {
+    pr For(i, 0, n - 1, :openmp => true) {
+      pr b[i] === b[i] + a[i]
+    }
+  }
+}
+set_verbose(true) # for compilation commands and warning display
+k = p.ckernel # :includes => "immintrin.h" # for AVX
+k.build(:openmp => true) # default :FCFLAGS => "-O2 -Wall", :CFLAGS => "-O2 -Wall"
+\end{lstlisting}
+Outputs:
+\lstset{language=BASH}
+\begin{lstlisting}
+gcc -O2 -Wall  -fPIC -I/usr/lib/x86_64-linux-gnu/ruby/2.5.0 -I/usr/include/ruby-2.5.0
+  -I/usr/include/ruby-2.5.0/x86_64-linux-gnu -I/usr/include/x86_64-linux-gnu/ruby-2.5.0
+  -I/var/lib/gems/2.5.0/extensions/x86_64-linux/2.5.0/narray-0.6.1.2 -march=native
+  -DHAVE_NARRAY_H -c -o /tmp/Mod_vector_add20180704_13412_zbli70.o
+  /tmp/Mod_vector_add20180704_13412_zbli70.c
+gfortran -O2 -Wall -fPIC -march=native -fopenmp -c -o /tmp/vector_add20180704_13412_zbli70.o
+  /tmp/vector_add20180704_13412_zbli70.f90
+gcc -shared -o /tmp/Mod_vector_add20180704_13412_zbli70.so
+  /tmp/Mod_vector_add20180704_13412_zbli70.o
+  /tmp/vector_add20180704_13412_zbli70.o
+  -Wl,-Bsymbolic-functions -Wl,-z,relro -rdynamic -Wl,-export-dynamic
+  -L/usr/lib -march=native -lruby-2.5 -lrt -fopenmp
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Kernel execution}
+\lstset{style=BOAST}
+\begin{lstlisting}
+epsilon = 1e-8
+n = 1024*1024
+ad = NArray.float(n).random!
+bd = NArray.float(n).random!
+bref = ad + bd
+k.run(n, ad, bd)
+raise "Computation error!" if (bd - bref).abs.max > epsilon
+res = r.run(n, ad, bd)
+puts res[:duration]
+\end{lstlisting}
+\end{frame}
+
 \section{Case Studies}
 
 \begin{frame}
