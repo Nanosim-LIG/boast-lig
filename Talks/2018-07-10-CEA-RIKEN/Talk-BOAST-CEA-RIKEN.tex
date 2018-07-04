@@ -41,6 +41,7 @@
   stringstyle=\color{javared},
   commentstyle=\color{javagreen},
   backgroundcolor=\color{white},
+  numbers=left,
   morekeywords={BOAST, pr, decl, opn, close, For, Procedure, Real, Int, If, out, inout, Dim}
 }
 \lstdefinestyle{BFortran}{
@@ -512,9 +513,104 @@ float a;
 float * b;
 a = 5.0f;
 b[3 - (1)] = a;
-=> b[3 - (1)] = a
 \end{lstlisting}
 \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{OpenMP}
+  All OpenMP constructs are supported. Simple BOAST sample:
+\lstset{style=BOAST}
+\begin{lstlisting}
+n = Int("n", :dir => :in)
+a = Real("a", :dir => :in, :dim => [Dim(0, n - 1)])
+b = Real("b", :dir => :inout , :dim => [Dim(0, n - 1)])
+pr p = Procedure("vector_add", [n, a , b]) {
+  decl( i = Int("i") )
+  pr OpenMP::Parallel(:private => [i], :shared => [a,b]) {
+    pr For(i, 0, n - 1, :openmp => true) {
+      pr b[i] === b[i] + a[i]
+    }
+  }
+}
+\end{lstlisting}
+\begin{columns}
+\column{0.65\textwidth}
+FORTRAN
+\lstset{style=BFortran}
+\begin{lstlisting}
+SUBROUTINE vector_add(n, a, b)
+  integer, parameter :: wp=kind(1.0d0)
+  integer(kind=4), intent(in) :: n
+  real(kind=8), intent(in), dimension(0:n-1) :: a
+  real(kind=8), intent(inout), dimension(0:n-1) :: b
+  integer(kind=4) :: i
+!$omp parallel  private(i) shared(a, b)
+!$omp do 
+  do i = 0, n - (1), 1
+    b(i) = b(i) + a(i)
+  end do
+!$omp end do 
+!$omp end parallel 
+END SUBROUTINE vector_add
+\end{lstlisting}
+\column{0.35\textwidth}
+C
+\lstset{style=BC}
+\begin{lstlisting}
+void vector_add(const int32_t n,
+                const double * a,
+                double * b){
+  int32_t i;
+#pragma omp parallel \
+  private(i) shared(a, b)
+{
+#pragma omp for 
+  for (i = 0; i <= n-(1); i += 1)
+  {
+    b[i] = b[i] + a[i];
+  }
+}
+}
+\end{lstlisting}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Vector Programming}
+Intrinsics supported in C, array notations used in FORTRAN.\\
+BOAST:
+\lstset{style=BOAST}
+\begin{lstlisting}
+vl = 4 ; nvec = Int "nvec"; i = Int "i"
+a = Real( "a", :vector_length => vl, :dim => [Dim(nvec)] )
+b = Real( "b", :vector_length => vl, :dim => [Dim(nvec)] )
+c = Real( "c" )
+tmp = Real "tmp", :vector_length => vl
+pr tmp.set( 0.0 )
+pr For( i, 0, nvec - 1 ) {
+  pr tmp === tmp + a[i] * b[i]
+}
+pr c === vl.times.collect { |j| tmp[j] }.reduce(:+)
+\end{lstlisting}
+FORTRAN:
+\lstset{style=BFortran}
+\begin{lstlisting}
+tmp = 0.0_wp
+do i = 0, nvec - (1), 1
+  tmp = tmp + (a(:, i)) * (b(:, i))
+end do
+c = tmp(1) + tmp(2) + tmp(3) + tmp(4)
+\end{lstlisting}
+C:
+\lstset{style=BC}
+\begin{lstlisting}
+tmp = _mm256_setzero_pd( );
+for (i = 0; i <= nvec - (1); i += 1) {
+  tmp = _mm256_add_pd( tmp, _mm256_mul_pd( a[i - (1)], b[i - (1)] ) );
+}
+c = tmp[0] + tmp[1] + tmp[2] + tmp[3];
+\end{lstlisting}
 \end{frame}
 
 \section{Case Studies}
